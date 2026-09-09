@@ -1,12 +1,14 @@
 # Yamana y Entre Hilos — qué se entregó y cómo ponerlo en marcha
 
-Entregado el 4 de septiembre de 2026. Tres archivos en `_zips/`:
+Entregado el 4 de septiembre de 2026. **Actualizado el 9 de septiembre de 2026.**
+
+Los zip están en `releases/bundles/yamana/` (ver `PUBLICAR.md`):
 
 | Archivo | Qué es | Dónde se sube |
 |---|---|---|
-| `mj-appearance.zip` | Tema padre **MJ Appearance 3.4.0** (obligatorio: el hijo y el plugin lo necesitan) | Apariencia → Temas → Añadir → Subir tema |
-| `mj-yamana.zip` | Tema hijo **Yamana** (la skin cálida artesanal) | Apariencia → Temas → Añadir → Subir tema, y **activarlo** |
-| `mj-colegas.zip` | Plugin **MJ Colegas** (colegas, comisión, liquidaciones, proyecto Entre Hilos) | Plugins → Añadir → Subir plugin |
+| `mj-appearance-3.6.0.zip` | Tema padre **MJ Appearance 3.6.0** (obligatorio: el hijo y el plugin lo necesitan) | Apariencia → Temas → Añadir → Subir tema |
+| `mj-yamana-1.1.0.zip` | Tema hijo **Yamana** (la skin cálida artesanal) | Apariencia → Temas → Añadir → Subir tema, y **activarlo** |
+| `mj-colegas-1.0.0.zip` | Plugin **MJ Colegas** (colegas, comisión, liquidaciones, proyecto Entre Hilos) | Plugins → Añadir → Subir plugin |
 
 Orden: primero el padre, después el hijo (activar Yamana), después el plugin.
 Si ya tenías MJ Appearance 3.3 instalado, subí el 3.4 encima: WordPress pregunta si querés reemplazarlo. Los ajustes guardados no se pierden.

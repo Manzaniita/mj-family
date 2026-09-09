@@ -1,14 +1,25 @@
 # GlossyHair y MJ Turnos Online — qué se entregó y cómo ponerlo en marcha
 
-Entregado el 8 de septiembre de 2026 (revisado y corregido). Tres archivos en `_zips/`:
+Entregado el 8 de septiembre de 2026. **Actualizado el 9 de septiembre de 2026.**
+
+Los zip están en `releases/bundles/glossyhair/` (se generan con
+`.\tools\build-releases.ps1`; ver `PUBLICAR.md`):
 
 | Archivo | Qué es | Dónde se sube |
 |---|---|---|
-| `mj-appearance.zip` | Tema padre **MJ Appearance 3.5.0** (obligatorio: el hijo lo necesita; sirve también para MJ Importaciones y Yamana) | Apariencia → Temas → Añadir → Subir tema |
-| `mj-glossyhair.zip` | Tema hijo **GlossyHair** (blanco + fucsia, Urbanist + Manrope, modo día) | Apariencia → Temas → Añadir → Subir tema, y **activarlo** |
-| `mj-turnos-online.zip` | Plugin **MJ Turnos Online** (turnos con seña, fichas técnicas por visita, panel en `/turnos`) | Plugins → Añadir → Subir plugin |
+| `mj-appearance-3.6.0.zip` | Tema padre **MJ Appearance 3.6.0** (obligatorio: el hijo lo necesita; sirve también para MJ Importaciones y Yamana) | Apariencia → Temas → Añadir → Subir tema |
+| `mj-glossyhair-1.1.0.zip` | Tema hijo **GlossyHair** (blanco + fucsia, Urbanist + Manrope, modo día) | Apariencia → Temas → Añadir → Subir tema, y **activarlo** |
+| `mj-turnos-online-1.1.0.zip` | Plugin **MJ Turnos Online** (turnos con seña, fichas técnicas por visita, panel en `/turnos`) | Plugins → Añadir → Subir plugin |
 
-Orden: primero el padre, después el hijo (activar GlossyHair), después el plugin. Si ya tenías MJ Appearance 3.4, subí el 3.5 encima: WordPress pregunta si querés reemplazarlo y los ajustes guardados no se pierden. El plugin no necesita WooCommerce, pero la tienda de productos sigue funcionando igual que siempre con WooCommerce activo.
+Orden: primero el padre, después el hijo (activar GlossyHair), después el plugin. Si ya tenías una versión anterior, subí la nueva encima: WordPress pregunta si querés reemplazarla y los ajustes guardados no se pierden. El plugin no necesita WooCommerce, pero la tienda de productos sigue funcionando igual que siempre con WooCommerce activo.
+
+> **Actualización del 9 de septiembre — importante.** MJ Turnos Online 1.0
+> registraba mal las capacidades del tipo de contenido "Servicios" y eso
+> **anulaba `manage_options` en todo el sitio**: con el plugin activo,
+> WordPress le respondía "no" a esa capacidad hasta a los administradores. Ese
+> era el motivo de que **no apareciera "MJ Appearance" en Apariencia** y de que
+> **no se viera la barra de administración** al iniciar sesión. Está corregido
+> en 1.1.0; hay que subir el plugin **y** el tema padre 3.6.0.
 
 Las decisiones que tomamos antes de arrancar: la clienta elige **servicio + día y hora**; el turno queda **pendiente hasta que llega la seña** (se puede cambiar a "pendiente hasta que confirmes vos" o "confirmado al instante"); **`/turnos` hace las dos cosas** (reserva pública para las clientas, panel para tu hermana cuando entra con su usuario de WordPress); **una sola agenda** y entran al panel las administradoras.
 

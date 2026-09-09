@@ -7,7 +7,7 @@
         "Parent":  null,
         "Zip":  "mj-appearance-3.6.0.zip",
         "SizeKB":  458,
-        "Sha256":  "56b6e12a2540c0743a84a7a6d25a96f58288275395d2491e23781079bc3b1bb0"
+        "Sha256":  "0e36037dfb2a185ce0df75e86ce5534a4efeee99d790c1907bbed051ce4a31e3"
     },
     {
         "Slug":  "mj-atelier",
@@ -97,7 +97,7 @@
         "Parent":  null,
         "Zip":  "mj-turnos-online-1.1.0.zip",
         "SizeKB":  230,
-        "Sha256":  "dbff1efb0b87725dad614a28162ea9cdd011ff318ea529d9dfed41de80f1ef44"
+        "Sha256":  "a3e6836a64dd491a8e5ea4f892352b9e23ca66f653552f68afab2a4210118ec9"
     },
     {
         "Slug":  "mj-yamana",
