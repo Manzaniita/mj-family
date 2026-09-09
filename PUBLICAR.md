@@ -86,17 +86,46 @@ silencio.
 
 ---
 
-## 4. Guardar la versión en el historial
+## 4. Publicar en GitHub (todo en un comando)
+
+El repositorio privado es <https://github.com/Manzaniita/mj-family>. Para dejar
+el código, la etiqueta y los zip sincronizados alcanza con:
+
+```powershell
+.\tools\publicar.ps1 -Mensaje "GlossyHair 1.2.0: nueva paleta"
+```
+
+Eso hace, en orden: comprueba que git y la sesión de GitHub estén bien, arma los
+paquetes (paso 1), comitea lo que haya cambiado, crea la etiqueta con la fecha
+de hoy, sube rama y etiqueta, y publica los zip como **Release** colgado de esa
+etiqueta. Antes de subir nada muestra qué va a hacer y pide confirmación.
+
+```powershell
+.\tools\publicar.ps1 -Mensaje "Arregla el carrito" -Version v2026.10.01
+.\tools\publicar.ps1 -Mensaje "Solo docs" -SkipBuild
+.\tools\publicar.ps1 -Mensaje "..." -Notas notas.md      # notas propias
+```
+
+Si algo no está en condiciones —falta `gh`, no hay sesión, la etiqueta ya
+existe— corta **antes** de tocar el repositorio.
+
+### A mano, si preferís
 
 ```bash
 git add -A
 git commit -m "GlossyHair 1.1.0: paletas configurables"
 git tag -a v2026.09.09 -m "GlossyHair 1.1.0, MJ Appearance 3.6.0, Turnos 1.1.0"
+git push origin main
+git push origin v2026.09.09
+gh release create v2026.09.09 releases/*.zip --title "v2026.09.09"
 ```
 
-Los `.zip` **no** se versionan (se rehacen en cualquier momento con el script),
-pero `releases/MANIFEST.md` **sí**: ahí queda registrado con qué SHA-256 se
-subió cada versión a producción, aunque el archivo ya no esté en la carpeta.
+### Qué se guarda y qué no
+
+Los `.zip` **no** se versionan (se rehacen en cualquier momento con el script y
+quedan publicados en las Releases), pero `releases/MANIFEST.md` **sí**: ahí
+queda registrado con qué SHA-256 se subió cada versión a producción, aunque el
+archivo ya no esté en la carpeta.
 
 Para volver a una versión de antes:
 
@@ -107,6 +136,16 @@ git checkout v2026.09.09
 
 Sale el mismo zip que se subió aquel día (los hashes se pueden comparar contra
 el `MANIFEST.md` de esa etiqueta).
+
+### Bajar los zip sin tener el proyecto
+
+Desde otra computadora, con `gh` instalado:
+
+```bash
+gh release download v2026.09.09 --repo Manzaniita/mj-family --dir zips
+```
+
+O desde la web, en la pestaña **Releases** del repositorio.
 
 ---
 

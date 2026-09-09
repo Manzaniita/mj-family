@@ -74,7 +74,21 @@ cabecera, y deja en `releases/`:
 
 Los zip de cada versión publicada también quedan en las
 [Releases](../../releases) de este repositorio, para bajarlos sin tener el
-proyecto en la máquina.
+proyecto en la máquina:
+
+```bash
+gh release download v2026.09.09 --repo Manzaniita/mj-family --dir zips
+```
+
+### Publicar una versión nueva
+
+```powershell
+.\tools\publicar.ps1 -Mensaje "GlossyHair 1.2.0: nueva paleta"
+```
+
+Compila, arma los zip, comitea, etiqueta, sube todo a GitHub y publica los
+paquetes como Release. Pide confirmación antes de subir y corta si algo no está
+en condiciones.
 
 > **Regla que no se saltea:** el tema padre **MJ Appearance** va primero. Un
 > tema hijo sin su padre aparece como "tema roto" en WordPress.
