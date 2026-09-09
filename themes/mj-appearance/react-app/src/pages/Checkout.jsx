@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Lock, Check, ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, Check, ChevronLeft, Loader2, AlertCircle, Zap, Pencil } from 'lucide-react';
 import { Section } from '@/components/layout/Layout';
 import { Input, Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -9,7 +9,7 @@ import { ProductImage } from '@/components/ui/ProductImage';
 import { Reveal } from '@/components/motion/Reveal';
 import { useCart } from '@/store';
 import { effectivePrice } from '@/lib/api';
-import { IS_WP, WP, EXCHANGE_RATE } from '@/lib/config';
+import { IS_WP, WP, EXCHANGE_RATE, EXPRESS } from '@/lib/config';
 import * as wc from '@/lib/wc';
 import { formatPrice, formatUsd, FREE_SHIPPING_THRESHOLD, isValidCuit, cn } from '@/lib/format';
 import { usePaymentMethod, selectedMethodId, findMethod, resolveAdjustment, usdTotalFor } from '@/lib/payments';
@@ -58,6 +58,40 @@ function ChoiceGroup({ options, value, onChange }) {
   );
 }
 
+/**
+ * Datos mínimos para poder cerrar un pedido sin preguntar nada más.
+ *
+ * Es la única condición de la compra rápida: si falta algo de esto, el atajo no aparece — mostrar
+ * un botón que después va a fallar sería peor que pedir los datos de entrada.
+ */
+function isComplete(form) {
+  return ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'postcode']
+    .every((key) => String(form[key] || '').trim() !== '');
+}
+
+/** Resumen compacto de a dónde va el pedido, con un botón para volver al formulario. */
+function ExpressSummary({ form, onEdit }) {
+  return (
+    <div className="mj-panel rounded-xl3 border border-line glass p-7">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-display text-lg font-semibold tracking-tight">Tus datos</h2>
+          <p className="mt-3 text-sm text-ink">{form.firstName} {form.lastName}</p>
+          <p className="text-sm text-ink-soft">{form.address}, {form.city} ({form.postcode})</p>
+          <p className="text-sm text-ink-soft">{form.email} · {form.phone}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink"
+        >
+          <Pencil size={13} /> Cambiar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** Checkout de una sola página, minimalista — crea la orden real en WooCommerce. */
 export default function Checkout() {
   const { items, clear, syncing, server } = useCart();
@@ -84,6 +118,12 @@ export default function Checkout() {
   // Paso 4 · Facturación. fiscalCfg = config del emisor según el plugin
   // (null = plugin inactivo o todavía no respondió → el paso no se muestra).
   const [fiscalCfg, setFiscalCfg] = useState(null);
+  /*
+   * Compra rápida. `expressReady` se enciende cuando llegan datos guardados completos; `express`
+   * es lo que se está mostrando ahora, y el cliente lo apaga apenas toca "Cambiar".
+   */
+  const [expressReady, setExpressReady] = useState(false);
+  const [express, setExpress] = useState(false);
   const [factura, setFactura] = useState({
     solicita: false,
     tipo: 'B', // A | B — la C se impone sola según la condición del emisor
@@ -119,16 +159,31 @@ export default function Checkout() {
     wc.getAccount()
       .then((acc) => {
         const b = acc?.addresses?.billing ?? {};
-        setForm((f) => ({
-          ...f,
-          firstName: f.firstName || b.first_name || '',
-          lastName: f.lastName || b.last_name || '',
-          email: f.email || b.email || WP.user.email || '',
-          phone: f.phone || b.phone || '',
-          address: f.address || b.address_1 || '',
-          city: f.city || b.city || '',
-          postcode: f.postcode || b.postcode || '',
-        }));
+        const filled = {
+          firstName: b.first_name || '',
+          lastName: b.last_name || '',
+          email: b.email || WP.user.email || '',
+          phone: b.phone || '',
+          address: b.address_1 || '',
+          city: b.city || '',
+          postcode: b.postcode || '',
+        };
+
+        setForm((f) => {
+          const merged = { ...f };
+          Object.keys(filled).forEach((key) => {
+            if (!String(merged[key] || '').trim()) merged[key] = filled[key];
+          });
+          return merged;
+        });
+
+        if (EXPRESS.enabled && isComplete(filled)) {
+          setExpressReady(true);
+          setExpress(EXPRESS.auto);
+          // El envío se calcula ya mismo: en modo rápido no hay un blur del CP que lo dispare, y
+          // el total tiene que estar bien antes de que alguien apriete el botón.
+          prefetchShipping(filled);
+        }
       })
       .catch(() => {});
   }, []);
@@ -165,6 +220,25 @@ export default function Checkout() {
    * para la dirección cargada; si ninguna queda seleccionada, elegimos
    * la primera disponible.
    */
+  /** Pide las tarifas de envío con una dirección ya conocida (compra rápida). */
+  const prefetchShipping = async (data) => {
+    if (!IS_WP || String(data.postcode || '').trim().length < 4) return;
+    try {
+      await wc.updateCustomerAddress({
+        postcode: data.postcode,
+        city: data.city,
+        address_1: data.address,
+        country: WP?.baseCountry,
+      });
+      const rates = useCart.getState().shipping?.rates ?? [];
+      if (rates.length && !rates.some((r) => r.selected)) {
+        await wc.selectShippingRate(rates[0].rate_id);
+      }
+    } catch {
+      // El resumen queda con "Se calcula al finalizar" y el checkout sigue andando.
+    }
+  };
+
   const syncShippingRates = async () => {
     if (!IS_WP || form.postcode.trim().length < 4) return;
     try {
@@ -312,8 +386,33 @@ export default function Checkout() {
         </p>
       </Reveal>
 
+      {expressReady && !express && (
+        <Reveal className="mt-8">
+          <button
+            type="button"
+            onClick={() => setExpress(true)}
+            className="mj-panel flex w-full items-center justify-between gap-4 rounded-xl3 border border-accent/40 bg-accent-soft p-5 text-left transition-colors hover:border-accent"
+          >
+            <span className="flex items-center gap-3">
+              <Zap size={18} className="shrink-0 text-accent" />
+              <span>
+                <span className="block text-sm font-semibold">Comprar rápido</span>
+                <span className="block text-xs text-ink-soft">Usamos los datos que ya tenemos y salteás los pasos.</span>
+              </span>
+            </span>
+            <span className="shrink-0 text-sm font-medium text-accent">Usar</span>
+          </button>
+        </Reveal>
+      )}
+
       <form onSubmit={submit} className="mt-10 grid gap-10 lg:grid-cols-[1fr_400px]">
         <div className="space-y-8">
+          {express ? (
+            <Reveal>
+              <ExpressSummary form={form} onEdit={() => setExpress(false)} />
+            </Reveal>
+          ) : (
+          <>
           <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
             <h2 className="font-display text-lg font-semibold tracking-tight">1 · Contacto</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -332,9 +431,11 @@ export default function Checkout() {
               <Input label="Código postal" required placeholder="CP" autoComplete="postal-code" {...field('postcode')} onBlur={syncShippingRates} />
             </div>
           </Reveal>
+          </>
+          )}
 
           <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
-            <h2 className="font-display text-lg font-semibold tracking-tight">3 · Pago</h2>
+            <h2 className="font-display text-lg font-semibold tracking-tight">{express ? 'Pago' : '3 · Pago'}</h2>
             {noGateways ? (
               <div className="mt-5 flex items-start gap-3 rounded-xl2 border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
                 <AlertCircle size={17} className="mt-0.5 shrink-0" />
@@ -379,14 +480,18 @@ export default function Checkout() {
 
           {fiscalCfg && (
             <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
-              <h2 className="font-display text-lg font-semibold tracking-tight">4 · Facturación</h2>
+              <h2 className="font-display text-lg font-semibold tracking-tight">{express ? 'Facturación' : '4 · Facturación'}</h2>
               <ChoiceGroup
                 options={[
                   { value: 'no', title: 'No necesito factura' },
                   { value: 'si', title: 'Sí, necesito factura', description: 'Se emite al completarse el pedido' },
                 ]}
                 value={factura.solicita ? 'si' : 'no'}
-                onChange={(v) => setFactura((f) => ({ ...f, solicita: v === 'si' }))}
+                onChange={(v) => {
+                  setFactura((f) => ({ ...f, solicita: v === 'si' }));
+                  // Pedir factura vuelve a abrir el formulario: hay datos fiscales que confirmar.
+                  if (v === 'si' && express) setExpress(false);
+                }}
               />
 
               {factura.solicita && (
@@ -574,9 +679,14 @@ export default function Checkout() {
               )}
             </dl>
             <Button type="submit" size="lg" className="mt-6 w-full" disabled={placing || noGateways}>
-              {placing ? <Loader2 size={15} className="animate-spin" /> : <Lock size={15} />}
-              {placing ? 'Procesando…' : `Pagar ${formatPrice(total)}`}
+              {placing ? <Loader2 size={15} className="animate-spin" /> : (express ? <Zap size={15} /> : <Lock size={15} />)}
+              {placing ? 'Procesando…' : `${express ? EXPRESS.label : 'Pagar'} ${formatPrice(total)}`}
             </Button>
+            {express && (
+              <p className="mt-3 text-center text-xs text-ink-faint">
+                Se envía a {form.address}, {form.city}.
+              </p>
+            )}
           </div>
         </Reveal>
       </form>

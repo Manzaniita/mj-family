@@ -159,6 +159,89 @@
 	 * Alta / edición de un revendedor.
 	 * @param {Object} opts { consignee?, onSaved(consignee) }
 	 */
+	/**
+	 * Permisos de un revendedor concreto.
+	 *
+	 * Solo se guarda lo que este revendedor pisa: «Heredar» borra la clave y vuelve a seguir lo que
+	 * diga su rol o el ajuste general, incluso si eso cambia mañana.
+	 */
+	const PERM_TRISTATE = [
+		{ value: '', label: 'Heredar' },
+		{ value: '1', label: 'Sí' },
+		{ value: '0', label: 'No' },
+	];
+
+	function permissionCatalogue() {
+		const info = (MJ.state.bootstrap && MJ.state.bootstrap.sales) || {};
+		return info.permissions && typeof info.permissions === 'object' ? info.permissions : {};
+	}
+
+	function permissionsFieldsHtml(fid, consignee) {
+		const keys = permissionCatalogue();
+		const names = Object.keys(keys);
+		if (!names.length) return '';
+
+		const own = (consignee && consignee.permissions && typeof consignee.permissions === 'object') ? consignee.permissions : {};
+		const effective = (consignee && consignee.effective_permissions && typeof consignee.effective_permissions === 'object') ? consignee.effective_permissions : {};
+
+		const lists = (function () {
+			try { return MJ.lists.priceLists() || []; } catch (e) { return []; }
+		})();
+
+		const rows = names.map(function (key) {
+			const def = keys[key] || {};
+			const has = Object.prototype.hasOwnProperty.call(own, key);
+			const id = fid + '-perm-' + key;
+
+			// Los medios de pago habilitados se configuran por rol; por usuario sería una lista
+			// dentro de otra lista y no aporta.
+			if (def.type === 'methods') return '';
+
+			if (def.type === 'enum' || def.type === 'price_list') {
+				const options = def.type === 'enum'
+					? Object.keys(def.options || {}).map(function (k) { return { value: k, label: def.options[k] }; })
+					: [{ value: '', label: 'La lista general' }].concat(lists.map(function (l) { return { value: l.key, label: l.label }; }));
+				return '<div class="mj-field">' +
+					'<label class="mj-field__label" for="' + id + '">' + h(def.label || key) + '</label>' +
+					'<select class="mj-select" id="' + id + '" data-perm="' + h(key) + '" data-perm-type="enum">' +
+						optionsHtml([{ value: '__inherit__', label: 'Heredar' }].concat(options), has ? String(own[key]) : '__inherit__') +
+					'</select>' +
+				'</div>';
+			}
+
+			const inherited = effective[key] ? 'Sí' : 'No';
+			return '<div class="mj-field">' +
+				'<label class="mj-field__label" for="' + id + '">' + h(def.label || key) + '</label>' +
+				'<select class="mj-select" id="' + id + '" data-perm="' + h(key) + '" data-perm-type="bool">' +
+					optionsHtml(PERM_TRISTATE, has ? (own[key] ? '1' : '0') : '') +
+				'</select>' +
+				(has ? '' : '<div class="mj-field__hint mj-small mj-muted">Hoy hereda: ' + h(inherited) + '</div>') +
+			'</div>';
+		}).join('');
+
+		return '<details class="mj-details mj-mt">' +
+			'<summary class="mj-details__summary"><span class="mj-strong">Permisos de este revendedor</span> ' +
+				'<span class="mj-small mj-muted">' + (Object.keys(own).length ? Object.keys(own).length + ' cambios propios' : 'hereda todo') + '</span>' +
+			'</summary>' +
+			'<div class="mj-details__body">' +
+				'<div class="mj-form-row">' + rows + '</div>' +
+			'</div>' +
+		'</details>';
+	}
+
+	/** Lee los selectores de permisos del formulario. `{}` = no pisa nada. */
+	function readPermissions(form) {
+		const out = {};
+		MJ.ui.qsa('[data-perm]', form).forEach(function (el) {
+			const key = el.getAttribute('data-perm');
+			const type = el.getAttribute('data-perm-type');
+			const value = el.value;
+			if (value === '' || value === '__inherit__') return;
+			out[key] = type === 'bool' ? value === '1' : value;
+		});
+		return out;
+	}
+
 	C.consigneeModal = function (opts) {
 		opts = opts || {};
 		const editing = opts.consignee && opts.consignee.id ? opts.consignee : null;
@@ -234,6 +317,7 @@
 				(editing
 					? '<label class="mj-checkbox"><input type="checkbox" name="is_active"' + (editing.is_active !== false ? ' checked' : '') + '> <span>Activo</span></label>'
 					: '<label class="mj-checkbox"><input type="checkbox" name="send_invite" checked data-invite> <span>Mandarle un email para que elija su contraseña</span></label>') +
+				permissionsFieldsHtml(fid, editing) +
 			'</form>';
 
 		const footer =
@@ -330,6 +414,8 @@
 					};
 					const email = String(data.email || '').trim();
 					if (email) payload.email = email;
+
+					payload.permissions = readPermissions(form);
 
 					if (editing) {
 						payload.is_active = !!data.is_active;

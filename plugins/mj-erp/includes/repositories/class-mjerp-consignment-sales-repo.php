@@ -25,6 +25,8 @@ class MJERP_Consignment_Sales_Repo {
 
 	const SOURCE_ADMIN  = 'admin';
 	const SOURCE_PORTAL = 'portal';
+	/** The reseller bought it on the shop and it came out of what they were holding. */
+	const SOURCE_SHOP = 'tienda';
 
 	const MOVEMENT_TYPE   = 'consignment_sale';
 	const MOVEMENT_REVERT = 'consignment_sale_revert';
@@ -48,6 +50,9 @@ class MJERP_Consignment_Sales_Repo {
 		'status'              => '%s',
 		'source'              => '%s',
 		'stock_applied'       => '%d',
+		'order_id'            => '%d',
+		'order_item_id'       => '%d',
+		'sale_id'             => '%d',
 		'note'                => '%s',
 		'created_by'          => '%d',
 		'approved_by'         => '%d',
@@ -234,15 +239,19 @@ class MJERP_Consignment_Sales_Repo {
 	/**
 	 * Registers a sale reported by the reseller (or loaded by the shop owner).
 	 *
-	 * @param array  $data   consignment_item_id (required), qty, sale_date, retail_amount,
-	 *                       retail_currency, note, unit_price_base (admin override).
-	 * @param string $source admin | portal.
+	 * @param array  $data    consignment_item_id (required), qty, sale_date, retail_amount,
+	 *                        retail_currency, note, unit_price_base (admin override).
+	 * @param string $source  admin | portal | tienda.
+	 * @param array  $context Extra bookkeeping for a sale that came from a WooCommerce order:
+	 *                        order_id, order_item_id, sale_id and `stock_already_applied` — set that
+	 *                        last one when WooCommerce already took the units out, so the stock is
+	 *                        recorded as gone without discounting it a second time.
 	 * @return int|WP_Error New sale id.
 	 */
-	public static function create( array $data, string $source = self::SOURCE_ADMIN ) {
+	public static function create( array $data, string $source = self::SOURCE_ADMIN, array $context = array() ) {
 		global $wpdb;
 
-		$source = self::SOURCE_PORTAL === $source ? self::SOURCE_PORTAL : self::SOURCE_ADMIN;
+		$source = self::sanitize_source( $source );
 
 		$item = MJERP_Consignments_Repo::find_item( isset( $data['consignment_item_id'] ) ? $data['consignment_item_id'] : 0 );
 		if ( ! $item ) {
@@ -302,6 +311,10 @@ class MJERP_Consignment_Sales_Repo {
 		$status = self::initial_status( $source );
 		$now    = current_time( 'mysql' );
 
+		// A sale that mirrors an order arrives with the stock already gone: WooCommerce reduced it
+		// when the order was placed, so `apply_stock()` must not run again.
+		$stock_done = ! empty( $context['stock_already_applied'] );
+
 		$row = array(
 			'consignee_id'        => (int) $item['consignee_id'],
 			'consignment_id'      => (int) $item['consignment_id'],
@@ -319,7 +332,10 @@ class MJERP_Consignment_Sales_Repo {
 			'sale_date'           => $date,
 			'status'              => $status,
 			'source'              => $source,
-			'stock_applied'       => 0,
+			'stock_applied'       => $stock_done ? 1 : 0,
+			'order_id'            => isset( $context['order_id'] ) ? absint( $context['order_id'] ) : 0,
+			'order_item_id'       => isset( $context['order_item_id'] ) ? absint( $context['order_item_id'] ) : 0,
+			'sale_id'             => isset( $context['sale_id'] ) ? absint( $context['sale_id'] ) : 0,
 			'note'                => isset( $data['note'] ) ? MJERP_Helpers::text( $data['note'], 255 ) : '',
 			'created_by'          => get_current_user_id(),
 			'created_at'          => $now,
@@ -333,7 +349,7 @@ class MJERP_Consignment_Sales_Repo {
 
 		$id = (int) $wpdb->insert_id;
 
-		if ( self::STATUS_APPROVED === $status ) {
+		if ( self::STATUS_APPROVED === $status && ! $stock_done ) {
 			self::apply_approval( $id );
 		}
 
@@ -354,10 +370,22 @@ class MJERP_Consignment_Sales_Repo {
 	/**
 	 * Status a new sale starts in, per the `consignment_approval` setting.
 	 *
-	 * @param string $source admin | portal.
+	 * A sale that came from the shop has its own switch (`sales_consignment_approval`): the reseller
+	 * did not report it by word, they rang it up on the shop and the order exists, so waiting for a
+	 * confirmation is a choice rather than the obvious default.
+	 *
+	 * @param string $source admin | portal | tienda.
 	 * @return string
 	 */
 	public static function initial_status( string $source ) : string {
+		$source = self::sanitize_source( $source );
+
+		if ( self::SOURCE_SHOP === $source ) {
+			return 'pendiente' === (string) MJERP_Settings::get( 'sales_consignment_approval', 'auto' )
+				? self::STATUS_PENDING
+				: self::STATUS_APPROVED;
+		}
+
 		$mode = (string) MJERP_Settings::get( 'consignment_approval', 'portal' );
 
 		if ( 'always' === $mode ) {
@@ -368,6 +396,42 @@ class MJERP_Consignment_Sales_Repo {
 		}
 		// 'portal': only what the reseller loads needs a confirmation.
 		return self::SOURCE_PORTAL === $source ? self::STATUS_PENDING : self::STATUS_APPROVED;
+	}
+
+	/**
+	 * Source sanitizer.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string
+	 */
+	public static function sanitize_source( $value ) : string {
+		$value = sanitize_key( (string) $value );
+		return in_array( $value, array( self::SOURCE_ADMIN, self::SOURCE_PORTAL, self::SOURCE_SHOP ), true )
+			? $value
+			: self::SOURCE_ADMIN;
+	}
+
+	/**
+	 * Consignment sales generated by a WooCommerce order.
+	 *
+	 * @param int $order_id Order id.
+	 * @return array
+	 */
+	public static function for_order( $order_id ) : array {
+		global $wpdb;
+
+		$order_id = absint( $order_id );
+		if ( ! $order_id ) {
+			return array();
+		}
+		$table = self::table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE order_id = %d ORDER BY id ASC", $order_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+
+		$out = array();
+		foreach ( (array) $rows as $row ) {
+			$out[] = self::cast( $row );
+		}
+		return $out;
 	}
 
 	/**
@@ -586,17 +650,20 @@ class MJERP_Consignment_Sales_Repo {
 	 * Deletes a sale. Refused when a payment was applied to it: money would be left pointing at
 	 * nothing, which is exactly what this module exists to prevent.
 	 *
-	 * @param int $id Sale id.
+	 * @param int   $id      Sale id.
+	 * @param array $context `skip_stock` when the stock was already put back by someone else
+	 *                       (a cancelled WooCommerce order restocks on its own), and `force` to
+	 *                       delete a sale that still has payments allocated to it.
 	 * @return true|WP_Error
 	 */
-	public static function delete( $id ) {
+	public static function delete( $id, array $context = array() ) {
 		global $wpdb;
 
 		$sale = self::find( $id );
 		if ( ! $sale ) {
 			return new WP_Error( 'mjerp_not_found', __( 'La venta no existe.', 'mj-erp' ), array( 'status' => 404 ) );
 		}
-		if ( $sale['allocated_base'] > 0.0001 ) {
+		if ( $sale['allocated_base'] > 0.0001 && empty( $context['force'] ) ) {
 			return new WP_Error(
 				'mjerp_sale_paid',
 				__( 'La venta tiene pagos aplicados: quitá o reasigná el pago antes de borrarla.', 'mj-erp' ),
@@ -604,7 +671,7 @@ class MJERP_Consignment_Sales_Repo {
 			);
 		}
 
-		if ( $sale['stock_applied'] ) {
+		if ( $sale['stock_applied'] && empty( $context['skip_stock'] ) ) {
 			self::revert_stock( $sale, __( 'Venta eliminada', 'mj-erp' ) );
 		}
 
@@ -835,6 +902,9 @@ class MJERP_Consignment_Sales_Repo {
 			'status'              => $status,
 			'source'              => (string) self::v( $row, 'source', self::SOURCE_ADMIN ),
 			'stock_applied'       => (bool) (int) self::v( $row, 'stock_applied', 0 ),
+			'order_id'            => (int) self::v( $row, 'order_id', 0 ),
+			'order_item_id'       => (int) self::v( $row, 'order_item_id', 0 ),
+			'sale_id'             => (int) self::v( $row, 'sale_id', 0 ),
 			'note'                => (string) self::v( $row, 'note' ),
 			'created_by'          => (int) self::v( $row, 'created_by', 0 ),
 			'created_by_name'     => MJERP_Helpers::user_display_name( self::v( $row, 'created_by', 0 ) ),

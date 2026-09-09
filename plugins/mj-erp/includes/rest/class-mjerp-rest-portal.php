@@ -95,6 +95,42 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 
 		register_rest_route(
 			$ns,
+			'/portal/payments',
+			array(
+				$this->portal_endpoint(
+					WP_REST_Server::READABLE,
+					'list_payments',
+					array(
+						'page'     => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
+						'per_page' => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
+					)
+				),
+				$this->portal_endpoint(
+					WP_REST_Server::CREATABLE,
+					'create_payment',
+					array(
+						'amount'       => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+						'currency'     => array( 'sanitize_callback' => array( $this, 'arg_currency' ) ),
+						'method'       => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
+						'payment_date' => array( 'sanitize_callback' => array( $this, 'arg_date' ) ),
+						'reference'    => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+						'note'         => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+					)
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/portal/payments/(?P<id>\d+)',
+			array(
+				'args' => array( 'id' => $this->id_arg( __( 'ID del pago.', 'mj-erp' ) ) ),
+				$this->portal_endpoint( WP_REST_Server::DELETABLE, 'delete_payment' ),
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			'/portal/returns',
 			array(
 				$this->portal_endpoint(
@@ -214,10 +250,77 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 						'per_page'     => 30,
 					)
 				),
-				'can_sell'   => MJERP_Helpers::bool( MJERP_Settings::get( 'portal_allow_sales', true ) ),
-				'can_return' => MJERP_Helpers::bool( MJERP_Settings::get( 'portal_allow_returns', false ) ),
+				'payments'   => $this->can( 'see_account' )
+					? MJERP_Consignment_Payments_Repo::query(
+						array(
+							'consignee_id' => $id,
+							'per_page'     => 30,
+						)
+					)
+					: array( 'items' => array() ),
+				'can'        => $this->abilities(),
+				'payment_methods' => $this->allowed_methods(),
+				// Kept for older portal builds that read these two names.
+				'can_sell'   => $this->can( 'report_sale' ),
+				'can_return' => $this->can( 'returns' ),
 			)
 		);
+	}
+
+	/* ------------------------------------------------------------------
+	 * Configurable abilities
+	 * ---------------------------------------------------------------- */
+
+	/**
+	 * Whether the reseller holds a permission, with the global portal switches as a hard ceiling:
+	 * turning a feature off for everyone can never be overridden per role or per user.
+	 *
+	 * @param string $permission Permission key.
+	 * @return bool
+	 */
+	protected function can( string $permission ) : bool {
+		$consignee = $this->current_consignee();
+		if ( is_wp_error( $consignee ) || ! is_array( $consignee ) ) {
+			return false;
+		}
+
+		if ( 'report_sale' === $permission && ! MJERP_Helpers::bool( MJERP_Settings::get( 'portal_allow_sales', true ) ) ) {
+			return false;
+		}
+		if ( 'returns' === $permission && ! MJERP_Helpers::bool( MJERP_Settings::get( 'portal_allow_returns', false ) ) ) {
+			return false;
+		}
+
+		return MJERP_Permissions::can( $permission, (int) $consignee['user_id'], $consignee );
+	}
+
+	/**
+	 * Everything the portal UI needs to know about what this reseller may do.
+	 *
+	 * @return array
+	 */
+	protected function abilities() : array {
+		return array(
+			'report_sale'            => $this->can( 'report_sale' ),
+			'register_payment'       => $this->can( 'register_payment' ),
+			'partial_payments'       => $this->can( 'partial_payments' ),
+			'payment_needs_approval' => $this->can( 'payment_needs_approval' ),
+			'returns'                => $this->can( 'returns' ),
+			'see_account'            => $this->can( 'see_account' ),
+		);
+	}
+
+	/**
+	 * Payment methods this reseller is allowed to use.
+	 *
+	 * @return array
+	 */
+	protected function allowed_methods() : array {
+		$consignee = $this->current_consignee();
+		if ( is_wp_error( $consignee ) || ! is_array( $consignee ) ) {
+			return array();
+		}
+		return MJERP_Permissions::payment_methods( (int) $consignee['user_id'], $consignee );
 	}
 
 	/**
@@ -264,7 +367,7 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_sale( $request ) {
-		if ( ! MJERP_Helpers::bool( MJERP_Settings::get( 'portal_allow_sales', true ) ) ) {
+		if ( ! $this->can( 'report_sale' ) ) {
 			return $this->fail( 'mjerp_portal_sales_disabled', __( 'Por ahora las ventas las carga el administrador.', 'mj-erp' ), 403 );
 		}
 
@@ -352,6 +455,10 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_account( $request ) {
+		if ( ! $this->can( 'see_account' ) ) {
+			return $this->fail( 'mjerp_portal_account_hidden', __( 'Tu cuenta corriente la lleva el administrador.', 'mj-erp' ), 403 );
+		}
+
 		$p  = $this->params( $request );
 		$id = $this->consignee_id();
 
@@ -359,8 +466,149 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 			array(
 				'account'   => $this->public_account( MJERP_Consignment_Account::summary( $id ) ),
 				'statement' => MJERP_Consignment_Account::statement( $id, $this->int( $p, 'limit', 100 ) ),
+				'payments'  => MJERP_Consignment_Payments_Repo::query(
+					array(
+						'consignee_id' => $id,
+						'per_page'     => min( 100, max( 1, $this->int( $p, 'limit', 100 ) ) ),
+					)
+				),
 			)
 		);
+	}
+
+	/**
+	 * GET /portal/payments
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function list_payments( $request ) {
+		if ( ! $this->can( 'see_account' ) ) {
+			return $this->fail( 'mjerp_portal_account_hidden', __( 'Tu cuenta corriente la lleva el administrador.', 'mj-erp' ), 403 );
+		}
+
+		$p = $this->params( $request );
+
+		return $this->ok(
+			MJERP_Consignment_Payments_Repo::query(
+				array(
+					'consignee_id' => $this->consignee_id(),
+					'page'         => $this->int( $p, 'page', 1 ),
+					'per_page'     => min( 100, max( 1, $this->int( $p, 'per_page', 30 ) ) ),
+				)
+			)
+		);
+	}
+
+	/**
+	 * POST /portal/payments — the reseller records what they paid.
+	 *
+	 * Whether that money counts right away or waits for the shop owner is the
+	 * `payment_needs_approval` permission, resolved per role and per user.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_payment( $request ) {
+		if ( ! $this->can( 'register_payment' ) ) {
+			return $this->fail( 'mjerp_portal_payments_disabled', __( 'Los pagos los registra el administrador.', 'mj-erp' ), 403 );
+		}
+
+		$p         = $this->params( $request );
+		$consignee = $this->current_consignee();
+		$id        = (int) $consignee['id'];
+
+		$account = MJERP_Consignment_Account::summary( $id );
+		$owed    = (float) $account['balance_base'];
+
+		$amount = $this->float( $p, 'amount' );
+		if ( $amount <= 0 ) {
+			return $this->fail( 'mjerp_invalid_amount', __( 'Poné cuánto pagaste.', 'mj-erp' ), 400, array( 'field' => 'amount' ) );
+		}
+
+		$currency = $this->currency( $p, 'currency', strtoupper( (string) MJERP_Settings::get( 'local_currency', 'ARS' ) ) );
+		$rate     = MJERP_Helpers::to_float( MJERP_Settings::get( 'sale_rate', 1 ) );
+		$base     = strtoupper( (string) MJERP_Settings::get( 'base_currency', 'USD' ) );
+		$in_base  = MJERP_Helpers::to_base( $amount, $currency, $rate, $base );
+
+		if ( ! $this->can( 'partial_payments' ) && $owed > 0 && $in_base + 0.01 < $owed ) {
+			return $this->fail(
+				'mjerp_partial_not_allowed',
+				__( 'Tenés que cancelar el total de tu cuenta; los pagos parciales no están habilitados.', 'mj-erp' ),
+				403,
+				array( 'field' => 'amount' )
+			);
+		}
+
+		$method = $this->str( $p, 'method' );
+		if ( '' !== $method && ! MJERP_Permissions::allows_method( $method, (int) $consignee['user_id'], $consignee ) ) {
+			return $this->fail( 'mjerp_method_not_allowed', __( 'Ese medio de pago no está habilitado para vos.', 'mj-erp' ), 403, array( 'field' => 'method' ) );
+		}
+		if ( '' === $method ) {
+			$methods = $this->allowed_methods();
+			$method  = ! empty( $methods ) ? (string) $methods[0]['key'] : '';
+		}
+
+		$status = $this->can( 'payment_needs_approval' )
+			? MJERP_Consignment_Payments_Repo::STATUS_DECLARED
+			: MJERP_Consignment_Payments_Repo::STATUS_CONFIRMED;
+
+		$payment_id = MJERP_Consignment_Payments_Repo::create(
+			array(
+				'consignee_id' => $id,
+				'kind'         => MJERP_Consignment_Payments_Repo::KIND_PAYMENT,
+				'amount'       => $amount,
+				'currency'     => $currency,
+				'rate'         => $rate,
+				'method'       => $method,
+				'payment_date' => $this->str( $p, 'payment_date' ),
+				'reference'    => $this->str( $p, 'reference', '', 190 ),
+				'note'         => $this->str( $p, 'note', '', 255 ),
+				'status'       => $status,
+				'source'       => MJERP_Consignment_Payments_Repo::SOURCE_PORTAL,
+			)
+		);
+		if ( is_wp_error( $payment_id ) ) {
+			return $payment_id;
+		}
+
+		return $this->ok(
+			array(
+				'id'          => $payment_id,
+				'status'      => $status,
+				'needs_approval' => MJERP_Consignment_Payments_Repo::STATUS_DECLARED === $status,
+				'account'     => $this->public_account( MJERP_Consignment_Account::summary( $id ) ),
+			),
+			201
+		);
+	}
+
+	/**
+	 * DELETE /portal/payments/{id} — a reseller may take back a payment they declared, and only
+	 * while nobody confirmed it.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function delete_payment( $request ) {
+		if ( ! $this->can( 'register_payment' ) ) {
+			return $this->fail( 'mjerp_portal_payments_disabled', __( 'Los pagos los registra el administrador.', 'mj-erp' ), 403 );
+		}
+
+		$payment = MJERP_Consignment_Payments_Repo::find( $this->route_id( $request ) );
+		if ( ! $payment || (int) $payment['consignee_id'] !== $this->consignee_id() ) {
+			return $this->fail( 'mjerp_not_found', __( 'El pago no existe.', 'mj-erp' ), 404 );
+		}
+		if ( ! $payment['is_declared'] ) {
+			return $this->fail( 'mjerp_payment_confirmed', __( 'Ese pago ya fue confirmado: hablalo con el administrador.', 'mj-erp' ), 409 );
+		}
+
+		$result = MJERP_Consignment_Payments_Repo::delete( (int) $payment['id'] );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->ok( array( 'deleted' => true ) );
 	}
 
 	/**
@@ -370,7 +618,7 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_return( $request ) {
-		if ( ! MJERP_Helpers::bool( MJERP_Settings::get( 'portal_allow_returns', false ) ) ) {
+		if ( ! $this->can( 'returns' ) ) {
 			return $this->fail( 'mjerp_portal_returns_disabled', __( 'Las devoluciones las registra el administrador.', 'mj-erp' ), 403 );
 		}
 
@@ -446,6 +694,8 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 			'credit_limit_base',
 			'credit_available_base',
 			'over_limit',
+			'declared_base',
+			'declared_count',
 		);
 
 		$out = array();

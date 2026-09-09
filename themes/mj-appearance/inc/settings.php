@@ -84,6 +84,10 @@ function mj_option_defaults() {
 		'login_remember_default'  => 1,  // "Recordarme" viene marcado.
 		'login_reload'            => 1,  // Recargar la tienda al iniciar/cerrar sesión.
 		'account_path'            => '', // Ruta de "mi cuenta" en la SPA (vacío = /cuenta).
+		/* Compra rápida: quien ya tiene sus datos guardados compra sin volver a cargarlos. */
+		'express_checkout'        => 1,  // Ofrecer la compra rápida a quien ya compró antes.
+		'express_auto'            => 1,  // Entrar directo en modo rápido (si no, hay que pedirlo).
+		'express_label'           => '', // Texto del botón (vacío = "Comprar ahora").
 		'skin_defaults'           => 1,  // Aplicar las propuestas de la skin (paleta, tipografías, textos).
 		'icons_cdn'               => '', // URL del script de íconos del admin (vacío = el CDN por defecto).
 		'maps_embed_base'         => '', // Base para incrustar mapas (vacío = Google Maps).
@@ -576,6 +580,9 @@ function mj_sanitize_options($input) {
 	$out['session_days_remember']  = min(365, max(0, isset($input['session_days_remember']) ? absint($input['session_days_remember']) : 0));
 	$out['login_remember_default'] = !empty($input['login_remember_default']) ? 1 : 0;
 	$out['login_reload']           = !empty($input['login_reload']) ? 1 : 0;
+	$out['express_checkout']       = !empty($input['express_checkout']) ? 1 : 0;
+	$out['express_auto']           = !empty($input['express_auto']) ? 1 : 0;
+	$out['express_label']          = isset($input['express_label']) ? sanitize_text_field((string) $input['express_label']) : '';
 
 	/* Ruta de "mi cuenta" en la SPA: se guarda sin dominio y sin barras sobrantes. */
 	$account_path         = isset($input['account_path']) ? (string) $input['account_path'] : '';
@@ -958,6 +965,27 @@ function mj_render_settings_page() {
 							Recargar la tienda al iniciar y cerrar sesión.
 						</label>
 						<p class="description">Recomendado. La tienda es una aplicación de una sola página: sin recargar, WordPress no puede pintar la barra de administración de quien acaba de entrar. Si lo desmarcás, la sesión igual queda bien iniciada, pero la barra recién aparece en la próxima carga.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">Compra rápida</th>
+					<td>
+						<label for="mj_express_checkout">
+							<input type="checkbox" id="mj_express_checkout" name="mj_options[express_checkout]" value="1" <?php checked((int) $o['express_checkout'], 1); ?> />
+							Ofrecer la compra rápida a quien ya tenga sus datos guardados.
+						</label>
+						<p class="description">Un cliente con sesión iniciada y dirección cargada ve el resumen del pedido y un solo botón, en lugar de los cuatro pasos. Siempre puede abrir el formulario completo para cambiar algo.</p>
+						<p style="margin:8px 0 0;">
+							<label for="mj_express_auto">
+								<input type="checkbox" id="mj_express_auto" name="mj_options[express_auto]" value="1" <?php checked((int) $o['express_auto'], 1); ?> />
+								Entrar directo en modo rápido.
+							</label>
+						</p>
+						<p class="description">Desmarcado, el checkout arranca completo y la compra rápida aparece como un atajo arriba.</p>
+						<p style="margin:8px 0 0;">
+							<input type="text" id="mj_express_label" name="mj_options[express_label]" value="<?php echo esc_attr((string) $o['express_label']); ?>" class="regular-text" placeholder="Comprar ahora" />
+							<label for="mj_express_label">Texto del botón</label>
+						</p>
 					</td>
 				</tr>
 				<tr>

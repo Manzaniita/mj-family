@@ -42,6 +42,9 @@ class MJERP_Install {
 			'consignment_returns',
 			'consignment_payments',
 			'consignment_allocations',
+			'sales',
+			'sale_items',
+			'sale_payments',
 		);
 	}
 
@@ -207,6 +210,10 @@ class MJERP_Install {
 		$cons_pays    = self::table( 'consignment_payments' );
 		$cons_allocs  = self::table( 'consignment_allocations' );
 
+		$sales     = self::table( 'sales' );
+		$sale_items = self::table( 'sale_items' );
+		$sale_pays  = self::table( 'sale_payments' );
+
 		$sql = array();
 
 		$sql[] = "CREATE TABLE {$suppliers} (
@@ -343,6 +350,7 @@ class MJERP_Install {
 	price_list_key VARCHAR(60) NULL,
 	credit_limit_base DECIMAL(18,4) NOT NULL DEFAULT 0,
 	notes TEXT NULL,
+	overrides_json LONGTEXT NULL,
 	is_active TINYINT(1) NOT NULL DEFAULT 1,
 	created_by BIGINT UNSIGNED NULL,
 	created_at DATETIME NULL,
@@ -415,6 +423,9 @@ class MJERP_Install {
 	status VARCHAR(20) NOT NULL DEFAULT 'aprobada',
 	source VARCHAR(20) NOT NULL DEFAULT 'admin',
 	stock_applied TINYINT(1) NOT NULL DEFAULT 0,
+	order_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	order_item_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	sale_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 	note VARCHAR(255) NULL,
 	created_by BIGINT UNSIGNED NULL,
 	approved_by BIGINT UNSIGNED NULL,
@@ -425,7 +436,9 @@ class MJERP_Install {
 	KEY consignee_id (consignee_id),
 	KEY consignment_item_id (consignment_item_id),
 	KEY status (status),
-	KEY sale_date (sale_date)
+	KEY sale_date (sale_date),
+	KEY order_id (order_id),
+	KEY sale_id (sale_id)
 ) {$charset_collate};";
 
 		$sql[] = "CREATE TABLE {$cons_returns} (
@@ -461,13 +474,19 @@ class MJERP_Install {
 	reference VARCHAR(190) NULL,
 	reason VARCHAR(255) NULL,
 	note VARCHAR(255) NULL,
+	status VARCHAR(20) NOT NULL DEFAULT 'confirmado',
+	source VARCHAR(20) NOT NULL DEFAULT 'admin',
+	sale_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 	created_by BIGINT UNSIGNED NULL,
+	confirmed_by BIGINT UNSIGNED NULL,
+	confirmed_at DATETIME NULL,
 	created_at DATETIME NULL,
 	updated_at DATETIME NULL,
 	PRIMARY KEY  (id),
 	KEY consignee_id (consignee_id),
 	KEY kind (kind),
-	KEY payment_date (payment_date)
+	KEY payment_date (payment_date),
+	KEY status (status)
 ) {$charset_collate};";
 
 		$sql[] = "CREATE TABLE {$cons_allocs} (
@@ -483,6 +502,128 @@ class MJERP_Install {
 	KEY payment_id (payment_id),
 	KEY sale_id (sale_id),
 	KEY consignee_id (consignee_id)
+) {$charset_collate};";
+
+		/*
+		 * Sales module.
+		 *
+		 * A sale is the ERP's view of something that left the shop, no matter where it was rung up:
+		 * the WooCommerce order is still the source of truth for the money the customer paid
+		 * (`order_id`), and this table adds what Woo does not know — landed cost at the time of the
+		 * sale, which lines came out of a reseller's consignment, and what was actually collected.
+		 *
+		 * Amounts live twice: in the currency the sale was rung up in (`total`) and in the base
+		 * currency (`total_base`), frozen with the rate of the day so a moving exchange rate never
+		 * rewrites a margin that was already earned.
+		 */
+
+		$sql[] = "CREATE TABLE {$sales} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	code VARCHAR(60) NOT NULL,
+	order_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	order_number VARCHAR(60) NULL,
+	order_status VARCHAR(30) NULL,
+	source VARCHAR(20) NOT NULL DEFAULT 'erp',
+	channel VARCHAR(60) NULL,
+	status VARCHAR(20) NOT NULL DEFAULT 'confirmada',
+	sale_date DATE NULL,
+	customer_user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	customer_name VARCHAR(190) NULL,
+	customer_email VARCHAR(190) NULL,
+	customer_phone VARCHAR(60) NULL,
+	consignee_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	price_list_key VARCHAR(60) NULL,
+	currency VARCHAR(3) NOT NULL DEFAULT 'ARS',
+	rate DECIMAL(18,6) NOT NULL DEFAULT 1,
+	items_count INT NOT NULL DEFAULT 0,
+	qty_total DECIMAL(18,4) NOT NULL DEFAULT 0,
+	subtotal DECIMAL(18,4) NOT NULL DEFAULT 0,
+	discount_total DECIMAL(18,4) NOT NULL DEFAULT 0,
+	shipping_total DECIMAL(18,4) NOT NULL DEFAULT 0,
+	tax_total DECIMAL(18,4) NOT NULL DEFAULT 0,
+	total DECIMAL(18,4) NOT NULL DEFAULT 0,
+	total_base DECIMAL(18,4) NOT NULL DEFAULT 0,
+	cost_base DECIMAL(18,4) NOT NULL DEFAULT 0,
+	profit_base DECIMAL(18,4) NOT NULL DEFAULT 0,
+	consignment_base DECIMAL(18,4) NOT NULL DEFAULT 0,
+	consignment_total DECIMAL(18,4) NOT NULL DEFAULT 0,
+	consignment_qty DECIMAL(18,4) NOT NULL DEFAULT 0,
+	paid_total DECIMAL(18,4) NOT NULL DEFAULT 0,
+	paid_base DECIMAL(18,4) NOT NULL DEFAULT 0,
+	payment_status VARCHAR(20) NOT NULL DEFAULT 'impaga',
+	payment_method VARCHAR(60) NULL,
+	cashbox_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	stock_applied TINYINT(1) NOT NULL DEFAULT 0,
+	note TEXT NULL,
+	created_by BIGINT UNSIGNED NULL,
+	voided_by BIGINT UNSIGNED NULL,
+	voided_at DATETIME NULL,
+	created_at DATETIME NULL,
+	updated_at DATETIME NULL,
+	PRIMARY KEY  (id),
+	UNIQUE KEY code (code),
+	KEY order_id (order_id),
+	KEY source (source),
+	KEY status (status),
+	KEY sale_date (sale_date),
+	KEY consignee_id (consignee_id),
+	KEY customer_user_id (customer_user_id),
+	KEY payment_status (payment_status)
+) {$charset_collate};";
+
+		$sql[] = "CREATE TABLE {$sale_items} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	sale_id BIGINT UNSIGNED NOT NULL,
+	order_item_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	product_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	variation_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	name VARCHAR(255) NOT NULL,
+	sku VARCHAR(100) NULL,
+	qty DECIMAL(18,4) NOT NULL DEFAULT 0,
+	unit_price DECIMAL(18,6) NOT NULL DEFAULT 0,
+	discount DECIMAL(18,4) NOT NULL DEFAULT 0,
+	line_total DECIMAL(18,4) NOT NULL DEFAULT 0,
+	line_total_base DECIMAL(18,4) NOT NULL DEFAULT 0,
+	unit_cost_base DECIMAL(18,6) NOT NULL DEFAULT 0,
+	cost_base DECIMAL(18,4) NOT NULL DEFAULT 0,
+	origin VARCHAR(20) NOT NULL DEFAULT 'deposito',
+	consignee_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	consignment_item_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	consignment_sale_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	consignment_price_base DECIMAL(18,6) NOT NULL DEFAULT 0,
+	sort_order INT NOT NULL DEFAULT 0,
+	created_at DATETIME NULL,
+	updated_at DATETIME NULL,
+	PRIMARY KEY  (id),
+	KEY sale_id (sale_id),
+	KEY product (product_id,variation_id),
+	KEY origin (origin),
+	KEY consignment_sale_id (consignment_sale_id)
+) {$charset_collate};";
+
+		$sql[] = "CREATE TABLE {$sale_pays} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	sale_id BIGINT UNSIGNED NOT NULL,
+	payment_date DATE NULL,
+	amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+	currency VARCHAR(3) NOT NULL DEFAULT 'ARS',
+	rate DECIMAL(18,6) NOT NULL DEFAULT 1,
+	amount_base DECIMAL(18,4) NOT NULL DEFAULT 0,
+	method VARCHAR(60) NULL,
+	cashbox_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	reference VARCHAR(190) NULL,
+	note VARCHAR(255) NULL,
+	status VARCHAR(20) NOT NULL DEFAULT 'confirmado',
+	source VARCHAR(20) NOT NULL DEFAULT 'admin',
+	created_by BIGINT UNSIGNED NULL,
+	confirmed_by BIGINT UNSIGNED NULL,
+	confirmed_at DATETIME NULL,
+	created_at DATETIME NULL,
+	updated_at DATETIME NULL,
+	PRIMARY KEY  (id),
+	KEY sale_id (sale_id),
+	KEY payment_date (payment_date),
+	KEY status (status)
 ) {$charset_collate};";
 
 		$report = array();

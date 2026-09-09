@@ -24,6 +24,7 @@ class MJERP_Consignees {
 		'price_list_key'    => '%s',
 		'credit_limit_base' => '%f',
 		'notes'             => '%s',
+		'overrides_json'    => '%s',
 		'is_active'         => '%d',
 		'created_by'        => '%d',
 		'created_at'        => '%s',
@@ -62,6 +63,8 @@ class MJERP_Consignees {
 		if ( $new_role !== $old_role || $new_label !== $old_label ) {
 			MJERP_Capabilities::ensure_consignee_role( $new_role );
 		}
+
+		self::flush_current();
 	}
 
 	private static function table() : string {
@@ -159,6 +162,10 @@ class MJERP_Consignees {
 	 */
 	public static function flush_current() : void {
 		self::$current = false;
+		if ( class_exists( 'MJERP_Permissions' ) ) {
+			// Permissions are resolved from this row, so a stale set would outlive the change.
+			MJERP_Permissions::flush_cache();
+		}
 	}
 
 	/**
@@ -766,6 +773,24 @@ class MJERP_Consignees {
 			$row['notes'] = sanitize_textarea_field( (string) $data['notes'] );
 		}
 
+		if ( array_key_exists( 'permissions', $data ) || array_key_exists( 'overrides', $data ) ) {
+			$overrides = $existing ? self::overrides( $existing ) : array();
+			if ( array_key_exists( 'overrides', $data ) && is_array( $data['overrides'] ) ) {
+				$overrides = array_merge( $overrides, $data['overrides'] );
+			}
+			if ( array_key_exists( 'permissions', $data ) ) {
+				// An empty set clears every per-user override, so the reseller goes back to
+				// inheriting the role and the global defaults.
+				$set = is_array( $data['permissions'] ) ? MJERP_Settings::permission_set( $data['permissions'] ) : array();
+				if ( empty( $set ) ) {
+					unset( $overrides['permissions'] );
+				} else {
+					$overrides['permissions'] = $set;
+				}
+			}
+			$row['overrides_json'] = empty( $overrides ) ? '' : wp_json_encode( $overrides );
+		}
+
 		if ( array_key_exists( 'is_active', $data ) ) {
 			$row['is_active'] = MJERP_Helpers::bool( $data['is_active'] ) ? 1 : 0;
 		}
@@ -824,7 +849,33 @@ class MJERP_Consignees {
 		$out['price_list']    = $list ? $list : null;
 		$out['has_portal']    = $user instanceof WP_User && user_can( $user_id, MJERP_Capabilities::CAP_PORTAL );
 
+		$out['overrides']   = self::overrides( $row );
+		$out['permissions'] = isset( $out['overrides']['permissions'] ) ? $out['overrides']['permissions'] : array();
+		if ( class_exists( 'MJERP_Permissions' ) ) {
+			// What this reseller can actually do once defaults, role and their own record are
+			// resolved — the UI shows this, and the checkboxes only carry the overrides.
+			$out['effective_permissions'] = MJERP_Permissions::resolve( $user_id, $out );
+		}
+
 		return $out;
+	}
+
+	/**
+	 * Decoded `overrides_json` of a consignee row (or record).
+	 *
+	 * @param array $row Row or cast record.
+	 * @return array
+	 */
+	public static function overrides( array $row ) : array {
+		if ( isset( $row['overrides'] ) && is_array( $row['overrides'] ) ) {
+			return $row['overrides'];
+		}
+		$raw = isset( $row['overrides_json'] ) ? (string) $row['overrides_json'] : '';
+		if ( '' === $raw ) {
+			return array();
+		}
+		$decoded = json_decode( $raw, true );
+		return is_array( $decoded ) ? $decoded : array();
 	}
 
 	private static function v( array $row, string $key, $default = '' ) {

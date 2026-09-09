@@ -5,15 +5,27 @@ Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
 WC requires at least: 7.0
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-ERP para WooCommerce: compras e importaciones con costeo en vivo, proveedores, cajas y actualización de stock, costos y precios.
+ERP para WooCommerce: ventas propias y de la tienda, compras e importaciones con costeo en vivo, consignaciones, proveedores, cajas y actualización de stock, costos y precios.
 
 == Description ==
 
 MJ ERP es un sistema de gestión pensado para tiendas WooCommerce que importan mercadería. Se abre como una pantalla independiente en `https://tu-sitio/mjerp/` (la ruta es configurable) y está disponible para los usuarios con la capacidad `manage_mjerp` (administradores y los roles que habilites).
+
+**Módulo Ventas (v1.4.0)**
+
+Un solo registro para todo lo que sale, venga de donde venga.
+
+* Ventas cargadas en el ERP (mostrador, WhatsApp, feria) con buscador rápido por nombre o SKU, cliente opcional, descuentos y cobro en el momento.
+* Cada venta puede emitir un pedido real de WooCommerce: así aparece en la tienda, en sus informes y como notificación en la app del celular.
+* Los pedidos de la tienda se espejan solos, con el costo landed congelado al día de la venta para que el margen sea el real.
+* Regla de consignación: si el que compra es un revendedor, lo que ya tenía entregado se le descuenta de su stock y se le carga a su cuenta corriente al precio acordado; el resto sale del depósito. Una línea se puede partir entre las dos cosas.
+* Cobros totales o parciales por venta, con medio de pago y caja. Y cobranzas de revendedores por cuenta corriente, como hasta ahora.
+* Permisos por rol y por usuario para todo lo que un revendedor puede hacer.
+* Cancelar o reembolsar un pedido deshace la venta y la deuda que había generado.
 
 **Módulo Compras (v1.0.0)**
 
@@ -107,6 +119,20 @@ Sí, el plugin declara compatibilidad con `custom_order_tables`.
 3. Configuración del ERP.
 
 == Changelog ==
+
+= 1.4.0 =
+* Nuevo módulo **Ventas**: todo lo que sale de la tienda queda registrado en un solo lugar, venga del mostrador, de la tienda online o de un revendedor.
+* Pantalla de venta rápida: buscás el producto, ponés la cantidad y confirmás. El foco arranca en el buscador, Enter agrega y F2 confirma.
+* Cada venta cargada en el ERP emite un pedido real de WooCommerce, así aparece en los informes de Woo y llega la notificación a la app del celular. El estado del pedido (cobrada / a cobrar) es configurable.
+* Los pedidos de la tienda entran solos al ERP con su costo landed congelado, para que el margen sea el real del día de la venta.
+* **Cuando compra un revendedor**, el ERP revisa producto por producto: lo que ya tenía en consignación se le descuenta de su stock y se le carga a su cuenta corriente al precio acordado; lo que no tenía sale del depósito como una venta común. Una línea se puede partir entre las dos cosas.
+* Cancelar, reembolsar o mandar a la papelera un pedido deshace la venta y la deuda del revendedor. El stock lo repone WooCommerce.
+* Cobros por venta: totales o parciales, con medio de pago, caja y referencia. Una venta muestra siempre cuánto falta cobrar.
+* Un revendedor puede avisar sus pagos desde su panel. Según lo que configures, el pago baja el saldo al instante o queda esperando tu confirmación.
+* **Permisos configurables por rol y por usuario**: qué puede hacer cada revendedor (avisar ventas, registrar pagos, pagos parciales, devoluciones, ver su cuenta, si sus compras descuentan de su consignación) se resuelve encadenando el ajuste general, su rol y su ficha.
+* Precio de revendedor en la tienda: un revendedor logueado puede ver el precio de su lista en lugar del público, calculado desde el costo landed más el markup de la lista.
+* Nueva pestaña de Configuración → Ventas: canales, medios de pago, códigos, emisión del pedido, qué estados confirman o anulan una venta, y las reglas de consignación.
+* Tablero y menú con lo vendido en el mes, el margen y lo que falta cobrar.
 
 = 1.3.0 =
 * Nuevo módulo **Consignaciones**: revendedores, entregas de mercadería, ventas, devoluciones, pagos y cuenta corriente.

@@ -11,6 +11,12 @@
  *   DELETE /sales/{id} deshacer un aviso que todavía no se confirmó
  *   GET  /account     resumen de cuenta con el saldo corrido
  *   POST /returns     devolver lo que no se vendió (si está habilitado)
+ *   POST /payments    avisar un pago (si está habilitado)
+ *   DELETE /payments/{id} deshacer un pago que todavía no se confirmó
+ *
+ * Qué puede hacer cada revendedor sale de `CFG.can`, resuelto en el servidor a partir del ajuste
+ * general, su rol y su ficha. Acá solo se dibuja lo que está habilitado; el servidor lo vuelve a
+ * comprobar en cada llamada.
  */
 (function () {
 	'use strict';
@@ -160,6 +166,17 @@
 		toast: null,
 	};
 
+	/** Permisos resueltos por el servidor. */
+	function can(what) {
+		const abilities = (state.data && state.data.can) || CFG.can || {};
+		return !!abilities[what];
+	}
+
+	function paymentMethods() {
+		const list = (state.data && state.data.payment_methods) || CFG.paymentMethods || [];
+		return Array.isArray(list) ? list : [];
+	}
+
 	function root() { return document.getElementById(ROOT_ID); }
 
 	function toast(message, kind) {
@@ -213,6 +230,12 @@
 					? (account.unpaid_sales === 1 ? '1 venta sin pagar' : account.unpaid_sales + ' ventas sin pagar')
 					: (credit ? 'Se descuenta de tu próxima venta' : 'No debés nada')) +
 			'</div>' +
+			(f(account.declared_base) >= 0.005
+				? '<div class="mj-portal__hero-hint">' + h('Avisaste ' + money(account.declared_base) + ' que todavía no confirmaron.') + '</div>'
+				: '') +
+			(can('register_payment') && owes
+				? '<button type="button" class="mj-btn mj-btn--primary mj-portal__hero-action" data-action="pay">' + icon('cash') + '<span>Avisar un pago</span></button>'
+				: '') +
 		'</div>' +
 		'<div class="mj-portal__stats">' +
 			'<div class="mj-portal__stat">' +
@@ -378,8 +401,13 @@
 			panel = stockHtml(state.data.stock || [], !!state.data.can_sell, !!state.data.can_return);
 		} else if (state.tab === 'ventas') {
 			panel = salesHtml(state.data.sales, !!CFG.needsApproval);
-		} else {
+		} else if (can('see_account')) {
 			panel = statementHtml(state.statement, account);
+		} else {
+			panel = '<div class="mj-portal__empty">' + icon('lock') +
+				'<div class="mj-portal__empty-title">Tu cuenta la lleva la tienda</div>' +
+				'<div class="mj-portal__empty-text">Consultá con quien te entrega la mercadería.</div>' +
+			'</div>';
 		}
 
 		return summaryHtml(account) + tabsHtml(state.tab, account) + '<div class="mj-portal__panel">' + panel + '</div>';
@@ -388,6 +416,115 @@
 	function paint() {
 		const body = qs('[data-region="body"]');
 		if (body) body.innerHTML = bodyHtml();
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Diálogo de pago                                                     */
+	/* ------------------------------------------------------------------ */
+
+	function openPaymentSheet() {
+		const account = (state.data && state.data.account) || {};
+		const owed = f(account.balance_base);
+		const methods = paymentMethods();
+		const partial = can('partial_payments');
+		const needsApproval = can('payment_needs_approval');
+		const localCurrency = CFG.localCurrency || 'ARS';
+
+		const sheet = document.createElement('div');
+		sheet.className = 'mj-portal__sheet';
+		sheet.innerHTML =
+			'<div class="mj-portal__sheet-panel" role="dialog" aria-modal="true" aria-label="Avisar un pago">' +
+				'<div class="mj-portal__sheet-title">Avisar un pago</div>' +
+				'<div class="mj-portal__sheet-sub">' +
+					h(owed > 0.005
+						? 'Debés ' + money(owed) + '.' + (partial ? ' Podés pagar una parte.' : ' Tenés que cubrir el total.')
+						: 'No tenés saldo pendiente.') +
+				'</div>' +
+				'<form class="mj-form" data-pay-form novalidate>' +
+					'<div class="mj-field">' +
+						'<label class="mj-field__label" for="mjp-amount">¿Cuánto pagaste? (' + h(localCurrency) + ')</label>' +
+						'<input class="mj-input" id="mjp-amount" name="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0">' +
+					'</div>' +
+					(methods.length
+						? '<div class="mj-field">' +
+							'<label class="mj-field__label" for="mjp-method">¿Cómo?</label>' +
+							'<select class="mj-select" id="mjp-method" name="method">' +
+								methods.map(function (m) {
+									return '<option value="' + h(m.key) + '">' + h(m.label) + '</option>';
+								}).join('') +
+							'</select>' +
+						'</div>'
+						: '') +
+					'<div class="mj-field">' +
+						'<label class="mj-field__label" for="mjp-pay-date">¿Cuándo?</label>' +
+						'<input class="mj-input" id="mjp-pay-date" name="payment_date" type="date" value="' + h(CFG.today || '') + '">' +
+					'</div>' +
+					'<div class="mj-field">' +
+						'<label class="mj-field__label" for="mjp-ref">Referencia (opcional)</label>' +
+						'<input class="mj-input" id="mjp-ref" name="reference" type="text" maxlength="190" placeholder="Nº de operación, últimos dígitos…">' +
+					'</div>' +
+					(needsApproval
+						? '<div class="mj-portal__note">' + icon('info') + '<span>Tu saldo baja cuando la tienda confirme el pago.</span></div>'
+						: '') +
+					'<div class="mj-portal__sheet-error" data-error></div>' +
+					'<div class="mj-portal__sheet-actions">' +
+						'<button type="button" class="mj-btn mj-btn--ghost" data-cancel>Cancelar</button>' +
+						'<button type="submit" class="mj-btn mj-btn--primary" data-submit>' + icon('check') + '<span>Avisar</span></button>' +
+					'</div>' +
+				'</form>' +
+			'</div>';
+
+		document.body.appendChild(sheet);
+		document.body.classList.add('mj-portal-locked');
+
+		const form = qs('[data-pay-form]', sheet);
+		const amountInput = qs('[name="amount"]', form);
+		const errorEl = qs('[data-error]', sheet);
+		const submitBtn = qs('[data-submit]', sheet);
+		let submitting = false;
+
+		function close() {
+			if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+			document.body.classList.remove('mj-portal-locked');
+		}
+
+		qs('[data-cancel]', sheet).addEventListener('click', close);
+		sheet.addEventListener('click', function (e) { if (e.target === sheet) close(); });
+
+		form.addEventListener('submit', function (e) {
+			e.preventDefault();
+			if (submitting) return;
+
+			const amount = toNumber(amountInput.value);
+			if (amount === null || amount <= 0) {
+				errorEl.textContent = 'Poné cuánto pagaste.';
+				amountInput.focus();
+				return;
+			}
+
+			errorEl.textContent = '';
+			submitting = true;
+			submitBtn.disabled = true;
+
+			const methodEl = qs('[name="method"]', form);
+			api.post('payments', {
+				amount: amount,
+				currency: localCurrency,
+				method: methodEl ? methodEl.value : '',
+				payment_date: qs('[name="payment_date"]', form).value,
+				reference: qs('[name="reference"]', form).value,
+			}).then(function (res) {
+				close();
+				toast(res && res.needs_approval ? 'Listo, avisamos tu pago.' : 'Pago registrado.', 'success');
+				load();
+			}).catch(function (err) {
+				submitting = false;
+				submitBtn.disabled = false;
+				errorEl.textContent = (err && err.message) || 'No se pudo registrar el pago.';
+			});
+		});
+
+		window.setTimeout(function () { try { amountInput.focus(); } catch (e) { /* noop */ } }, 60);
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -571,6 +708,12 @@
 				state.tab = tab.getAttribute('data-tab');
 				paint();
 				if (state.tab === 'cuenta' && state.statement === null) loadStatement();
+				return;
+			}
+
+			const pay = e.target.closest ? e.target.closest('[data-action="pay"]') : null;
+			if (pay) {
+				openPaymentSheet();
 				return;
 			}
 

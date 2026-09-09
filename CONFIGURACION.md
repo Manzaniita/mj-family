@@ -46,6 +46,8 @@ administración, arriba del nombre del sitio.
 | "Recordarme" marcado | Sí | Cómo viene la casilla en el formulario de acceso. |
 | Duración de la sesión | 2 días / 14 con "Recordarme" | 0 = lo que use WordPress. Máximo 365. |
 | Ruta de "Mi cuenta" | `/cuenta` | A dónde va el cliente después de entrar. |
+| Compra rápida | Sí, y entra directo | Un cliente con sesión iniciada y dirección guardada ve el resumen y un solo botón en lugar de los cuatro pasos. Siempre puede abrir el formulario completo. Desmarcando "entrar directo", el atajo aparece arriba pero el checkout arranca normal. |
+| Texto del botón de compra rápida | "Comprar ahora" | Lo que dice el botón cuando el checkout está en modo rápido. |
 
 ---
 
@@ -97,7 +99,7 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 | MJ Medios de Pago | WooCommerce → Medios de pago | Recargos y descuentos por medio de pago. |
 | MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. |
-| MJ ERP | MJ ERP → Ajustes | Costeo, proveedores, consignación, roles del portal. |
+| MJ ERP | MJ ERP → Ajustes | Ventas, costeo, proveedores, consignación y permisos del revendedor (por rol y por usuario). |
 
 ---
 

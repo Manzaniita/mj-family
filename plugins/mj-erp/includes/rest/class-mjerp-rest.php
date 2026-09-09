@@ -38,6 +38,7 @@ class MJERP_REST {
 			'MJERP_REST_Products'  => 'class-mjerp-rest-products.php',
 			'MJERP_REST_Settings'  => 'class-mjerp-rest-settings.php',
 			'MJERP_REST_Consignments' => 'class-mjerp-rest-consignments.php',
+			'MJERP_REST_Sales'     => 'class-mjerp-rest-sales.php',
 			'MJERP_REST_Portal'    => 'class-mjerp-rest-portal.php',
 		);
 	}

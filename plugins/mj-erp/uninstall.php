@@ -65,6 +65,11 @@ function mjerp_uninstall_current_site() {
 		return;
 	}
 
+	/*
+	 * Las tablas hijas van primero para que borrar a mano quede en un orden entendible. La lista se
+	 * escribe acá y no se lee del instalador a propósito: la desinstalación corre con el plugin ya
+	 * apagado y sus clases pueden no estar cargadas.
+	 */
 	$tables = array(
 		'suppliers',
 		'cashboxes',
@@ -72,6 +77,9 @@ function mjerp_uninstall_current_site() {
 		'purchase_items',
 		'purchase_expenses',
 		'stock_movements',
+		'sale_payments',
+		'sale_items',
+		'sales',
 		'consignment_allocations',
 		'consignment_payments',
 		'consignment_returns',

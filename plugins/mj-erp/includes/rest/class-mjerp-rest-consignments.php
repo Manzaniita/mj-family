@@ -49,6 +49,7 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 						'price_list_key'    => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
 						'credit_limit_base' => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'notes'             => array( 'sanitize_callback' => array( $this, 'arg_textarea' ) ),
+						'permissions'       => array( 'sanitize_callback' => array( $this, 'arg_array' ) ),
 						'send_invite'       => array( 'sanitize_callback' => array( $this, 'arg_bool' ) ),
 					)
 				),
@@ -86,6 +87,7 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 						'price_list_key'    => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
 						'credit_limit_base' => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'notes'             => array( 'sanitize_callback' => array( $this, 'arg_textarea' ) ),
+						'permissions'       => array( 'sanitize_callback' => array( $this, 'arg_array' ) ),
 						'is_active'         => array( 'sanitize_callback' => array( $this, 'arg_bool' ) ),
 					)
 				),
@@ -375,6 +377,7 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 					array(
 						'consignee_id' => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 						'kind'         => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
+						'status'       => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
 						'date_from'    => array( 'sanitize_callback' => array( $this, 'arg_date' ) ),
 						'date_to'      => array( 'sanitize_callback' => array( $this, 'arg_date' ) ),
 						'page'         => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
@@ -416,6 +419,15 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 						'rate'         => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 					)
 				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/consignment-payments/(?P<id>\d+)/confirm',
+			array(
+				'args' => array( 'id' => $this->id_arg( __( 'ID del pago.', 'mj-erp' ) ) ),
+				$this->endpoint( WP_REST_Server::CREATABLE, 'confirm_payment' ),
 			)
 		);
 
@@ -506,7 +518,7 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 
 		$data = array_intersect_key(
 			$p,
-			array_flip( array( 'user_id', 'name', 'email', 'username', 'phone', 'price_list_key', 'credit_limit_base', 'notes', 'send_invite' ) )
+			array_flip( array( 'user_id', 'name', 'email', 'username', 'phone', 'price_list_key', 'credit_limit_base', 'notes', 'permissions', 'send_invite' ) )
 		);
 
 		// Never sanitized away: a password has to travel verbatim.
@@ -560,7 +572,7 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 		$p  = $this->params( $request );
 
 		$data = array();
-		foreach ( array( 'name', 'email', 'phone', 'price_list_key', 'credit_limit_base', 'notes', 'is_active' ) as $key ) {
+		foreach ( array( 'name', 'email', 'phone', 'price_list_key', 'credit_limit_base', 'notes', 'permissions', 'is_active' ) as $key ) {
 			if ( $this->has( $p, $key ) ) {
 				$data[ $key ] = $p[ $key ];
 			}
@@ -1154,6 +1166,7 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 			array(
 				'consignee_id' => $this->int( $p, 'consignee_id', 0 ),
 				'kind'         => $this->str( $p, 'kind' ),
+				'status'       => $this->str( $p, 'status' ),
 				'date_from'    => $this->str( $p, 'date_from' ),
 				'date_to'      => $this->str( $p, 'date_to' ),
 				'page'         => $this->int( $p, 'page', 1 ),
@@ -1162,9 +1175,37 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 			)
 		);
 
-		$result['methods'] = MJERP_Settings::payment_methods();
+		$result['methods']        = MJERP_Settings::payment_methods();
+		$result['declared_count'] = MJERP_Consignment_Payments_Repo::declared_count( $this->int( $p, 'consignee_id', 0 ) );
 
 		return $this->ok( $result );
+	}
+
+	/**
+	 * POST /consignment-payments/{id}/confirm — the shop owner confirms a payment the reseller
+	 * declared, which is when it starts cancelling their debt.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function confirm_payment( $request ) {
+		$id      = $this->route_id( $request );
+		$payment = MJERP_Consignment_Payments_Repo::find( $id );
+		if ( ! $payment ) {
+			return $this->fail( 'mjerp_not_found', __( 'El pago no existe.', 'mj-erp' ), 404 );
+		}
+
+		$result = MJERP_Consignment_Payments_Repo::confirm( $id );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->ok(
+			array(
+				'payment' => MJERP_Consignment_Payments_Repo::find( $id ),
+				'account' => MJERP_Consignment_Account::summary( (int) $payment['consignee_id'] ),
+			)
+		);
 	}
 
 	/**

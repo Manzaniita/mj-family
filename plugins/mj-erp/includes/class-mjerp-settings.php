@@ -140,6 +140,113 @@ class MJERP_Settings {
 			'portal_allow_sales'        => true,
 			'portal_allow_returns'      => false,
 
+			/* --- Ventas -------------------------------------------------------------------- */
+			'sales_enabled'              => true,
+			'sales_code_prefix'          => 'VTA',
+			'sales_code_format'          => '{prefix}-{year}-{seq}',
+			'sales_code_seq_digits'      => 4,
+			'sales_channels'             => array(
+				array(
+					'key'   => 'mostrador',
+					'label' => 'Mostrador',
+				),
+				array(
+					'key'   => 'whatsapp',
+					'label' => 'WhatsApp',
+				),
+				array(
+					'key'   => 'feria',
+					'label' => 'Feria',
+				),
+				array(
+					'key'   => 'tienda',
+					'label' => 'Tienda online',
+				),
+				array(
+					'key'   => 'otro',
+					'label' => 'Otro',
+				),
+			),
+			'sales_default_channel'      => 'mostrador',
+			'sales_shop_channel'         => 'tienda',
+			'sales_payment_methods'      => array(
+				array(
+					'key'   => 'efectivo',
+					'label' => 'Efectivo',
+				),
+				array(
+					'key'   => 'transferencia',
+					'label' => 'Transferencia',
+				),
+				array(
+					'key'   => 'tarjeta',
+					'label' => 'Tarjeta',
+				),
+				array(
+					'key'   => 'dolares',
+					'label' => 'Dólares',
+				),
+				array(
+					'key'   => 'cuenta_corriente',
+					'label' => 'Cuenta corriente',
+				),
+				array(
+					'key'   => 'otro',
+					'label' => 'Otro',
+				),
+			),
+			'sales_default_payment_method' => 'efectivo',
+			'sales_default_cashbox'      => 0,
+			'sales_price_list'           => 'publico',
+			'sales_track_cost'           => true,
+			'sales_allow_discount'       => true,
+			'sales_allow_oversell'       => false,
+
+			/* Emisión de la orden de WooCommerce (la que dispara la notificación de la app). */
+			'sales_create_order'         => true,
+			'sales_order_status_paid'    => 'completed',
+			'sales_order_status_unpaid'  => 'on-hold',
+			'sales_order_created_via'    => 'mj-erp',
+			'sales_order_note'           => 'Venta registrada desde MJ ERP',
+			'sales_reduce_stock'         => 'auto',
+
+			/* Espejo de lo que se vende en la tienda. */
+			'sales_capture_shop_orders'  => true,
+			'sales_capture_manual_orders' => true,
+			'sales_capture_payment'      => true,
+			'sales_capture_on'           => 'creada',
+			'sales_capture_statuses'     => array( 'processing', 'completed' ),
+			'sales_void_statuses'        => array( 'cancelled', 'refunded', 'failed' ),
+
+			/* Reglas de consignación aplicadas a lo que compra un revendedor en la tienda. */
+			'sales_consignment_enabled'  => true,
+			'sales_consignment_allocation' => 'fifo',
+			'sales_consignment_approval' => 'auto',
+			'sales_consignment_partial_lines' => true,
+			'sales_consignment_payment_method' => 'cuenta_corriente',
+
+			/* Precio que ve un revendedor logueado en la tienda. */
+			'shop_price_mode'            => 'publico',
+			'shop_price_list'            => 'mayorista',
+			'shop_price_notice'          => true,
+
+			/* Permisos del portal, por defecto y por rol (por usuario viven en su ficha). */
+			'portal_permissions'         => array(
+				'defaults' => array(
+					'report_sale'            => true,
+					'register_payment'       => false,
+					'partial_payments'       => true,
+					'payment_needs_approval' => true,
+					'payment_methods'        => array(),
+					'returns'                => false,
+					'see_account'            => true,
+					'shop_consignment'       => true,
+					'price_mode'             => 'heredar',
+					'price_list_key'         => '',
+				),
+				'roles'    => array(),
+			),
+
 			'allowed_roles'             => array( 'administrator', 'shop_manager' ),
 			'new_product_status'        => 'draft',
 			'delete_data_on_uninstall'  => false,
@@ -437,6 +544,126 @@ class MJERP_Settings {
 		 */
 		$filtered = apply_filters( 'mjerp_consignment_statuses', $statuses );
 		return is_array( $filtered ) ? array_merge( $statuses, array_intersect_key( $filtered, $statuses ) ) : $statuses;
+	}
+
+	/**
+	 * Sale status catalogue.
+	 *
+	 * @return array
+	 */
+	public static function sale_statuses() {
+		$statuses = array(
+			'borrador'   => array(
+				'label' => __( 'Borrador', 'mj-erp' ),
+				'color' => 'neutral',
+			),
+			'confirmada' => array(
+				'label' => __( 'Confirmada', 'mj-erp' ),
+				'color' => 'success',
+			),
+			'anulada'    => array(
+				'label' => __( 'Anulada', 'mj-erp' ),
+				'color' => 'danger',
+			),
+		);
+
+		/**
+		 * Filters the sale status catalogue (labels/colors only; keys are fixed).
+		 *
+		 * @param array $statuses Statuses.
+		 */
+		$filtered = apply_filters( 'mjerp_sale_statuses', $statuses );
+		return is_array( $filtered ) ? array_merge( $statuses, array_intersect_key( $filtered, $statuses ) ) : $statuses;
+	}
+
+	/**
+	 * Payment status catalogue of a sale.
+	 *
+	 * @return array
+	 */
+	public static function sale_payment_statuses() {
+		$statuses = array(
+			'impaga'  => array(
+				'label' => __( 'Impaga', 'mj-erp' ),
+				'color' => 'danger',
+			),
+			'parcial' => array(
+				'label' => __( 'Pago parcial', 'mj-erp' ),
+				'color' => 'warning',
+			),
+			'pagada'  => array(
+				'label' => __( 'Pagada', 'mj-erp' ),
+				'color' => 'success',
+			),
+		);
+
+		/**
+		 * Filters the sale payment status catalogue.
+		 *
+		 * @param array $statuses Statuses.
+		 */
+		$filtered = apply_filters( 'mjerp_sale_payment_statuses', $statuses );
+		return is_array( $filtered ) ? array_merge( $statuses, array_intersect_key( $filtered, $statuses ) ) : $statuses;
+	}
+
+	/**
+	 * Sale channels `[ {key,label}, ... ]`.
+	 *
+	 * @return array
+	 */
+	public static function sale_channels() {
+		$list = self::get( 'sales_channels', array() );
+		return is_array( $list ) ? array_values( $list ) : array();
+	}
+
+	/**
+	 * Label of a sale channel key.
+	 *
+	 * @param string $key Channel key.
+	 * @return string
+	 */
+	public static function sale_channel_label( $key ) {
+		return self::label_from( self::sale_channels(), $key );
+	}
+
+	/**
+	 * Sale payment methods `[ {key,label}, ... ]`.
+	 *
+	 * @return array
+	 */
+	public static function sale_payment_methods() {
+		$list = self::get( 'sales_payment_methods', array() );
+		return is_array( $list ) ? array_values( $list ) : array();
+	}
+
+	/**
+	 * Label of a sale payment method key.
+	 *
+	 * @param string $key Method key.
+	 * @return string
+	 */
+	public static function sale_payment_method_label( $key ) {
+		return self::label_from( self::sale_payment_methods(), $key );
+	}
+
+	/**
+	 * Label lookup over a `[ {key,label} ]` list, humanising unknown keys.
+	 *
+	 * @param array  $rows Rows.
+	 * @param string $key  Key.
+	 * @return string
+	 */
+	private static function label_from( array $rows, $key ) {
+		$key = sanitize_key( (string) $key );
+		if ( '' === $key ) {
+			$key = 'otro';
+		}
+		foreach ( $rows as $row ) {
+			if ( isset( $row['key'] ) && (string) $row['key'] === $key ) {
+				return isset( $row['label'] ) && '' !== (string) $row['label'] ? (string) $row['label'] : ucfirst( $key );
+			}
+		}
+		return 'otro' === $key ? __( 'Otro', 'mj-erp' ) : ucfirst( str_replace( array( '_', '-' ), ' ', $key ) );
 	}
 
 	/**
@@ -776,9 +1003,231 @@ class MJERP_Settings {
 					$slug = $default;
 				}
 				return $slug;
+
+			/* --- Ventas -------------------------------------------------------------------- */
+
+			case 'sales_enabled':
+			case 'sales_track_cost':
+			case 'sales_allow_discount':
+			case 'sales_allow_oversell':
+			case 'sales_create_order':
+			case 'sales_capture_shop_orders':
+			case 'sales_capture_manual_orders':
+			case 'sales_capture_payment':
+			case 'sales_consignment_enabled':
+			case 'sales_consignment_partial_lines':
+			case 'shop_price_notice':
+				return MJERP_Helpers::bool( $value );
+
+			case 'sales_code_prefix':
+				$prefix = self::text( $value, 20 );
+				return '' === $prefix ? $default : $prefix;
+
+			case 'sales_code_format':
+				$format = self::text( $value, 60 );
+				if ( '' === $format ) {
+					return $default;
+				}
+				if ( false === strpos( $format, '{seq}' ) ) {
+					$format .= '-{seq}';
+				}
+				return $format;
+
+			case 'sales_code_seq_digits':
+				return max( 1, min( 10, self::int( $value, $default ) ) );
+
+			case 'sales_channels':
+			case 'sales_payment_methods':
+				$rows = self::keyed_rows( $value, false );
+				if ( ! in_array( 'otro', wp_list_pluck( $rows, 'key' ), true ) ) {
+					$rows[] = array(
+						'key'   => 'otro',
+						'label' => 'Otro',
+					);
+				}
+				return $rows;
+
+			case 'sales_default_channel':
+			case 'sales_shop_channel':
+			case 'sales_default_payment_method':
+			case 'sales_consignment_payment_method':
+			case 'sales_price_list':
+			case 'shop_price_list':
+				return is_scalar( $value ) ? sanitize_key( (string) $value ) : $default;
+
+			case 'sales_default_cashbox':
+				return max( 0, self::int( $value, 0 ) );
+
+			case 'sales_order_status_paid':
+			case 'sales_order_status_unpaid':
+				$status = self::order_status( $value );
+				return '' === $status ? $default : $status;
+
+			case 'sales_capture_statuses':
+			case 'sales_void_statuses':
+				$list = array();
+				foreach ( self::to_list( $value ) as $item ) {
+					if ( is_array( $item ) ) {
+						$item = isset( $item['key'] ) ? $item['key'] : '';
+					}
+					$status = self::order_status( $item );
+					if ( '' !== $status ) {
+						$list[] = $status;
+					}
+				}
+				return array_values( array_unique( $list ) );
+
+			case 'sales_order_created_via':
+				$via = is_scalar( $value ) ? preg_replace( '/[^A-Za-z0-9_\-]/', '', (string) $value ) : '';
+				$via = substr( (string) $via, 0, 60 );
+				return '' === $via ? $default : $via;
+
+			case 'sales_order_note':
+				return self::text( $value, 190 );
+
+			case 'sales_reduce_stock':
+				return self::enum( $value, array( 'auto', 'siempre', 'nunca' ), $default );
+
+			case 'sales_capture_on':
+				return self::enum( $value, array( 'creada', 'estado' ), $default );
+
+			case 'sales_consignment_allocation':
+				return self::enum( $value, array( 'fifo', 'lifo' ), $default );
+
+			case 'sales_consignment_approval':
+				return self::enum( $value, array( 'auto', 'pendiente' ), $default );
+
+			case 'shop_price_mode':
+				return self::enum( $value, array( 'publico', 'lista' ), $default );
+
+			case 'portal_permissions':
+				return self::permission_tree( $value, is_array( $default ) ? $default : array() );
 		}
 
 		return $default;
+	}
+
+	/**
+	 * Sanitizes a WooCommerce order status key ('' when unknown).
+	 *
+	 * Accepts both `wc-processing` and `processing`; stores the short form. When WooCommerce is not
+	 * loaded the key is only shape-checked, so a status configured before WooCommerce booted is not
+	 * silently dropped.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string
+	 */
+	private static function order_status( $value ) {
+		$key = is_scalar( $value ) ? sanitize_key( (string) $value ) : '';
+		if ( '' === $key ) {
+			return '';
+		}
+		if ( 0 === strpos( $key, 'wc-' ) ) {
+			$key = substr( $key, 3 );
+		}
+		if ( ! function_exists( 'wc_get_order_statuses' ) ) {
+			return $key;
+		}
+		$allowed = array();
+		foreach ( array_keys( (array) wc_get_order_statuses() ) as $status ) {
+			$allowed[] = 0 === strpos( $status, 'wc-' ) ? substr( $status, 3 ) : $status;
+		}
+		return in_array( $key, $allowed, true ) ? $key : '';
+	}
+
+	/**
+	 * Sanitizes the `{ defaults: {...}, roles: { role: {...} } }` permission tree.
+	 *
+	 * Role branches keep only the keys they actually override, so a permission that is later
+	 * changed in the defaults still reaches every role that never overrode it.
+	 *
+	 * @param mixed $value    Raw value.
+	 * @param array $defaults Default tree.
+	 * @return array
+	 */
+	private static function permission_tree( $value, array $defaults ) {
+		$base = isset( $defaults['defaults'] ) && is_array( $defaults['defaults'] ) ? $defaults['defaults'] : array();
+		$out  = array(
+			'defaults' => $base,
+			'roles'    => array(),
+		);
+
+		if ( ! is_array( $value ) ) {
+			return $out;
+		}
+
+		if ( isset( $value['defaults'] ) && is_array( $value['defaults'] ) ) {
+			$out['defaults'] = array_merge( $base, self::permission_set( $value['defaults'], array_keys( $base ) ) );
+		}
+
+		if ( isset( $value['roles'] ) && is_array( $value['roles'] ) ) {
+			foreach ( $value['roles'] as $role_key => $set ) {
+				$role_key = sanitize_key( (string) $role_key );
+				if ( '' === $role_key || ! is_array( $set ) ) {
+					continue;
+				}
+				$clean = self::permission_set( $set, array_keys( $base ) );
+				if ( ! empty( $clean ) ) {
+					$out['roles'][ $role_key ] = $clean;
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Sanitizes one permission set. Unknown keys are dropped; missing keys stay missing (they mean
+	 * "inherit"), which is what makes the defaults → role → user chain work.
+	 *
+	 * @param array $set     Raw set.
+	 * @param array $allowed Allowed keys.
+	 * @return array
+	 */
+	public static function permission_set( $set, array $allowed = array() ) {
+		if ( ! is_array( $set ) ) {
+			return array();
+		}
+		if ( empty( $allowed ) ) {
+			$defaults = self::defaults();
+			$allowed  = array_keys( $defaults['portal_permissions']['defaults'] );
+		}
+
+		$out = array();
+		foreach ( $set as $key => $raw ) {
+			$key = sanitize_key( (string) $key );
+			if ( ! in_array( $key, $allowed, true ) ) {
+				continue;
+			}
+			switch ( $key ) {
+				case 'payment_methods':
+					$methods = array();
+					foreach ( self::to_list( $raw ) as $method ) {
+						if ( is_array( $method ) ) {
+							$method = isset( $method['key'] ) ? $method['key'] : '';
+						}
+						$method = sanitize_key( (string) $method );
+						if ( '' !== $method ) {
+							$methods[] = $method;
+						}
+					}
+					$out[ $key ] = array_values( array_unique( $methods ) );
+					break;
+
+				case 'price_mode':
+					$out[ $key ] = self::enum( $raw, array( 'heredar', 'publico', 'lista' ), 'heredar' );
+					break;
+
+				case 'price_list_key':
+					$out[ $key ] = is_scalar( $raw ) ? sanitize_key( (string) $raw ) : '';
+					break;
+
+				default:
+					$out[ $key ] = MJERP_Helpers::bool( $raw );
+					break;
+			}
+		}
+		return $out;
 	}
 
 	/**
@@ -872,6 +1321,64 @@ class MJERP_Settings {
 
 		if ( '' === (string) $s['consignee_role'] ) {
 			$s['consignee_role'] = $defaults['consignee_role'];
+		}
+
+		/* --- Ventas -------------------------------------------------------------------- */
+
+		// Channels and payment methods always keep an "otro" entry: the repos fall back to it.
+		foreach ( array( 'sales_channels', 'sales_payment_methods' ) as $list_key ) {
+			if ( ! is_array( $s[ $list_key ] ) || empty( $s[ $list_key ] ) ) {
+				$s[ $list_key ] = $defaults[ $list_key ];
+			}
+			if ( ! in_array( 'otro', wp_list_pluck( $s[ $list_key ], 'key' ), true ) ) {
+				$s[ $list_key ][] = array(
+					'key'   => 'otro',
+					'label' => 'Otro',
+				);
+			}
+		}
+
+		$channel_keys = wp_list_pluck( $s['sales_channels'], 'key' );
+		foreach ( array( 'sales_default_channel', 'sales_shop_channel' ) as $ck ) {
+			if ( ! in_array( (string) $s[ $ck ], $channel_keys, true ) ) {
+				$s[ $ck ] = in_array( $defaults[ $ck ], $channel_keys, true ) ? $defaults[ $ck ] : (string) reset( $channel_keys );
+			}
+		}
+
+		$method_keys = wp_list_pluck( $s['sales_payment_methods'], 'key' );
+		foreach ( array( 'sales_default_payment_method', 'sales_consignment_payment_method' ) as $mk ) {
+			if ( ! in_array( (string) $s[ $mk ], $method_keys, true ) ) {
+				$s[ $mk ] = in_array( $defaults[ $mk ], $method_keys, true ) ? $defaults[ $mk ] : (string) reset( $method_keys );
+			}
+		}
+
+		// Price lists used by the sales module may reference a list that was later deleted.
+		foreach ( array( 'sales_price_list', 'shop_price_list' ) as $pk ) {
+			if ( '' !== (string) $s[ $pk ] && ! in_array( (string) $s[ $pk ], $list_keys, true ) ) {
+				$s[ $pk ] = (string) $s['price_list_for_price'];
+			}
+		}
+
+		// An empty capture list would silently stop mirroring the shop, which reads as a bug.
+		if ( ! is_array( $s['sales_capture_statuses'] ) || empty( $s['sales_capture_statuses'] ) ) {
+			$s['sales_capture_statuses'] = $defaults['sales_capture_statuses'];
+		}
+		if ( ! is_array( $s['sales_void_statuses'] ) ) {
+			$s['sales_void_statuses'] = $defaults['sales_void_statuses'];
+		}
+		// A status that both confirms and voids a sale would flip-flop it: capture wins.
+		$s['sales_void_statuses'] = array_values( array_diff( $s['sales_void_statuses'], $s['sales_capture_statuses'] ) );
+
+		// The permission tree always carries its two branches with every default key present.
+		if ( ! is_array( $s['portal_permissions'] ) ) {
+			$s['portal_permissions'] = $defaults['portal_permissions'];
+		}
+		$s['portal_permissions']['defaults'] = array_merge(
+			$defaults['portal_permissions']['defaults'],
+			isset( $s['portal_permissions']['defaults'] ) && is_array( $s['portal_permissions']['defaults'] ) ? $s['portal_permissions']['defaults'] : array()
+		);
+		if ( ! isset( $s['portal_permissions']['roles'] ) || ! is_array( $s['portal_permissions']['roles'] ) ) {
+			$s['portal_permissions']['roles'] = array();
 		}
 
 		return $s;

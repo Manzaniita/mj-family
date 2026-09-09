@@ -60,6 +60,7 @@ final class MJERP_Plugin {
 			'includes/class-mjerp-capabilities.php',
 			'includes/class-mjerp-helpers.php',
 			'includes/class-mjerp-settings.php',
+			'includes/class-mjerp-permissions.php',
 			'includes/class-mjerp-install.php',
 			'includes/class-mjerp-costing.php',
 			'includes/class-mjerp-dolar.php',
@@ -75,6 +76,11 @@ final class MJERP_Plugin {
 			'includes/repositories/class-mjerp-consignment-sales-repo.php',
 			'includes/repositories/class-mjerp-consignment-payments-repo.php',
 			'includes/class-mjerp-consignment-account.php',
+			'includes/repositories/class-mjerp-sales-repo.php',
+			'includes/repositories/class-mjerp-sale-payments-repo.php',
+			'includes/class-mjerp-sales.php',
+			'includes/class-mjerp-orders.php',
+			'includes/class-mjerp-pricing.php',
 			'includes/class-mjerp-frontend.php',
 			'includes/class-mjerp-portal.php',
 			'includes/rest/class-mjerp-rest-controller.php',
@@ -84,6 +90,7 @@ final class MJERP_Plugin {
 			'includes/rest/class-mjerp-rest-products.php',
 			'includes/rest/class-mjerp-rest-settings.php',
 			'includes/rest/class-mjerp-rest-consignments.php',
+			'includes/rest/class-mjerp-rest-sales.php',
 			'includes/rest/class-mjerp-rest-portal.php',
 			'includes/rest/class-mjerp-rest.php',
 		);
@@ -139,6 +146,8 @@ final class MJERP_Plugin {
 		MJERP_Install::maybe_upgrade();
 		MJERP_Consignees::init();
 		MJERP_Consignment_Account::init();
+		MJERP_Orders::init();
+		MJERP_Pricing::init();
 		MJERP_Frontend::init();
 		MJERP_Portal::init();
 		MJERP_REST::init();

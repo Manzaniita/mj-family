@@ -68,6 +68,57 @@
 		'</div>';
 	}
 
+	/**
+	 * Fila de ventas: lo que se vendió este mes, el margen y lo que falta cobrar.
+	 *
+	 * Va arriba de todo porque es la pregunta que se hace todos los días; las compras se miran
+	 * cuando llega un contenedor, las ventas se miran siempre.
+	 */
+	function salesCardHtml(data) {
+		const info = data && data.sales;
+		if (!info || !info.enabled) return '';
+
+		const stats = info.stats || {};
+		const month = stats.month || {};
+		const today = stats.today || {};
+		const base = String(MJ.setting('base_currency', 'USD')).toUpperCase();
+		const moneyBase = function (value) {
+			const n = MJ.fmt.toNumber(value);
+			if (n === null) return '—';
+			const decimals = Math.abs(n - Math.round(n)) < 0.005 ? 0 : 2;
+			return MJ.fmt.money(n, base, decimals);
+		};
+
+		const unpaid = parseInt(info.unpaid_count, 10) || 0;
+		const declared = parseInt(info.declared_count, 10) || 0;
+		const todayCount = parseInt(today.count, 10) || 0;
+
+		return '<div class="mj-grid mj-grid--3 mj-mb">' +
+			kpi({
+				icon: 'cash', label: 'Vendido este mes', money: true, className: 'mj-kpi--month',
+				href: MJ.router.link('/ventas'),
+				value: moneyBase(month.total),
+				sub: (num(month.count) === 1 ? '1 venta' : MJ.fmt.int(num(month.count)) + ' ventas') +
+					(todayCount ? ' · ' + (todayCount === 1 ? '1 hoy' : todayCount + ' hoy') : ''),
+			}) +
+			kpi({
+				icon: 'chart', label: 'Margen del mes', money: true, className: 'mj-kpi--received',
+				href: MJ.router.link('/ventas'),
+				value: moneyBase(month.profit),
+				sub: 'Precio de venta menos costo landed',
+			}) +
+			kpi({
+				icon: unpaid ? 'warning' : 'check-circle', label: 'Falta cobrar',
+				className: unpaid ? 'mj-kpi--danger' : 'mj-kpi--received',
+				href: MJ.router.link('/ventas', { cobro: 'impaga' }),
+				value: MJ.fmt.int(unpaid),
+				sub: declared
+					? (declared === 1 ? '1 pago a confirmar' : declared + ' pagos a confirmar')
+					: (unpaid ? 'Ventas con saldo pendiente' : 'Todo cobrado'),
+			}) +
+		'</div>';
+	}
+
 	function recentTable(rows) {
 		if (!rows || !rows.length) {
 			return MJ.ui.empty({
@@ -158,6 +209,7 @@
 			}) +
 		'</div>';
 
+		html += salesCardHtml(data);
 		html += consignmentCardHtml(data);
 
 		html += '<div class="mj-grid mj-grid--sidebar">' +
@@ -170,8 +222,9 @@
 				'<div class="mj-card">' +
 					'<div class="mj-card__header"><h3 class="mj-card__title">' + MJ.icon('zap') + '<span>Accesos rápidos</span></h3></div>' +
 					'<div class="mj-card__body mj-stack">' +
-						'<a class="mj-btn mj-btn--primary mj-btn--block" href="' + h(MJ.router.link('/compras', { new: 1 })) + '">' + MJ.icon('plus') + '<span>Nueva compra</span></a>' +
-						'<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/compras')) + '">' + MJ.icon('cart') + '<span>Ver compras</span></a>' +
+						'<a class="mj-btn mj-btn--primary mj-btn--block" href="' + h(MJ.router.link('/ventas/nueva')) + '">' + MJ.icon('cash') + '<span>Nueva venta</span></a>' +
+						'<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/compras', { new: 1 })) + '">' + MJ.icon('plus') + '<span>Nueva compra</span></a>' +
+						'<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/ventas')) + '">' + MJ.icon('list') + '<span>Ver ventas</span></a>' +
 						'<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/proveedores')) + '">' + MJ.icon('users') + '<span>Proveedores</span></a>' +
 						'<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/productos')) + '">' + MJ.icon('box') + '<span>Productos y costos</span></a>' +
 						'<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/configuracion')) + '">' + MJ.icon('settings') + '<span>Configuración</span></a>' +

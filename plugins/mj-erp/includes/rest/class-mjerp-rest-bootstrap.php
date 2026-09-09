@@ -73,6 +73,7 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 			'price_lists'      => $this->key_label_list( isset( $settings['price_lists'] ) ? $settings['price_lists'] : array(), true ),
 			'roles'            => $this->roles(),
 			'consignment'      => $this->consignment_info(),
+			'sales'            => $this->sales_info(),
 			'app_url'          => $this->app_url(),
 			'home_url'         => home_url( '/' ),
 			'admin_url'        => admin_url(),
@@ -104,6 +105,8 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 			'on_hand_units' => 0.0,
 			'on_hand_value_base' => 0.0,
 			'unallocated_base'   => 0.0,
+			'declared_payments'  => 0,
+			'declared_base'      => 0.0,
 			'over_limit'    => 0,
 			'portal_enabled' => false,
 			'portal_url'    => '',
@@ -124,6 +127,8 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 		$info['on_hand_units']      = (float) $totals['on_hand_units'];
 		$info['on_hand_value_base'] = (float) $totals['on_hand_value_base'];
 		$info['unallocated_base']   = (float) $totals['unallocated_base'];
+		$info['declared_payments']  = (int) $totals['declared_payments'];
+		$info['declared_base']      = (float) $totals['declared_base'];
 		$info['over_limit']         = (int) $totals['over_limit'];
 		$info['payment_methods']    = MJERP_Settings::payment_methods();
 		$info['statuses']           = MJERP_Settings::consignment_statuses();
@@ -132,6 +137,61 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 			$info['portal_enabled'] = MJERP_Portal::is_enabled();
 			$info['portal_url']     = MJERP_Portal::is_enabled() ? MJERP_Portal::url() : '';
 		}
+
+		return $info;
+	}
+
+	/**
+	 * Sales catalogues and counters for the nav badge, the dashboard and the new-sale screen.
+	 *
+	 * @return array
+	 */
+	protected function sales_info() {
+		$info = array(
+			'enabled'          => false,
+			'statuses'         => array(),
+			'payment_statuses' => array(),
+			'channels'         => array(),
+			'payment_methods'  => array(),
+			'order_statuses'   => array(),
+			'stats'            => array(),
+			'unpaid_count'     => 0,
+			'declared_count'   => 0,
+			'currency'         => '',
+			'defaults'         => array(),
+			'permissions'      => array(),
+		);
+
+		if ( ! class_exists( 'MJERP_Sales_Repo' ) || ! class_exists( 'MJERP_Sales' ) ) {
+			return $info;
+		}
+
+		$settings = $this->settings();
+
+		$info['enabled']          = MJERP_Sales::is_enabled();
+		$info['statuses']         = MJERP_Settings::sale_statuses();
+		$info['payment_statuses'] = MJERP_Settings::sale_payment_statuses();
+		$info['channels']         = MJERP_Settings::sale_channels();
+		$info['payment_methods']  = MJERP_Settings::sale_payment_methods();
+		$info['order_statuses']   = class_exists( 'MJERP_Orders' ) ? MJERP_Orders::statuses() : array();
+		$info['currency']         = MJERP_Sales_Repo::shop_currency();
+		$info['permissions']      = class_exists( 'MJERP_Permissions' ) ? MJERP_Permissions::keys() : array();
+
+		if ( $info['enabled'] ) {
+			$info['stats']          = MJERP_Sales_Repo::stats();
+			$info['unpaid_count']   = MJERP_Sales_Repo::unpaid_count();
+			$info['declared_count'] = class_exists( 'MJERP_Sale_Payments_Repo' ) ? MJERP_Sale_Payments_Repo::declared_count() : 0;
+		}
+
+		$info['defaults'] = array(
+			'channel'        => (string) MJERP_Helpers::array_get( $settings, 'sales_default_channel', 'mostrador' ),
+			'payment_method' => (string) MJERP_Helpers::array_get( $settings, 'sales_default_payment_method', 'efectivo' ),
+			'cashbox_id'     => (int) MJERP_Helpers::array_get( $settings, 'sales_default_cashbox', 0 ),
+			'price_list'     => (string) MJERP_Helpers::array_get( $settings, 'sales_price_list', '' ),
+			'create_order'   => MJERP_Helpers::bool( MJERP_Helpers::array_get( $settings, 'sales_create_order', true ) ),
+			'rate'           => MJERP_Sales_Repo::default_rate( MJERP_Sales_Repo::shop_currency() ),
+			'allow_discount' => MJERP_Helpers::bool( MJERP_Helpers::array_get( $settings, 'sales_allow_discount', true ) ),
+		);
 
 		return $info;
 	}

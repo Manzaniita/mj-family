@@ -205,6 +205,23 @@ class MJERP_Portal {
 		$user     = wp_get_current_user();
 		$avatar   = $user->ID ? get_avatar_url( $user->ID, array( 'size' => 64 ) ) : '';
 		$settings = MJERP_Settings::all();
+		$user_id  = (int) $consignee['user_id'];
+
+		/*
+		 * What this reseller may do, already resolved through defaults → role → their own record.
+		 * The two global portal switches are a ceiling: a feature turned off for everyone can never
+		 * be turned back on per user.
+		 */
+		$can = array(
+			'report_sale'            => MJERP_Helpers::bool( MJERP_Settings::get( 'portal_allow_sales', true ) )
+				&& MJERP_Permissions::can( 'report_sale', $user_id, $consignee ),
+			'returns'                => MJERP_Helpers::bool( MJERP_Settings::get( 'portal_allow_returns', false ) )
+				&& MJERP_Permissions::can( 'returns', $user_id, $consignee ),
+			'register_payment'       => MJERP_Permissions::can( 'register_payment', $user_id, $consignee ),
+			'partial_payments'       => MJERP_Permissions::can( 'partial_payments', $user_id, $consignee ),
+			'payment_needs_approval' => MJERP_Permissions::can( 'payment_needs_approval', $user_id, $consignee ),
+			'see_account'            => MJERP_Permissions::can( 'see_account', $user_id, $consignee ),
+		);
 
 		$config = array(
 			'version'      => MJERP_VERSION,
@@ -223,8 +240,10 @@ class MJERP_Portal {
 			'localCurrency' => strtoupper( (string) MJERP_Settings::get( 'local_currency', 'ARS' ) ),
 			'symbols'      => is_array( $settings['currency_symbols'] ) ? $settings['currency_symbols'] : array(),
 			'rate'         => class_exists( 'MJERP_Dolar' ) ? MJERP_Dolar::rate() : 0.0,
-			'canSell'      => MJERP_Helpers::bool( MJERP_Settings::get( 'portal_allow_sales', true ) ),
-			'canReturn'    => MJERP_Helpers::bool( MJERP_Settings::get( 'portal_allow_returns', false ) ),
+			'canSell'      => $can['report_sale'],
+			'canReturn'    => $can['returns'],
+			'can'          => $can,
+			'paymentMethods' => MJERP_Permissions::payment_methods( $user_id, $consignee ),
 			'needsApproval' => MJERP_Consignment_Sales_Repo::STATUS_PENDING === MJERP_Consignment_Sales_Repo::initial_status( MJERP_Consignment_Sales_Repo::SOURCE_PORTAL ),
 			'today'        => current_time( 'Y-m-d' ),
 			'consignee'    => array(

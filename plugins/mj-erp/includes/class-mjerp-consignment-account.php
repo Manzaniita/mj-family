@@ -60,6 +60,8 @@ class MJERP_Consignment_Account {
 			'payments_base'     => 0.0,
 			'adjustments_base'  => 0.0,
 			'credits_base'      => 0.0,
+			'declared_base'     => 0.0,
+			'declared_count'    => 0,
 			'balance_base'      => 0.0,
 			'unallocated_base'  => 0.0,
 			'overdue_base'      => 0.0,
@@ -107,18 +109,32 @@ class MJERP_Consignment_Account {
 			ARRAY_A
 		);
 
+		/*
+		 * A payment a reseller declared from their own screen is a claim, not money: it only counts
+		 * once it is confirmed. It is still reported (`declared`) so the shop owner sees there is
+		 * something waiting instead of wondering why the balance did not move.
+		 */
 		$payments = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT
-					COALESCE(SUM(CASE WHEN kind = %s THEN amount_base ELSE 0 END), 0) AS payments,
-					COALESCE(SUM(CASE WHEN kind = %s THEN amount_base ELSE 0 END), 0) AS adjustments,
-					COALESCE(SUM(amount_base), 0) AS credits,
-					COALESCE(SUM(GREATEST(amount_base - allocated_base, 0)), 0) AS unallocated,
-					MAX(CASE WHEN kind = %s THEN payment_date ELSE NULL END) AS last_payment
+					COALESCE(SUM(CASE WHEN kind = %s AND status = %s THEN amount_base ELSE 0 END), 0) AS payments,
+					COALESCE(SUM(CASE WHEN kind = %s AND status = %s THEN amount_base ELSE 0 END), 0) AS adjustments,
+					COALESCE(SUM(CASE WHEN status = %s THEN amount_base ELSE 0 END), 0) AS credits,
+					COALESCE(SUM(CASE WHEN status = %s THEN GREATEST(amount_base - allocated_base, 0) ELSE 0 END), 0) AS unallocated,
+					COALESCE(SUM(CASE WHEN status = %s THEN amount_base ELSE 0 END), 0) AS declared,
+					SUM(CASE WHEN status = %s THEN 1 ELSE 0 END) AS declared_count,
+					MAX(CASE WHEN kind = %s AND status = %s THEN payment_date ELSE NULL END) AS last_payment
 				 FROM {$payments_table} WHERE consignee_id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				MJERP_Consignment_Payments_Repo::KIND_PAYMENT,
+				MJERP_Consignment_Payments_Repo::STATUS_CONFIRMED,
 				MJERP_Consignment_Payments_Repo::KIND_ADJUSTMENT,
+				MJERP_Consignment_Payments_Repo::STATUS_CONFIRMED,
+				MJERP_Consignment_Payments_Repo::STATUS_CONFIRMED,
+				MJERP_Consignment_Payments_Repo::STATUS_CONFIRMED,
+				MJERP_Consignment_Payments_Repo::STATUS_DECLARED,
+				MJERP_Consignment_Payments_Repo::STATUS_DECLARED,
 				MJERP_Consignment_Payments_Repo::KIND_PAYMENT,
+				MJERP_Consignment_Payments_Repo::STATUS_CONFIRMED,
 				$consignee_id
 			),
 			ARRAY_A
@@ -147,6 +163,8 @@ class MJERP_Consignment_Account {
 			'payments_base'     => round( (float) ( $payments ? $payments['payments'] : 0 ), 4 ),
 			'adjustments_base'  => round( (float) ( $payments ? $payments['adjustments'] : 0 ), 4 ),
 			'credits_base'      => $credits,
+			'declared_base'     => round( (float) ( $payments ? $payments['declared'] : 0 ), 4 ),
+			'declared_count'    => (int) ( $payments ? $payments['declared_count'] : 0 ),
 			'balance_base'      => $balance,
 			'unallocated_base'  => $unallocated,
 			'overdue_base'      => $outstanding,
@@ -202,6 +220,8 @@ class MJERP_Consignment_Account {
 			'on_hand_units'      => 0.0,
 			'on_hand_value_base' => 0.0,
 			'pending_sales'      => 0,
+			'declared_payments'  => 0,
+			'declared_base'      => 0.0,
 			'unallocated_base'   => 0.0,
 			'over_limit'         => 0,
 		);
@@ -213,6 +233,8 @@ class MJERP_Consignment_Account {
 			$totals['on_hand_units']      += (float) $account['on_hand_units'];
 			$totals['on_hand_value_base'] += (float) $account['on_hand_value_base'];
 			$totals['pending_sales']      += (int) $account['pending_sales'];
+			$totals['declared_payments']  += (int) $account['declared_count'];
+			$totals['declared_base']      += (float) $account['declared_base'];
 			$totals['unallocated_base']   += (float) $account['unallocated_base'];
 			if ( ! empty( $account['over_limit'] ) ) {
 				$totals['over_limit']++;
@@ -223,6 +245,7 @@ class MJERP_Consignment_Account {
 		$totals['on_hand_units']      = round( $totals['on_hand_units'], 4 );
 		$totals['on_hand_value_base'] = round( $totals['on_hand_value_base'], 4 );
 		$totals['unallocated_base']   = round( $totals['unallocated_base'], 4 );
+		$totals['declared_base']      = round( $totals['declared_base'], 4 );
 
 		return $totals;
 	}
@@ -271,9 +294,11 @@ class MJERP_Consignment_Account {
 			);
 		}
 
+		// Only confirmed payments belong in a running balance: a declared one has not moved it.
 		$payments = MJERP_Consignment_Payments_Repo::query(
 			array(
 				'consignee_id' => $consignee_id,
+				'status'       => MJERP_Consignment_Payments_Repo::STATUS_CONFIRMED,
 				'per_page'     => $limit,
 				'order'        => 'ASC',
 			)

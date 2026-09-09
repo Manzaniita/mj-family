@@ -30,6 +30,7 @@
 
 	const TABS = [
 		{ key: 'general', label: 'General', icon: 'settings' },
+		{ key: 'ventas', label: 'Ventas', icon: 'cash' },
 		{ key: 'compras', label: 'Compras', icon: 'cart' },
 		{ key: 'precios', label: 'Listas de precio', icon: 'tag' },
 		{ key: 'stock', label: 'Recepción y stock', icon: 'box' },
@@ -50,6 +51,18 @@
 		cost_meta_key: 'stock', update_price_on_receive: 'stock', price_target: 'stock',
 		price_rounding: 'stock', allow_unreceive: 'stock', new_product_status: 'stock',
 		price_publish_mode: 'stock', usd_rounding: 'stock', usd_rounding_mode: 'stock',
+		sales_enabled: 'ventas', sales_code_prefix: 'ventas', sales_code_format: 'ventas', sales_code_seq_digits: 'ventas',
+		sales_channels: 'ventas', sales_default_channel: 'ventas', sales_shop_channel: 'ventas',
+		sales_payment_methods: 'ventas', sales_default_payment_method: 'ventas', sales_default_cashbox: 'ventas',
+		sales_price_list: 'ventas', sales_track_cost: 'ventas', sales_allow_discount: 'ventas', sales_allow_oversell: 'ventas',
+		sales_create_order: 'ventas', sales_order_status_paid: 'ventas', sales_order_status_unpaid: 'ventas',
+		sales_order_created_via: 'ventas', sales_order_note: 'ventas', sales_reduce_stock: 'ventas',
+		sales_capture_shop_orders: 'ventas', sales_capture_manual_orders: 'ventas', sales_capture_payment: 'ventas',
+		sales_capture_on: 'ventas', sales_capture_statuses: 'ventas', sales_void_statuses: 'ventas',
+		sales_consignment_enabled: 'ventas', sales_consignment_allocation: 'ventas', sales_consignment_approval: 'ventas',
+		sales_consignment_partial_lines: 'ventas', sales_consignment_payment_method: 'ventas',
+		shop_price_mode: 'ventas', shop_price_list: 'ventas', shop_price_notice: 'ventas',
+		portal_permissions: 'consignaciones',
 		consignee_role: 'consignaciones', consignee_role_label: 'consignaciones',
 		consignment_code_prefix: 'consignaciones', consignment_code_format: 'consignaciones',
 		consignment_code_seq_digits: 'consignaciones', consignment_price_list: 'consignaciones',
@@ -125,6 +138,68 @@
 		portal_title: 'Mi cuenta',
 		portal_allow_sales: true,
 		portal_allow_returns: false,
+		portal_permissions: {
+			defaults: {
+				report_sale: true,
+				register_payment: false,
+				partial_payments: true,
+				payment_needs_approval: true,
+				payment_methods: [],
+				returns: false,
+				see_account: true,
+				shop_consignment: true,
+				price_mode: 'heredar',
+				price_list_key: '',
+			},
+			roles: {},
+		},
+		sales_enabled: true,
+		sales_code_prefix: 'VTA',
+		sales_code_format: '{prefix}-{year}-{seq}',
+		sales_code_seq_digits: 4,
+		sales_channels: [
+			{ key: 'mostrador', label: 'Mostrador' },
+			{ key: 'whatsapp', label: 'WhatsApp' },
+			{ key: 'feria', label: 'Feria' },
+			{ key: 'tienda', label: 'Tienda online' },
+			{ key: 'otro', label: 'Otro' },
+		],
+		sales_default_channel: 'mostrador',
+		sales_shop_channel: 'tienda',
+		sales_payment_methods: [
+			{ key: 'efectivo', label: 'Efectivo' },
+			{ key: 'transferencia', label: 'Transferencia' },
+			{ key: 'tarjeta', label: 'Tarjeta' },
+			{ key: 'dolares', label: 'Dólares' },
+			{ key: 'cuenta_corriente', label: 'Cuenta corriente' },
+			{ key: 'otro', label: 'Otro' },
+		],
+		sales_default_payment_method: 'efectivo',
+		sales_default_cashbox: 0,
+		sales_price_list: 'publico',
+		sales_track_cost: true,
+		sales_allow_discount: true,
+		sales_allow_oversell: false,
+		sales_create_order: true,
+		sales_order_status_paid: 'completed',
+		sales_order_status_unpaid: 'on-hold',
+		sales_order_created_via: 'mj-erp',
+		sales_order_note: 'Venta registrada desde MJ ERP',
+		sales_reduce_stock: 'auto',
+		sales_capture_shop_orders: true,
+		sales_capture_manual_orders: true,
+		sales_capture_payment: true,
+		sales_capture_on: 'creada',
+		sales_capture_statuses: ['processing', 'completed'],
+		sales_void_statuses: ['cancelled', 'refunded', 'failed'],
+		sales_consignment_enabled: true,
+		sales_consignment_allocation: 'fifo',
+		sales_consignment_approval: 'auto',
+		sales_consignment_partial_lines: true,
+		sales_consignment_payment_method: 'cuenta_corriente',
+		shop_price_mode: 'publico',
+		shop_price_list: 'mayorista',
+		shop_price_notice: true,
 		allowed_roles: ['administrator', 'shop_manager'],
 		new_product_status: 'draft',
 		delete_data_on_uninstall: false,
@@ -984,6 +1059,32 @@
 			addLabel: 'Agregar lista de precios',
 			emptyText: 'No hay listas de precio: no vas a poder sugerir precios de venta.',
 		},
+		sales_channels: {
+			name: 'sales_channels',
+			showHead: true,
+			fields: [
+				{ key: 'label', label: 'Nombre', placeholder: 'Mostrador', maxlength: 80, width: '1 1 200px' },
+				{ key: 'key', label: 'Clave', placeholder: 'se genera del nombre', maxlength: 40, mono: true, width: '1 1 160px' },
+			],
+			addLabel: 'Agregar canal',
+			emptyText: 'No hay canales configurados.',
+			locked: function (row) { return slugify(row && row.key) === 'otro'; },
+			lockedField: function (row, field) { return field === 'key'; },
+			lockedTitle: 'El canal «Otro» no se puede eliminar: es el comodín.',
+		},
+		sales_payment_methods: {
+			name: 'sales_payment_methods',
+			showHead: true,
+			fields: [
+				{ key: 'label', label: 'Nombre', placeholder: 'Efectivo', maxlength: 80, width: '1 1 200px' },
+				{ key: 'key', label: 'Clave', placeholder: 'se genera del nombre', maxlength: 40, mono: true, width: '1 1 160px' },
+			],
+			addLabel: 'Agregar medio de pago',
+			emptyText: 'No hay medios de pago configurados.',
+			locked: function (row) { return slugify(row && row.key) === 'otro'; },
+			lockedField: function (row, field) { return field === 'key'; },
+			lockedTitle: 'El medio «Otro» no se puede eliminar: es el comodín.',
+		},
 		consignment_payment_methods: {
 			name: 'consignment_payment_methods',
 			showHead: true,
@@ -1447,6 +1548,382 @@
 			'). La tienda los muestra en pesos y se actualizan solos cuando cambiás el TC.' + link, 'success', { html: true });
 	}
 
+	/* --- Ventas ------------------------------------------------------------------ */
+
+	const SALES_CAPTURE_OPTIONS = [
+		{ value: 'creada', label: 'Apenas entra el pedido' },
+		{ value: 'estado', label: 'Cuando el pedido llega a uno de los estados de abajo' },
+	];
+
+	const SALES_STOCK_OPTIONS = [
+		{ value: 'auto', label: 'Que lo maneje WooCommerce (recomendado)' },
+		{ value: 'siempre', label: 'Descontar siempre al emitir el pedido' },
+		{ value: 'nunca', label: 'No tocar el stock' },
+	];
+
+	const SALES_CONSIGN_APPROVAL_OPTIONS = [
+		{ value: 'auto', label: 'Se imputan solas' },
+		{ value: 'pendiente', label: 'Esperan que las confirmes' },
+	];
+
+	const SALES_ALLOCATION_OPTIONS = [
+		{ value: 'fifo', label: 'Primero lo más viejo que tenga (FIFO)' },
+		{ value: 'lifo', label: 'Primero lo último que le entregaste (LIFO)' },
+	];
+
+	const SHOP_PRICE_OPTIONS = [
+		{ value: 'publico', label: 'El precio público, como cualquier cliente' },
+		{ value: 'lista', label: 'El precio de su lista' },
+	];
+
+	/** Estados de pedido de WooCommerce, del bootstrap. */
+	function orderStatusOptions() {
+		const info = (MJ.state.bootstrap && MJ.state.bootstrap.sales) || {};
+		return (info.order_statuses || []).map(function (o) {
+			return { value: o.key, label: o.label };
+		});
+	}
+
+	function cashboxOptions() {
+		const boxes = (MJ.state.cashboxes || []).map(function (c) {
+			return { value: String(c.id), label: c.name + (c.currency ? ' (' + c.currency + ')' : '') };
+		});
+		boxes.unshift({ value: '0', label: 'Sin caja' });
+		return boxes;
+	}
+
+	function channelOptionsFrom(m) {
+		return (Array.isArray(m.sales_channels) ? m.sales_channels : []).map(function (c) {
+			return { value: slugify(c.key) || slugify(c.label), label: c.label || c.key };
+		});
+	}
+
+	function salesMethodOptionsFrom(m) {
+		return (Array.isArray(m.sales_payment_methods) ? m.sales_payment_methods : []).map(function (c) {
+			return { value: slugify(c.key) || slugify(c.label), label: c.label || c.key };
+		});
+	}
+
+	/** Grupo de casillas para una lista de estados de pedido. */
+	function statusChecklistHtml(key, label, selected, hint) {
+		const options = orderStatusOptions();
+		const current = Array.isArray(selected) ? selected.map(String) : [];
+
+		if (!options.length) {
+			return '<div class="mj-field"><span class="mj-field__label">' + h(label) + '</span>' +
+				hintHtml('WooCommerce no está disponible para leer los estados de pedido.') + '</div>';
+		}
+
+		return '<div class="mj-field">' +
+			'<span class="mj-field__label">' + h(label) + '</span>' +
+			'<div class="mj-row mj-row--wrap mj-checkbox-grid" data-status-group="' + h(key) + '">' +
+				options.map(function (o) {
+					const on = current.indexOf(String(o.value)) >= 0;
+					return '<label class="mj-checkbox"><input type="checkbox" data-status-key="' + h(key) + '" value="' + h(o.value) + '"' + (on ? ' checked' : '') + '> <span>' + h(o.label) + '</span></label>';
+				}).join('') +
+			'</div>' +
+			hintHtml(hint) +
+		'</div>';
+	}
+
+	function panelVentasHtml(m) {
+		return sectionHtml('El módulo', 'Las ventas se registran acá vengan de donde vengan: del mostrador, de la tienda o de un revendedor.',
+			checkboxFieldHtml({
+				key: 'sales_enabled', label: 'Registrar ventas', checked: !!m.sales_enabled,
+				hint: 'Si lo apagás, el ERP deja de espejar los pedidos de la tienda y no vas a poder cargar ventas.',
+			}) +
+			checkboxFieldHtml({
+				key: 'sales_track_cost', label: 'Guardar el costo de cada venta', checked: !!m.sales_track_cost,
+				hint: 'Congela el costo landed del momento de la venta. Es lo que hace que el margen sea real y no cambie cuando cambia el dólar.',
+			}) +
+			checkboxFieldHtml({
+				key: 'sales_allow_discount', label: 'Permitir descuentos al cargar', checked: !!m.sales_allow_discount,
+			}) +
+			checkboxFieldHtml({
+				key: 'sales_allow_oversell', label: 'Dejar vender sin stock', checked: !!m.sales_allow_oversell,
+				hint: 'Desactivado, el ERP no deja cargar una venta de algo que no tenés (salvo que el producto acepte pedidos pendientes).',
+			})
+		) +
+		sectionHtml('Códigos de venta', 'Se generan solos al registrar una venta.',
+			'<div class="mj-form-row">' +
+				textFieldHtml({
+					key: 'sales_code_prefix', label: 'Prefijo', value: str(m.sales_code_prefix), mono: true, maxlength: 20, placeholder: 'VTA',
+					hint: 'Reemplaza al token <span class="mj-mono">{prefix}</span>.',
+				}) +
+				textFieldHtml({
+					key: 'sales_code_format', label: 'Formato', value: str(m.sales_code_format), mono: true, maxlength: 60, placeholder: '{prefix}-{year}-{seq}',
+					hint: 'Tokens: <span class="mj-mono">{prefix}</span> · <span class="mj-mono">{year}</span> · <span class="mj-mono">{month}</span> · <span class="mj-mono">{seq}</span>.',
+				}) +
+				textFieldHtml({
+					key: 'sales_code_seq_digits', label: 'Dígitos', value: numText(m.sales_code_seq_digits), kind: 'number', inputmode: 'numeric', maxlength: 2,
+					hint: 'Entre 1 y 10 (4 → 0001).',
+				}) +
+			'</div>'
+		) +
+		sectionHtml('Cargar una venta', 'Los valores con los que arranca la pantalla de venta nueva.',
+			'<div class="mj-field">' +
+				'<span class="mj-field__label">Canales</span>' +
+				'<div data-region="editor-sales_channels">' + listEditorHtml(EDITORS.sales_channels, m.sales_channels) + '</div>' +
+				'<div class="mj-field__hint">De dónde vino la venta: mostrador, WhatsApp, feria… Es solo para que después puedas filtrar.</div>' +
+			'</div>' +
+			'<div class="mj-form-row">' +
+				selectFieldHtml({
+					key: 'sales_default_channel', label: 'Canal por defecto', value: str(m.sales_default_channel), options: channelOptionsFrom(m),
+				}) +
+				selectFieldHtml({
+					key: 'sales_shop_channel', label: 'Canal de la tienda', value: str(m.sales_shop_channel), options: channelOptionsFrom(m),
+					hint: 'Con este canal quedan marcadas las ventas que entran solas por la tienda.',
+				}) +
+			'</div>' +
+			selectFieldHtml({
+				key: 'sales_price_list', label: 'Lista de precios sugerida', value: str(m.sales_price_list), options: priceListOptions(m),
+				hint: 'Con esta lista se propone el precio de cada producto. Dejala vacía para usar el precio que tiene el producto en la tienda.',
+			}) +
+			'<div class="mj-field">' +
+				'<span class="mj-field__label">Medios de pago</span>' +
+				'<div data-region="editor-sales_payment_methods">' + listEditorHtml(EDITORS.sales_payment_methods, m.sales_payment_methods) + '</div>' +
+				'<div class="mj-field__hint">Son las opciones de «cómo pagó». Si dejás la clave vacía se genera del nombre.</div>' +
+			'</div>' +
+			'<div class="mj-form-row">' +
+				selectFieldHtml({
+					key: 'sales_default_payment_method', label: 'Medio por defecto', value: str(m.sales_default_payment_method), options: salesMethodOptionsFrom(m),
+				}) +
+				selectFieldHtml({
+					key: 'sales_default_cashbox', label: 'Caja por defecto', value: String(m.sales_default_cashbox || 0), options: cashboxOptions(), kind: 'number',
+				}) +
+			'</div>'
+		) +
+		sectionHtml('Pedido en WooCommerce', 'Es lo que hace que la venta exista para la tienda: aparece en los informes de Woo y te llega la notificación en la app del celular.',
+			checkboxFieldHtml({
+				key: 'sales_create_order', label: 'Emitir el pedido al registrar una venta', checked: !!m.sales_create_order,
+				hint: 'Podés desmarcarlo venta por venta desde la pantalla de carga.',
+			}) +
+			'<div class="mj-form-row">' +
+				selectFieldHtml({
+					key: 'sales_order_status_paid', label: 'Estado si está cobrada', value: str(m.sales_order_status_paid), options: orderStatusOptions(),
+				}) +
+				selectFieldHtml({
+					key: 'sales_order_status_unpaid', label: 'Estado si queda a cobrar', value: str(m.sales_order_status_unpaid), options: orderStatusOptions(),
+				}) +
+			'</div>' +
+			selectFieldHtml({
+				key: 'sales_reduce_stock', label: 'Stock del pedido', value: str(m.sales_reduce_stock), options: SALES_STOCK_OPTIONS,
+				hint: 'WooCommerce descuenta solo según el estado del pedido. Cambiá esto únicamente si en tu tienda no lo está haciendo.',
+			}) +
+			'<div class="mj-form-row">' +
+				textFieldHtml({
+					key: 'sales_order_created_via', label: 'Origen del pedido', value: str(m.sales_order_created_via), mono: true, maxlength: 60, placeholder: 'mj-erp',
+					hint: 'Es la etiqueta que WooCommerce muestra como «creado vía».',
+				}) +
+				textFieldHtml({
+					key: 'sales_order_note', label: 'Nota del pedido', value: str(m.sales_order_note), maxlength: 190, placeholder: 'Venta registrada desde MJ ERP',
+					hint: 'Se agrega como nota interna. Dejala vacía para no agregar ninguna.',
+				}) +
+			'</div>'
+		) +
+		sectionHtml('Lo que se vende en la tienda', 'Cada pedido de la tienda entra al ERP como una venta más, con su costo y su margen.',
+			checkboxFieldHtml({
+				key: 'sales_capture_shop_orders', label: 'Registrar los pedidos de la tienda', checked: !!m.sales_capture_shop_orders,
+			}) +
+			checkboxFieldHtml({
+				key: 'sales_capture_manual_orders', label: 'Registrar también los pedidos cargados a mano en WordPress', checked: !!m.sales_capture_manual_orders,
+			}) +
+			checkboxFieldHtml({
+				key: 'sales_capture_payment', label: 'Dar por cobrada la venta cuando el pedido se paga', checked: !!m.sales_capture_payment,
+				hint: 'Si el pedido se pagó por la pasarela, el cobro queda registrado solo.',
+			}) +
+			selectFieldHtml({
+				key: 'sales_capture_on', label: 'Cuándo se registra', value: str(m.sales_capture_on), options: SALES_CAPTURE_OPTIONS,
+			}) +
+			statusChecklistHtml('sales_capture_statuses', 'Estados que confirman la venta', m.sales_capture_statuses,
+				'Solo se usan con la segunda opción de arriba.') +
+			statusChecklistHtml('sales_void_statuses', 'Estados que la anulan', m.sales_void_statuses,
+				'Con estos estados se deshace la venta y, si era de un revendedor, se le saca la deuda. El stock lo repone WooCommerce.')
+		) +
+		sectionHtml('Cuando compra un revendedor', 'Si el que compra tiene mercadería tuya en consignación, lo que compre sale de ahí en vez del depósito.',
+			MJ.ui.alert('Se revisa producto por producto: lo que tiene entregado se le imputa a su cuenta al precio acordado, y lo que no tiene sale del depósito como una venta común.', 'info') +
+			checkboxFieldHtml({
+				key: 'sales_consignment_enabled', label: 'Descontar de la consignación', checked: !!m.sales_consignment_enabled,
+				hint: 'Podés apagarlo para un revendedor puntual desde su ficha.',
+			}) +
+			checkboxFieldHtml({
+				key: 'sales_consignment_partial_lines', label: 'Partir una línea entre consignación y depósito', checked: !!m.sales_consignment_partial_lines,
+				hint: 'Si compra 5 y tiene 2, con esto se le imputan 2 y las otras 3 salen del depósito. Sin esto, las 5 salen del depósito.',
+			}) +
+			'<div class="mj-form-row">' +
+				selectFieldHtml({
+					key: 'sales_consignment_allocation', label: 'Qué entrega se consume primero', value: str(m.sales_consignment_allocation), options: SALES_ALLOCATION_OPTIONS,
+				}) +
+				selectFieldHtml({
+					key: 'sales_consignment_approval', label: 'Estas ventas', value: str(m.sales_consignment_approval), options: SALES_CONSIGN_APPROVAL_OPTIONS,
+					hint: 'La venta ya ocurrió en la tienda, así que lo normal es que se imputen solas.',
+				}) +
+			'</div>' +
+			selectFieldHtml({
+				key: 'sales_consignment_payment_method', label: 'Medio de pago de esa parte', value: str(m.sales_consignment_payment_method), options: salesMethodOptionsFrom(m),
+				hint: 'Lo que sale de la consignación no se cobra en la venta: va a su cuenta corriente.',
+			})
+		) +
+		sectionHtml('Precio que ve un revendedor en la tienda', 'Mientras esté con su sesión iniciada.',
+			selectFieldHtml({
+				key: 'shop_price_mode', label: 'Precio', value: str(m.shop_price_mode), options: SHOP_PRICE_OPTIONS,
+			}) +
+			selectFieldHtml({
+				key: 'shop_price_list', label: 'Lista de precios', value: str(m.shop_price_list), options: priceListOptions(m),
+				hint: 'Se calcula desde el costo landed más el markup de la lista, igual que los precios que publica el ERP. Un producto sin costo cargado mantiene su precio normal.',
+			}) +
+			checkboxFieldHtml({
+				key: 'shop_price_notice', label: 'Avisarle que está viendo su precio', checked: !!m.shop_price_notice,
+			})
+		);
+	}
+
+	/* --- Permisos del revendedor -------------------------------------------------- */
+
+	const PERM_TRISTATE = [
+		{ value: '', label: 'Heredar' },
+		{ value: '1', label: 'Sí' },
+		{ value: '0', label: 'No' },
+	];
+
+	/** Catálogo de permisos, tal como lo declara el servidor. */
+	function permissionKeys() {
+		const info = (MJ.state.bootstrap && MJ.state.bootstrap.sales) || {};
+		const keys = info.permissions;
+		return keys && typeof keys === 'object' ? keys : {};
+	}
+
+	function permissionTree(m) {
+		const tree = m.portal_permissions && typeof m.portal_permissions === 'object' ? m.portal_permissions : {};
+		return {
+			defaults: tree.defaults && typeof tree.defaults === 'object' ? tree.defaults : {},
+			roles: tree.roles && typeof tree.roles === 'object' ? tree.roles : {},
+		};
+	}
+
+	/** Roles a los que tiene sentido darles permisos de revendedor. */
+	function permissionRoles(m) {
+		const roles = (MJ.state.bootstrap && MJ.state.bootstrap.roles) || MJ.config.roles || [];
+		const consigneeRole = slugify(m.consignee_role);
+		const out = [];
+		roles.forEach(function (r) {
+			if (!r || !r.key || r.key === 'administrator') return;
+			out.push({ key: r.key, label: r.label || r.key, isConsignee: r.key === consigneeRole });
+		});
+		// El rol de reventa primero: es el que se toca siempre.
+		out.sort(function (a, b) { return (b.isConsignee ? 1 : 0) - (a.isConsignee ? 1 : 0); });
+		return out;
+	}
+
+	function permDefaultsHtml(m) {
+		const keys = permissionKeys();
+		const tree = permissionTree(m);
+		const values = tree.defaults;
+		const lists = priceListOptions(m);
+		const methods = Array.isArray(m.consignment_payment_methods) ? m.consignment_payment_methods : [];
+
+		let html = '';
+
+		Object.keys(keys).forEach(function (key) {
+			const def = keys[key] || {};
+			const value = values[key];
+
+			if (def.type === 'enum') {
+				const options = Object.keys(def.options || {}).map(function (k) {
+					return { value: k, label: def.options[k] };
+				});
+				html += '<div class="mj-field">' +
+					'<label class="mj-field__label" for="mj-perm-' + h(key) + '">' + h(def.label || key) + '</label>' +
+					'<select class="mj-select" id="mj-perm-' + h(key) + '" data-perm-scope="defaults" data-perm-key="' + h(key) + '" data-perm-type="enum">' +
+						optionsHtml(options, value) +
+					'</select>' +
+					hintHtml(def.help) +
+				'</div>';
+			} else if (def.type === 'price_list') {
+				html += '<div class="mj-field">' +
+					'<label class="mj-field__label" for="mj-perm-' + h(key) + '">' + h(def.label || key) + '</label>' +
+					'<select class="mj-select" id="mj-perm-' + h(key) + '" data-perm-scope="defaults" data-perm-key="' + h(key) + '" data-perm-type="enum">' +
+						optionsHtml([{ value: '', label: 'La lista general de la tienda' }].concat(lists), value) +
+					'</select>' +
+					hintHtml(def.help) +
+				'</div>';
+			} else if (def.type === 'methods') {
+				const selected = Array.isArray(value) ? value.map(String) : [];
+				html += '<div class="mj-field">' +
+					'<span class="mj-field__label">' + h(def.label || key) + '</span>' +
+					'<div class="mj-row mj-row--wrap mj-checkbox-grid" data-perm-methods="defaults">' +
+						methods.map(function (method) {
+							const mk = slugify(method.key) || slugify(method.label);
+							if (!mk) return '';
+							const on = selected.indexOf(mk) >= 0;
+							return '<label class="mj-checkbox"><input type="checkbox" data-perm-method="' + h(mk) + '"' + (on ? ' checked' : '') + '> <span>' + h(method.label || mk) + '</span></label>';
+						}).join('') +
+					'</div>' +
+					hintHtml(def.help) +
+				'</div>';
+			} else {
+				html += '<div class="mj-field">' +
+					'<label class="mj-checkbox">' +
+						'<input type="checkbox" data-perm-scope="defaults" data-perm-key="' + h(key) + '" data-perm-type="bool"' + (value ? ' checked' : '') + '> ' +
+						'<span>' + h(def.label || key) + '</span>' +
+					'</label>' +
+					hintHtml(def.help) +
+				'</div>';
+			}
+		});
+
+		return html;
+	}
+
+	function permRolesHtml(m) {
+		const keys = permissionKeys();
+		const tree = permissionTree(m);
+		const roles = permissionRoles(m);
+
+		if (!roles.length) return '<div class="mj-muted">No hay otros roles en esta instalación.</div>';
+
+		const boolKeys = Object.keys(keys).filter(function (k) { return (keys[k] || {}).type !== 'methods'; });
+
+		return roles.map(function (role) {
+			const overrides = tree.roles[role.key] && typeof tree.roles[role.key] === 'object' ? tree.roles[role.key] : {};
+			const count = Object.keys(overrides).length;
+
+			return '<details class="mj-details"' + (count || role.isConsignee ? ' open' : '') + '>' +
+				'<summary class="mj-details__summary">' +
+					'<span class="mj-strong">' + h(role.label) + '</span> ' +
+					'<span class="mj-mono mj-small mj-muted">' + h(role.key) + '</span> ' +
+					(count ? MJ.ui.badgeRaw(count === 1 ? '1 cambio' : count + ' cambios', 'info') : '<span class="mj-small mj-muted">hereda todo</span>') +
+				'</summary>' +
+				'<div class="mj-details__body mj-grid mj-grid--2">' +
+					boolKeys.map(function (key) {
+						const def = keys[key] || {};
+						const has = Object.prototype.hasOwnProperty.call(overrides, key);
+						const id = 'mj-perm-' + h(role.key) + '-' + h(key);
+
+						if (def.type === 'enum' || def.type === 'price_list') {
+							const options = def.type === 'enum'
+								? Object.keys(def.options || {}).map(function (k) { return { value: k, label: def.options[k] }; })
+								: [{ value: '', label: 'La lista general' }].concat(priceListOptions(m));
+							return '<div class="mj-field">' +
+								'<label class="mj-field__label" for="' + id + '">' + h(def.label || key) + '</label>' +
+								'<select class="mj-select" id="' + id + '" data-perm-scope="' + h(role.key) + '" data-perm-key="' + h(key) + '" data-perm-type="enum-optional">' +
+									optionsHtml([{ value: '__inherit__', label: 'Heredar' }].concat(options), has ? String(overrides[key]) : '__inherit__') +
+								'</select>' +
+							'</div>';
+						}
+
+						return '<div class="mj-field">' +
+							'<label class="mj-field__label" for="' + id + '">' + h(def.label || key) + '</label>' +
+							'<select class="mj-select" id="' + id + '" data-perm-scope="' + h(role.key) + '" data-perm-key="' + h(key) + '" data-perm-type="tristate">' +
+								optionsHtml(PERM_TRISTATE, has ? (overrides[key] ? '1' : '0') : '') +
+							'</select>' +
+						'</div>';
+					}).join('') +
+				'</div>' +
+			'</details>';
+		}).join('');
+	}
+
 	function panelConsignacionesHtml(m) {
 		const portalUrl = (MJ.state.bootstrap && MJ.state.bootstrap.consignment && MJ.state.bootstrap.consignment.portal_url) || '';
 		const listOptions = priceListOptions(m);
@@ -1534,6 +2011,12 @@
 				hint: 'Desactivado, las devoluciones las registrás vos cuando la mercadería vuelve a tus manos.',
 			}) +
 			MJ.ui.alert('El revendedor nunca ve precios de costo, márgenes, ni las cuentas de otros revendedores. Tampoco puede entrar al ERP ni al panel de WordPress: si intenta, va a su propia pantalla.', 'info')
+		) +
+		sectionHtml('Qué puede hacer un revendedor', 'Esto vale para todos. Cada rol puede cambiar lo que quiera de acá abajo, y la ficha de cada revendedor puede cambiar lo suyo.',
+			'<div data-region="perm-defaults">' + permDefaultsHtml(m) + '</div>'
+		) +
+		sectionHtml('Por rol', 'Solo lo que marques como «Sí» o «No» pisa lo de arriba; lo que dejes en «Heredar» sigue el valor general aunque después lo cambies.',
+			'<div data-region="perm-roles">' + permRolesHtml(m) + '</div>'
 		);
 	}
 
@@ -1589,6 +2072,7 @@
 	function panelsHtml(m, active, appUrl) {
 		const bodies = {
 			general: panelGeneralHtml(m),
+			ventas: panelVentasHtml(m),
 			compras: panelComprasHtml(m),
 			precios: panelPreciosHtml(m),
 			stock: panelStockHtml(m),
@@ -1732,6 +2216,30 @@
 				paintRegion('price-list-select', priceListSelectHtml(state.model));
 			}
 
+			/**
+			 * Los selectores que eligen «cuál de estos» tienen que seguir a la lista que editaste:
+			 * si borrás el canal que estaba por defecto, el select no puede quedar apuntando a él.
+			 */
+			function refreshSalesSelects() {
+				const m = state.model;
+				if (!m) return;
+
+				const pairs = [
+					{ keys: ['sales_default_channel', 'sales_shop_channel'], options: channelOptionsFrom(m) },
+					{ keys: ['sales_default_payment_method', 'sales_consignment_payment_method'], options: salesMethodOptionsFrom(m) },
+				];
+
+				pairs.forEach(function (pair) {
+					pair.keys.forEach(function (key) {
+						const select = qs('[data-setting="' + MJ.ui.cssEscape(key) + '"]', container);
+						if (!select) return;
+						const exists = pair.options.some(function (o) { return String(o.value) === String(m[key]); });
+						if (!exists && pair.options.length) m[key] = pair.options[0].value;
+						MJ.ui.fillSelect(select, pair.options, m[key]);
+					});
+				});
+			}
+
 			function refreshPriceListNotes() {
 				const editor = qs('[data-editor="price_lists"]', container);
 				if (!editor) return;
@@ -1871,7 +2379,9 @@
 				setEditorRows(name, rows);
 				clearFieldError(name);
 
-				if (name === 'currencies') {
+				if (name === 'sales_channels' || name === 'sales_payment_methods') {
+					if (structural) refreshSalesSelects();
+				} else if (name === 'currencies') {
 					if (structural) refreshCurrencyRegions();
 				} else if (name === 'price_lists') {
 					const note = qs('[data-row-note="' + index + '"]', editorEl);
@@ -1918,6 +2428,7 @@
 
 				if (name === 'currencies') refreshCurrencyRegions();
 				if (name === 'price_lists') refreshPriceListSelects();
+				if (name === 'sales_channels' || name === 'sales_payment_methods') refreshSalesSelects();
 				paintDirty();
 
 				const editorAfter = region('editor-' + name);
@@ -2145,6 +2656,68 @@
 				offs.push(MJ.ui.on(container, 'input', '[data-editor] [data-field]', function (e, el) { editorFieldInput(el, false); }));
 				offs.push(MJ.ui.on(container, 'change', '[data-editor] [data-field]', function (e, el) { editorFieldInput(el, true); }));
 				offs.push(MJ.ui.on(container, 'click', '[data-editor-action]', function (e, btn) { e.preventDefault(); editorAction(btn); }));
+
+				/*
+				 * Permisos. `defaults` guarda el valor tal cual; un rol guarda solo lo que pisa, y
+				 * «Heredar» borra la clave — es la diferencia entre "este rol dice que no" y "este
+				 * rol no opina", que es justo lo que hace que subir un permiso general llegue a
+				 * todos los que nunca lo tocaron.
+				 */
+				offs.push(MJ.ui.on(container, 'change', '[data-perm-key]', function (e, el) {
+					if (!state.model) return;
+					const scope = el.getAttribute('data-perm-scope');
+					const key = el.getAttribute('data-perm-key');
+					const type = el.getAttribute('data-perm-type');
+					if (!scope || !key) return;
+
+					const tree = permissionTree(state.model);
+					const target = scope === 'defaults' ? tree.defaults : (tree.roles[scope] = tree.roles[scope] || {});
+
+					if (type === 'bool') {
+						target[key] = !!el.checked;
+					} else if (type === 'enum') {
+						target[key] = el.value;
+					} else if (type === 'tristate') {
+						if (el.value === '') delete target[key];
+						else target[key] = el.value === '1';
+					} else if (type === 'enum-optional') {
+						if (el.value === '__inherit__') delete target[key];
+						else target[key] = el.value;
+					}
+
+					if (scope !== 'defaults' && !Object.keys(tree.roles[scope]).length) delete tree.roles[scope];
+
+					state.model.portal_permissions = tree;
+					clearFieldError('portal_permissions');
+					paintDirty();
+					paintRegion('perm-roles', permRolesHtml(state.model));
+				}));
+
+				// Medios de pago habilitados: el grupo entero es un array de claves.
+				offs.push(MJ.ui.on(container, 'change', '[data-perm-method]', function (e, el) {
+					if (!state.model) return;
+					const group = el.closest('[data-perm-methods]');
+					if (!group) return;
+					const tree = permissionTree(state.model);
+					tree.defaults.payment_methods = qsa('[data-perm-method]', group)
+						.filter(function (input) { return input.checked; })
+						.map(function (input) { return input.getAttribute('data-perm-method'); });
+					state.model.portal_permissions = tree;
+					paintDirty();
+				}));
+
+				// Listas de estados de pedido: el grupo entero se guarda como array de claves.
+				offs.push(MJ.ui.on(container, 'change', '[data-status-key]', function (e, el) {
+					const key = el.getAttribute('data-status-key');
+					if (!key || !state.model) return;
+					const group = el.closest('[data-status-group]');
+					if (!group) return;
+					state.model[key] = qsa('[data-status-key="' + MJ.ui.cssEscape(key) + '"]', group)
+						.filter(function (input) { return input.checked; })
+						.map(function (input) { return input.value; });
+					clearFieldError(key);
+					paintDirty();
+				}));
 
 				offs.push(MJ.ui.on(container, 'keydown', '[data-editor] [data-field]', function (e, el) {
 					if (e.key !== 'Enter') return;

@@ -281,6 +281,15 @@ function mj_app_config() {
 			'accountPath'     => mj_account_path(),
 			'adminBar'        => mj_admin_bar_visible(),
 		],
+		/*
+		 * Compra rápida (Apariencia → MJ Appearance → Sesión y acceso). Solo dice si está
+		 * habilitada: si el cliente califica lo decide la SPA cuando ve sus datos guardados.
+		 */
+		'express'               => [
+			'enabled' => (bool) $options['express_checkout'],
+			'auto'    => (bool) $options['express_auto'],
+			'label'   => '' !== trim((string) $options['express_label']) ? trim((string) $options['express_label']) : 'Comprar ahora',
+		],
 		/* Presentación (react-app/src/lib/config.js): tema por defecto, skin, animación, intro. */
 		'theme'                 => mj_theme_default(),
 		'skin'                  => mj_skin(),

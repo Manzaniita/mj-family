@@ -3670,6 +3670,12 @@ th.mj-truncate {
 	font-size: var(--mj-fs-sm);
 }
 
+/* Avisar un pago se hace desde acá: es lo segundo que quiere hacer quien debe. */
+.mj-portal__hero-action {
+	margin-top: var(--mj-sp-3);
+	min-height: 42px;
+}
+
 .mj-portal__stats {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
@@ -4054,4 +4060,236 @@ th.mj-truncate {
 		justify-content: center;
 		min-height: 42px;
 	}
+}
+
+/* ==========================================================================
+   22. VENTAS
+   ==========================================================================
+   La pantalla de carga es la que más se usa y se usa apurado: totales grandes,
+   una acción principal siempre a la vista y el reparto entre depósito y
+   consignación visible sin tener que abrir nada.
+   ========================================================================== */
+
+/* Carga de venta: importes a la izquierda, cobro a la derecha. */
+.mj-grid--sale {
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	align-items: start;
+}
+
+/* Detalle: productos y cobros ocupan el ancho, los totales quedan al costado. */
+.mj-grid--detail {
+	display: grid;
+	grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+	gap: var(--mj-sp-4);
+	align-items: start;
+}
+
+.mj-grid__main,
+.mj-grid__side {
+	min-width: 0;
+}
+
+.mj-grid__full {
+	grid-column: 1 / -1;
+}
+
+/* Listas de importes (totales de una venta, de un cobro). */
+.mj-totals {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--mj-sp-2);
+}
+
+.mj-totals__row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--mj-sp-3);
+}
+
+.mj-totals__row dt {
+	margin: 0;
+	color: var(--mj-text-muted);
+}
+
+.mj-totals__row dd {
+	margin: 0;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+.mj-totals__row--total {
+	padding-top: var(--mj-sp-2);
+	border-top: 1px solid var(--mj-border);
+	font-size: var(--mj-fs-lg);
+	font-weight: 700;
+}
+
+.mj-totals__row--total dt {
+	color: var(--mj-text);
+}
+
+.mj-totals__row--danger dd {
+	color: var(--mj-danger);
+	font-weight: 700;
+}
+
+/* Pares dato/valor (cliente de una venta). */
+.mj-deflist {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--mj-sp-2);
+}
+
+.mj-deflist__row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--mj-sp-3);
+}
+
+.mj-deflist__row dt {
+	margin: 0;
+	color: var(--mj-text-muted);
+	flex: 0 0 auto;
+}
+
+.mj-deflist__row dd {
+	margin: 0;
+	text-align: right;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/* Tarjetas de totales sobre una lista. */
+.mj-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: var(--mj-sp-3);
+}
+
+.mj-stat {
+	display: flex;
+	align-items: center;
+	gap: var(--mj-sp-3);
+	padding: var(--mj-sp-3) var(--mj-sp-4);
+	background: var(--mj-surface);
+	border: 1px solid var(--mj-border);
+	border-radius: var(--mj-r);
+	min-width: 0;
+}
+
+.mj-stat__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	flex: 0 0 auto;
+	border-radius: var(--mj-r-sm);
+	background: var(--mj-surface-3);
+	color: var(--mj-text-muted);
+}
+
+.mj-stat__icon .mj-icon {
+	width: 18px;
+	height: 18px;
+}
+
+.mj-stat__value {
+	font-size: var(--mj-fs-lg);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Volver atrás desde un detalle. */
+.mj-breadcrumb {
+	margin-bottom: var(--mj-sp-1);
+}
+
+.mj-breadcrumb .mj-icon {
+	width: 13px;
+	height: 13px;
+	vertical-align: -2px;
+}
+
+/* Confirmar una venta queda siempre a mano, incluso con la lista larga. */
+.mj-sticky-actions {
+	position: sticky;
+	bottom: 0;
+	z-index: 5;
+	padding: var(--mj-sp-3) 0;
+	background: linear-gradient(to top, var(--mj-bg) 65%, transparent);
+}
+
+.mj-hr {
+	margin: var(--mj-sp-3) 0;
+	border: 0;
+	border-top: 1px solid var(--mj-border);
+}
+
+/* Una venta anulada sigue en la lista, pero no compite por la atención. */
+.mj-table tr.is-muted td {
+	opacity: 0.55;
+}
+
+@media (max-width: 1100px) {
+	.mj-grid--sale,
+	.mj-grid--detail {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* Bloques plegables: permisos por rol, donde casi siempre se toca uno solo. */
+.mj-details {
+	border: 1px solid var(--mj-border);
+	border-radius: var(--mj-r-sm);
+	background: var(--mj-surface-2);
+	margin-bottom: var(--mj-sp-2);
+}
+
+.mj-details__summary {
+	display: flex;
+	align-items: center;
+	gap: var(--mj-sp-2);
+	flex-wrap: wrap;
+	padding: var(--mj-sp-3);
+	cursor: pointer;
+	list-style: none;
+	user-select: none;
+}
+
+.mj-details__summary::-webkit-details-marker {
+	display: none;
+}
+
+.mj-details__summary::before {
+	content: "";
+	width: 0;
+	height: 0;
+	flex: 0 0 auto;
+	border-left: 5px solid currentColor;
+	border-top: 4px solid transparent;
+	border-bottom: 4px solid transparent;
+	opacity: 0.55;
+	transition: transform 0.15s ease;
+}
+
+.mj-details[open] > .mj-details__summary::before {
+	transform: rotate(90deg);
+}
+
+.mj-details__body {
+	padding: 0 var(--mj-sp-3) var(--mj-sp-3);
+}
+
+/* Grupos de casillas que son una sola opción múltiple (estados, medios de pago). */
+.mj-checkbox-grid {
+	gap: var(--mj-sp-2) var(--mj-sp-4);
+}
+
+/* Un pago que el revendedor avisó y todavía no confirmaste: tiene que saltar a la vista. */
+.mj-table tr.is-pending td {
+	background: var(--mj-warning-soft);
 }

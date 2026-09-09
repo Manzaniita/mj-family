@@ -1,6 +1,6 @@
 ﻿# Versiones publicadas
 
-Generado por `tools/build-releases.ps1` el 2026-09-09 00:52.
+Generado por `tools/build-releases.ps1` el 2026-09-09 17:50.
 Cada zip se guarda con su número de versión y nunca se sobrescribe:
 las versiones anteriores siguen en esta carpeta.
 
@@ -8,35 +8,35 @@ las versiones anteriores siguen en esta carpeta.
 
 | Tema | Versión | Archivo | Tamaño | SHA-256 |
 | --- | --- | --- | ---: | --- |
-| MJ Appearance | 3.6.0 | `mj-appearance-3.6.0.zip` | 458 KB | `0e36037dfb2a185c…` |
-| MJ Atelier | 1.1.0 | `mj-atelier-1.1.0.zip` | 607 KB | `b77032acb491f668…` |
-| GlossyHair | 1.1.0 | `mj-glossyhair-1.1.0.zip` | 90 KB | `6c83a7e97c463ce0…` |
-| Yamana | 1.1.0 | `mj-yamana-1.1.0.zip` | 328 KB | `09bab4b24151f5b3…` |
+| MJ Appearance | 3.7.0 | `mj-appearance-3.7.0.zip` | 459 KB | `9b86c6768f247558…` |
+| MJ Atelier | 1.1.0 | `mj-atelier-1.1.0.zip` | 607 KB | `ff57de6b4c156a03…` |
+| GlossyHair | 1.1.0 | `mj-glossyhair-1.1.0.zip` | 90 KB | `c9fab83b7e29e074…` |
+| Yamana | 1.1.0 | `mj-yamana-1.1.0.zip` | 328 KB | `6348b4df7207834d…` |
 
 ## Plugins
 
 | Plugin | Versión | Archivo | Tamaño | SHA-256 |
 | --- | --- | --- | ---: | --- |
-| MJ Colegas | 1.0.0 | `mj-colegas-1.0.0.zip` | 22 KB | `3cfbfb8a225f42ea…` |
-| MJ Dólar | 1.0.0 | `mj-dolar-1.0.0.zip` | 41 KB | `ea34406723040091…` |
-| MJ ERP | 1.3.0 | `mj-erp-1.3.0.zip` | 353 KB | `04a45814f515e664…` |
-| MJ Fotos Rápidas | 1.2.0 | `mj-fotos-rapidas-1.2.0.zip` | 7 KB | `93158e4ec54ee632…` |
-| MJ Medios de Pago | 1.0.0 | `mj-medios-pago-1.0.0.zip` | 27 KB | `035f2a2c282a88b4…` |
-| MJ Optimizador de Imágenes | 1.1.0 | `mj-optimizador-imagenes-1.1.0.zip` | 46 KB | `61a04cc9182ea756…` |
-| MJ Turnos Online | 1.1.0 | `mj-turnos-online-1.1.0.zip` | 230 KB | `a3e6836a64dd491a…` |
+| MJ Colegas | 1.0.0 | `mj-colegas-1.0.0.zip` | 22 KB | `cf42e2cadf8870b7…` |
+| MJ Dólar | 1.0.0 | `mj-dolar-1.0.0.zip` | 41 KB | `041536260879142c…` |
+| MJ ERP | 1.4.0 | `mj-erp-1.4.0.zip` | 429 KB | `59c44ac53affd234…` |
+| MJ Fotos Rápidas | 1.2.0 | `mj-fotos-rapidas-1.2.0.zip` | 7 KB | `115b06fc8231eea2…` |
+| MJ Medios de Pago | 1.0.0 | `mj-medios-pago-1.0.0.zip` | 27 KB | `8492cd819809d9e4…` |
+| MJ Optimizador de Imágenes | 1.1.0 | `mj-optimizador-imagenes-1.1.0.zip` | 46 KB | `04532140a269d261…` |
+| MJ Turnos Online | 1.1.0 | `mj-turnos-online-1.1.0.zip` | 230 KB | `85bebd654c526dfe…` |
 
 ## SHA-256 completos
 
 ```
-0e36037dfb2a185ce0df75e86ce5534a4efeee99d790c1907bbed051ce4a31e3  mj-appearance-3.6.0.zip
-b77032acb491f6686f0dfa45729d0d7f936a97bf808aefabdce35189ac676fba  mj-atelier-1.1.0.zip
-3cfbfb8a225f42ea7900b50d0b0500ccc65f55f1b19a6cd5d01821792e2a852e  mj-colegas-1.0.0.zip
-ea34406723040091e9f0c4316e07c4afaa1addad06a5f9d0f8f8a13048016310  mj-dolar-1.0.0.zip
-04a45814f515e6648b099994dc5971e8551316c11cc48fc7407aa5f7b4494bc6  mj-erp-1.3.0.zip
-93158e4ec54ee632388211e2a5b80f011ea60276e221464e1515664df114fc04  mj-fotos-rapidas-1.2.0.zip
-6c83a7e97c463ce0783969242d84845197e8fa89ace0377aad90842ad1e1c974  mj-glossyhair-1.1.0.zip
-035f2a2c282a88b4d947bb855da770c4328fa114adb5597e2039005df9e92987  mj-medios-pago-1.0.0.zip
-61a04cc9182ea75619f88828daff8c65fd9d80a7cea0da419ea1c6ef9f4e6a98  mj-optimizador-imagenes-1.1.0.zip
-a3e6836a64dd491a8e5ea4f892352b9e23ca66f653552f68afab2a4210118ec9  mj-turnos-online-1.1.0.zip
-09bab4b24151f5b3d2c5b13532ed383fb21a998a1e38dc0c958f6122ed42b904  mj-yamana-1.1.0.zip
+9b86c6768f247558a6eb8c93624adf1a893b54ec02a5fe7555eda8a09ea69c68  mj-appearance-3.7.0.zip
+ff57de6b4c156a033f1636aee0cf2668c99ca62675227571b5fa184da07b5278  mj-atelier-1.1.0.zip
+cf42e2cadf8870b71aa0e4266c0937292ca33d160adcf3fea152f0eacd3c1297  mj-colegas-1.0.0.zip
+041536260879142c2bf17e367efd53ff673a3db057c742b876db64a9dc338199  mj-dolar-1.0.0.zip
+59c44ac53affd2346230edfb474e55da2a557b564738908b7d9465197cd41e91  mj-erp-1.4.0.zip
+115b06fc8231eea2817ecaa037df7e37783f51d146d6ded0aae9525b732cf106  mj-fotos-rapidas-1.2.0.zip
+c9fab83b7e29e074165c1dd155f8b866a967ad0f73575a829c3f4a3cac7958ab  mj-glossyhair-1.1.0.zip
+8492cd819809d9e4a9beec3bdf5f61ff902690a0759ec799ad908934dbc781b7  mj-medios-pago-1.0.0.zip
+04532140a269d261f1632ae695b207f5a1e41d620e11a2972647046a35f55211  mj-optimizador-imagenes-1.1.0.zip
+85bebd654c526dfe6de4cccd2ee1aaab856bf8e95a5b7a16cfdcfbd39877016b  mj-turnos-online-1.1.0.zip
+6348b4df7207834d5a5243ebb312663f057f897fae8a1ad8d57711d2991c1907  mj-yamana-1.1.0.zip
 ```

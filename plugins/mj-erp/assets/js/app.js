@@ -22,6 +22,10 @@
 		{ name: 'suppliers', pattern: '/proveedores', page: 'suppliers', nav: 'suppliers' },
 		{ name: 'products', pattern: '/productos', page: 'products', nav: 'products' },
 		{ name: 'settings', pattern: '/configuracion', page: 'settings', nav: 'settings' },
+		// `/ventas/nueva` va antes que `/ventas/:id` porque el router se queda con el primer match.
+		{ name: 'sales', pattern: '/ventas', page: 'sales', nav: 'sales' },
+		{ name: 'saleNew', pattern: '/ventas/nueva', page: 'saleNew', nav: 'sales' },
+		{ name: 'sale', pattern: '/ventas/:id', page: 'sale', nav: 'sales' },
 		{ name: 'consignaciones', pattern: '/consignaciones', page: 'consignees', nav: 'consignaciones' },
 		{ name: 'consignee', pattern: '/consignaciones/revendedor/:id', page: 'consignee', nav: 'consignaciones' },
 		{ name: 'consignment', pattern: '/consignaciones/entrega/:id', page: 'consignment', nav: 'consignaciones' },
@@ -31,12 +35,13 @@
 
 	const NAV = [
 		{ key: 'dashboard', path: '/', label: 'Inicio', icon: 'home' },
+		{ key: 'sales', path: '/ventas', label: 'Ventas', icon: 'cash', badge: 'salesUnpaid' },
 		{ key: 'purchases', path: '/compras', label: 'Compras', icon: 'cart' },
 		{ key: 'consignaciones', path: '/consignaciones', label: 'Consignaciones', icon: 'layers', badge: 'consignmentPending' },
 		{ key: 'suppliers', path: '/proveedores', label: 'Proveedores', icon: 'users' },
 		{ key: 'products', path: '/productos', label: 'Productos', icon: 'box' },
 		{ group: 'Próximamente' },
-		{ key: 'caja', path: '/caja', label: 'Caja', icon: 'cash', soon: true },
+		{ key: 'caja', path: '/caja', label: 'Caja', icon: 'dollar', soon: true },
 		{ key: 'reportes', path: '/reportes', label: 'Reportes', icon: 'chart', soon: true },
 		{ divider: true },
 		{ key: 'settings', path: '/configuracion', label: 'Configuración', icon: 'settings' },
@@ -45,14 +50,26 @@
 	const PAGE_LABELS = {
 		dashboard: 'Inicio', purchases: 'Compras', purchase: 'Compra', suppliers: 'Proveedores', products: 'Productos',
 		settings: 'Configuración', consignees: 'Consignaciones', consignee: 'Revendedor', consignment: 'Entrega',
+		sales: 'Ventas', sale: 'Venta', saleNew: 'Nueva venta',
 		caja: 'Caja', reportes: 'Reportes',
 	};
 
-	/** Contadores que el menú muestra como globo (hoy solo las ventas a confirmar). */
+	/**
+	 * Contadores que el menú muestra como globo: lo que espera una acción del dueño de la tienda —
+	 * ventas de revendedores a confirmar, y ventas con saldo sin cobrar.
+	 */
 	function navBadge(key) {
-		if (key !== 'consignmentPending') return 0;
-		const info = MJ.state.bootstrap && MJ.state.bootstrap.consignment;
-		return info ? (parseInt(info.pending_sales, 10) || 0) : 0;
+		if (key === 'consignmentPending') {
+			const info = MJ.state.bootstrap && MJ.state.bootstrap.consignment;
+			if (!info) return 0;
+			return (parseInt(info.pending_sales, 10) || 0) + (parseInt(info.declared_payments, 10) || 0);
+		}
+		if (key === 'salesUnpaid') {
+			const info = MJ.state.bootstrap && MJ.state.bootstrap.sales;
+			if (!info) return 0;
+			return (parseInt(info.unpaid_count, 10) || 0) + (parseInt(info.declared_count, 10) || 0);
+		}
+		return 0;
 	}
 
 	let root = null;
@@ -375,6 +392,21 @@
 			MJ.state.bootstrap.consignment = Object.assign({}, MJ.state.bootstrap.consignment, info);
 		}
 		refreshNavBadges();
+	});
+
+	/* Lo mismo para las ventas: cobrar una baja el contador de «con saldo» sin recargar. */
+	MJ.events.on('sales:changed', function (info) {
+		if (info && typeof info === 'object' && MJ.state.bootstrap && MJ.state.bootstrap.sales) {
+			MJ.state.bootstrap.sales = Object.assign({}, MJ.state.bootstrap.sales, info);
+		}
+		// El contador vive en el servidor: se vuelve a pedir sin bloquear la pantalla.
+		MJ.api.get('sales/stats').then(function (stats) {
+			if (MJ.state.bootstrap && MJ.state.bootstrap.sales) {
+				MJ.state.bootstrap.sales.stats = stats;
+				MJ.state.bootstrap.sales.unpaid_count = stats && stats.unpaid_count ? stats.unpaid_count : 0;
+			}
+			refreshNavBadges();
+		}).catch(function () { refreshNavBadges(); });
 	});
 
 	MJ.app = {

@@ -40,6 +40,19 @@ export const SESSION = {
   adminBar: !!WP?.session?.adminBar,
 };
 
+/**
+ * Compra rápida (Apariencia → MJ Appearance → Sesión y acceso).
+ *
+ * `enabled` solo dice que está habilitada. Quién califica lo decide el checkout cuando ve los datos
+ * guardados del cliente: sin dirección completa no hay atajo que valga, porque el pedido no se
+ * podría cerrar igual.
+ */
+export const EXPRESS = {
+  enabled: IS_WP && WP?.express?.enabled !== false,
+  auto: WP?.express?.auto !== false,
+  label: WP?.express?.label || 'Comprar ahora',
+};
+
 export const CONTACT = WP?.contact || {};
 
 export const SOCIAL = WP?.social || {};

@@ -317,7 +317,11 @@
 			const unallocated = f(payment.unallocated_base);
 
 			let applied;
-			if (isAdjust) {
+			if (payment.is_declared) {
+				// Un pago que avisó el revendedor todavía no bajó nada: hasta confirmarlo es una
+				// declaración suya, y por eso no aparece imputado a ninguna venta.
+				applied = '<span class="mj-small mj-warning-text">Lo avisó el revendedor · confirmalo para que baje su saldo</span>';
+			} else if (isAdjust) {
 				applied = '<span class="mj-small">' + h(payment.reason || 'Ajuste manual') + '</span>';
 			} else if (!allocations.length) {
 				applied = '<span class="mj-small mj-warning-text">Sin imputar · queda a favor</span>';
@@ -335,21 +339,25 @@
 			const amount = f(payment.amount);
 			const sameCurrency = String(payment.currency).toUpperCase() === baseCur();
 
-			return '<tr data-payment="' + h(payment.id) + '">' +
+			return '<tr data-payment="' + h(payment.id) + '"' + (payment.is_declared ? ' class="is-pending"' : '') + '>' +
 				'<td>' + h(MJ.fmt.date(payment.payment_date)) + '</td>' +
 				'<td>' +
 					(isAdjust
 						? MJ.ui.badgeRaw('Ajuste', 'info')
 						: '<div>' + h(payment.method_label || '') + '</div>' +
 						  (payment.reference ? '<div class="mj-small mj-muted mj-truncate">' + h(payment.reference) + '</div>' : '')) +
+					(payment.is_declared ? ' ' + MJ.ui.badgeRaw('A confirmar', 'warning') : '') +
 				'</td>' +
 				'<td class="is-num">' + h(MJ.fmt.money(amount, payment.currency)) +
 					(sameCurrency ? '' : '<div class="mj-small mj-muted">TC ' + h(MJ.fmt.rate(payment.rate)) + '</div>') + '</td>' +
 				'<td class="is-num"><span class="mj-money mj-strong">' + h(moneyBase(payment.amount_base)) + '</span></td>' +
 				'<td>' + applied + '</td>' +
-				'<td class="is-actions">' +
+				'<td class="is-actions"><div class="mj-btn-group">' +
+					(payment.is_declared
+						? '<button type="button" class="mj-btn mj-btn--sm mj-btn--primary" data-action="confirm-payment" title="Confirmar el pago">' + MJ.icon('check') + '<span>Confirmar</span></button>'
+						: '') +
 					'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon mj-danger-text" data-action="delete-payment" title="Eliminar" aria-label="Eliminar pago">' + MJ.icon('trash') + '</button>' +
-				'</td>' +
+				'</div></td>' +
 			'</tr>';
 		}).join('') +
 		'</tbody></table></div>';
@@ -588,6 +596,24 @@
 				const saleId = tr ? parseInt(tr.getAttribute('data-sale'), 10) : 0;
 				if (!saleId) return;
 				openSaleDetail(saleId);
+			}));
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="confirm-payment"]', function (e, el) {
+				const tr = el.closest('tr');
+				const paymentId = tr ? parseInt(tr.getAttribute('data-payment'), 10) : 0;
+				if (!paymentId) return;
+
+				MJ.ui.setLoading(el, true);
+				MJ.api.post('consignment-payments/' + paymentId + '/confirm').then(function () {
+					if (state.disposed) return;
+					MJ.ui.toast('Pago confirmado: ya bajó su saldo.', 'success');
+					state.statement = null;
+					load();
+					MJ.events.emit('consignment:changed', {});
+				}).catch(function (err) {
+					MJ.ui.setLoading(el, false);
+					toastError(err, 'No se pudo confirmar el pago.');
+				});
 			}));
 
 			offs.push(MJ.ui.on(container, 'click', '[data-action="delete-payment"]', function (e, el) {

@@ -25,6 +25,16 @@ class MJERP_Consignment_Payments_Repo {
 	const KIND_PAYMENT    = 'pago';
 	const KIND_ADJUSTMENT = 'ajuste';
 
+	/**
+	 * A payment loaded by the reseller is a claim until the shop owner confirms it: it shows up in
+	 * the ERP right away, but it does not move the balance and it is not allocated to any sale.
+	 */
+	const STATUS_DECLARED  = 'declarado';
+	const STATUS_CONFIRMED = 'confirmado';
+
+	const SOURCE_ADMIN  = 'admin';
+	const SOURCE_PORTAL = 'portal';
+
 	/** Amounts are stored with 4 decimals; anything under this is a rounding artifact. */
 	const EPSILON = 0.0001;
 
@@ -42,7 +52,12 @@ class MJERP_Consignment_Payments_Repo {
 		'reference'      => '%s',
 		'reason'         => '%s',
 		'note'           => '%s',
+		'status'         => '%s',
+		'source'         => '%s',
+		'sale_id'        => '%d',
 		'created_by'     => '%d',
+		'confirmed_by'   => '%d',
+		'confirmed_at'   => '%s',
 		'created_at'     => '%s',
 		'updated_at'     => '%s',
 	);
@@ -87,6 +102,7 @@ class MJERP_Consignment_Payments_Repo {
 			array(
 				'consignee_id' => 0,
 				'kind'         => '',
+				'status'       => '',
 				'date_from'    => '',
 				'date_to'      => '',
 				'page'         => 1,
@@ -107,6 +123,12 @@ class MJERP_Consignment_Payments_Repo {
 		if ( $consignee_id > 0 ) {
 			$where[] = 'consignee_id = %d';
 			$prep[]  = $consignee_id;
+		}
+
+		$status = sanitize_key( (string) $args['status'] );
+		if ( in_array( $status, array( self::STATUS_DECLARED, self::STATUS_CONFIRMED ), true ) ) {
+			$where[] = 'status = %s';
+			$prep[]  = $status;
 		}
 
 		$kind = sanitize_key( (string) $args['kind'] );
@@ -368,10 +390,17 @@ class MJERP_Consignment_Payments_Repo {
 			return $row;
 		}
 
-		$now                 = current_time( 'mysql' );
+		$status = self::sanitize_status( isset( $data['status'] ) ? $data['status'] : self::STATUS_CONFIRMED );
+		$now    = current_time( 'mysql' );
+
 		$row['consignee_id'] = (int) $consignee['id'];
 		$row['allocated_base'] = 0;
+		$row['status']       = $status;
+		$row['source']       = self::sanitize_source( isset( $data['source'] ) ? $data['source'] : self::SOURCE_ADMIN );
+		$row['sale_id']      = isset( $data['sale_id'] ) ? absint( $data['sale_id'] ) : 0;
 		$row['created_by']   = get_current_user_id();
+		$row['confirmed_by'] = self::STATUS_CONFIRMED === $status ? get_current_user_id() : 0;
+		$row['confirmed_at'] = self::STATUS_CONFIRMED === $status ? $now : null;
 		$row['created_at']   = $now;
 		$row['updated_at']   = $now;
 
@@ -382,12 +411,17 @@ class MJERP_Consignment_Payments_Repo {
 
 		$id = (int) $wpdb->insert_id;
 
-		$applied = self::apply_allocations( $id, isset( $data['allocations'] ) ? $data['allocations'] : null );
-		if ( is_wp_error( $applied ) ) {
-			// The payment row would otherwise survive with no explanation of what it paid.
-			self::clear_allocations( $id );
-			$wpdb->delete( self::table(), array( 'id' => $id ), array( '%d' ) );
-			return $applied;
+		// A declared payment is not allocated to anything yet: it would be cancelling debt with
+		// money nobody has confirmed receiving.
+		$applied = array();
+		if ( self::STATUS_CONFIRMED === $status ) {
+			$applied = self::apply_allocations( $id, isset( $data['allocations'] ) ? $data['allocations'] : null );
+			if ( is_wp_error( $applied ) ) {
+				// The payment row would otherwise survive with no explanation of what it paid.
+				self::clear_allocations( $id );
+				$wpdb->delete( self::table(), array( 'id' => $id ), array( '%d' ) );
+				return $applied;
+			}
 		}
 
 		/**
@@ -399,6 +433,92 @@ class MJERP_Consignment_Payments_Repo {
 		do_action( 'mjerp_consignment_payment_created', $id, $applied );
 
 		return $id;
+	}
+
+	/**
+	 * Confirms a payment a reseller declared: this is the moment it becomes money and gets applied
+	 * to their outstanding sales.
+	 *
+	 * @param int        $id          Payment id.
+	 * @param array|null $allocations Explicit allocations, or null for the configured strategy.
+	 * @return true|WP_Error
+	 */
+	public static function confirm( $id, $allocations = null ) {
+		global $wpdb;
+
+		$payment = self::find( $id );
+		if ( ! $payment ) {
+			return new WP_Error( 'mjerp_not_found', __( 'El pago no existe.', 'mj-erp' ), array( 'status' => 404 ) );
+		}
+		if ( self::STATUS_CONFIRMED === $payment['status'] ) {
+			return true;
+		}
+
+		$now = current_time( 'mysql' );
+		$row = array(
+			'status'       => self::STATUS_CONFIRMED,
+			'confirmed_by' => get_current_user_id(),
+			'confirmed_at' => $now,
+			'updated_at'   => $now,
+		);
+
+		$result = $wpdb->update( self::table(), $row, array( 'id' => $payment['id'] ), self::formats( $row, self::FORMATS ), array( '%d' ) );
+		if ( false === $result ) {
+			return new WP_Error( 'mjerp_db_error', __( 'No se pudo confirmar el pago.', 'mj-erp' ), array( 'status' => 500 ) );
+		}
+
+		$applied = self::apply_allocations( (int) $payment['id'], $allocations );
+		if ( is_wp_error( $applied ) ) {
+			return $applied;
+		}
+
+		/**
+		 * Fires after a declared payment was confirmed.
+		 *
+		 * @param int   $id      Payment id.
+		 * @param array $applied Allocation summary.
+		 */
+		do_action( 'mjerp_consignment_payment_confirmed', (int) $payment['id'], $applied );
+
+		return true;
+	}
+
+	/**
+	 * How many payments are waiting to be confirmed.
+	 *
+	 * @param int $consignee_id Consignee id (0 = every reseller).
+	 * @return int
+	 */
+	public static function declared_count( $consignee_id = 0 ) : int {
+		global $wpdb;
+
+		$table        = self::table();
+		$consignee_id = absint( $consignee_id );
+
+		if ( $consignee_id > 0 ) {
+			return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE status = %s AND consignee_id = %d", self::STATUS_DECLARED, $consignee_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE status = %s", self::STATUS_DECLARED ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	/**
+	 * Status sanitizer.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string
+	 */
+	public static function sanitize_status( $value ) : string {
+		return self::STATUS_DECLARED === sanitize_key( (string) $value ) ? self::STATUS_DECLARED : self::STATUS_CONFIRMED;
+	}
+
+	/**
+	 * Source sanitizer.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string
+	 */
+	public static function sanitize_source( $value ) : string {
+		return self::SOURCE_PORTAL === sanitize_key( (string) $value ) ? self::SOURCE_PORTAL : self::SOURCE_ADMIN;
 	}
 
 	/**
@@ -906,6 +1026,15 @@ class MJERP_Consignment_Payments_Repo {
 			'reference'       => (string) self::v( $row, 'reference' ),
 			'reason'          => (string) self::v( $row, 'reason' ),
 			'note'            => (string) self::v( $row, 'note' ),
+			'status'          => (string) self::v( $row, 'status', self::STATUS_CONFIRMED ),
+			'status_label'    => self::STATUS_DECLARED === (string) self::v( $row, 'status', self::STATUS_CONFIRMED )
+				? __( 'A confirmar', 'mj-erp' )
+				: __( 'Confirmado', 'mj-erp' ),
+			'is_declared'     => self::STATUS_DECLARED === (string) self::v( $row, 'status', self::STATUS_CONFIRMED ),
+			'source'          => (string) self::v( $row, 'source', self::SOURCE_ADMIN ),
+			'sale_id'         => (int) self::v( $row, 'sale_id', 0 ),
+			'confirmed_by'    => (int) self::v( $row, 'confirmed_by', 0 ),
+			'confirmed_at'    => self::datetime_or_null( self::v( $row, 'confirmed_at' ) ),
 			'created_by'      => (int) self::v( $row, 'created_by', 0 ),
 			'created_by_name' => MJERP_Helpers::user_display_name( self::v( $row, 'created_by', 0 ) ),
 			'created_at'      => self::datetime_or_null( self::v( $row, 'created_at' ) ),
