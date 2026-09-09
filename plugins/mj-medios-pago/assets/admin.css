@@ -1,0 +1,46 @@
+/* MJ Medios de Pago — estilos de wp-admin. */
+
+.mjpm-wrap { max-width: 1400px; }
+.mjpm-title { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.mjpm-bajada { color: #50575e; max-width: 80ch; margin-top: 0; }
+.mjpm-card { background: #fff; border: 1px solid #c3c4c7; border-radius: 8px; padding: 18px 20px; margin: 18px 0; box-shadow: 0 1px 1px rgba(0, 0, 0, .04); }
+.mjpm-card h2 { margin: 0 0 8px; font-size: 15px; }
+.mjpm-card h3 { margin: 16px 0 8px; font-size: 14px; }
+.mjpm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.mjpm-grid .mjpm-card { margin: 0; }
+
+.mjpm-table-wrap { overflow-x: auto; margin-top: 10px; }
+.mjpm-table th, .mjpm-table td { vertical-align: top; padding: 10px 8px; }
+.mjpm-table th.mjpm-center, .mjpm-table td.mjpm-center { text-align: center; }
+.mjpm-table input[type="text"] { width: 100%; min-width: 90px; }
+.mjpm-table input.mjpm-narrow { min-width: 70px; width: 80px; }
+.mjpm-table input.mjpm-wide { min-width: 200px; }
+.mjpm-method small { display: block; color: #646970; margin-top: 2px; }
+.mjpm-method a { text-decoration: none; }
+.mjpm-row--off td { opacity: .55; }
+.mjpm-adjust { min-width: 230px; }
+.mjpm-adjust select { max-width: 100%; }
+.mjpm-adjust__value { display: flex; gap: 6px; margin-top: 6px; }
+.mjpm-adjust__value input { width: 80px !important; min-width: 70px !important; }
+.mjpm-adjust__value select { flex: 1; }
+.mjpm-base-note { display: block; margin-top: 4px; color: #2271b1; font-weight: 600; }
+.mjpm-example { display: block; margin-top: 6px; color: #646970; }
+.mjpm-form-table th { width: 140px; }
+.mjpm-custom-list { margin: 10px 0 16px; }
+.mjpm-custom-list td { vertical-align: middle; }
+.mjpm-actions a { text-decoration: none; }
+.mjpm-actions .mjpm-delete { color: #b32d2e; }
+.mjpm-custom-form { border-top: 1px solid #dcdcde; padding-top: 4px; }
+.mjpm-custom-form p { margin: 10px 0; }
+.mjpm-preview-form { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; }
+.mjpm-preview-form input { width: 120px; }
+.mjpm-preview td { vertical-align: middle; }
+.mjpm-dev ul { margin: 0; }
+.mjpm-dev li { margin-bottom: 6px; }
+.mjpm-dev code { font-size: 12px; }
+.mjpm-credito { color: #a7aaad; font-size: 12px; margin-top: 16px; }
+.mjpm-order-box p { margin: 6px 0; }
+
+@media (max-width: 1100px) {
+	.mjpm-grid { grid-template-columns: 1fr; }
+}

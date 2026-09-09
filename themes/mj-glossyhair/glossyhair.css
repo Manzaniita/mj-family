@@ -1,0 +1,1371 @@
+/* ==========================================================================
+   GlossyHair — skin "glossy" blanco + fucsia (tema hijo de MJ Appearance)
+   --------------------------------------------------------------------------
+   Carga DESPUÉS de dist/assets/app.css del padre y de su inline de diseño,
+   así que gana la cascada a igual especificidad. Las reglas están sin
+   @layer a propósito: pisan a las utilidades de Tailwind del padre.
+
+   Engancha en dos cosas que expone el padre:
+   - tokens --mj-* (forma, motion, paleta por data-theme),
+   - clases semánticas mj-* (mj-btn, mj-card, mj-header, mj-hero,
+     mj-booking*, mj-service-card*, mj-booking-cta*, mj-about-teaser*…).
+
+   No redefine --mj-accent / --mj-bg / --mj-ink: llegan por inline desde
+   Apariencia → MJ Appearance (con defaults GlossyHair vía functions.php), así
+   los pickers del admin siguen funcionando. Todos los rosados derivan del
+   acento con color-mix(): si el admin cambia el color, la skin lo acompaña.
+
+   Personalidad: blanco brillante, esquinas generosas, botones pill con un
+   reflejo ("sheen") y sombras rosadas, un degradado fucsia → rosa → durazno
+   que brilla despacio en el hero, superficies apenas rosadas. De noche,
+   ciruela profunda con el acento aclarado.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+ * 1. Forma, tipografía y motion
+ * -------------------------------------------------------------------------- */
+:root,
+[data-skin='glossyhair'] {
+	--mj-radius-sm: 10px;
+	--mj-radius-md: 14px;
+	--mj-radius-lg: 18px;
+	--mj-radius-xl: 22px;   /* cards, paneles */
+	--mj-radius-2xl: 28px;  /* galería, banners, fotos grandes */
+	--mj-radius-btn: 9999px;
+	--mj-radius-chip: 9999px;
+	--mj-radius-badge: 9999px;
+	--mj-radius-input: 14px;
+	--mj-radius-pill: 9999px;
+
+	--mj-display-weight: 700;
+	--mj-display-tracking: -0.025em;
+	--mj-display-leading: 1.04;
+
+	--mj-glass-blur: 18px;
+	--mj-dur: 0.32s;
+	--mj-dur-slow: 0.75s;
+
+	/* Título destacado del hero: fucsia → rosa → durazno ("brillo"). */
+	--mj-hero-gradient: linear-gradient(95deg, var(--mj-accent), #ff6fb5 45%, #ffb86b);
+
+	/* Compañeros del acento y sombras reutilizables. */
+	--gh-rose: #ff6fb5;
+	--gh-peach: #ffb86b;
+	--gh-shadow-pink: 0 22px 46px -20px color-mix(in srgb, var(--mj-accent) 38%, transparent);
+	--gh-shadow-pink-lg: 0 30px 60px -22px color-mix(in srgb, var(--mj-accent) 45%, transparent);
+	--gh-shadow-btn: 0 12px 26px -12px color-mix(in srgb, var(--mj-accent) 65%, transparent);
+	--gh-ring: 0 0 0 4px color-mix(in srgb, var(--mj-accent) 16%, transparent);
+	--gh-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0.06) 48%, rgb(255 255 255 / 0) 52%);
+
+	/* Acento para TEXTO chico (nav, barra inferior, precio de tarjeta, eyebrow).
+	   De noche el acento ya llega aclarado desde functions.php y alcanza AA;
+	   de día se oscurece un poco (ver [data-theme='light']). Los botones y los
+	   textos grandes siguen con --mj-accent pleno. */
+	--gh-accent-text: var(--mj-accent);
+}
+
+/* --------------------------------------------------------------------------
+ * 2. Paletas derivadas (superficies, líneas, estados) con tinte rosado
+ * -------------------------------------------------------------------------- */
+[data-theme='light'] {
+	/* Superficies apenas rosadas: rgb(225 29 132 / 0.04) con el acento default. */
+	--mj-surface: color-mix(in srgb, var(--mj-accent) 4%, transparent);
+	--mj-surface-2: color-mix(in srgb, var(--mj-accent) 8%, transparent);
+	/* Líneas rosadas suaves: el acento apagado con un poco de tinta. */
+	--mj-line: color-mix(in srgb, color-mix(in srgb, var(--mj-accent) 60%, var(--mj-ink)) 12%, transparent);
+	--mj-line-strong: color-mix(in srgb, color-mix(in srgb, var(--mj-accent) 60%, var(--mj-ink)) 26%, transparent);
+	--mj-success: #0f9d6e;
+	--mj-warning: #c2610a;
+	--mj-danger: #d9264f;
+	--mj-star: #f4a300;
+	--mj-shadow-soft: 0 18px 44px -22px color-mix(in srgb, var(--mj-accent) 28%, rgb(28 15 22 / 0.18));
+	--mj-overlay: rgb(28 15 22 / 0.42);
+	--mj-img-s1: 55%;
+	--mj-img-l1: 94%;
+	--mj-img-s2: 42%;
+	--mj-img-l2: 87%;
+	/* Acento de texto chico: #e11d84 sobre blanco da 4,46:1 (no llega a AA 4,5:1).
+	   Al 85 % con negro ≈ #bf1970 → 5,9:1 sobre blanco y 5:1 sobre --mj-accent-soft. */
+	--gh-accent-text: color-mix(in srgb, var(--mj-accent) 85%, #000);
+}
+
+[data-theme='dark'] {
+	--mj-surface: rgb(253 244 248 / 0.05);
+	--mj-surface-2: rgb(253 244 248 / 0.09);
+	--mj-line: rgb(253 244 248 / 0.1);
+	--mj-line-strong: rgb(253 244 248 / 0.22);
+	--mj-success: #5fd4a5;
+	--mj-warning: #ffc46b;
+	--mj-danger: #ff8aa3;
+	--mj-star: #ffc46b;
+	--mj-shadow-soft: 0 24px 50px -24px rgb(0 0 0 / 0.65);
+	--mj-overlay: rgb(12 5 9 / 0.7);
+	--mj-img-s1: 32%;
+	--mj-img-l1: 26%;
+	--mj-img-s2: 24%;
+	--mj-img-l2: 14%;
+	--gh-shadow-pink: 0 22px 46px -20px rgb(0 0 0 / 0.55);
+	--gh-shadow-pink-lg: 0 30px 60px -22px rgb(0 0 0 / 0.65);
+	--gh-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.04) 48%, rgb(255 255 255 / 0) 52%);
+}
+
+/* --------------------------------------------------------------------------
+ * 3. Fondo: blanco brillante con dos halos rosados y uno durazno
+ * -------------------------------------------------------------------------- */
+.mj-ambient {
+	background:
+		radial-gradient(900px 540px at 88% -12%, color-mix(in srgb, var(--mj-accent) 13%, transparent), transparent 62%),
+		radial-gradient(720px 480px at -10% 42%, color-mix(in srgb, var(--mj-accent) 7%, transparent), transparent 60%),
+		radial-gradient(680px 440px at 68% 112%, color-mix(in srgb, var(--gh-peach) 22%, transparent), transparent 60%),
+		var(--mj-bg);
+}
+/* Reflejo diagonal muy suave: el "glossy" del fondo. */
+.mj-ambient::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: linear-gradient(118deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 42%);
+}
+[data-theme='dark'] .mj-ambient {
+	background:
+		radial-gradient(900px 540px at 88% -12%, color-mix(in srgb, var(--mj-accent) 16%, transparent), transparent 62%),
+		radial-gradient(720px 480px at -10% 42%, color-mix(in srgb, var(--mj-accent) 8%, transparent), transparent 60%),
+		radial-gradient(680px 440px at 68% 112%, color-mix(in srgb, var(--gh-peach) 12%, transparent), transparent 60%),
+		var(--mj-bg);
+}
+[data-theme='dark'] .mj-ambient::before {
+	background: linear-gradient(118deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0) 42%);
+}
+
+/* --------------------------------------------------------------------------
+ * 4. Tipografía: sans geométrica, títulos pesados y compactos
+ * -------------------------------------------------------------------------- */
+body {
+	letter-spacing: 0;
+}
+
+.display {
+	font-feature-settings: 'kern', 'liga', 'ss01';
+}
+
+h1.display,
+.mj-hero__title,
+.mj-project__title {
+	font-weight: 800;
+	letter-spacing: -0.03em;
+}
+
+.mj-section-head__title,
+.mj-footer__title,
+.mj-product__title,
+.mj-showcase__title,
+.mj-colega-card__name,
+.mj-booking-cta__title,
+.mj-about-teaser__title {
+	font-weight: 700;
+}
+
+.mj-eyebrow,
+.mj-card__cat,
+.mj-footer__heading,
+.mj-field__label,
+.mj-marquee__label,
+.mj-topbar__text,
+.mj-colega-card__count {
+	font-family: var(--font-sans);
+	letter-spacing: 0.2em;
+	font-weight: 800;
+	font-size: 11px;
+}
+/* Antetítulos en acento (11px): acento de texto para cumplir AA; los grises (text-ink-faint) y blancos quedan como están. */
+.mj-eyebrow.text-accent {
+	color: var(--gh-accent-text);
+}
+
+/* Punto con degradado delante de los antetítulos de sección y de página. */
+.mj-section-head .mj-eyebrow::before,
+.mj-page-head .mj-eyebrow::before {
+	content: '';
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	margin-right: 0.7em;
+	border-radius: 50%;
+	background: var(--mj-hero-gradient);
+	vertical-align: 1px;
+}
+
+.mj-card__title {
+	font-family: var(--font-display);
+	font-weight: 700;
+	font-size: 1.05rem;
+	letter-spacing: -0.01em;
+	line-height: 1.3;
+}
+
+.mj-price__value {
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	font-variant-numeric: lining-nums tabular-nums;
+}
+/* Precio en fucsia solo donde vende (tarjetas y caja de compra); en carrito y checkout queda en tinta. */
+.mj-product__buy .mj-price__value,
+.mj-quickview .mj-price__value {
+	color: var(--mj-accent);
+}
+/* En la tarjeta el precio es chico (18px): acento de texto para cumplir AA sobre blanco. */
+.mj-card__body .mj-price__value {
+	color: var(--gh-accent-text);
+}
+.mj-price__old {
+	font-weight: 500;
+}
+
+.mj-sku__value {
+	letter-spacing: 0.05em;
+}
+
+/* --------------------------------------------------------------------------
+ * 5. Superficies: blanco con hairline rosada; vidrio suave
+ * -------------------------------------------------------------------------- */
+.glass {
+	background: color-mix(in srgb, var(--mj-bg) 86%, transparent);
+	backdrop-filter: blur(var(--mj-glass-blur)) saturate(1.2);
+	-webkit-backdrop-filter: blur(var(--mj-glass-blur)) saturate(1.2);
+	border-color: var(--mj-line);
+}
+[data-theme='dark'] .glass {
+	background: color-mix(in srgb, var(--mj-bg-soft) 78%, transparent);
+}
+
+.mj-drawer__panel,
+.mj-modal__panel,
+.mj-search__panel,
+.mj-nav__panel,
+.mj-sheet {
+	background: var(--mj-bg);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+[data-theme='dark'] .mj-drawer__panel,
+[data-theme='dark'] .mj-modal__panel,
+[data-theme='dark'] .mj-search__panel,
+[data-theme='dark'] .mj-nav__panel,
+[data-theme='dark'] .mj-sheet {
+	background: var(--mj-bg-soft);
+}
+
+.mj-modal__panel,
+.mj-auth-card,
+.mj-panel,
+.mj-quickview {
+	border-radius: var(--mj-radius-xl);
+	box-shadow: var(--gh-shadow-pink-lg);
+}
+
+/* Header blanco: fondo al 92 % + blur. */
+.mj-header__glass,
+.mj-bottomnav,
+.mj-buybar {
+	background: color-mix(in srgb, var(--mj-bg) 92%, transparent);
+	backdrop-filter: blur(18px) saturate(1.2);
+	-webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+/* Cards de producto: blancas, elevación con sombra rosada al pasar. */
+.mj-card__link {
+	position: relative;
+	background: var(--mj-bg);
+	border-color: var(--mj-line);
+	box-shadow: 0 10px 30px -24px color-mix(in srgb, var(--mj-accent) 30%, transparent);
+	transition:
+		border-color 0.4s var(--mj-ease),
+		transform 0.5s var(--mj-ease),
+		box-shadow 0.5s var(--mj-ease);
+}
+[data-theme='dark'] .mj-card__link {
+	background: var(--mj-bg-soft);
+}
+.mj-card:hover .mj-card__link {
+	border-color: color-mix(in srgb, var(--mj-accent) 30%, transparent);
+	transform: translateY(-5px);
+	box-shadow: var(--gh-shadow-pink);
+}
+.mj-card__media {
+	border-bottom: 1px solid var(--mj-line);
+}
+.mj-card__media img {
+	transition-duration: 0.9s;
+}
+
+/* Chips sobre la foto: blancos con acento. */
+.mj-card__maker,
+.mj-card__delivery {
+	background: color-mix(in srgb, var(--mj-bg) 90%, transparent);
+	color: var(--mj-ink);
+	border-color: var(--mj-line);
+	letter-spacing: 0.12em;
+	font-size: 10px;
+	font-weight: 700;
+}
+.mj-card__maker svg {
+	color: var(--mj-accent);
+}
+.mj-card__maker--house {
+	color: var(--mj-ink-soft);
+}
+
+.mj-gallery__thumb {
+	box-shadow: none;
+}
+.mj-gallery__main {
+	background: var(--mj-bg);
+	box-shadow: var(--gh-shadow-pink);
+}
+
+/* --------------------------------------------------------------------------
+ * 6. Botones: fucsia con reflejo ("sheen") y sombra rosada; secundario blanco
+ * -------------------------------------------------------------------------- */
+.mj-btn {
+	font-weight: 700;
+	letter-spacing: 0.01em;
+	transition:
+		color var(--mj-dur) var(--mj-ease),
+		border-color var(--mj-dur) var(--mj-ease),
+		background-color var(--mj-dur) var(--mj-ease),
+		box-shadow var(--mj-dur) var(--mj-ease),
+		transform var(--mj-dur) var(--mj-ease);
+}
+
+.mj-btn--primary,
+.mj-card__cta:not([disabled]),
+.mj-footer__submit {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+	background: var(--mj-accent);
+	box-shadow: var(--gh-shadow-btn);
+	filter: none;
+}
+/* Reflejo fijo en la mitad superior. */
+.mj-btn--primary::before,
+.mj-card__cta:not([disabled])::before,
+.mj-footer__submit::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	border-radius: inherit;
+	background: var(--gh-sheen);
+	pointer-events: none;
+}
+/* Destello que cruza el botón al pasar el puntero. */
+.mj-btn--primary::after,
+.mj-card__cta:not([disabled])::after,
+.mj-footer__submit::after {
+	content: '';
+	position: absolute;
+	top: -20%;
+	bottom: -20%;
+	left: -70%;
+	width: 45%;
+	z-index: -1;
+	background: linear-gradient(100deg, rgb(255 255 255 / 0), rgb(255 255 255 / 0.38), rgb(255 255 255 / 0));
+	transform: skewX(-18deg);
+	pointer-events: none;
+	transition: left 0.7s var(--mj-ease);
+}
+.mj-btn--primary:hover,
+.mj-card__cta:not([disabled]):hover,
+.mj-footer__submit:hover {
+	filter: none;
+	background: color-mix(in srgb, var(--mj-accent) 88%, var(--gh-rose));
+	box-shadow: 0 16px 32px -12px color-mix(in srgb, var(--mj-accent) 75%, transparent);
+}
+.mj-btn--primary:hover::after,
+.mj-card__cta:not([disabled]):hover::after,
+.mj-footer__submit:hover::after {
+	left: 130%;
+}
+.mj-card__cta {
+	font-weight: 700;
+	letter-spacing: 0.01em;
+}
+
+.mj-btn--secondary {
+	background: var(--mj-bg);
+	border: 1px solid var(--mj-line-strong);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	box-shadow: 0 8px 20px -16px color-mix(in srgb, var(--mj-accent) 35%, transparent);
+}
+[data-theme='dark'] .mj-btn--secondary {
+	background: var(--mj-surface);
+}
+.mj-btn--secondary:hover {
+	background: var(--mj-accent-soft);
+	border-color: var(--mj-accent);
+	color: var(--mj-accent);
+}
+
+.mj-btn--inverse {
+	background: var(--mj-ink);
+}
+.mj-btn--ghost:hover {
+	background: var(--mj-accent-soft);
+	color: var(--mj-accent);
+}
+
+/* Chips (filtros, variaciones, horarios): activos en fucsia */
+.mj-chip {
+	letter-spacing: 0.01em;
+	font-weight: 600;
+	background: var(--mj-bg);
+	border-color: var(--mj-line);
+}
+[data-theme='dark'] .mj-chip {
+	background: var(--mj-surface);
+}
+.mj-chip:hover {
+	border-color: color-mix(in srgb, var(--mj-accent) 50%, transparent);
+	color: var(--mj-accent);
+}
+.mj-chip--active,
+.mj-chip--active:hover {
+	background: var(--mj-accent);
+	border-color: var(--mj-accent);
+	color: #fff;
+	box-shadow: var(--gh-shadow-btn);
+}
+
+/* Badges: pill, mayúsculas compactas */
+.mj-badge {
+	letter-spacing: 0.12em;
+	font-size: 10px;
+	font-weight: 800;
+	padding: 0.35rem 0.7rem;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+.mj-badge--solid {
+	background: var(--mj-hero-gradient);
+	color: #fff;
+}
+.mj-badge--accent {
+	background: var(--mj-accent-soft);
+	border-color: color-mix(in srgb, var(--mj-accent) 25%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+ * 7. Links: subrayado con degradado que se completa
+ * -------------------------------------------------------------------------- */
+.mj-footer__link,
+.mj-link-arrow {
+	background-image: var(--mj-hero-gradient);
+	background-size: 0% 2px;
+	background-position: 0 100%;
+	background-repeat: no-repeat;
+	transition:
+		background-size 0.4s var(--mj-ease),
+		color var(--mj-dur) var(--mj-ease);
+}
+.mj-footer__link:hover,
+.mj-link-arrow:hover {
+	background-size: 100% 2px;
+	color: var(--mj-accent);
+}
+
+/* --------------------------------------------------------------------------
+ * 8. Header y navegación
+ * -------------------------------------------------------------------------- */
+.mj-topbar {
+	background: var(--mj-hero-gradient);
+	border-bottom: 0;
+}
+.mj-topbar__text {
+	color: #fff;
+	letter-spacing: 0.22em;
+}
+.mj-topbar__text svg {
+	color: rgb(255 255 255 / 0.85);
+}
+
+.mj-logo__mark {
+	border-radius: 12px;
+	background: var(--mj-hero-gradient);
+	color: #fff;
+	box-shadow: var(--gh-shadow-btn);
+	font-family: var(--font-display);
+	font-weight: 800;
+}
+.mj-logo__name {
+	font-family: var(--font-display);
+	font-weight: 800;
+	font-size: 1.35rem;
+	letter-spacing: -0.03em;
+	text-transform: none;
+}
+.mj-logo__img {
+	height: 2.5rem;
+}
+
+.mj-nav {
+	background: transparent;
+}
+.mj-nav__link {
+	letter-spacing: 0;
+	font-size: 14px;
+	font-weight: 600;
+	padding: 0.6rem 0.95rem;
+	border-radius: var(--mj-radius-pill);
+	transition:
+		background-color var(--mj-dur) var(--mj-ease),
+		color var(--mj-dur) var(--mj-ease);
+}
+/* Texto de 14px sobre blanco o sobre el rosado suave: acento de texto (AA). */
+.mj-nav__link:hover,
+.mj-nav__link--active {
+	background-color: var(--mj-accent-soft);
+	color: var(--gh-accent-text);
+}
+.mj-nav__link--highlight {
+	color: var(--gh-accent-text);
+}
+.mj-nav__link--highlight:hover {
+	background-color: var(--mj-accent-soft);
+}
+.mj-header__cta {
+	box-shadow: var(--gh-shadow-btn);
+}
+
+.mj-search__field {
+	background: var(--mj-bg);
+	border-color: var(--mj-line-strong);
+}
+[data-theme='dark'] .mj-search__field {
+	background: var(--mj-surface);
+}
+.mj-search__field:focus-within {
+	box-shadow: var(--gh-ring);
+	border-color: var(--mj-accent);
+}
+
+.mj-theme-toggle,
+.mj-icon-action {
+	border: 1px solid transparent;
+}
+.mj-theme-toggle:hover,
+.mj-icon-action:hover {
+	background: var(--mj-accent-soft);
+	color: var(--mj-accent);
+}
+.mj-icon-action__count {
+	background: var(--mj-accent);
+	box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--mj-accent) 70%, transparent);
+}
+
+.mj-bottomnav__item {
+	letter-spacing: 0.04em;
+	font-size: 10px;
+	font-weight: 700;
+}
+.mj-bottomnav__item--active {
+	color: var(--gh-accent-text); /* etiqueta de 10px: acento de texto (AA) */
+}
+
+/* --------------------------------------------------------------------------
+ * 9. Hero: badge pill, título con brillo que se desplaza, glow rosado
+ * -------------------------------------------------------------------------- */
+.mj-hero__badge {
+	background: var(--mj-accent-soft);
+	border-color: color-mix(in srgb, var(--mj-accent) 25%, transparent);
+	color: var(--mj-accent);
+	letter-spacing: 0.16em;
+	font-size: 10.5px;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+/* El color del glow llega inline (acento); acá solo se dosifica. */
+.mj-hero__glow {
+	opacity: 0.32;
+}
+[data-theme='dark'] .mj-hero__glow {
+	opacity: 0.24;
+}
+
+/* El degradado llega por inline (background-image); acá se agranda y se
+ * mueve despacio para que el título "brille". */
+.mj-hero__highlight {
+	background-size: 200% auto;
+	background-position: 0% 50%;
+	animation: gh-shine 6s ease-in-out infinite;
+}
+@keyframes gh-shine {
+	0%,
+	100% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+}
+
+.mj-hero__subtitle {
+	font-size: 1.1rem;
+	max-width: 34rem;
+	font-weight: 500;
+}
+.mj-hero__stat p:first-child {
+	font-weight: 800;
+	font-size: 2rem;
+	color: var(--mj-accent);
+}
+.mj-hero--media .mj-hero__stat p:first-child {
+	color: #fff;
+}
+.mj-hero__stat + .mj-hero__stat {
+	border-left: 1px solid var(--mj-line-strong);
+	padding-left: 2.25rem;
+}
+.mj-hero--media .mj-hero__stat + .mj-hero__stat {
+	border-left-color: rgb(255 255 255 / 0.4);
+}
+.mj-hero--media .mj-hero__veil {
+	background: linear-gradient(180deg, rgb(28 15 22 / 0.3), rgb(28 15 22 / 0.62));
+}
+
+/* --------------------------------------------------------------------------
+ * 10. Secciones de la home
+ * -------------------------------------------------------------------------- */
+.mj-showcase__title,
+.mj-colega-card__name {
+	font-size: 1.75rem;
+}
+.mj-showcase__veil,
+.mj-colega-card__veil {
+	background: linear-gradient(to top, rgb(28 15 22 / 0.85), color-mix(in srgb, var(--mj-accent) 25%, transparent) 55%, transparent);
+}
+.mj-showcase__arrow,
+.mj-colega-card__arrow {
+	border-radius: 9999px;
+	background: rgb(255 255 255 / 0.92);
+	color: var(--mj-accent);
+	border: 0;
+}
+
+.mj-marquee {
+	background: transparent;
+}
+.mj-marquee__item {
+	background: var(--mj-bg);
+	border: 1px solid var(--mj-line);
+	border-radius: var(--mj-radius-pill);
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	color: var(--mj-ink-soft);
+	transition:
+		box-shadow var(--mj-dur) var(--mj-ease),
+		color var(--mj-dur) var(--mj-ease),
+		border-color var(--mj-dur) var(--mj-ease);
+}
+[data-theme='dark'] .mj-marquee__item {
+	background: var(--mj-surface);
+}
+.mj-marquee__item:hover {
+	box-shadow: var(--gh-shadow-pink);
+	color: var(--mj-accent);
+	border-color: color-mix(in srgb, var(--mj-accent) 35%, transparent);
+}
+
+/* Opiniones: tarjeta blanca con comillas fucsia. */
+.mj-testimonial {
+	position: relative;
+	background: var(--mj-bg);
+	border-color: var(--mj-line);
+	box-shadow: 0 10px 30px -24px color-mix(in srgb, var(--mj-accent) 30%, transparent);
+	transition:
+		box-shadow 0.5s var(--mj-ease),
+		transform 0.5s var(--mj-ease);
+}
+[data-theme='dark'] .mj-testimonial {
+	background: var(--mj-bg-soft);
+}
+.mj-testimonial::before {
+	content: '\201C';
+	position: absolute;
+	top: 0.75rem;
+	right: 1.4rem;
+	font-family: var(--font-display);
+	font-size: 4.5rem;
+	line-height: 1;
+	font-weight: 800;
+	background: var(--mj-hero-gradient);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	opacity: 0.45;
+	pointer-events: none;
+}
+.mj-testimonial:hover {
+	box-shadow: var(--gh-shadow-pink);
+	transform: translateY(-3px);
+}
+.mj-testimonial__quote {
+	font-size: 1rem;
+	line-height: 1.6;
+	font-weight: 500;
+}
+
+/* "Sobre mí" en la portada: foto redondeada 28 px con sombra rosada. */
+.mj-about-teaser__photo,
+.mj-about__photo {
+	border-radius: 28px;
+	border: 0;
+	box-shadow: var(--gh-shadow-pink-lg);
+}
+.mj-about-teaser__text,
+.mj-about__text {
+	font-weight: 500;
+}
+.mj-about-teaser__link {
+	font-weight: 700;
+}
+.mj-about__highlight,
+.mj-about__stat {
+	background: var(--mj-bg);
+	border-color: var(--mj-line);
+	box-shadow: 0 10px 30px -24px color-mix(in srgb, var(--mj-accent) 30%, transparent);
+}
+[data-theme='dark'] .mj-about__highlight,
+[data-theme='dark'] .mj-about__stat {
+	background: var(--mj-bg-soft);
+}
+.mj-about__highlight-icon {
+	background: var(--mj-hero-gradient);
+	color: #fff;
+	border-radius: 14px;
+	box-shadow: var(--gh-shadow-btn);
+}
+.mj-about__stat .display {
+	font-weight: 800;
+	color: var(--mj-accent);
+}
+
+/* Banner "Reservá tu turno" (plugin MJ Turnos Online): degradado completo. */
+.mj-booking-cta {
+	background: var(--mj-hero-gradient);
+	border: 0;
+	color: #fff;
+	box-shadow: var(--gh-shadow-pink-lg);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+.mj-booking-cta::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: var(--gh-sheen);
+	pointer-events: none;
+}
+.mj-booking-cta__glow {
+	display: none;
+}
+.mj-booking-cta .mj-eyebrow {
+	color: rgb(255 255 255 / 0.85);
+}
+.mj-booking-cta__title {
+	color: #fff;
+	font-weight: 800;
+}
+.mj-booking-cta__subtitle {
+	color: rgb(255 255 255 / 0.88);
+	font-weight: 500;
+}
+.mj-booking-cta__button,
+.mj-booking-cta__button:hover {
+	background: #fff;
+	color: var(--mj-accent);
+	box-shadow: 0 14px 30px -14px rgb(28 15 22 / 0.45);
+}
+.mj-booking-cta__button::before,
+.mj-booking-cta__button::after {
+	display: none;
+}
+.mj-booking-cta__veil {
+	background: linear-gradient(to top, color-mix(in srgb, var(--mj-accent) 55%, transparent), transparent 60%);
+}
+@media (min-width: 1024px) {
+	.mj-booking-cta__veil {
+		background: linear-gradient(to right, color-mix(in srgb, var(--gh-rose) 60%, transparent), transparent 55%);
+	}
+}
+
+/* --------------------------------------------------------------------------
+ * 11. Turnos: tarjetas de tratamiento, wizard de reserva, calendario y horarios
+ * -------------------------------------------------------------------------- */
+
+/* Tarjeta de servicio: blanca, foto 4:5, precio destacado en fucsia. */
+.mj-service-card {
+	background: var(--mj-bg);
+	border-color: var(--mj-line);
+	border-radius: var(--mj-radius-xl);
+	box-shadow: 0 10px 30px -24px color-mix(in srgb, var(--mj-accent) 30%, transparent);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	transition:
+		border-color 0.4s var(--mj-ease),
+		transform 0.5s var(--mj-ease),
+		box-shadow 0.5s var(--mj-ease);
+}
+[data-theme='dark'] .mj-service-card {
+	background: var(--mj-bg-soft);
+}
+.mj-service-card:hover {
+	border-color: color-mix(in srgb, var(--mj-accent) 35%, transparent);
+	transform: translateY(-5px);
+	box-shadow: var(--gh-shadow-pink);
+}
+.mj-service-card--selected,
+.mj-service-card--selected:hover {
+	border-color: var(--mj-accent);
+	box-shadow: var(--gh-ring), var(--gh-shadow-pink);
+}
+.mj-service-card:not(.mj-service-card--compact) .mj-service-card__media {
+	aspect-ratio: 4 / 5;
+}
+.mj-service-card__media {
+	border-bottom: 1px solid var(--mj-line);
+}
+.mj-service-card__media img {
+	transition-duration: 0.9s;
+}
+.mj-service-card__name {
+	font-weight: 700;
+	letter-spacing: -0.02em;
+}
+.mj-service-card__desc {
+	font-weight: 500;
+}
+.mj-service-card__price {
+	font-size: 1.2rem;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	color: var(--mj-accent);
+	font-variant-numeric: tabular-nums;
+}
+.mj-service-card__duration {
+	font-weight: 600;
+}
+.mj-service-card__deposit {
+	font-weight: 600;
+}
+.mj-service-card__check {
+	border-color: var(--mj-line-strong);
+}
+.mj-service-card--selected .mj-service-card__check {
+	border-color: var(--mj-accent);
+	background: var(--mj-accent);
+	color: #fff;
+	box-shadow: var(--gh-shadow-btn);
+}
+.mj-service-card__arrow {
+	background: var(--mj-accent-soft);
+	color: var(--mj-accent);
+}
+.mj-service-card:hover .mj-service-card__arrow {
+	background: var(--mj-accent);
+	color: #fff;
+}
+
+/* Cierre de la página de tratamientos y estados vacíos: tarjeta blanca. */
+.mj-services__cta,
+.mj-services__empty,
+.mj-empty {
+	background: var(--mj-bg);
+	box-shadow: var(--gh-shadow-pink);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+[data-theme='dark'] .mj-services__cta,
+[data-theme='dark'] .mj-services__empty,
+[data-theme='dark'] .mj-empty {
+	background: var(--mj-bg-soft);
+}
+
+/* Banner de la dueña ("Abrir el panel"): borde con degradado. */
+.mj-booking__owner a {
+	position: relative;
+	background: var(--mj-bg);
+	border: 1px solid transparent;
+	background-image:
+		linear-gradient(var(--mj-bg), var(--mj-bg)),
+		var(--mj-hero-gradient);
+	background-origin: border-box;
+	background-clip: padding-box, border-box;
+	box-shadow: var(--gh-shadow-pink);
+	font-weight: 700;
+}
+[data-theme='dark'] .mj-booking__owner a {
+	background-image:
+		linear-gradient(var(--mj-bg-soft), var(--mj-bg-soft)),
+		var(--mj-hero-gradient);
+}
+
+/* Pasos del wizard: pastillas. */
+.mj-booking__step {
+	border-radius: var(--mj-radius-pill);
+	font-weight: 700;
+	background: var(--mj-bg);
+	border-color: var(--mj-line);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+[data-theme='dark'] .mj-booking__step {
+	background: var(--mj-surface);
+}
+.mj-booking__step--active {
+	background: var(--mj-accent);
+	border-color: var(--mj-accent);
+	color: #fff;
+	box-shadow: var(--gh-shadow-btn);
+}
+.mj-booking__step--done {
+	border-color: color-mix(in srgb, var(--mj-accent) 30%, transparent);
+	color: var(--mj-ink);
+}
+.mj-booking__step--done:hover {
+	border-color: var(--mj-accent);
+	color: var(--mj-accent);
+}
+.mj-booking__step--todo {
+	color: var(--mj-ink-faint);
+}
+.mj-booking__step--done .mj-booking__step-num {
+	background: var(--mj-accent);
+	color: #fff;
+}
+.mj-booking__step--todo .mj-booking__step-num {
+	background: var(--mj-surface-2);
+}
+
+/* Paneles del wizard: calendario, resumen, ficha del turno, seña. */
+.mj-booking__calendar,
+.mj-booking__summary,
+.mj-booking__appointment {
+	background: var(--mj-bg);
+}
+.mj-booking__summary,
+.mj-booking__appointment {
+	border-color: var(--mj-line);
+	border-radius: var(--mj-radius-xl);
+	box-shadow: var(--gh-shadow-pink);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+[data-theme='dark'] .mj-booking__calendar,
+[data-theme='dark'] .mj-booking__summary,
+[data-theme='dark'] .mj-booking__appointment {
+	background: var(--mj-bg-soft);
+}
+.mj-booking__summary-service {
+	font-weight: 800;
+	letter-spacing: -0.02em;
+}
+.mj-booking__summary-list,
+.mj-booking__appointment li {
+	font-weight: 500;
+}
+.mj-booking__deposit {
+	background: linear-gradient(135deg, color-mix(in srgb, var(--mj-accent) 9%, var(--mj-bg)), color-mix(in srgb, var(--gh-peach) 18%, var(--mj-bg)));
+	border-color: color-mix(in srgb, var(--mj-accent) 25%, transparent);
+	border-radius: var(--mj-radius-xl);
+}
+.mj-booking__deposit-amount .display {
+	font-weight: 800;
+	color: var(--mj-accent);
+}
+.mj-booking__policy {
+	background: var(--mj-accent-soft);
+	border-color: color-mix(in srgb, var(--mj-accent) 20%, transparent);
+	border-radius: var(--mj-radius-lg);
+}
+.mj-booking__policy-title {
+	font-weight: 700;
+}
+.mj-booking__error {
+	border-radius: var(--mj-radius-lg);
+}
+.mj-booking__slots-placeholder,
+.mj-booking__slots-empty {
+	border-radius: var(--mj-radius-lg);
+	background: var(--mj-surface);
+	font-weight: 500;
+}
+.mj-booking__login-hint a {
+	font-weight: 600;
+}
+
+/* Calendario: días redondos; disponible rosado, elegido fucsia. */
+.mj-calendar__nav {
+	background: var(--mj-bg);
+	border: 1px solid var(--mj-line);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	transition:
+		border-color var(--mj-dur) var(--mj-ease),
+		color var(--mj-dur) var(--mj-ease),
+		background-color var(--mj-dur) var(--mj-ease);
+}
+[data-theme='dark'] .mj-calendar__nav {
+	background: var(--mj-surface);
+}
+.mj-calendar__nav:hover {
+	border-color: var(--mj-accent);
+	color: var(--mj-accent);
+	background: var(--mj-accent-soft);
+}
+.mj-calendar__title {
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+.mj-calendar__weekdays {
+	letter-spacing: 0.12em;
+	font-weight: 800;
+}
+.mj-calendar__day {
+	border-radius: 9999px;
+	font-weight: 600;
+}
+.mj-calendar__day--available {
+	background: var(--mj-accent-soft);
+	color: var(--mj-ink);
+}
+.mj-calendar__day--available:hover {
+	background: color-mix(in srgb, var(--mj-accent) 18%, transparent);
+	color: var(--mj-accent);
+}
+.mj-calendar__day--today {
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--mj-accent) 50%, transparent);
+}
+.mj-calendar__day--selected,
+.mj-calendar__day--selected:hover {
+	background: var(--mj-accent);
+	color: #fff;
+	box-shadow: var(--gh-shadow-btn);
+	font-weight: 800;
+}
+.mj-calendar__day--disabled {
+	opacity: 0.35;
+}
+
+/* Horarios: chips; el activo en fucsia con reflejo. */
+.mj-booking__slot {
+	border-radius: var(--mj-radius-chip);
+	font-weight: 600;
+	background: var(--mj-bg);
+	border-color: var(--mj-line);
+}
+[data-theme='dark'] .mj-booking__slot {
+	background: var(--mj-surface);
+}
+.mj-booking__slot:hover {
+	border-color: color-mix(in srgb, var(--mj-accent) 50%, transparent);
+	color: var(--mj-accent);
+	background: var(--mj-accent-soft);
+}
+.mj-booking__slot--active,
+.mj-booking__slot--active:hover {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+	background: var(--mj-accent);
+	border-color: var(--mj-accent);
+	color: #fff;
+	box-shadow: var(--gh-shadow-btn);
+	font-weight: 800;
+}
+.mj-booking__slot--active::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	border-radius: inherit;
+	background: var(--gh-sheen);
+	pointer-events: none;
+}
+
+/* Cancelación y estado. */
+.mj-booking__cancel > div,
+.mj-booking__status > div {
+	border-radius: var(--mj-radius-lg);
+}
+
+/* --------------------------------------------------------------------------
+ * 12. Colegas (plugin MJ Colegas): chip en la ficha, proyecto y selector
+ * -------------------------------------------------------------------------- */
+.mj-maker {
+	background: var(--mj-bg);
+	border-color: var(--mj-line);
+	box-shadow: 0 8px 20px -16px color-mix(in srgb, var(--mj-accent) 35%, transparent);
+}
+[data-theme='dark'] .mj-maker {
+	background: var(--mj-surface);
+}
+.mj-maker:hover {
+	border-color: var(--mj-accent);
+}
+.mj-maker__avatar,
+.mj-colega-avatar {
+	background: var(--mj-hero-gradient);
+	color: #fff;
+	font-family: var(--font-display);
+	font-weight: 800;
+}
+.mj-maker__name {
+	font-weight: 700;
+}
+.mj-maker-line svg {
+	color: var(--mj-accent);
+}
+
+.mj-project__hero--media .mj-project__veil {
+	background: linear-gradient(180deg, rgb(28 15 22 / 0.35), rgb(28 15 22 / 0.65));
+}
+.mj-project__stats > div + div {
+	border-left: 1px solid var(--mj-line-strong);
+	padding-left: 2rem;
+}
+
+.mj-segment {
+	background: var(--mj-bg);
+	border: 1px solid var(--mj-line);
+	padding: 4px;
+	box-shadow: 0 8px 20px -16px color-mix(in srgb, var(--mj-accent) 35%, transparent);
+}
+[data-theme='dark'] .mj-segment {
+	background: var(--mj-surface);
+}
+.mj-segment__item {
+	font-weight: 700;
+}
+.mj-segment__item--active {
+	background: var(--mj-accent);
+	color: #fff;
+	box-shadow: var(--gh-shadow-btn);
+}
+.mj-segment__item--active span {
+	opacity: 0.8;
+}
+
+/* --------------------------------------------------------------------------
+ * 13. Tienda: filtros, toolbar, fila de lista
+ * -------------------------------------------------------------------------- */
+.mj-filters,
+.mj-row {
+	background: var(--mj-bg);
+}
+[data-theme='dark'] .mj-filters,
+[data-theme='dark'] .mj-row {
+	background: var(--mj-bg-soft);
+}
+.mj-filters {
+	box-shadow: 0 10px 30px -24px color-mix(in srgb, var(--mj-accent) 30%, transparent);
+}
+.mj-toolbar__sort,
+.mj-toolbar__view {
+	background: var(--mj-bg);
+	border: 1px solid var(--mj-line);
+}
+[data-theme='dark'] .mj-toolbar__sort,
+[data-theme='dark'] .mj-toolbar__view {
+	background: var(--mj-surface);
+}
+.mj-brand-tile {
+	background: var(--mj-bg);
+}
+.mj-brand-tile:hover {
+	box-shadow: var(--gh-shadow-pink);
+}
+
+/* --------------------------------------------------------------------------
+ * 14. Formularios, tabs, acordeón
+ * -------------------------------------------------------------------------- */
+.mj-input {
+	background: var(--mj-bg);
+	border-color: var(--mj-line-strong);
+	font-weight: 500;
+	transition:
+		border-color var(--mj-dur) var(--mj-ease),
+		box-shadow var(--mj-dur) var(--mj-ease),
+		background-color var(--mj-dur) var(--mj-ease);
+}
+[data-theme='dark'] .mj-input {
+	background: var(--mj-surface);
+}
+.mj-input:focus {
+	background: var(--mj-bg);
+	border-color: var(--mj-accent);
+	box-shadow: var(--gh-ring);
+}
+[data-theme='dark'] .mj-input:focus {
+	background: var(--mj-surface-2);
+}
+.mj-booking__field--error .mj-input {
+	border-color: var(--mj-danger);
+}
+.mj-footer__field {
+	background: var(--mj-bg);
+	border-color: var(--mj-line-strong);
+}
+[data-theme='dark'] .mj-footer__field {
+	background: var(--mj-surface);
+}
+.mj-footer__field:focus-within {
+	border-color: var(--mj-accent);
+	box-shadow: var(--gh-ring);
+}
+
+.mj-tabs__list {
+	background: var(--mj-bg);
+	border: 1px solid var(--mj-line);
+	padding: 4px;
+	box-shadow: 0 8px 20px -16px color-mix(in srgb, var(--mj-accent) 35%, transparent);
+}
+[data-theme='dark'] .mj-tabs__list {
+	background: var(--mj-surface);
+}
+.mj-tabs__tab {
+	font-weight: 700;
+	letter-spacing: 0;
+}
+.mj-tabs__tab--active {
+	color: #fff;
+}
+.mj-tabs__pill {
+	background: var(--mj-accent);
+	box-shadow: var(--gh-shadow-btn);
+}
+
+.mj-accordion__q {
+	font-family: var(--font-display);
+	font-weight: 700;
+	font-size: 1.1rem;
+	letter-spacing: -0.01em;
+}
+.mj-accordion__icon {
+	background: var(--mj-accent-soft);
+	color: var(--mj-accent);
+	border: 0;
+}
+
+.mj-stepper {
+	background: var(--mj-bg);
+	border-color: var(--mj-line-strong);
+}
+[data-theme='dark'] .mj-stepper {
+	background: var(--mj-surface);
+}
+.mj-choice {
+	border-color: var(--mj-line);
+}
+.mj-choice:hover {
+	border-color: color-mix(in srgb, var(--mj-accent) 50%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+ * 15. Pie de página
+ * -------------------------------------------------------------------------- */
+.mj-footer {
+	position: relative;
+	background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--mj-accent) 5%, transparent));
+	border-top: 0;
+}
+.mj-footer::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: var(--mj-hero-gradient);
+	opacity: 0.8;
+}
+.mj-footer__title {
+	font-weight: 800;
+	letter-spacing: -0.025em;
+}
+.mj-footer__legal {
+	font-size: 11.5px;
+	letter-spacing: 0.01em;
+	font-weight: 500;
+}
+.mj-whatsapp {
+	box-shadow: 0 14px 30px -12px rgb(37 211 102 / 0.6);
+}
+
+/* --------------------------------------------------------------------------
+ * 16. Intro, movimiento reducido y detalles globales
+ * -------------------------------------------------------------------------- */
+.mj-intro__name {
+	font-weight: 800;
+	font-size: 2.4rem;
+	letter-spacing: -0.03em;
+	text-transform: none;
+	background: var(--mj-hero-gradient);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+.mj-intro__rule {
+	background: var(--mj-hero-gradient);
+	height: 2px;
+	border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.mj-hero__highlight {
+		animation: none;
+		background-position: 50% 50%;
+	}
+	.mj-btn--primary::after,
+	.mj-card__cta:not([disabled])::after,
+	.mj-footer__submit::after {
+		display: none;
+	}
+	.mj-card:hover .mj-card__link,
+	.mj-service-card:hover,
+	.mj-testimonial:hover {
+		transform: none;
+	}
+}
+
+::selection {
+	background: var(--mj-accent);
+	color: #fff;
+}
+
+::-webkit-scrollbar {
+	width: 11px;
+	height: 11px;
+}
+::-webkit-scrollbar-track {
+	background: var(--mj-bg);
+}
+::-webkit-scrollbar-thumb {
+	background: color-mix(in srgb, var(--mj-accent) 35%, var(--mj-bg));
+	border: 3px solid var(--mj-bg);
+	border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: var(--mj-accent);
+}
+html {
+	scrollbar-color: color-mix(in srgb, var(--mj-accent) 35%, var(--mj-bg)) var(--mj-bg);
+	scrollbar-width: thin;
+}
+
+:focus-visible {
+	outline-color: var(--mj-accent);
+	border-radius: 6px;
+}

@@ -1,0 +1,307 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   MJ Appearance Design System — dark-first, premium, brand-swappable.
+
+   Capas:
+   1. @theme: expone los tokens a Tailwind (bg-bg, text-ink, rounded-xl3…).
+   2. Tokens --mj-*: paleta por tema (<html data-theme>) + forma y motion
+      (:root). Los temas hijo (skins) los pisan desde su CSS, que carga
+      después de este archivo; <html data-skin> identifica la skin activa.
+   3. Clases semánticas mj-* en los componentes (mj-btn, mj-card, mj-header…):
+      ganchos estables para las skins, independientes de las utilidades de
+      Tailwind, que pueden cambiar de un build a otro.
+--------------------------------------------------------------------------- */
+
+@theme {
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: var(--mj-bg);
+  --color-bg-soft: var(--mj-bg-soft);
+  --color-surface: var(--mj-surface);
+  --color-surface-2: var(--mj-surface-2);
+  --color-line: var(--mj-line);
+  --color-line-strong: var(--mj-line-strong);
+  --color-ink: var(--mj-ink);
+  --color-ink-soft: var(--mj-ink-soft);
+  --color-ink-faint: var(--mj-ink-faint);
+  --color-accent: var(--mj-accent);
+  --color-accent-soft: var(--mj-accent-soft);
+  --color-success: var(--mj-success);
+  --color-warning: var(--mj-warning);
+  --color-danger: var(--mj-danger);
+
+  --radius-xl2: var(--mj-radius-lg);
+  --radius-xl3: var(--mj-radius-xl);
+
+  --shadow-soft: var(--mj-shadow-soft);
+  --shadow-glow: 0 0 60px -12px var(--mj-accent-glow);
+
+  --animate-marquee: marquee 38s linear infinite;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Forma, tipografía y motion (independientes del tema claro/oscuro).
+   Una skin cambia acá la "personalidad": radios, pesos, timing.
+--------------------------------------------------------------------------- */
+:root {
+  --mj-radius-sm: 0.5rem;
+  --mj-radius-md: 0.75rem;
+  --mj-radius-lg: 1.25rem;   /* rounded-xl2: medios, banners chicos      */
+  --mj-radius-xl: 1.75rem;   /* rounded-xl3: cards, paneles              */
+  --mj-radius-2xl: 2rem;     /* galería de producto, empty states        */
+  --mj-radius-btn: 9999px;   /* botones                                  */
+  --mj-radius-chip: 9999px;  /* chips de filtro / variaciones            */
+  --mj-radius-badge: 9999px; /* badges (Nuevo, -20%, En stock)           */
+  --mj-radius-input: 0.75rem;
+  --mj-radius-pill: 9999px;  /* contenedores pill: tabs, stepper, toolbar */
+
+  --mj-display-weight: 600;
+  --mj-display-tracking: -0.03em;
+  --mj-display-leading: 1.02;
+
+  --mj-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --mj-dur-fast: 0.2s;
+  --mj-dur: 0.35s;
+  --mj-dur-slow: 0.7s;
+
+  --mj-glass-blur: 20px;
+
+  /* Degradado del título destacado del hero (y de otros acentos "brand"). */
+  --mj-hero-gradient: linear-gradient(90deg, var(--mj-accent), #9b8cff, #38bdf8);
+
+  /* Fondo de fallback de las imágenes de producto (hue por producto). */
+  --mj-img-s1: 60%;
+  --mj-img-l1: 22%;
+  --mj-img-s2: 40%;
+  --mj-img-l2: 8%;
+}
+
+/* ---------------------------------------------------------------------------
+   Paletas. <html data-theme> lo fija index.php + el script anti-flash
+   (lib/theme.js) antes del primer paint; :root = dark por si faltara.
+--------------------------------------------------------------------------- */
+:root,
+[data-theme='dark'] {
+  --mj-bg: #0a0a0c;
+  --mj-bg-soft: #101014;
+  --mj-surface: rgb(255 255 255 / 0.04);
+  --mj-surface-2: rgb(255 255 255 / 0.07);
+  --mj-line: rgb(255 255 255 / 0.08);
+  --mj-line-strong: rgb(255 255 255 / 0.16);
+  --mj-ink: #f5f5f7;
+  --mj-ink-soft: rgb(245 245 247 / 0.64);
+  --mj-ink-faint: rgb(245 245 247 / 0.38);
+  --mj-accent: #6e6bff;
+  --mj-accent-soft: rgb(110 107 255 / 0.14);
+  --mj-accent-glow: rgb(110 107 255 / 0.35);
+  --mj-success: #34d399;
+  --mj-warning: #fbbf24;
+  --mj-danger: #fb7185;
+  --mj-star: #fbbf24;
+  --mj-shadow-soft: 0 8px 40px -12px rgb(0 0 0 / 0.45);
+  --mj-overlay: rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --mj-bg: #fafafa;
+  --mj-bg-soft: #f1f1f4;
+  --mj-surface: rgb(10 10 12 / 0.03);
+  --mj-surface-2: rgb(10 10 12 / 0.06);
+  --mj-line: rgb(10 10 12 / 0.08);
+  --mj-line-strong: rgb(10 10 12 / 0.16);
+  --mj-ink: #0a0a0c;
+  --mj-ink-soft: rgb(10 10 12 / 0.62);
+  --mj-ink-faint: rgb(10 10 12 / 0.38);
+  --mj-accent: #5a57e8;
+  --mj-accent-soft: rgb(90 87 232 / 0.1);
+  --mj-accent-glow: rgb(90 87 232 / 0.25);
+  /* Estados con contraste AA sobre fondo claro (los de dark lavan en blanco). */
+  --mj-success: #059669;
+  --mj-warning: #b45309;
+  --mj-danger: #e11d48;
+  --mj-star: #f59e0b;
+  --mj-shadow-soft: 0 12px 40px -16px rgb(10 10 12 / 0.18);
+  --mj-overlay: rgb(10 10 12 / 0.45);
+  --mj-img-s1: 45%;
+  --mj-img-l1: 90%;
+  --mj-img-s2: 30%;
+  --mj-img-l2: 80%;
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--mj-bg);
+  color: var(--mj-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+/* Cambio de tema sin View Transitions: fundido corto de los colores base. */
+html.mj-theme-fade,
+html.mj-theme-fade body,
+html.mj-theme-fade .glass,
+html.mj-theme-fade .mj-header__glass {
+  transition: background-color 0.35s var(--mj-ease), color 0.35s var(--mj-ease), border-color 0.35s var(--mj-ease);
+}
+
+::selection {
+  background: var(--mj-accent);
+  color: white;
+}
+
+/* La admin bar de WP (fixed, 32px — 46px entre 601–782px, absolute ≤600px)
+ * tapa la franja superior del header sticky: compensar el offset. */
+@media (min-width: 783px) {
+  body.admin-bar .mj-header { top: 32px; }
+}
+@media (min-width: 601px) and (max-width: 782px) {
+  body.admin-bar .mj-header { top: 46px; }
+}
+
+/* Ambient background gradients — very subtle, brand feel */
+.mj-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 500px at 80% -10%, var(--mj-accent-soft), transparent 60%),
+    radial-gradient(700px 420px at -10% 30%, rgb(56 189 248 / 0.05), transparent 60%),
+    var(--mj-bg);
+}
+
+/* Glass surface */
+.glass {
+  background: var(--mj-surface);
+  backdrop-filter: blur(var(--mj-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--mj-glass-blur)) saturate(1.4);
+  border: 1px solid var(--mj-line);
+}
+
+/* Hairline dividers */
+.hairline-b { border-bottom: 1px solid var(--mj-line); }
+.hairline-t { border-top: 1px solid var(--mj-line); }
+
+/* Hide scrollbars on rails without killing scroll */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Editorial display type */
+.display {
+  font-family: var(--font-display);
+  letter-spacing: var(--mj-display-tracking);
+  line-height: var(--mj-display-leading);
+  font-weight: var(--mj-display-weight);
+}
+
+/* Fallback de imagen de producto: degradado por hue del producto (ProductImage). */
+.mj-img {
+  background: radial-gradient(
+    120% 120% at 30% 20%,
+    hsl(var(--mj-hue, 250) var(--mj-img-s1) var(--mj-img-l1) / 0.9),
+    hsl(var(--mj-hue, 250) var(--mj-img-s2) var(--mj-img-l2)) 70%
+  );
+}
+
+/* Lupa de la galería del producto: capa con la misma foto ampliada que sigue
+ * al puntero. Solo con puntero fino (en touch la foto abre el lightbox). */
+.mj-zoom { position: relative; }
+.mj-zoom__lens {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-size: var(--mj-zoom-scale, 220%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s var(--mj-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mj-zoom:hover .mj-zoom__lens { opacity: 1; }
+}
+
+/* Barra de compra sticky (mobile): descansa sobre la navegación inferior. */
+.mj-buybar {
+  bottom: calc(3.75rem + env(safe-area-inset-bottom));
+}
+
+/* Skip link: invisible hasta que recibe foco por teclado. */
+.mj-skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 1000;
+  transform: translateY(-200%);
+  padding: 0.6rem 1rem;
+  border-radius: var(--mj-radius-btn);
+  background: var(--mj-accent);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: transform var(--mj-dur-fast) var(--mj-ease);
+}
+.mj-skip-link:focus-visible {
+  transform: none;
+  outline-offset: 3px;
+}
+
+/* Intro: sin scroll mientras la cortina está en pantalla. */
+html.mj-intro-active { overflow: hidden; }
+
+/* Focus rings */
+:focus-visible {
+  outline: 2px solid var(--mj-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Los campos de texto señalan el foco con su propio borde o el del contenedor
+ * (p. ej. el input del buscador: lo enmarca el pill exterior, no el input).
+ * Esta regla está sin capa, igual que la de arriba, así que pisa al anillo
+ * global y al outline-none de Tailwind para estos elementos. */
+input:focus-visible:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Cambio de tema con View Transitions: el tema nuevo se revela en círculo
+   desde el botón sol/luna (lib/theme.js fija --mj-vt-x/y/r en <html>).
+   Sin soporte o con reduced-motion se cambia en seco (con fundido corto).
+--------------------------------------------------------------------------- */
+html.mj-theme-switching::view-transition-old(root),
+html.mj-theme-switching::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html.mj-theme-switching::view-transition-new(root) {
+  animation: mj-vt-reveal 0.6s var(--mj-ease) forwards;
+  clip-path: circle(0 at var(--mj-vt-x, 50%) var(--mj-vt-y, 0));
+}
+@keyframes mj-vt-reveal {
+  from { clip-path: circle(0 at var(--mj-vt-x, 50%) var(--mj-vt-y, 0)); }
+  to { clip-path: circle(var(--mj-vt-r, 150vmax) at var(--mj-vt-x, 50%) var(--mj-vt-y, 0)); }
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

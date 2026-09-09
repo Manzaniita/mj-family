@@ -1,0 +1,585 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Lock, Check, ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
+import { Section } from '@/components/layout/Layout';
+import { Input, Select } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { ProductImage } from '@/components/ui/ProductImage';
+import { Reveal } from '@/components/motion/Reveal';
+import { useCart } from '@/store';
+import { effectivePrice } from '@/lib/api';
+import { IS_WP, WP, EXCHANGE_RATE } from '@/lib/config';
+import * as wc from '@/lib/wc';
+import { formatPrice, formatUsd, FREE_SHIPPING_THRESHOLD, isValidCuit, cn } from '@/lib/format';
+import { usePaymentMethod, selectedMethodId, findMethod, resolveAdjustment, usdTotalFor } from '@/lib/payments';
+
+// Medios de pago: dentro de WordPress SOLO los gateways reales activos en
+// WooCommerce (inyectados por PHP). En modo demo (standalone) se muestran
+// opciones de ejemplo.
+const demoMethods = [
+  { id: 'card', title: 'Tarjeta de crédito/débito', description: 'Hasta 12 cuotas sin interés' },
+  { id: 'mp', title: 'Mercado Pago', description: 'Saldo, tarjeta o QR' },
+  { id: 'transfer', title: 'Transferencia', description: '10% de descuento extra' },
+];
+const paymentMethods = IS_WP
+  ? (Array.isArray(WP?.paymentMethods) ? WP.paymentMethods : [])
+  : demoMethods;
+
+/** Radios con el mismo estilo de tarjeta que los medios de pago. */
+function ChoiceGroup({ options, value, onChange }) {
+  return (
+    <div className="mt-3 space-y-2">
+      {options.map((o) => (
+        <button
+          type="button"
+          key={o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            'mj-choice flex w-full items-center justify-between rounded-xl2 border p-4 text-left transition-all duration-200',
+            value === o.value ? 'border-accent bg-accent-soft' : 'border-line hover:border-line-strong'
+          )}
+        >
+          <div>
+            <p className="text-sm font-medium">{o.title}</p>
+            {o.description && <p className="text-xs text-ink-faint">{o.description}</p>}
+          </div>
+          <span
+            className={cn(
+              'grid size-5 shrink-0 place-items-center rounded-full border-2 transition-colors',
+              value === o.value ? 'border-accent bg-accent' : 'border-line-strong'
+            )}
+          >
+            {value === o.value && <Check size={11} className="text-white" strokeWidth={3} />}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Checkout de una sola página, minimalista — crea la orden real en WooCommerce. */
+export default function Checkout() {
+  const { items, clear, syncing, server } = useCart();
+  const cartShipping = useCart((s) => s.shipping);
+  // Medio de pago: arranca con el que el visitante eligió para ver precios (plugin MJ Medios de Pago) si está disponible.
+  const [payment, setPayment] = useState(() => {
+    const preferred = selectedMethodId();
+    return preferred && paymentMethods.some((m) => m.id === preferred) ? preferred : paymentMethods[0]?.id;
+  });
+  const [placedMethod, setPlacedMethod] = useState(null);
+  const [placedUsd, setPlacedUsd] = useState(null);
+  const choosePayment = (id) => {
+    setPayment(id);
+    usePaymentMethod.getState().set(id); // Sincroniza los precios de la tienda y la línea de ajuste del carrito.
+  };
+  const [placed, setPlaced] = useState(false);
+  const [placing, setPlacing] = useState(false);
+  const [error, setError] = useState(null);
+  const [orderId, setOrderId] = useState(null);
+  const [form, setForm] = useState({
+    firstName: '', lastName: '', email: '', phone: '',
+    address: '', city: '', postcode: '',
+  });
+  // Paso 4 · Facturación. fiscalCfg = config del emisor según el plugin
+  // (null = plugin inactivo o todavía no respondió → el paso no se muestra).
+  const [fiscalCfg, setFiscalCfg] = useState(null);
+  const [factura, setFactura] = useState({
+    solicita: false,
+    tipo: 'B', // A | B — la C se impone sola según la condición del emisor
+    receptor: 'mismo', // mismo | otro
+    factNombre: '',
+    docTipo: 'cf', // cf | cuit | dni
+    docNro: '',
+    condIva: 'cf', // cf | ri | monotributo | exento
+  });
+
+  // Autocompletar con los datos de la sesión: contacto/envío desde las
+  // direcciones guardadas en Mi cuenta y perfil fiscal desde el plugin
+  // (mjf/v1/fiscal es público → también trae la config del emisor).
+  useEffect(() => {
+    if (!IS_WP) return;
+    wc.getFiscal()
+      .then((data) => {
+        setFiscalCfg(data?.emisor ?? null);
+        const r = data?.receptor;
+        if (r && (r.doc_nro || r.fact_nombre)) {
+          setFactura((f) => ({
+            ...f,
+            factNombre: r.fact_nombre || '',
+            docTipo: r.doc_tipo || 'cf',
+            docNro: r.doc_nro || '',
+            condIva: r.cond_iva || 'cf',
+            tipo: r.doc_tipo === 'cuit' && r.cond_iva === 'ri' ? 'A' : f.tipo,
+          }));
+        }
+      })
+      .catch(() => {});
+    if (!WP?.user) return;
+    wc.getAccount()
+      .then((acc) => {
+        const b = acc?.addresses?.billing ?? {};
+        setForm((f) => ({
+          ...f,
+          firstName: f.firstName || b.first_name || '',
+          lastName: f.lastName || b.last_name || '',
+          email: f.email || b.email || WP.user.email || '',
+          phone: f.phone || b.phone || '',
+          address: f.address || b.address_1 || '',
+          city: f.city || b.city || '',
+          postcode: f.postcode || b.postcode || '',
+        }));
+      })
+      .catch(() => {});
+  }, []);
+
+  const subtotal = items.reduce((n, i) => n + effectivePrice(i.product) * i.qty, 0);
+  // Envío: gratis sobre el umbral; si no, costo real del servidor (null = a calcular).
+  const freeShip = FREE_SHIPPING_THRESHOLD > 0 && subtotal >= FREE_SHIPPING_THRESHOLD;
+  const shippingCost = freeShip ? 0 : cartShipping?.cost ?? null;
+  // Ajuste por medio de pago (plugin MJ Medios de Pago) + otras fees del servidor.
+  const payMethod = findMethod(payment);
+  const adjustment = resolveAdjustment({ items, method: payMethod, server, syncing, live: IS_WP });
+  const otherFees = IS_WP ? (server?.fees || []).filter((f) => !adjustment || f.name !== adjustment.label) : [];
+  const total = subtotal + (shippingCost ?? 0) + (adjustment?.amount ?? 0) + otherFees.reduce((n, f) => n + f.amount, 0);
+  const usdTotal = usdTotalFor(total, payMethod);
+  const shippingRates = cartShipping?.rates ?? [];
+  const noGateways = IS_WP && paymentMethods.length === 0;
+
+  // Tipo de comprobante resultante (misma lógica que el plugin): emisor RI
+  // deja elegir A/B salvo config forzada; monotributo/exento siempre emite C.
+  const cbteForzado = fiscalCfg && fiscalCfg.tipo_cbte_default !== 'auto' ? Number(fiscalCfg.tipo_cbte_default) : null;
+  const esEmisorRI = fiscalCfg?.condicion_iva === 'ri';
+  const puedeElegirTipo = esEmisorRI && !cbteForzado;
+  const cbteTipo = cbteForzado ?? (esEmisorRI ? (factura.tipo === 'A' ? 1 : 6) : 11);
+  const cbteLetra = { 1: 'A', 6: 'B', 11: 'C' }[cbteTipo];
+  const esA = cbteTipo === 1;
+
+  const field = (key) => ({
+    value: form[key],
+    onChange: (e) => setForm((f) => ({ ...f, [key]: e.target.value })),
+  });
+
+  /**
+   * Al completar el CP pedimos al servidor las tarifas de envío reales
+   * para la dirección cargada; si ninguna queda seleccionada, elegimos
+   * la primera disponible.
+   */
+  const syncShippingRates = async () => {
+    if (!IS_WP || form.postcode.trim().length < 4) return;
+    try {
+      await wc.updateCustomerAddress({
+        postcode: form.postcode,
+        city: form.city,
+        address_1: form.address,
+        country: WP?.baseCountry,
+      });
+      const rates = useCart.getState().shipping?.rates ?? [];
+      if (rates.length && !rates.some((r) => r.selected)) {
+        await wc.selectShippingRate(rates[0].rate_id);
+      }
+    } catch {
+      // Silencioso: el resumen sigue mostrando "Se calcula al finalizar".
+    }
+  };
+
+  if (placed) {
+    return (
+      <Section className="grid min-h-[60vh] place-items-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md text-center"
+        >
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 18, delay: 0.15 }}
+            className="mx-auto grid size-20 place-items-center rounded-full bg-success/15 text-success"
+          >
+            <Check size={34} strokeWidth={2.5} />
+          </motion.span>
+          <h1 className="display mt-8 text-4xl">¡Pedido confirmado!</h1>
+          <p className="mt-4 text-ink-soft">
+            {orderId ? <>Tu orden <span className="font-semibold text-ink">#{orderId}</span> fue creada. </> : null}
+            Te enviamos el detalle por email.
+          </p>
+          {placedUsd != null && EXCHANGE_RATE && (
+            <p className="mt-4 text-ink-soft">
+              Total a pagar: <span className="font-semibold text-ink">{formatUsd(placedUsd)}</span> al dólar {EXCHANGE_RATE.formatted}
+            </p>
+          )}
+          {placedMethod?.instructions && (
+            <div className="mj-panel mt-6 rounded-xl2 border border-line glass p-5 text-left">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">Cómo pagar · {placedMethod.short || placedMethod.title}</p>
+              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{placedMethod.instructions}</p>
+            </div>
+          )}
+          <div className="mt-8 flex justify-center gap-3">
+            <Button to="/cuenta/pedidos" variant="secondary">Ver mis pedidos</Button>
+            <Button to="/tienda">Seguir comprando</Button>
+          </div>
+        </motion.div>
+      </Section>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <Section className="grid min-h-[50vh] place-items-center text-center">
+        <div>
+          <h1 className="display text-3xl">No hay nada para pagar</h1>
+          <Button className="mt-6" to="/tienda">Ir a la tienda</Button>
+        </div>
+      </Section>
+    );
+  }
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!IS_WP) {
+      setPlaced(true);
+      clear();
+      window.scrollTo({ top: 0 });
+      return;
+    }
+
+    // Validación del paso 4 (el servidor la repite al guardar la orden).
+    let additionalFields = null;
+    if (fiscalCfg && factura.solicita) {
+      const docTipo = esA ? 'cuit' : factura.docTipo;
+      const docNro = factura.docNro.replace(/\D+/g, '').slice(0, 11);
+      if (factura.receptor === 'otro' && !factura.factNombre.trim()) {
+        setError('Cargá el nombre o razón social del receptor de la factura.');
+        return;
+      }
+      if (docTipo === 'cuit' && !isValidCuit(docNro)) {
+        setError(
+          docNro.length === 11
+            ? 'El CUIT/CUIL del receptor no es válido: revisá los números, hay algún dígito incorrecto.'
+            : 'El CUIT/CUIL del receptor debe tener 11 dígitos.'
+        );
+        return;
+      }
+      if (docTipo === 'dni' && (docNro.length < 7 || docNro.length > 8)) {
+        setError('El DNI del receptor debe tener 7 u 8 dígitos.');
+        return;
+      }
+      additionalFields = {
+        'mjf/solicita': true,
+        'mjf/a_nombre': factura.receptor,
+        // Receptor "mismo": el nombre sale de los datos de facturación del pedido.
+        'mjf/fact_nombre': factura.receptor === 'otro' ? factura.factNombre.trim().slice(0, 80) : '',
+        'mjf/doc_tipo': docTipo,
+        'mjf/doc_nro': docTipo === 'cf' ? '' : docNro,
+        'mjf/cond_iva': esA ? 'ri' : factura.condIva,
+      };
+    }
+
+    setPlacing(true);
+    try {
+      const order = await wc.placeOrder({ billing: form, paymentMethod: payment, additionalFields });
+      const redirect = order?.payment_result?.redirect_url;
+      if (redirect && !redirect.includes('order-received')) {
+        // Pasarelas externas (p. ej. Mercado Pago) requieren redirección
+        window.location.assign(redirect);
+        return;
+      }
+      setOrderId(order?.order_id ?? null);
+      setPlacedMethod(payMethod);
+      setPlacedUsd(usdTotal);
+      setPlaced(true);
+      clear();
+      window.scrollTo({ top: 0 });
+    } catch (err) {
+      setError(err.message || 'No pudimos procesar el pedido. Revisá los datos e intentá de nuevo.');
+    } finally {
+      setPlacing(false);
+    }
+  };
+
+  return (
+    <Section className="md:py-16">
+      <Reveal>
+        <Link to="/carrito" className="inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-ink">
+          <ChevronLeft size={15} /> Volver al carrito
+        </Link>
+        <h1 className="display mt-4 text-4xl md:text-5xl">Checkout</h1>
+        <p className="mt-2 flex items-center gap-1.5 text-sm text-ink-soft">
+          <Lock size={13} className="text-success" /> Pago 100% seguro y encriptado
+        </p>
+      </Reveal>
+
+      <form onSubmit={submit} className="mt-10 grid gap-10 lg:grid-cols-[1fr_400px]">
+        <div className="space-y-8">
+          <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
+            <h2 className="font-display text-lg font-semibold tracking-tight">1 · Contacto</h2>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <Input label="Nombre" required placeholder="María" autoComplete="given-name" {...field('firstName')} />
+              <Input label="Apellido" required placeholder="González" autoComplete="family-name" {...field('lastName')} />
+              <Input label="Email" type="email" required placeholder="tu@email.com" className="sm:col-span-2" autoComplete="email" {...field('email')} />
+              <Input label="Teléfono" type="tel" required placeholder="+54 11 ..." className="sm:col-span-2" autoComplete="tel" {...field('phone')} />
+            </div>
+          </Reveal>
+
+          <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
+            <h2 className="font-display text-lg font-semibold tracking-tight">2 · Envío</h2>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <Input label="Dirección" required placeholder="Calle y número" className="sm:col-span-2" autoComplete="street-address" {...field('address')} />
+              <Input label="Ciudad" required placeholder="Ciudad" autoComplete="address-level2" {...field('city')} />
+              <Input label="Código postal" required placeholder="CP" autoComplete="postal-code" {...field('postcode')} onBlur={syncShippingRates} />
+            </div>
+          </Reveal>
+
+          <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
+            <h2 className="font-display text-lg font-semibold tracking-tight">3 · Pago</h2>
+            {noGateways ? (
+              <div className="mt-5 flex items-start gap-3 rounded-xl2 border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
+                <AlertCircle size={17} className="mt-0.5 shrink-0" />
+                <p>No hay métodos de pago configurados. Contactanos para finalizar la compra.</p>
+              </div>
+            ) : (
+            <div className="mt-5 space-y-3">
+              {paymentMethods.map((m) => (
+                <button
+                  type="button"
+                  key={m.id}
+                  onClick={() => choosePayment(m.id)}
+                  className={cn(
+                    'mj-choice flex w-full items-center justify-between rounded-xl2 border p-4 text-left transition-all duration-200',
+                    payment === m.id
+                      ? 'border-accent bg-accent-soft'
+                      : 'border-line hover:border-line-strong'
+                  )}
+                >
+                  <div>
+                    <p className="text-sm font-medium">{m.title}</p>
+                    {m.description && <p className="text-xs text-ink-faint">{m.description}</p>}
+                  </div>
+                  <span className={cn(
+                    'grid size-5 shrink-0 place-items-center rounded-full border-2 transition-colors',
+                    payment === m.id ? 'border-accent bg-accent' : 'border-line-strong'
+                  )}>
+                    {payment === m.id && <Check size={11} className="text-white" strokeWidth={3} />}
+                  </span>
+                </button>
+              ))}
+            </div>
+            )}
+            {adjustment && (
+              <p className={cn('mt-4 text-sm font-medium', adjustment.amount < 0 ? 'text-success' : 'text-ink-soft')} aria-live="polite">
+                {adjustment.amount < 0
+                  ? `Ahorrás ${formatPrice(-adjustment.amount)} pagando con ${payMethod?.short || payMethod?.title}.`
+                  : `Recargo de ${formatPrice(adjustment.amount)} por pagar con ${payMethod?.short || payMethod?.title}.`}
+              </p>
+            )}
+          </Reveal>
+
+          {fiscalCfg && (
+            <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
+              <h2 className="font-display text-lg font-semibold tracking-tight">4 · Facturación</h2>
+              <ChoiceGroup
+                options={[
+                  { value: 'no', title: 'No necesito factura' },
+                  { value: 'si', title: 'Sí, necesito factura', description: 'Se emite al completarse el pedido' },
+                ]}
+                value={factura.solicita ? 'si' : 'no'}
+                onChange={(v) => setFactura((f) => ({ ...f, solicita: v === 'si' }))}
+              />
+
+              {factura.solicita && (
+                <div className="mt-6 space-y-6 border-t border-line pt-6">
+                  {puedeElegirTipo ? (
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Tipo de factura</p>
+                      <ChoiceGroup
+                        options={[
+                          { value: 'A', title: 'Factura A', description: 'Responsable Inscripto — requiere CUIT' },
+                          { value: 'B', title: 'Factura B', description: 'Consumidor final, monotributo o exento' },
+                        ]}
+                        value={factura.tipo}
+                        onChange={(v) => setFactura((f) => ({ ...f, tipo: v }))}
+                      />
+                    </div>
+                  ) : (
+                    <p className="rounded-xl2 border border-line bg-surface-2 p-3.5 text-sm text-ink-soft">
+                      Se emitirá <span className="font-semibold text-ink">Factura {cbteLetra}</span> con los datos que cargues acá.
+                    </p>
+                  )}
+
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Receptor de la factura</p>
+                    <ChoiceGroup
+                      options={[
+                        {
+                          value: 'mismo',
+                          title: 'Los mismos datos de la compra',
+                          description: `${form.firstName} ${form.lastName}`.trim() || undefined,
+                        },
+                        { value: 'otro', title: 'Otra persona o empresa' },
+                      ]}
+                      value={factura.receptor}
+                      onChange={(v) => setFactura((f) => ({ ...f, receptor: v }))}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {factura.receptor === 'otro' && (
+                      <Input
+                        label={esA ? 'Razón social' : 'Nombre o razón social'}
+                        placeholder={esA ? 'Empresa S.A.' : 'Nombre completo o razón social'}
+                        className="sm:col-span-2"
+                        maxLength={80}
+                        value={factura.factNombre}
+                        onChange={(e) => setFactura((f) => ({ ...f, factNombre: e.target.value }))}
+                      />
+                    )}
+                    {esA ? (
+                      <Input
+                        label="CUIT del receptor"
+                        inputMode="numeric"
+                        placeholder="30-12345678-9"
+                        className="sm:col-span-2"
+                        value={factura.docNro}
+                        onChange={(e) => setFactura((f) => ({ ...f, docNro: e.target.value }))}
+                      />
+                    ) : (
+                      <>
+                        <Select
+                          label="Tipo de documento"
+                          value={factura.docTipo}
+                          onChange={(e) => setFactura((f) => ({ ...f, docTipo: e.target.value }))}
+                        >
+                          <option value="cf">Consumidor final (sin identificar)</option>
+                          <option value="dni">DNI</option>
+                          <option value="cuit">CUIT</option>
+                        </Select>
+                        <Input
+                          label="Número de documento"
+                          inputMode="numeric"
+                          placeholder={factura.docTipo === 'cuit' ? '30-12345678-9' : '12345678'}
+                          disabled={factura.docTipo === 'cf'}
+                          value={factura.docTipo === 'cf' ? '' : factura.docNro}
+                          onChange={(e) => setFactura((f) => ({ ...f, docNro: e.target.value }))}
+                        />
+                        <Select
+                          label="Condición frente al IVA"
+                          className="sm:col-span-2"
+                          value={factura.condIva}
+                          onChange={(e) => setFactura((f) => ({ ...f, condIva: e.target.value }))}
+                        >
+                          <option value="cf">Consumidor Final</option>
+                          <option value="ri">Responsable Inscripto</option>
+                          <option value="monotributo">Monotributo</option>
+                          <option value="exento">Exento</option>
+                        </Select>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Reveal>
+          )}
+
+          {error && (
+            <Reveal className="flex items-start gap-3 rounded-xl2 border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
+              <AlertCircle size={17} className="mt-0.5 shrink-0" />
+              <p>{error}</p>
+            </Reveal>
+          )}
+        </div>
+
+        {/* Resumen */}
+        <Reveal delay={0.15} className="lg:sticky lg:top-44 lg:self-start">
+          <div className="mj-panel rounded-xl3 border border-line glass p-7">
+            <h2 className="font-display text-lg font-semibold tracking-tight">Tu pedido</h2>
+            <ul className="mt-5 space-y-3">
+              {items.map(({ product, qty }) => (
+                <li key={product.id} className="flex items-center gap-3">
+                  <div className="relative">
+                    <ProductImage product={product} className="size-14 rounded-xl" />
+                    <span className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-surface-2 border border-line text-[10px] font-bold">
+                      {qty}
+                    </span>
+                  </div>
+                  <p className="min-w-0 flex-1 truncate text-sm font-medium">{product.name}</p>
+                  <p className="text-sm font-medium">{formatPrice(effectivePrice(product) * qty)}</p>
+                </li>
+              ))}
+            </ul>
+            {shippingRates.length > 0 && (
+              <div className="mt-5 space-y-2 border-t border-line pt-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Método de envío</p>
+                {shippingRates.map((r) => (
+                  <button
+                    type="button"
+                    key={r.rate_id}
+                    onClick={() => wc.selectShippingRate(r.rate_id).catch(() => {})}
+                    className={cn(
+                      'flex w-full items-center justify-between gap-3 rounded-xl2 border p-3 text-left text-sm transition-all duration-200',
+                      r.selected ? 'border-accent bg-accent-soft' : 'border-line hover:border-line-strong'
+                    )}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <span className={cn(
+                        'grid size-4 shrink-0 place-items-center rounded-full border-2 transition-colors',
+                        r.selected ? 'border-accent bg-accent' : 'border-line-strong'
+                      )}>
+                        {r.selected && <Check size={9} className="text-white" strokeWidth={3} />}
+                      </span>
+                      {r.name}
+                    </span>
+                    <span className="font-medium">{r.cost > 0 ? formatPrice(r.cost) : 'GRATIS'}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <dl className="mt-6 space-y-2.5 border-t border-line pt-5 text-sm">
+              <div className="flex justify-between"><dt className="text-ink-soft">Subtotal</dt><dd>{formatPrice(subtotal)}</dd></div>
+              <div className="flex justify-between">
+                <dt className="text-ink-soft">Envío</dt>
+                <dd className={shippingCost === 0 ? 'font-semibold text-success' : ''}>
+                  {shippingCost == null
+                    ? 'Se calcula al finalizar'
+                    : shippingCost === 0
+                      ? 'GRATIS'
+                      : formatPrice(shippingCost)}
+                </dd>
+              </div>
+              {adjustment && (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-ink-soft">{adjustment.label}</dt>
+                  <dd className={adjustment.amount < 0 ? 'font-semibold text-success' : ''}>
+                    {adjustment.amount < 0 ? '- ' : '+ '}{formatPrice(Math.abs(adjustment.amount))}
+                  </dd>
+                </div>
+              )}
+              {otherFees.map((f) => (
+                <div key={f.id || f.name} className="flex justify-between gap-3">
+                  <dt className="text-ink-soft">{f.name}</dt>
+                  <dd>{f.amount < 0 ? '- ' : '+ '}{formatPrice(Math.abs(f.amount))}</dd>
+                </div>
+              ))}
+              <div className="flex items-baseline justify-between border-t border-line pt-4">
+                <dt className="font-medium">Total</dt>
+                <dd className="font-display text-2xl font-semibold">{formatPrice(total)}</dd>
+              </div>
+              {usdTotal != null && EXCHANGE_RATE && (
+                <div className="flex items-baseline justify-between">
+                  <dt className="text-ink-soft">En dólares</dt>
+                  <dd className="font-semibold">{formatUsd(usdTotal)} <span className="text-xs font-normal text-ink-faint">al dólar {EXCHANGE_RATE.formatted}</span></dd>
+                </div>
+              )}
+            </dl>
+            <Button type="submit" size="lg" className="mt-6 w-full" disabled={placing || noGateways}>
+              {placing ? <Loader2 size={15} className="animate-spin" /> : <Lock size={15} />}
+              {placing ? 'Procesando…' : `Pagar ${formatPrice(total)}`}
+            </Button>
+          </div>
+        </Reveal>
+      </form>
+    </Section>
+  );
+}

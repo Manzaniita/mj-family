@@ -1,0 +1,29 @@
+# Dependencias
+node_modules/
+
+# dist/ NO se ignora: es lo que realmente se sube al servidor.
+#
+# El tema sirve la SPA ya compilada (dist/assets/app.js y app.css); en un
+# hosting de WordPress no hay Node para generarla. Versionarla es lo que hace
+# que sacar una etiqueta del repo alcance para desplegar, y que se pueda ver
+# exactamente qué build salió en cada versión.
+# Se regenera con `npm run build` o con tools/build-releases.ps1.
+
+# Flag de desarrollo de Vite
+.vite-running
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

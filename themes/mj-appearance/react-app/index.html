@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="MJ Appearance — Tecnología premium. Una experiencia de compra diseñada desde cero." />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0a0a0c" />
+    <title>MJ Appearance — Tecnología premium</title>
+    <script>
+      /* Anti-flash de tema (espejo de mj_theme_boot_script() en functions.php):
+       * elección guardada > ?theme= > sistema. Corre antes de cualquier CSS.
+       * ?skin=atelier marca la skin para previsualizar sin WordPress. */
+      (function () {
+        try {
+          var d = document.documentElement;
+          var q = new URLSearchParams(location.search);
+          var saved = localStorage.getItem('mj-theme');
+          var def = q.get('theme') || 'dark';
+          var theme = saved === 'light' || saved === 'dark'
+            ? saved
+            : def === 'system'
+              ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+              : def === 'light' ? 'light' : 'dark';
+          d.dataset.theme = theme;
+          d.style.colorScheme = theme;
+          var skin = q.get('skin');
+          if (skin) d.dataset.skin = skin;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Manrope:wght@300..800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%236E6BFF'/%3E%3Cpath d='M9 10l7 8 7-8v12' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

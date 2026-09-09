@@ -1,0 +1,16 @@
+/*
+Theme Name: Yamana
+Author: MJ
+Description: Tema hijo de MJ Appearance para Yamana — tejidos artesanales y cursos de tejido. Skin cálida y artesanal: lino de día, chocolate de noche, acento terracota, textura de tela sutil, serif Fraunces con Nunito y detalles "de puntada". Propone los textos de cada pantalla para una tienda de tejidos y, con el plugin MJ Colegas activo, el proyecto colectivo "Entre Hilos" (colegas que venden sus piezas en la tienda con comisión). Hereda toda la lógica del padre (ajustes, REST, frontend React); todo se sigue ajustando desde Apariencia → MJ Appearance.
+Template: mj-appearance
+Version: 1.1.0
+License: GPL-2.0-or-later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: mj-yamana
+Tags: e-commerce, woocommerce
+*/
+
+/*
+ * Los estilos de la skin viven en yamana.css (encolado desde functions.php).
+ * Este archivo solo declara los metadatos del tema hijo.
+ */

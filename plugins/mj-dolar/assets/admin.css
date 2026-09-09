@@ -1,0 +1,77 @@
+/* MJ Dólar — estilos de wp-admin (página, widget, ficha de producto, listado). */
+
+/* ------------------------------ Página ------------------------------ */
+.mjd-wrap { max-width: 1120px; }
+.mjd-title { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.mjd-bajada { color: #50575e; max-width: 72ch; margin-top: 0; }
+.mjd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+.mjd-card { background: #fff; border: 1px solid #c3c4c7; border-radius: 8px; padding: 18px 20px; box-shadow: 0 1px 1px rgba(0, 0, 0, .04); }
+.mjd-card h2 { margin: 0 0 10px; font-size: 15px; }
+.mjd-card h2 small { font-weight: 400; color: #646970; }
+.mjd-card--rate { grid-column: 1 / -1; }
+.mjd-rate-big { font-size: 44px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin: 6px 0 2px; }
+.mjd-rate-big.is-empty { color: #b32d2e; font-size: 22px; }
+.mjd-rate-meta { color: #646970; margin: 0 0 16px; }
+
+.mjd-rate-form__label { display: block; font-weight: 600; margin-bottom: 6px; }
+.mjd-rate-form__row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.mjd-rate-form__prefix { font-size: 20px; font-weight: 600; color: #50575e; }
+.mjd-rate-form__input { font-size: 22px; font-weight: 600; width: 180px; min-height: 44px; }
+.mjd-rate-form__note { flex: 1 1 220px; min-height: 44px; }
+.mjd-rate-form .button-primary { min-height: 44px; padding: 0 18px; }
+.mjd-rate-form__preview { color: #646970; margin: 8px 0 0; min-height: 1.4em; }
+.mjd-rate-form__feedback { margin: 8px 0 0; font-weight: 600; }
+.mjd-rate-form__feedback.is-error { color: #b32d2e; }
+.mjd-rate-form__feedback.is-ok { color: #00a32a; }
+
+.mjd-sync { margin-top: 14px; }
+.mjd-sync__bar { height: 10px; background: #dcdcde; border-radius: 999px; overflow: hidden; }
+.mjd-sync__fill { height: 100%; background: #2271b1; width: 0; transition: width .3s ease; }
+.mjd-sync[data-status="done"] .mjd-sync__fill { background: #00a32a; }
+.mjd-sync__text { margin: 6px 0 0; color: #50575e; }
+
+.mjd-suggest__value { font-size: 30px; font-weight: 700; margin: 0; }
+.mjd-suggest__meta { color: #646970; margin: 2px 0 8px; }
+.mjd-suggest__alert { color: #996800; font-weight: 600; margin: 0 0 8px; }
+.mjd-suggest__actions { display: flex; gap: 8px; margin: 0 0 6px; }
+
+.mjd-stats { display: flex; gap: 24px; flex-wrap: wrap; margin: 0 0 12px; padding: 0; list-style: none; color: #50575e; }
+.mjd-stats strong { display: block; font-size: 26px; color: #1d2327; line-height: 1.1; }
+.mjd-history td small { color: #646970; display: block; }
+.mjd-up { color: #b32d2e; font-weight: 600; }
+.mjd-down { color: #00a32a; font-weight: 600; }
+.mjd-settings { margin-top: 8px; }
+.mjd-dev { margin-top: 24px; }
+.mjd-dev ul { margin: 0; }
+.mjd-dev li { margin-bottom: 6px; }
+.mjd-dev code { font-size: 12px; }
+.mjd-credito { color: #a7aaad; font-size: 12px; margin-top: 16px; }
+
+/* ------------------------------ Widget ------------------------------ */
+.mjd-widget__rate { font-size: 30px; font-weight: 700; margin: 0; }
+.mjd-widget__rate.is-empty { color: #b32d2e; font-size: 16px; }
+.mjd-widget__meta { color: #646970; margin: 2px 0 10px; }
+.mjd-widget .mjd-rate-form__input { width: 130px; font-size: 18px; min-height: 36px; }
+.mjd-widget .mjd-rate-form .button-primary { min-height: 36px; }
+.mjd-widget__link { margin: 10px 0 0; }
+
+/* ------------------------- Ficha de producto ------------------------ */
+.mjd-pricing { border-top: 1px dashed #dcdcde; margin-top: 8px; padding-top: 8px; }
+.mjd-pricing .mjd-preview { color: #646970; }
+.mjd-pricing .mjd-preview label { font-weight: 600; }
+.mjd-pricing--variation::after { content: ""; display: table; clear: both; }
+.mjd-pricing--variation .mjd-preview { margin: 0 0 8px; }
+input.mjd-readonly { background: #f0f0f1 !important; color: #646970 !important; cursor: not-allowed; }
+
+/* ------------------------------ Listado ----------------------------- */
+.column-mjd_usd { width: 11ch; }
+.mjd-col-empty { color: #a7aaad; }
+.mjd-col-stale { color: #996800; }
+.mjd-quick-help, .mjd-bulk-help { color: #646970; font-size: 12px; margin: 4px 0 0; clear: both; }
+.mjd-bulk .change-input { display: none; }
+.mjd-bulk .change-input input { width: 100%; }
+
+@media (max-width: 782px) {
+	.mjd-grid { grid-template-columns: 1fr; }
+	.mjd-rate-form__input { width: 140px; }
+}

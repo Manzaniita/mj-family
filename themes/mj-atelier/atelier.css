@@ -1,0 +1,572 @@
+/* ==========================================================================
+   MJ Atelier — skin editorial de lujo (tema hijo de MJ Appearance)
+   --------------------------------------------------------------------------
+   Carga DESPUÉS de dist/assets/app.css del padre y de su inline de diseño,
+   así que gana la cascada a igual especificidad. Las reglas están sin
+   @layer a propósito: pisan a las utilidades de Tailwind del padre.
+
+   Engancha en dos cosas que expone el padre:
+   - tokens --mj-* (forma, motion, paleta por data-theme),
+   - clases semánticas mj-* (mj-btn, mj-card, mj-header, mj-hero…).
+
+   No redefine --mj-accent / --mj-bg / --mj-ink: llegan por inline desde
+   Apariencia → MJ Appearance (con defaults Atelier vía functions.php), así
+   los pickers del admin siguen funcionando.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+ * 1. Forma, tipografía y motion
+ * -------------------------------------------------------------------------- */
+:root,
+[data-skin='atelier'] {
+	--mj-radius-sm: 4px;
+	--mj-radius-md: 6px;
+	--mj-radius-lg: 10px;
+	--mj-radius-xl: 14px;
+	--mj-radius-2xl: 18px;
+	--mj-radius-btn: 6px;
+	--mj-radius-chip: 4px;
+	--mj-radius-badge: 3px;
+	--mj-radius-input: 6px;
+	--mj-radius-pill: 8px;
+
+	--mj-display-weight: 400;
+	--mj-display-tracking: -0.02em;
+	--mj-display-leading: 1.05;
+
+	--mj-glass-blur: 14px;
+	--mj-dur: 0.4s;
+	--mj-dur-slow: 0.9s;
+
+	/* Título destacado del hero: bronce → dorado claro. */
+	--mj-hero-gradient: linear-gradient(100deg, var(--mj-accent) 0%, color-mix(in oklab, var(--mj-accent) 50%, #f1d7b0) 100%);
+}
+
+/* --------------------------------------------------------------------------
+ * 2. Paletas derivadas (superficies, líneas, estados) con tinte cálido
+ * -------------------------------------------------------------------------- */
+[data-theme='light'] {
+	--mj-surface: rgb(28 25 23 / 0.035);
+	--mj-surface-2: rgb(28 25 23 / 0.06);
+	--mj-line: rgb(28 25 23 / 0.12);
+	--mj-line-strong: rgb(28 25 23 / 0.26);
+	--mj-success: #2f6b3a;
+	--mj-warning: #9a5b12;
+	--mj-danger: #b3313f;
+	--mj-star: #c7902e;
+	--mj-shadow-soft: 0 28px 60px -32px rgb(28 25 23 / 0.32);
+	--mj-overlay: rgb(28 25 23 / 0.5);
+	--mj-img-s1: 28%;
+	--mj-img-l1: 92%;
+	--mj-img-s2: 20%;
+	--mj-img-l2: 85%;
+}
+
+[data-theme='dark'] {
+	--mj-surface: rgb(255 248 238 / 0.04);
+	--mj-surface-2: rgb(255 248 238 / 0.07);
+	--mj-line: rgb(255 248 238 / 0.11);
+	--mj-line-strong: rgb(255 248 238 / 0.24);
+	--mj-success: #8fd3a0;
+	--mj-warning: #e2b06b;
+	--mj-danger: #f08a95;
+	--mj-star: #e2b06b;
+	--mj-shadow-soft: 0 28px 60px -28px rgb(0 0 0 / 0.65);
+	--mj-overlay: rgb(10 8 6 / 0.66);
+	--mj-img-s1: 26%;
+	--mj-img-l1: 20%;
+	--mj-img-s2: 18%;
+	--mj-img-l2: 10%;
+}
+
+/* --------------------------------------------------------------------------
+ * 3. Fondo: papel con grano fino y una luz cálida
+ * -------------------------------------------------------------------------- */
+.mj-ambient {
+	background:
+		radial-gradient(1100px 620px at 85% -15%, var(--mj-accent-soft), transparent 62%),
+		radial-gradient(820px 520px at -12% 42%, color-mix(in oklab, var(--mj-accent) 7%, transparent), transparent 60%),
+		var(--mj-bg);
+}
+.mj-ambient::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	opacity: 0.04;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+	background-size: 220px 220px;
+	mix-blend-mode: multiply;
+}
+[data-theme='dark'] .mj-ambient::after {
+	opacity: 0.07;
+	mix-blend-mode: screen;
+}
+
+/* --------------------------------------------------------------------------
+ * 4. Tipografía: serif con tamaño óptico, itálicas para el énfasis
+ * -------------------------------------------------------------------------- */
+body {
+	letter-spacing: 0.005em;
+}
+
+.display {
+	font-feature-settings: 'kern', 'liga', 'ss01';
+}
+
+h1.display,
+.mj-hero__title {
+	font-weight: 400;
+	letter-spacing: -0.025em;
+	font-variation-settings: 'opsz' 144;
+}
+
+.mj-hero__highlight {
+	font-style: italic;
+	font-weight: 400;
+}
+
+.mj-section-head__title,
+.mj-footer__title,
+.mj-product__title {
+	font-weight: 400;
+}
+
+.mj-footer__title {
+	font-style: italic;
+}
+
+.mj-section-head {
+	padding-bottom: 1.25rem;
+	border-bottom: 1px solid var(--mj-line);
+}
+
+.mj-eyebrow,
+.mj-card__cat,
+.mj-footer__heading,
+.mj-field__label,
+.mj-marquee__label,
+.mj-topbar__text {
+	font-family: var(--font-sans);
+	letter-spacing: 0.26em;
+	font-weight: 600;
+	font-size: 10px;
+}
+
+.mj-card__title {
+	font-weight: 500;
+	font-size: 1.05rem;
+	letter-spacing: -0.01em;
+	line-height: 1.3;
+}
+
+.mj-price__value {
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	font-variant-numeric: lining-nums tabular-nums;
+}
+
+.mj-sku__value {
+	letter-spacing: 0.06em;
+}
+
+/* --------------------------------------------------------------------------
+ * 5. Superficies: hairlines en vez de vidrio, papel sólido en overlays
+ * -------------------------------------------------------------------------- */
+.glass {
+	background: transparent;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	border-color: var(--mj-line);
+}
+
+.mj-drawer__panel,
+.mj-modal__panel,
+.mj-search__panel,
+.mj-nav__panel,
+.mj-sheet {
+	background: var(--mj-bg);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
+.mj-modal__panel {
+	border-radius: var(--mj-radius-xl);
+}
+
+.mj-header__glass,
+.mj-bottomnav,
+.mj-buybar {
+	background: color-mix(in srgb, var(--mj-bg) 88%, transparent);
+	backdrop-filter: blur(14px) saturate(1.1);
+	-webkit-backdrop-filter: blur(14px) saturate(1.1);
+}
+
+/* Cards de producto: papel, hairline, elevación suave al pasar */
+.mj-card__link {
+	background: var(--mj-bg);
+	border-color: var(--mj-line);
+	transition:
+		border-color 0.5s var(--mj-ease),
+		transform 0.6s var(--mj-ease),
+		box-shadow 0.6s var(--mj-ease);
+}
+.mj-card:hover .mj-card__link {
+	border-color: var(--mj-line-strong);
+	transform: translateY(-4px);
+	box-shadow: var(--mj-shadow-soft);
+}
+.mj-card__media {
+	border-bottom: 1px solid var(--mj-line);
+}
+.mj-card__media img {
+	transition-duration: 1.2s;
+}
+
+/* Miniaturas de galería sin glow: solo el borde marca la activa. */
+.mj-gallery__thumb {
+	box-shadow: none;
+}
+
+/* --------------------------------------------------------------------------
+ * 6. Botones: relleno que sube desde abajo, mayúsculas con tracking
+ * -------------------------------------------------------------------------- */
+.mj-btn {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	font-size: 11.5px;
+	font-weight: 600;
+	transition:
+		color var(--mj-dur) var(--mj-ease),
+		border-color var(--mj-dur) var(--mj-ease),
+		background-color var(--mj-dur) var(--mj-ease);
+}
+.mj-btn--lg {
+	font-size: 12.5px;
+}
+.mj-btn > * {
+	position: relative;
+	z-index: 1;
+}
+
+.mj-btn--primary,
+.mj-card__cta {
+	box-shadow: none;
+	filter: none;
+}
+.mj-btn--primary::before,
+.mj-card__cta:not([disabled])::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	background: var(--mj-ink);
+	transform: translateY(101%);
+	transition: transform 0.55s var(--mj-ease);
+}
+.mj-btn--primary:hover,
+.mj-card__cta:not([disabled]):hover {
+	filter: none;
+	color: var(--mj-bg);
+}
+.mj-btn--primary:hover::before,
+.mj-card__cta:not([disabled]):hover::before {
+	transform: translateY(0);
+}
+.mj-card__cta {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	font-size: 11px;
+	font-weight: 600;
+}
+.mj-card__cta > * {
+	position: relative;
+	z-index: 1;
+}
+
+.mj-btn--secondary {
+	background: transparent;
+	border: 1px solid var(--mj-line-strong);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+.mj-btn--secondary:hover {
+	background: transparent;
+	border-color: var(--mj-ink);
+}
+
+/* Chips (filtros, variaciones, favorito/comparar): tinta al activarse */
+.mj-chip {
+	letter-spacing: 0.04em;
+}
+.mj-chip--active {
+	background: var(--mj-ink);
+	border-color: var(--mj-ink);
+	color: var(--mj-bg);
+}
+
+/* Badges: rectángulo fino, mayúsculas espaciadas; "sólido" en tinta */
+.mj-badge {
+	letter-spacing: 0.2em;
+	font-size: 9.5px;
+	padding: 0.35rem 0.55rem;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+.mj-badge--solid {
+	background: var(--mj-ink);
+	color: var(--mj-bg);
+}
+
+/* --------------------------------------------------------------------------
+ * 7. Links: subrayado que crece desde la izquierda
+ * -------------------------------------------------------------------------- */
+.mj-footer__link,
+.mj-link-arrow,
+.mj-nav__link {
+	background-image: linear-gradient(currentColor, currentColor);
+	background-size: 0% 1px;
+	background-position: 0 100%;
+	background-repeat: no-repeat;
+	background-origin: content-box;
+	background-clip: content-box;
+	transition:
+		background-size 0.45s var(--mj-ease),
+		color var(--mj-dur) var(--mj-ease);
+}
+.mj-footer__link:hover,
+.mj-link-arrow:hover,
+.mj-nav__link:hover,
+.mj-nav__link--active {
+	background-size: 100% 1px;
+}
+
+/* --------------------------------------------------------------------------
+ * 8. Header y navegación
+ * -------------------------------------------------------------------------- */
+.mj-topbar {
+	background: var(--mj-ink);
+	border-bottom: 0;
+}
+.mj-topbar__text {
+	color: color-mix(in srgb, var(--mj-bg) 86%, transparent);
+	letter-spacing: 0.3em;
+}
+
+.mj-logo__mark {
+	border-radius: 4px;
+	box-shadow: none;
+}
+.mj-logo__name {
+	font-family: var(--font-display);
+	font-weight: 500;
+	font-size: 1.4rem;
+	letter-spacing: 0.01em;
+	font-variation-settings: 'opsz' 48;
+}
+
+.mj-nav__link {
+	text-transform: uppercase;
+	letter-spacing: 0.16em;
+	font-size: 11px;
+	font-weight: 600;
+	padding: 1rem 0.9rem;
+	border-radius: 0;
+}
+.mj-nav__link:hover,
+.mj-nav__link--highlight:hover {
+	background-color: transparent;
+}
+
+.mj-search__field {
+	background: transparent;
+	border-color: var(--mj-line);
+}
+.mj-search__field:focus-within {
+	box-shadow: none;
+	border-color: var(--mj-ink);
+}
+
+.mj-theme-toggle,
+.mj-icon-action {
+	border: 1px solid transparent;
+}
+.mj-theme-toggle:hover,
+.mj-icon-action:hover {
+	background: transparent;
+	border-color: var(--mj-line-strong);
+}
+
+.mj-bottomnav__item {
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	font-size: 9px;
+}
+
+/* --------------------------------------------------------------------------
+ * 9. Hero
+ * -------------------------------------------------------------------------- */
+.mj-hero__badge {
+	background: transparent;
+	border-color: var(--mj-line-strong);
+	text-transform: uppercase;
+	letter-spacing: 0.22em;
+	font-size: 10px;
+	font-weight: 600;
+}
+.mj-hero__glow {
+	opacity: 0.16;
+}
+.mj-hero__subtitle {
+	font-size: 1.1rem;
+	max-width: 34rem;
+}
+.mj-hero__stat p:first-child {
+	font-weight: 400;
+	font-size: 2.1rem;
+	font-variation-settings: 'opsz' 72;
+}
+.mj-hero__stat + .mj-hero__stat {
+	border-left: 1px solid var(--mj-line);
+	padding-left: 2.5rem;
+}
+.mj-hero--media .mj-hero__stat + .mj-hero__stat {
+	border-left-color: rgb(255 255 255 / 0.25);
+}
+
+/* --------------------------------------------------------------------------
+ * 10. Secciones de la home
+ * -------------------------------------------------------------------------- */
+.mj-showcase__title {
+	font-weight: 400;
+	font-style: italic;
+	font-size: 2rem;
+}
+.mj-showcase__arrow {
+	border-radius: 0;
+	background: transparent;
+	border: 1px solid rgb(255 255 255 / 0.55);
+}
+
+.mj-marquee__item {
+	width: auto;
+	padding: 0 2.75rem;
+	border: 0;
+	border-right: 1px solid var(--mj-line);
+	border-radius: 0;
+	background: transparent;
+	font-family: var(--font-display);
+	font-style: italic;
+	font-weight: 400;
+	font-size: 1.45rem;
+	letter-spacing: 0;
+	color: var(--mj-ink-soft);
+}
+.mj-marquee__item:hover {
+	box-shadow: none;
+	border-color: var(--mj-line);
+	color: var(--mj-ink);
+}
+
+.mj-testimonial__quote {
+	font-family: var(--font-display);
+	font-style: italic;
+	font-size: 1.05rem;
+	line-height: 1.55;
+}
+
+/* --------------------------------------------------------------------------
+ * 11. Formularios, tabs, acordeón
+ * -------------------------------------------------------------------------- */
+.mj-input {
+	background: transparent;
+	border-color: var(--mj-line-strong);
+}
+.mj-input:focus {
+	background: transparent;
+	border-color: var(--mj-ink);
+}
+.mj-footer__field {
+	background: transparent;
+	border-color: var(--mj-line-strong);
+}
+.mj-footer__field:focus-within {
+	border-color: var(--mj-ink);
+}
+.mj-footer__submit {
+	box-shadow: none;
+}
+
+.mj-tabs__list {
+	background: transparent;
+	border: 0;
+	border-bottom: 1px solid var(--mj-line);
+	border-radius: 0;
+	padding: 0;
+	gap: 1.75rem;
+	width: 100%;
+}
+.mj-tabs__tab {
+	padding: 0.85rem 0;
+	border-radius: 0;
+	text-transform: uppercase;
+	letter-spacing: 0.16em;
+	font-size: 11px;
+	font-weight: 600;
+}
+.mj-tabs__tab--active {
+	color: var(--mj-ink);
+}
+.mj-tabs__pill {
+	top: auto;
+	bottom: -1px;
+	height: 1px;
+	border-radius: 0;
+	background: var(--mj-ink);
+}
+
+.mj-accordion__q {
+	font-weight: 400;
+	font-size: 1.15rem;
+}
+.mj-accordion__icon {
+	background: transparent;
+	border: 1px solid var(--mj-line-strong);
+}
+
+/* --------------------------------------------------------------------------
+ * 12. Intro y detalles globales
+ * -------------------------------------------------------------------------- */
+.mj-intro__name {
+	font-style: italic;
+	font-weight: 400;
+	font-size: 2.2rem;
+	letter-spacing: 0;
+}
+
+::-webkit-scrollbar {
+	width: 11px;
+	height: 11px;
+}
+::-webkit-scrollbar-track {
+	background: var(--mj-bg);
+}
+::-webkit-scrollbar-thumb {
+	background: var(--mj-line-strong);
+	border: 3px solid var(--mj-bg);
+	border-radius: 8px;
+}
+html {
+	scrollbar-color: var(--mj-line-strong) var(--mj-bg);
+	scrollbar-width: thin;
+}
+
+:focus-visible {
+	outline-color: var(--mj-ink);
+	border-radius: 2px;
+}

@@ -1,0 +1,112 @@
+﻿[
+    {
+        "Slug":  "mj-appearance",
+        "Name":  "MJ Appearance",
+        "Type":  "theme",
+        "Version":  "3.6.0",
+        "Parent":  null,
+        "Zip":  "mj-appearance-3.6.0.zip",
+        "SizeKB":  458,
+        "Sha256":  "56b6e12a2540c0743a84a7a6d25a96f58288275395d2491e23781079bc3b1bb0"
+    },
+    {
+        "Slug":  "mj-atelier",
+        "Name":  "MJ Atelier",
+        "Type":  "theme",
+        "Version":  "1.1.0",
+        "Parent":  "mj-appearance",
+        "Zip":  "mj-atelier-1.1.0.zip",
+        "SizeKB":  607,
+        "Sha256":  "b77032acb491f6686f0dfa45729d0d7f936a97bf808aefabdce35189ac676fba"
+    },
+    {
+        "Slug":  "mj-colegas",
+        "Name":  "MJ Colegas",
+        "Type":  "plugin",
+        "Version":  "1.0.0",
+        "Parent":  null,
+        "Zip":  "mj-colegas-1.0.0.zip",
+        "SizeKB":  22,
+        "Sha256":  "3cfbfb8a225f42ea7900b50d0b0500ccc65f55f1b19a6cd5d01821792e2a852e"
+    },
+    {
+        "Slug":  "mj-dolar",
+        "Name":  "MJ Dólar",
+        "Type":  "plugin",
+        "Version":  "1.0.0",
+        "Parent":  null,
+        "Zip":  "mj-dolar-1.0.0.zip",
+        "SizeKB":  41,
+        "Sha256":  "ea34406723040091e9f0c4316e07c4afaa1addad06a5f9d0f8f8a13048016310"
+    },
+    {
+        "Slug":  "mj-erp",
+        "Name":  "MJ ERP",
+        "Type":  "plugin",
+        "Version":  "1.3.0",
+        "Parent":  null,
+        "Zip":  "mj-erp-1.3.0.zip",
+        "SizeKB":  353,
+        "Sha256":  "04a45814f515e6648b099994dc5971e8551316c11cc48fc7407aa5f7b4494bc6"
+    },
+    {
+        "Slug":  "mj-fotos-rapidas",
+        "Name":  "MJ Fotos Rápidas",
+        "Type":  "plugin",
+        "Version":  "1.2.0",
+        "Parent":  null,
+        "Zip":  "mj-fotos-rapidas-1.2.0.zip",
+        "SizeKB":  7,
+        "Sha256":  "93158e4ec54ee632388211e2a5b80f011ea60276e221464e1515664df114fc04"
+    },
+    {
+        "Slug":  "mj-glossyhair",
+        "Name":  "GlossyHair",
+        "Type":  "theme",
+        "Version":  "1.1.0",
+        "Parent":  "mj-appearance",
+        "Zip":  "mj-glossyhair-1.1.0.zip",
+        "SizeKB":  90,
+        "Sha256":  "6c83a7e97c463ce0783969242d84845197e8fa89ace0377aad90842ad1e1c974"
+    },
+    {
+        "Slug":  "mj-medios-pago",
+        "Name":  "MJ Medios de Pago",
+        "Type":  "plugin",
+        "Version":  "1.0.0",
+        "Parent":  null,
+        "Zip":  "mj-medios-pago-1.0.0.zip",
+        "SizeKB":  27,
+        "Sha256":  "035f2a2c282a88b4d947bb855da770c4328fa114adb5597e2039005df9e92987"
+    },
+    {
+        "Slug":  "mj-optimizador-imagenes",
+        "Name":  "MJ Optimizador de Imágenes",
+        "Type":  "plugin",
+        "Version":  "1.1.0",
+        "Parent":  null,
+        "Zip":  "mj-optimizador-imagenes-1.1.0.zip",
+        "SizeKB":  46,
+        "Sha256":  "61a04cc9182ea75619f88828daff8c65fd9d80a7cea0da419ea1c6ef9f4e6a98"
+    },
+    {
+        "Slug":  "mj-turnos-online",
+        "Name":  "MJ Turnos Online",
+        "Type":  "plugin",
+        "Version":  "1.1.0",
+        "Parent":  null,
+        "Zip":  "mj-turnos-online-1.1.0.zip",
+        "SizeKB":  230,
+        "Sha256":  "dbff1efb0b87725dad614a28162ea9cdd011ff318ea529d9dfed41de80f1ef44"
+    },
+    {
+        "Slug":  "mj-yamana",
+        "Name":  "Yamana",
+        "Type":  "theme",
+        "Version":  "1.1.0",
+        "Parent":  "mj-appearance",
+        "Zip":  "mj-yamana-1.1.0.zip",
+        "SizeKB":  328,
+        "Sha256":  "09bab4b24151f5b3d2c5b13532ed383fb21a998a1e38dc0c958f6122ed42b904"
+    }
+]

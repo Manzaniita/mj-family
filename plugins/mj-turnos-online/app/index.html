@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <meta name="color-scheme" content="light dark" />
+    <title>MJ Turnos — panel (dev)</title>
+    <script>
+      /* window.MJTO de desarrollo: espejo mínimo de lo que imprime inc/panel.php.
+       * Sin WordPress el bootstrap falla (no hay REST): la app muestra el error
+       * y el botón de reintentar. Sirve para trabajar la UI y el shell. */
+      window.MJTO = {
+        mode: 'panel',
+        restUrl: 'http://localhost/wp-json/mjto/v1/',
+        nonce: '',
+        basePath: '/',
+        homeUrl: 'http://localhost/',
+        siteName: 'GlossyHair (dev)',
+        business: { name: 'GlossyHair (dev)', address: '', whatsapp: '' },
+        currency: { code: 'ARS', symbol: '$', decimals: 0, thousandSep: '.', decimalSep: ',', position: 'left' },
+        locale: 'es-AR',
+        theme: {
+          mode: 'light',
+          accent: '#e11d84',
+          bg: '#ffffff',
+          ink: '#1c0f16',
+          fontDisplay: 'Urbanist',
+          fontSans: 'Manrope',
+          logo: '',
+        },
+        user: { id: 1, name: 'Dueña (dev)' },
+        urls: {
+          logout: 'http://localhost/wp-login.php?action=logout',
+          publicBooking: 'http://localhost/turnos?vista=publica',
+          settings: 'http://localhost/wp-admin/admin.php?page=mjto',
+          services: 'http://localhost/wp-admin/edit.php?post_type=mjto_service',
+          exportBase: 'http://localhost/wp-admin/admin-post.php?action=mjto_export&_wpnonce=dev',
+        },
+        bootstrap: null,
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,400..800;1,400..800&family=Manrope:wght@400..800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="mjto-panel"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

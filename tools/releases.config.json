@@ -1,0 +1,96 @@
+{
+  "_comentario": [
+    "Configuración de tools/build-releases.ps1. Todo lo que decide qué se",
+    "empaqueta, qué se compila y qué queda afuera vive acá: el script no",
+    "tiene ninguna ruta ni nombre fijo. Para sumar un plugin o un tema nuevo",
+    "alcanza con crear su carpeta en plugins/ o themes/ — se detectan solos.",
+    "",
+    "  roots    — dónde buscar paquetes (cada subcarpeta = un paquete).",
+    "  builds   — apps que hay que compilar antes de empaquetar.",
+    "  exclude  — patrones que NUNCA entran al zip (código fuente, dependencias).",
+    "  bundles  — conjuntos listos para una tienda concreta.",
+    "  output   — carpeta de salida."
+  ],
+
+  "output": "releases",
+
+  "roots": [
+    { "path": "themes",  "type": "theme"  },
+    { "path": "plugins", "type": "plugin" }
+  ],
+
+  "builds": [
+    {
+      "name": "MJ Appearance (SPA del tema)",
+      "path": "themes/mj-appearance/react-app",
+      "install": "npm ci --no-audit --no-fund",
+      "build": "npm run build",
+      "produces": "themes/mj-appearance/dist/assets/app.js"
+    },
+    {
+      "name": "MJ Turnos Online (app de reservas)",
+      "path": "plugins/mj-turnos-online/app",
+      "install": "npm ci --no-audit --no-fund",
+      "build": "npm run build",
+      "produces": "plugins/mj-turnos-online/dist/app.js"
+    }
+  ],
+
+  "exclude": [
+    "node_modules",
+    "react-app",
+    "app",
+    ".git",
+    ".github",
+    ".vscode",
+    ".idea",
+    ".gitignore",
+    ".gitattributes",
+    ".editorconfig",
+    ".vite-running",
+    ".DS_Store",
+    "Thumbs.db",
+    "*.map",
+    "*.log",
+    "*.zip",
+    "*.psd",
+    "*.ai"
+  ],
+
+  "bundles": {
+    "glossyhair": {
+      "label": "GlossyHair — salón de alisados con turnos y venta de productos",
+      "packages": [
+        "mj-appearance",
+        "mj-glossyhair",
+        "mj-turnos-online",
+        "mj-medios-pago",
+        "mj-optimizador-imagenes",
+        "mj-fotos-rapidas"
+      ]
+    },
+    "yamana": {
+      "label": "Yamana — tejidos artesanales con el proyecto colectivo Entre Hilos",
+      "packages": [
+        "mj-appearance",
+        "mj-yamana",
+        "mj-colegas",
+        "mj-medios-pago",
+        "mj-optimizador-imagenes",
+        "mj-fotos-rapidas"
+      ]
+    },
+    "atelier": {
+      "label": "MJ Atelier — tienda editorial con dólar, medios de pago y ERP",
+      "packages": [
+        "mj-appearance",
+        "mj-atelier",
+        "mj-dolar",
+        "mj-medios-pago",
+        "mj-erp",
+        "mj-optimizador-imagenes",
+        "mj-fotos-rapidas"
+      ]
+    }
+  }
+}

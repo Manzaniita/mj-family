@@ -1,0 +1,735 @@
+/* ==========================================================================
+   Yamana — skin cálida artesanal (tema hijo de MJ Appearance)
+   --------------------------------------------------------------------------
+   Carga DESPUÉS de dist/assets/app.css del padre y de su inline de diseño,
+   así que gana la cascada a igual especificidad. Las reglas están sin
+   @layer a propósito: pisan a las utilidades de Tailwind del padre.
+
+   Engancha en dos cosas que expone el padre:
+   - tokens --mj-* (forma, motion, paleta por data-theme),
+   - clases semánticas mj-* (mj-btn, mj-card, mj-header, mj-hero…).
+
+   No redefine --mj-accent / --mj-bg / --mj-ink: llegan por inline desde
+   Apariencia → MJ Appearance (con defaults Yamana vía functions.php), así
+   los pickers del admin siguen funcionando.
+
+   Personalidad: lino y papel, hairlines cálidas, esquinas suaves (ni pill
+   ni cuadradas), serif con tamaño óptico y un detalle "de puntada"
+   (líneas discontinuas finas) en títulos, tarjetas y separadores.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+ * 1. Forma, tipografía y motion
+ * -------------------------------------------------------------------------- */
+:root,
+[data-skin='yamana'] {
+	--mj-radius-sm: 6px;
+	--mj-radius-md: 10px;
+	--mj-radius-lg: 14px;
+	--mj-radius-xl: 18px;
+	--mj-radius-2xl: 22px;
+	--mj-radius-btn: 10px;
+	--mj-radius-chip: 8px;
+	--mj-radius-badge: 6px;
+	--mj-radius-input: 10px;
+	--mj-radius-pill: 12px;
+
+	--mj-display-weight: 500;
+	--mj-display-tracking: -0.015em;
+	--mj-display-leading: 1.08;
+
+	--mj-glass-blur: 12px;
+	--mj-dur: 0.35s;
+	--mj-dur-slow: 0.8s;
+
+	/* Título destacado del hero: terracota → miel. */
+	--mj-hero-gradient: linear-gradient(100deg, var(--mj-accent) 0%, color-mix(in oklab, var(--mj-accent) 55%, #e2b586) 100%);
+
+	/* Línea "de puntada" reutilizable. */
+	--yam-stitch: 1.5px dashed color-mix(in srgb, var(--mj-accent) 70%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+ * 2. Paletas derivadas (superficies, líneas, estados) con tinte cálido
+ * -------------------------------------------------------------------------- */
+[data-theme='light'] {
+	--mj-surface: rgb(43 33 25 / 0.04);
+	--mj-surface-2: rgb(43 33 25 / 0.075);
+	--mj-line: rgb(43 33 25 / 0.11);
+	--mj-line-strong: rgb(43 33 25 / 0.24);
+	--mj-success: #4d7a49;
+	--mj-warning: #a4681c;
+	--mj-danger: #b0413e;
+	--mj-star: #c9942b;
+	--mj-shadow-soft: 0 24px 50px -30px rgb(60 40 25 / 0.35);
+	--mj-overlay: rgb(43 33 25 / 0.5);
+	--mj-img-s1: 30%;
+	--mj-img-l1: 90%;
+	--mj-img-s2: 22%;
+	--mj-img-l2: 82%;
+}
+
+[data-theme='dark'] {
+	--mj-surface: rgb(243 235 226 / 0.045);
+	--mj-surface-2: rgb(243 235 226 / 0.08);
+	--mj-line: rgb(243 235 226 / 0.1);
+	--mj-line-strong: rgb(243 235 226 / 0.22);
+	--mj-success: #9bc79a;
+	--mj-warning: #e3b775;
+	--mj-danger: #ee9a93;
+	--mj-star: #e3b775;
+	--mj-shadow-soft: 0 24px 50px -26px rgb(0 0 0 / 0.6);
+	--mj-overlay: rgb(12 9 7 / 0.66);
+	--mj-img-s1: 24%;
+	--mj-img-l1: 22%;
+	--mj-img-s2: 18%;
+	--mj-img-l2: 12%;
+}
+
+/* --------------------------------------------------------------------------
+ * 3. Fondo: lino — trama fina + grano, con una luz cálida en la esquina
+ * -------------------------------------------------------------------------- */
+.mj-ambient {
+	background:
+		radial-gradient(1000px 560px at 88% -12%, var(--mj-accent-soft), transparent 62%),
+		radial-gradient(760px 480px at -10% 40%, color-mix(in oklab, var(--mj-accent) 6%, transparent), transparent 60%),
+		var(--mj-bg);
+}
+.mj-ambient::before,
+.mj-ambient::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+/* Trama: dos familias de hilos muy finos, 4 px de paso. */
+.mj-ambient::before {
+	opacity: 0.06;
+	background-image:
+		repeating-linear-gradient(0deg, currentColor 0 1px, transparent 1px 4px),
+		repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 4px);
+	color: var(--mj-ink);
+	mix-blend-mode: multiply;
+}
+/* Grano de papel. */
+.mj-ambient::after {
+	opacity: 0.045;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+	background-size: 220px 220px;
+	mix-blend-mode: multiply;
+}
+[data-theme='dark'] .mj-ambient::before {
+	opacity: 0.05;
+	mix-blend-mode: screen;
+}
+[data-theme='dark'] .mj-ambient::after {
+	opacity: 0.07;
+	mix-blend-mode: screen;
+}
+
+/* --------------------------------------------------------------------------
+ * 4. Tipografía: serif con tamaño óptico, itálicas para el énfasis
+ * -------------------------------------------------------------------------- */
+body {
+	letter-spacing: 0.002em;
+}
+
+.display {
+	font-feature-settings: 'kern', 'liga';
+	font-variation-settings: 'opsz' 72, 'SOFT' 30;
+}
+
+h1.display,
+.mj-hero__title,
+.mj-project__title {
+	font-weight: 500;
+	letter-spacing: -0.02em;
+	font-variation-settings: 'opsz' 144, 'SOFT' 50;
+}
+
+.mj-hero__highlight {
+	font-style: italic;
+	font-weight: 400;
+}
+
+.mj-section-head__title,
+.mj-footer__title,
+.mj-product__title,
+.mj-showcase__title,
+.mj-colega-card__name {
+	font-weight: 500;
+}
+
+/* Puntada bajo el título de cada sección. */
+.mj-section-head__title::after {
+	content: '';
+	display: block;
+	width: 3.25rem;
+	margin-top: 0.9rem;
+	border-top: var(--yam-stitch);
+	opacity: 0.85;
+}
+
+.mj-eyebrow,
+.mj-card__cat,
+.mj-footer__heading,
+.mj-field__label,
+.mj-marquee__label,
+.mj-topbar__text,
+.mj-colega-card__count {
+	font-family: var(--font-sans);
+	letter-spacing: 0.22em;
+	font-weight: 700;
+	font-size: 10.5px;
+}
+
+.mj-card__title {
+	font-family: var(--font-display);
+	font-weight: 500;
+	font-size: 1.08rem;
+	letter-spacing: -0.005em;
+	line-height: 1.3;
+	font-variation-settings: 'opsz' 24;
+}
+
+.mj-price__value {
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	font-variant-numeric: lining-nums tabular-nums;
+}
+
+.mj-sku__value {
+	letter-spacing: 0.05em;
+}
+
+/* --------------------------------------------------------------------------
+ * 5. Superficies: papel con hairline cálida; sin vidrio
+ * -------------------------------------------------------------------------- */
+.glass {
+	background: color-mix(in srgb, var(--mj-bg) 70%, var(--mj-surface));
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	border-color: var(--mj-line);
+}
+
+.mj-drawer__panel,
+.mj-modal__panel,
+.mj-search__panel,
+.mj-nav__panel,
+.mj-sheet {
+	background: var(--mj-bg);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
+.mj-modal__panel {
+	border-radius: var(--mj-radius-xl);
+	box-shadow: var(--mj-shadow-soft);
+}
+
+.mj-header__glass,
+.mj-bottomnav,
+.mj-buybar {
+	background: color-mix(in srgb, var(--mj-bg) 90%, transparent);
+	backdrop-filter: blur(12px) saturate(1.05);
+	-webkit-backdrop-filter: blur(12px) saturate(1.05);
+}
+
+/* Cards de producto: papel, hairline, elevación suave y puntada al pasar */
+.mj-card__link {
+	position: relative;
+	background: var(--mj-bg);
+	border-color: var(--mj-line);
+	transition:
+		border-color 0.45s var(--mj-ease),
+		transform 0.55s var(--mj-ease),
+		box-shadow 0.55s var(--mj-ease);
+}
+.mj-card__link::after {
+	content: '';
+	position: absolute;
+	inset: 7px;
+	border-radius: calc(var(--mj-radius-xl) - 6px);
+	border: var(--yam-stitch);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.45s var(--mj-ease);
+}
+.mj-card:hover .mj-card__link {
+	border-color: var(--mj-line-strong);
+	transform: translateY(-4px);
+	box-shadow: var(--mj-shadow-soft);
+}
+.mj-card:hover .mj-card__link::after {
+	opacity: 0.55;
+}
+.mj-card__media {
+	border-bottom: 1px solid var(--mj-line);
+}
+.mj-card__media img {
+	transition-duration: 1.1s;
+}
+
+/* Chip "tejido por" sobre la foto: papel, no negro */
+.mj-card__maker,
+.mj-card__delivery {
+	background: color-mix(in srgb, var(--mj-bg) 88%, transparent);
+	color: var(--mj-ink);
+	border-color: var(--mj-line-strong);
+	letter-spacing: 0.14em;
+	font-size: 9.5px;
+}
+.mj-card__maker svg {
+	color: var(--mj-accent);
+}
+.mj-card__maker--house {
+	color: var(--mj-ink-soft);
+}
+
+/* Miniaturas de galería sin glow: solo el borde marca la activa. */
+.mj-gallery__thumb {
+	box-shadow: none;
+}
+.mj-gallery__main {
+	background: var(--mj-bg);
+}
+
+/* --------------------------------------------------------------------------
+ * 6. Botones: terracota lisa que se oscurece y se eleva; secundario en línea
+ * -------------------------------------------------------------------------- */
+.mj-btn {
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	transition:
+		color var(--mj-dur) var(--mj-ease),
+		border-color var(--mj-dur) var(--mj-ease),
+		background-color var(--mj-dur) var(--mj-ease),
+		box-shadow var(--mj-dur) var(--mj-ease),
+		transform var(--mj-dur) var(--mj-ease);
+}
+
+.mj-btn--primary,
+.mj-card__cta:not([disabled]),
+.mj-footer__submit {
+	box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--mj-accent) 70%, transparent);
+	filter: none;
+}
+.mj-btn--primary:hover,
+.mj-card__cta:not([disabled]):hover,
+.mj-footer__submit:hover {
+	filter: none;
+	background: color-mix(in srgb, var(--mj-accent) 86%, var(--mj-ink));
+	box-shadow: 0 14px 28px -14px color-mix(in srgb, var(--mj-accent) 80%, transparent);
+}
+.mj-card__cta {
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+
+.mj-btn--secondary {
+	background: transparent;
+	border: 1px solid var(--mj-line-strong);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+.mj-btn--secondary:hover {
+	background: var(--mj-surface);
+	border-color: var(--mj-ink);
+}
+
+/* Chips (filtros, variaciones, favorito/comparar) */
+.mj-chip {
+	letter-spacing: 0.02em;
+	font-weight: 600;
+}
+.mj-chip--active {
+	background: var(--mj-accent);
+	border-color: var(--mj-accent);
+	color: #fff;
+}
+
+/* Badges: rectángulo suave, mayúsculas espaciadas */
+.mj-badge {
+	letter-spacing: 0.16em;
+	font-size: 9.5px;
+	padding: 0.35rem 0.6rem;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+.mj-badge--solid {
+	background: var(--mj-ink);
+	color: var(--mj-bg);
+}
+
+/* --------------------------------------------------------------------------
+ * 7. Links: subrayado punteado que se completa
+ * -------------------------------------------------------------------------- */
+.mj-footer__link,
+.mj-link-arrow,
+.mj-nav__link {
+	background-image: linear-gradient(currentColor, currentColor);
+	background-size: 0% 1px;
+	background-position: 0 100%;
+	background-repeat: no-repeat;
+	background-origin: content-box;
+	background-clip: content-box;
+	transition:
+		background-size 0.4s var(--mj-ease),
+		color var(--mj-dur) var(--mj-ease);
+}
+.mj-footer__link:hover,
+.mj-link-arrow:hover,
+.mj-nav__link:hover,
+.mj-nav__link--active {
+	background-size: 100% 1px;
+}
+
+/* --------------------------------------------------------------------------
+ * 8. Header y navegación
+ * -------------------------------------------------------------------------- */
+.mj-topbar {
+	background: var(--mj-ink);
+	border-bottom: 0;
+}
+.mj-topbar__text {
+	color: color-mix(in srgb, var(--mj-bg) 88%, transparent);
+	letter-spacing: 0.26em;
+}
+.mj-topbar__text svg {
+	color: color-mix(in srgb, var(--mj-accent) 80%, white);
+}
+
+.mj-logo__mark {
+	border-radius: 10px;
+	box-shadow: none;
+	font-family: var(--font-display);
+	font-weight: 500;
+	font-variation-settings: 'opsz' 48;
+}
+.mj-logo__name {
+	font-family: var(--font-display);
+	font-weight: 500;
+	font-size: 1.45rem;
+	letter-spacing: 0;
+	font-variation-settings: 'opsz' 48;
+	text-transform: none;
+}
+.mj-logo__img {
+	height: 2.6rem;
+}
+
+.mj-nav {
+	background: transparent;
+}
+.mj-nav__link {
+	letter-spacing: 0.04em;
+	font-size: 13.5px;
+	font-weight: 600;
+	padding: 0.95rem 0.9rem;
+	border-radius: 0;
+}
+.mj-nav__link:hover,
+.mj-nav__link--highlight:hover {
+	background-color: transparent;
+}
+.mj-nav__link--highlight {
+	color: var(--mj-accent);
+}
+
+.mj-search__field {
+	background: color-mix(in srgb, var(--mj-bg) 60%, var(--mj-surface));
+	border-color: var(--mj-line);
+}
+.mj-search__field:focus-within {
+	box-shadow: none;
+	border-color: var(--mj-accent);
+}
+
+.mj-theme-toggle,
+.mj-icon-action {
+	border: 1px solid transparent;
+}
+.mj-theme-toggle:hover,
+.mj-icon-action:hover {
+	background: transparent;
+	border-color: var(--mj-line-strong);
+}
+.mj-icon-action__count {
+	background: var(--mj-accent);
+}
+
+.mj-bottomnav__item {
+	letter-spacing: 0.08em;
+	font-size: 9.5px;
+	font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+ * 9. Hero
+ * -------------------------------------------------------------------------- */
+.mj-hero__badge {
+	background: transparent;
+	border-color: var(--mj-line-strong);
+	letter-spacing: 0.18em;
+	font-size: 10.5px;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+.mj-hero__glow {
+	opacity: 0.14;
+}
+.mj-hero__subtitle {
+	font-size: 1.12rem;
+	max-width: 34rem;
+	font-weight: 400;
+}
+.mj-hero__stat p:first-child {
+	font-weight: 500;
+	font-size: 2.1rem;
+	font-variation-settings: 'opsz' 72;
+}
+.mj-hero__stat + .mj-hero__stat {
+	border-left: var(--yam-stitch);
+	padding-left: 2.5rem;
+}
+.mj-hero--media .mj-hero__stat + .mj-hero__stat {
+	border-left-color: rgb(255 255 255 / 0.4);
+}
+.mj-hero--media .mj-hero__veil {
+	background: linear-gradient(180deg, rgb(30 20 14 / 0.35), rgb(30 20 14 / 0.6));
+}
+
+/* --------------------------------------------------------------------------
+ * 10. Secciones de la home
+ * -------------------------------------------------------------------------- */
+.mj-showcase__title,
+.mj-colega-card__name {
+	font-size: 1.85rem;
+	font-variation-settings: 'opsz' 48;
+}
+.mj-showcase__veil,
+.mj-colega-card__veil {
+	background: linear-gradient(to top, rgb(30 20 14 / 0.88), rgb(30 20 14 / 0.25) 55%, transparent);
+}
+.mj-showcase__arrow,
+.mj-colega-card__arrow {
+	border-radius: 10px;
+	background: transparent;
+	border: 1px solid rgb(255 255 255 / 0.55);
+}
+
+.mj-marquee {
+	background: transparent;
+}
+.mj-marquee__item {
+	width: auto;
+	padding: 0 2.5rem;
+	border: 0;
+	border-right: var(--yam-stitch);
+	border-radius: 0;
+	background: transparent;
+	font-family: var(--font-display);
+	font-style: italic;
+	font-weight: 400;
+	font-size: 1.4rem;
+	letter-spacing: 0;
+	color: var(--mj-ink-soft);
+	font-variation-settings: 'opsz' 36;
+}
+.mj-marquee__item:hover {
+	box-shadow: none;
+	color: var(--mj-ink);
+}
+
+.mj-testimonial {
+	background: var(--mj-bg);
+}
+.mj-testimonial__quote {
+	font-family: var(--font-display);
+	font-style: italic;
+	font-size: 1.05rem;
+	line-height: 1.55;
+	font-variation-settings: 'opsz' 20;
+}
+
+/* --------------------------------------------------------------------------
+ * 11. Colegas: chip en la ficha, página del proyecto y selector
+ * -------------------------------------------------------------------------- */
+.mj-maker {
+	background: var(--mj-bg);
+	border-style: dashed;
+	border-color: color-mix(in srgb, var(--mj-accent) 45%, transparent);
+}
+.mj-maker:hover {
+	border-color: var(--mj-accent);
+}
+.mj-maker__avatar,
+.mj-colega-avatar {
+	background: var(--mj-accent-soft);
+	color: var(--mj-accent);
+	font-family: var(--font-display);
+	font-weight: 500;
+}
+.mj-maker__name {
+	font-weight: 500;
+}
+.mj-maker-line svg {
+	color: var(--mj-accent);
+}
+
+.mj-project__hero--media .mj-project__veil {
+	background: linear-gradient(180deg, rgb(30 20 14 / 0.4), rgb(30 20 14 / 0.65));
+}
+.mj-project__stats > div + div {
+	border-left: var(--yam-stitch);
+	padding-left: 2rem;
+}
+
+.mj-segment {
+	background: transparent;
+	border: 1px solid var(--mj-line-strong);
+	padding: 3px;
+}
+.mj-segment__item {
+	font-weight: 600;
+}
+.mj-segment__item--active {
+	background: var(--mj-ink);
+	color: var(--mj-bg);
+}
+.mj-segment__item--active span {
+	opacity: 0.7;
+}
+
+/* --------------------------------------------------------------------------
+ * 12. Tienda: filtros, toolbar, fila de lista
+ * -------------------------------------------------------------------------- */
+.mj-filters,
+.mj-row {
+	background: var(--mj-bg);
+}
+.mj-filter-group {
+	border-bottom-style: dashed;
+}
+.mj-toolbar__sort,
+.mj-toolbar__view {
+	background: transparent;
+	border: 1px solid var(--mj-line-strong);
+}
+
+/* --------------------------------------------------------------------------
+ * 13. Formularios, tabs, acordeón
+ * -------------------------------------------------------------------------- */
+.mj-input {
+	background: color-mix(in srgb, var(--mj-bg) 70%, var(--mj-surface));
+	border-color: var(--mj-line-strong);
+}
+.mj-input:focus {
+	background: var(--mj-bg);
+	border-color: var(--mj-accent);
+}
+.mj-footer__field {
+	background: var(--mj-bg);
+	border-color: var(--mj-line-strong);
+}
+.mj-footer__field:focus-within {
+	border-color: var(--mj-accent);
+}
+
+.mj-tabs__list {
+	background: transparent;
+	border: 0;
+	border-bottom: 1px solid var(--mj-line);
+	border-radius: 0;
+	padding: 0;
+	gap: 1.75rem;
+	width: 100%;
+}
+.mj-tabs__tab {
+	padding: 0.85rem 0;
+	border-radius: 0;
+	letter-spacing: 0.06em;
+	font-size: 12.5px;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+.mj-tabs__tab--active {
+	color: var(--mj-accent);
+}
+.mj-tabs__pill {
+	top: auto;
+	bottom: -1px;
+	height: 2px;
+	border-radius: 0;
+	background: var(--mj-accent);
+}
+
+.mj-accordion__q {
+	font-family: var(--font-display);
+	font-weight: 500;
+	font-size: 1.15rem;
+	font-variation-settings: 'opsz' 24;
+}
+.mj-accordion__icon {
+	background: transparent;
+	border: 1px solid var(--mj-line-strong);
+}
+
+/* --------------------------------------------------------------------------
+ * 14. Pie de página
+ * -------------------------------------------------------------------------- */
+.mj-footer {
+	background: transparent;
+	border-top: var(--yam-stitch);
+}
+.mj-footer__title {
+	font-style: italic;
+	font-weight: 400;
+}
+.mj-footer__legal {
+	font-size: 11.5px;
+	letter-spacing: 0.02em;
+}
+
+/* --------------------------------------------------------------------------
+ * 15. Intro y detalles globales
+ * -------------------------------------------------------------------------- */
+.mj-intro__name {
+	font-style: italic;
+	font-weight: 400;
+	font-size: 2.2rem;
+	letter-spacing: 0;
+	text-transform: none;
+}
+.mj-intro__rule {
+	background: transparent;
+	border-top: var(--yam-stitch);
+	height: 0;
+}
+
+::selection {
+	background: var(--mj-accent);
+	color: #fff;
+}
+
+::-webkit-scrollbar {
+	width: 11px;
+	height: 11px;
+}
+::-webkit-scrollbar-track {
+	background: var(--mj-bg);
+}
+::-webkit-scrollbar-thumb {
+	background: var(--mj-line-strong);
+	border: 3px solid var(--mj-bg);
+	border-radius: 8px;
+}
+html {
+	scrollbar-color: var(--mj-line-strong) var(--mj-bg);
+	scrollbar-width: thin;
+}
+
+:focus-visible {
+	outline-color: var(--mj-accent);
+	border-radius: 4px;
+}

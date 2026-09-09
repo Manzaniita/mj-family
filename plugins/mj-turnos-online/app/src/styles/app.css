@@ -1,0 +1,680 @@
+/* ---------------------------------------------------------------------------
+   MJ Turnos Online — design system del panel, del widget de reserva y del
+   constructor de campos. Mobile-first, premium, con los colores del negocio.
+
+   Capas:
+   1. Tailwind 4 SIN preflight (sería global y rompería wp-admin / el tema
+      anfitrión). vite.config.js reescribe todos los selectores para que vivan
+      bajo `.mjto-root` (donde se monta React); `:root` pasa a ser `.mjto-root`.
+   2. Tokens --mjto-*: tres entradas (accent, bg, ink) + dos familias
+      tipográficas; el resto de la paleta se deriva con color-mix, así el
+      panel cambia con la marca desde una sola opción. Las entradas las setea
+      inc/panel.php (<style>:root{--mjto-accent…}</style>) y lib/config.js
+      (applyTheme → estilos inline). Dentro de MJ Appearance caen a --mj-*.
+   3. @theme: expone los tokens a Tailwind (bg-accent, text-ink, rounded-card…).
+   4. Clases semánticas mjto-* para lo que Tailwind hace incómodo (tarjetas,
+      hojas, skeletons) y como gancho para las skins.
+--------------------------------------------------------------------------- */
+
+@import 'tailwindcss/theme.css';
+@import 'tailwindcss/utilities.css';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme {
+  --font-display: var(--mjto-f-display);
+  --font-sans: var(--mjto-f-sans);
+
+  --color-bg: var(--mjto-c-bg);
+  --color-bg-soft: var(--mjto-bg-soft);
+  --color-surface: var(--mjto-surface);
+  --color-surface-2: var(--mjto-surface-2);
+  --color-surface-3: var(--mjto-surface-3);
+  --color-line: var(--mjto-line);
+  --color-line-strong: var(--mjto-line-strong);
+  --color-ink: var(--mjto-c-ink);
+  --color-ink-soft: var(--mjto-ink-soft);
+  --color-ink-faint: var(--mjto-ink-faint);
+  --color-accent: var(--mjto-c-accent);
+  --color-accent-soft: var(--mjto-accent-soft);
+  --color-accent-strong: var(--mjto-accent-strong);
+  --color-on-accent: var(--mjto-c-on-accent);
+  --color-success: var(--mjto-success);
+  --color-success-soft: var(--mjto-success-soft);
+  --color-warning: var(--mjto-warning);
+  --color-warning-soft: var(--mjto-warning-soft);
+  --color-danger: var(--mjto-danger);
+  --color-danger-soft: var(--mjto-danger-soft);
+  --color-info: var(--mjto-info);
+  --color-info-soft: var(--mjto-info-soft);
+  --color-violet: var(--mjto-violet);
+  --color-violet-soft: var(--mjto-violet-soft);
+  --color-overlay: var(--mjto-overlay);
+
+  --radius-card: var(--mjto-radius-card);
+  --radius-btn: var(--mjto-radius-btn);
+  --radius-input: var(--mjto-radius-input);
+  --radius-chip: var(--mjto-radius-chip);
+  --radius-modal: var(--mjto-radius-modal);
+  --radius-tile: var(--mjto-radius-tile);
+
+  --shadow-card: var(--mjto-shadow-card);
+  --shadow-float: var(--mjto-shadow-float);
+  --shadow-glow: var(--mjto-shadow-glow);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-fade: mjto-fade 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-up: mjto-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pop: mjto-pop 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-shimmer: mjto-shimmer 1.4s ease infinite;
+  --animate-spin-soft: mjto-spin 0.9s linear infinite;
+}
+
+@keyframes mjto-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes mjto-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes mjto-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes mjto-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@keyframes mjto-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------------------------------------------------------------------------
+   Tokens. `.mjto-root` = contenedor de React; `.mjto-page` = <html>/<body>
+   del panel (lo agrega main.jsx) para pintar el fondo de toda la página.
+--------------------------------------------------------------------------- */
+.mjto-root,
+.mjto-page {
+  /* Entradas (con fallback al tema MJ Appearance y luego a GlossyHair). */
+  --mjto-c-accent: var(--mjto-accent, var(--mj-accent, #e11d84));
+  --mjto-c-bg: var(--mjto-bg, var(--mj-bg, #ffffff));
+  --mjto-c-ink: var(--mjto-ink, var(--mj-ink, #1c0f16));
+  --mjto-c-on-accent: var(--mjto-on-accent, #ffffff);
+  --mjto-f-display: var(--mjto-font-display, 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif);
+  --mjto-f-sans: var(--mjto-font-sans, 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif);
+
+  /* Paleta derivada (modo día). */
+  --mjto-bg-soft: color-mix(in srgb, var(--mjto-c-accent) 3%, var(--mjto-c-bg));
+  --mjto-surface: var(--mjto-c-bg);
+  --mjto-surface-2: color-mix(in srgb, var(--mjto-c-ink) 5%, var(--mjto-c-bg));
+  --mjto-surface-3: color-mix(in srgb, var(--mjto-c-ink) 9%, var(--mjto-c-bg));
+  --mjto-line: color-mix(in srgb, var(--mjto-c-ink) 10%, var(--mjto-c-bg));
+  --mjto-line-strong: color-mix(in srgb, var(--mjto-c-ink) 22%, var(--mjto-c-bg));
+  --mjto-ink-soft: color-mix(in srgb, var(--mjto-c-ink) 66%, transparent);
+  --mjto-ink-faint: color-mix(in srgb, var(--mjto-c-ink) 42%, transparent);
+  --mjto-accent-soft: color-mix(in srgb, var(--mjto-c-accent) 10%, var(--mjto-c-bg));
+  --mjto-accent-strong: color-mix(in srgb, var(--mjto-c-accent) 84%, #000000);
+  --mjto-accent-glow: color-mix(in srgb, var(--mjto-c-accent) 32%, transparent);
+
+  --mjto-success: #059669;
+  --mjto-success-soft: color-mix(in srgb, #10b981 14%, var(--mjto-c-bg));
+  --mjto-warning: #b45309;
+  --mjto-warning-soft: color-mix(in srgb, #f59e0b 16%, var(--mjto-c-bg));
+  --mjto-danger: #e11d48;
+  --mjto-danger-soft: color-mix(in srgb, #f43f5e 12%, var(--mjto-c-bg));
+  --mjto-info: #2563eb;
+  --mjto-info-soft: color-mix(in srgb, #3b82f6 12%, var(--mjto-c-bg));
+  --mjto-violet: #7c3aed;
+  --mjto-violet-soft: color-mix(in srgb, #8b5cf6 12%, var(--mjto-c-bg));
+  --mjto-overlay: color-mix(in srgb, var(--mjto-c-ink) 45%, transparent);
+
+  --mjto-shadow-card: 0 1px 2px color-mix(in srgb, var(--mjto-c-ink) 4%, transparent),
+    0 10px 30px -14px color-mix(in srgb, var(--mjto-c-ink) 18%, transparent);
+  --mjto-shadow-float: 0 24px 60px -20px color-mix(in srgb, var(--mjto-c-ink) 35%, transparent);
+  --mjto-shadow-glow: 0 10px 28px -10px var(--mjto-accent-glow);
+
+  /* Forma */
+  --mjto-radius-card: 1.25rem;
+  --mjto-radius-tile: 1rem;
+  --mjto-radius-modal: 1.5rem;
+  --mjto-radius-btn: 9999px;
+  --mjto-radius-chip: 9999px;
+  --mjto-radius-input: 0.875rem;
+
+  /* Motion */
+  --mjto-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --mjto-dur-fast: 0.16s;
+  --mjto-dur: 0.26s;
+
+  /* Layout del panel (los usa el shell; en booking/builder quedan en 0). */
+  --mjto-nav-h: 0px;
+  --mjto-topbar-h: 3.5rem;
+  --mjto-sidebar-w: 16rem;
+
+  color-scheme: light;
+}
+
+[data-theme='dark'] .mjto-root,
+.mjto-root[data-theme='dark'],
+.mjto-page[data-theme='dark'] {
+  --mjto-c-bg: var(--mjto-bg, var(--mj-bg, #150a10));
+  --mjto-c-ink: var(--mjto-ink, var(--mj-ink, #fdf4f8));
+
+  --mjto-bg-soft: var(--mjto-c-bg);
+  --mjto-surface: color-mix(in srgb, var(--mjto-c-ink) 4%, var(--mjto-c-bg));
+  --mjto-surface-2: color-mix(in srgb, var(--mjto-c-ink) 8%, var(--mjto-c-bg));
+  --mjto-surface-3: color-mix(in srgb, var(--mjto-c-ink) 12%, var(--mjto-c-bg));
+  --mjto-line: color-mix(in srgb, var(--mjto-c-ink) 10%, var(--mjto-c-bg));
+  --mjto-line-strong: color-mix(in srgb, var(--mjto-c-ink) 20%, var(--mjto-c-bg));
+  --mjto-ink-soft: color-mix(in srgb, var(--mjto-c-ink) 68%, transparent);
+  --mjto-ink-faint: color-mix(in srgb, var(--mjto-c-ink) 42%, transparent);
+  --mjto-accent-soft: color-mix(in srgb, var(--mjto-c-accent) 16%, var(--mjto-c-bg));
+  --mjto-accent-strong: color-mix(in srgb, var(--mjto-c-accent) 80%, #ffffff);
+  --mjto-accent-glow: color-mix(in srgb, var(--mjto-c-accent) 40%, transparent);
+
+  --mjto-success: #34d399;
+  --mjto-success-soft: color-mix(in srgb, #34d399 16%, var(--mjto-c-bg));
+  --mjto-warning: #fbbf24;
+  --mjto-warning-soft: color-mix(in srgb, #fbbf24 16%, var(--mjto-c-bg));
+  --mjto-danger: #fb7185;
+  --mjto-danger-soft: color-mix(in srgb, #fb7185 16%, var(--mjto-c-bg));
+  --mjto-info: #60a5fa;
+  --mjto-info-soft: color-mix(in srgb, #60a5fa 16%, var(--mjto-c-bg));
+  --mjto-violet: #a78bfa;
+  --mjto-violet-soft: color-mix(in srgb, #a78bfa 16%, var(--mjto-c-bg));
+  --mjto-overlay: rgb(0 0 0 / 0.62);
+
+  --mjto-shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -14px rgb(0 0 0 / 0.55);
+  --mjto-shadow-float: 0 24px 60px -18px rgb(0 0 0 / 0.7);
+
+  color-scheme: dark;
+}
+
+/* ---------------------------------------------------------------------------
+   Reset acotado (reemplaza al preflight de Tailwind sólo adentro de la raíz).
+--------------------------------------------------------------------------- */
+.mjto-root {
+  font-family: var(--mjto-f-sans);
+  color: var(--mjto-c-ink);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border: 0 solid var(--mjto-line);
+}
+
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd, fieldset, legend, pre {
+  margin: 0;
+  padding: 0;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+ul, ol, menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+strong, b {
+  font-weight: 600;
+}
+small {
+  font-size: 0.8125em;
+}
+hr {
+  height: 0;
+  color: inherit;
+  border-top-width: 1px;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  text-indent: 0;
+}
+img, svg, video, canvas {
+  display: block;
+  vertical-align: middle;
+}
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
+button, input, select, textarea, optgroup {
+  font: inherit;
+  font-feature-settings: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  line-height: inherit;
+  max-width: none;
+  min-height: 0;
+}
+button, [role='button'] {
+  cursor: pointer;
+  text-align: inherit;
+  appearance: button;
+  -webkit-appearance: button;
+  background-image: none;
+  text-transform: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+button:disabled, [role='button'][aria-disabled='true'] {
+  cursor: default;
+}
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: none;
+}
+textarea {
+  resize: vertical;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--mjto-ink-faint);
+  opacity: 1;
+}
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+input[type='search']::-webkit-search-decoration,
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+input::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: 1.5em;
+}
+input[type='date']::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+[hidden] {
+  display: none !important;
+}
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--mjto-c-accent);
+  outline-offset: 2px;
+}
+::selection {
+  background: var(--mjto-c-accent);
+  color: var(--mjto-c-on-accent);
+}
+
+/* Página del panel (html/body). */
+html.mjto-page {
+  background: var(--mjto-bg-soft);
+  height: 100%;
+}
+body.mjto-page {
+  margin: 0;
+  min-height: 100%;
+  background: var(--mjto-bg-soft);
+  color: var(--mjto-c-ink);
+  font-family: var(--mjto-f-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+/* ---------------------------------------------------------------------------
+   Clases semánticas / utilidades base
+--------------------------------------------------------------------------- */
+.mjto-card {
+  background: var(--mjto-surface);
+  border: 1px solid var(--mjto-line);
+  border-radius: var(--mjto-radius-card);
+  box-shadow: var(--mjto-shadow-card);
+}
+.mjto-card--flat {
+  box-shadow: none;
+}
+.mjto-card--accent {
+  border-color: color-mix(in srgb, var(--mjto-c-accent) 30%, var(--mjto-line));
+  background: linear-gradient(180deg, var(--mjto-accent-soft), var(--mjto-surface) 70%);
+}
+.mjto-glass {
+  background: color-mix(in srgb, var(--mjto-c-bg) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+}
+.mjto-hairline-b { border-bottom: 1px solid var(--mjto-line); }
+.mjto-hairline-t { border-top: 1px solid var(--mjto-line); }
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.mjto-scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.mjto-scroll-y {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.mjto-thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mjto-line-strong) transparent;
+}
+
+.mjto-skeleton {
+  background: linear-gradient(90deg, var(--mjto-surface-2) 25%, var(--mjto-surface-3) 40%, var(--mjto-surface-2) 60%);
+  background-size: 300% 100%;
+  animation: mjto-shimmer 1.4s ease infinite;
+  border-radius: 0.625rem;
+  color: transparent;
+}
+
+.mjto-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.mjto-safe-top { padding-top: env(safe-area-inset-top); }
+.mjto-tabular { font-variant-numeric: tabular-nums; }
+.mjto-balance { text-wrap: balance; }
+.mjto-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Panel: alto de la nav inferior sólo en mobile (lo lee el shell y los toasts). */
+.mjto-panel {
+  --mjto-nav-h: 4rem;
+}
+@media (min-width: 64rem) {
+  .mjto-panel {
+    --mjto-nav-h: 0px;
+  }
+}
+
+/* Fondo ambiental muy sutil del panel (halos del acento). */
+.mjto-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(720px 420px at 85% -10%, var(--mjto-accent-soft), transparent 62%),
+    radial-gradient(520px 360px at -10% 40%, color-mix(in srgb, var(--mjto-c-accent) 5%, transparent), transparent 60%);
+}
+
+/* Anillo de foco visible sobre fondos de acento. */
+.mjto-on-accent-focus:focus-visible {
+  outline-color: var(--mjto-c-on-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   Diálogos: hoja desde abajo en mobile, centrado en desktop (Modal),
+   panel lateral (Drawer). El estado lo maneja data-state (usePresence).
+--------------------------------------------------------------------------- */
+.mjto-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  align-items: end;
+  justify-items: stretch;
+}
+.mjto-dialog__overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--mjto-overlay);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity var(--mjto-dur) var(--mjto-ease);
+}
+.mjto-dialog[data-state='open'] .mjto-dialog__overlay {
+  opacity: 1;
+}
+.mjto-dialog__panel {
+  position: relative;
+  width: 100%;
+  max-height: calc(100dvh - env(safe-area-inset-top) - 0.75rem);
+  display: flex;
+  flex-direction: column;
+  background: var(--mjto-surface);
+  color: var(--mjto-c-ink);
+  border: 1px solid var(--mjto-line);
+  border-bottom: 0;
+  border-radius: var(--mjto-radius-modal) var(--mjto-radius-modal) 0 0;
+  box-shadow: var(--mjto-shadow-float);
+  outline: none;
+  transform: translateY(24px);
+  opacity: 0;
+  transition: transform 0.3s var(--mjto-ease), opacity var(--mjto-dur) var(--mjto-ease);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mjto-dialog[data-state='open'] .mjto-dialog__panel {
+  transform: translateY(0);
+  opacity: 1;
+}
+.mjto-dialog__grip {
+  width: 2.5rem;
+  height: 0.3rem;
+  border-radius: 9999px;
+  background: var(--mjto-line-strong);
+  margin: 0.6rem auto 0;
+}
+@media (min-width: 40rem) {
+  .mjto-dialog {
+    align-items: center;
+    justify-items: center;
+    padding: 1.5rem;
+  }
+  .mjto-dialog__panel {
+    width: min(100%, var(--mjto-dialog-w, 32rem));
+    max-height: calc(100dvh - 3rem);
+    border-bottom: 1px solid var(--mjto-line);
+    border-radius: var(--mjto-radius-modal);
+    transform: translateY(12px) scale(0.97);
+    padding-bottom: 0;
+  }
+  .mjto-dialog[data-state='open'] .mjto-dialog__panel {
+    transform: translateY(0) scale(1);
+  }
+  .mjto-dialog__grip {
+    display: none;
+  }
+}
+
+.mjto-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+.mjto-drawer__panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: min(100%, var(--mjto-drawer-w, 28rem));
+  display: flex;
+  flex-direction: column;
+  background: var(--mjto-surface);
+  color: var(--mjto-c-ink);
+  box-shadow: var(--mjto-shadow-float);
+  outline: none;
+  transition: transform 0.34s var(--mjto-ease);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mjto-drawer__panel--right {
+  right: 0;
+  border-left: 1px solid var(--mjto-line);
+  transform: translateX(100%);
+}
+.mjto-drawer__panel--left {
+  left: 0;
+  border-right: 1px solid var(--mjto-line);
+  transform: translateX(-100%);
+}
+.mjto-drawer[data-state='open'] .mjto-drawer__panel {
+  transform: translateX(0);
+}
+
+/* Menús flotantes (acciones por turno, WhatsApp, etc.). */
+.mjto-popover {
+  background: var(--mjto-surface);
+  border: 1px solid var(--mjto-line);
+  border-radius: var(--mjto-radius-tile);
+  box-shadow: var(--mjto-shadow-float);
+  animation: mjto-pop 0.18s var(--mjto-ease) both;
+  transform-origin: top right;
+}
+
+/* Toasts */
+.mjto-toasts {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--mjto-nav-h, 0px) + env(safe-area-inset-bottom) + 0.75rem);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  pointer-events: none;
+}
+.mjto-toast {
+  pointer-events: auto;
+  animation: mjto-up 0.28s var(--mjto-ease) both;
+}
+.mjto-toast[data-state='closed'] {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity var(--mjto-dur) var(--mjto-ease), transform var(--mjto-dur) var(--mjto-ease);
+}
+
+/* Interruptor (Toggle) */
+.mjto-switch {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 2.75rem;
+  height: 1.625rem;
+  border-radius: 9999px;
+  background: var(--mjto-line-strong);
+  transition: background var(--mjto-dur-fast) ease;
+}
+.mjto-switch::after {
+  content: '';
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  transition: transform var(--mjto-dur) var(--mjto-ease);
+}
+.mjto-switch[data-on='true'] {
+  background: var(--mjto-c-accent);
+}
+.mjto-switch[data-on='true']::after {
+  transform: translateX(1.125rem);
+}
+
+/* Botones: brillo suave en el primario (gancho para skins). */
+.mjto-btn--primary {
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 55%);
+}
+
+/* Calendario */
+.mjto-cal__day {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: background var(--mjto-dur-fast) ease, color var(--mjto-dur-fast) ease, transform var(--mjto-dur-fast) ease;
+}
+.mjto-cal__day:disabled {
+  color: var(--mjto-ink-faint);
+  opacity: 0.55;
+}
+.mjto-cal__day[data-today='true']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1.5px solid var(--mjto-c-accent);
+  opacity: 0.55;
+}
+.mjto-cal__day[data-selected='true'] {
+  background: var(--mjto-c-accent);
+  color: var(--mjto-c-on-accent);
+  box-shadow: var(--mjto-shadow-glow);
+}
+.mjto-cal__day[data-selected='true']::before {
+  display: none;
+}
+.mjto-cal__day:not(:disabled):not([data-selected='true']):hover {
+  background: var(--mjto-accent-soft);
+}
+.mjto-cal__day:not(:disabled):active {
+  transform: scale(0.94);
+}
+.mjto-cal__dots {
+  position: absolute;
+  bottom: 0.3rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+}
+.mjto-cal__dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.75;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

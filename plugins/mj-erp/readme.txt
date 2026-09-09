@@ -1,0 +1,156 @@
+=== MJ ERP ===
+Contributors: mjimportaciones
+Tags: erp, woocommerce, compras, importaciones, stock, costos
+Requires at least: 6.0
+Tested up to: 6.8
+Requires PHP: 7.4
+WC requires at least: 7.0
+Stable tag: 1.3.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+ERP para WooCommerce: compras e importaciones con costeo en vivo, proveedores, cajas y actualización de stock, costos y precios.
+
+== Description ==
+
+MJ ERP es un sistema de gestión pensado para tiendas WooCommerce que importan mercadería. Se abre como una pantalla independiente en `https://tu-sitio/mjerp/` (la ruta es configurable) y está disponible para los usuarios con la capacidad `manage_mjerp` (administradores y los roles que habilites).
+
+**Módulo Compras (v1.0.0)**
+
+* Registro de compras/importaciones con código, fecha, proveedor, destino, moneda base, tipo de cambio (TC) por defecto y método de prorrateo.
+* Ítems vinculados a productos o variaciones de WooCommerce (búsqueda por nombre o SKU) o creados desde el ERP, cada uno con cantidad, costo unitario, moneda y TC propio.
+* Gastos adicionales (envío, despachante, impuestos, comisión, otros) con monto, moneda, TC, prorrateo sí/no y caja de origen.
+* Costeo en vivo: total FOB, gastos prorrateados, costo puesto por unidad (con ajuste de centavos aplicado al ítem de mayor FOB) y comparación contra listas de precio configurables (por ejemplo "Público +70%").
+* Flujo de estados: borrador → en tránsito → recibida (+ cancelada). Al recibir, suma stock en WooCommerce, registra movimientos de stock, actualiza el costo del producto y, opcionalmente, el precio.
+* Importación de ítems desde planilla (pegar CSV/TSV desde Excel o Google Sheets).
+* ABM de proveedores y cajas (base del futuro módulo "Caja").
+* Página de productos con costo, precio, margen y markup, y el historial de movimientos de stock.
+* Configuración completa: nada está fijo en el código (monedas, símbolos, TC, destinos, tipos de gasto, listas de precio, formato de código, comportamiento al recibir, roles con acceso, tema claro/oscuro).
+
+**Precios en dólares (v1.2.0)**
+
+Pensado para importadores: el costo se registra en dólares y el precio de venta también se publica en dólares, así el margen no se desarma cuando se mueve el tipo de cambio.
+
+* Al recibir una compra, el precio sugerido se publica como precio USD del producto a través de **MJ Dólar**, que es el que pasa el precio a pesos con el TC vigente. Cuando cambiás el TC, todos los precios se actualizan solos: MJ ERP no vuelve a tocar el precio en pesos.
+* El diálogo de recepción muestra por ítem el costo final y el precio de venta sugerido al público en dólares, con el equivalente en pesos calculado con el mismo TC y el mismo redondeo que usa la tienda. Lo que ves en el ERP es exactamente lo que va a ver el cliente.
+* El TC de venta del ERP se toma de MJ Dólar por defecto, así los dos plugins nunca muestran números distintos.
+* Redondeo propio del precio en dólares (al dólar, a los 50 centavos, a los 5 o 10 dólares; al más cercano o siempre para arriba), independiente del redondeo en pesos que hace MJ Dólar.
+* El tema **MJ Appearance** y sus temas hijo (MJ Atelier, MJ Neon) muestran el precio en dólares sin configuración extra: leen el dato de MJ Dólar, que es el mismo que escribe el ERP.
+* La página de Productos muestra el precio publicado en dólares y el margen y el markup medidos en dólares.
+* Si MJ Dólar no está activo o no tiene TC cargado, el precio se escribe en la moneda de la tienda, como en las versiones anteriores.
+
+**Módulo Consignaciones (v1.3.0)**
+
+Para dejarle mercadería a un revendedor y no perder de vista ni el stock ni la plata.
+
+* **Revendedores**: se crean como usuarios de WordPress con rol de reventa, así quedan también como clientes de WooCommerce. Podés crear la cuenta desde el ERP o vincular una que ya exista. Cada uno tiene su lista de precio y, si querés, un límite de crédito que avisa cuando se pasa.
+* **Entregas**: un documento por cada salida de mercadería, con el precio acordado por unidad **congelado en dólares** el día que se entrega. Una deuda que ya se acordó no se mueve cuando se mueve el dólar.
+* **Ventas**: cuando el revendedor vende, se registra la venta. Ahí baja el stock de WooCommerce, queda el movimiento en el historial y se genera la deuda. Antes de eso, la mercadería sigue contando como stock propio y la página de Productos avisa cuántas unidades están en la calle.
+* **Panel del revendedor**: una pantalla propia en `https://tu-sitio/reventa/` (configurable), pensada para el celular, donde el revendedor ve lo que tiene, avisa lo que vendió y consulta su cuenta. Lo que carga queda pendiente de tu confirmación. Nunca ve costos, márgenes ni las cuentas de los demás, y no puede entrar al ERP ni al panel de WordPress.
+* **Pagos siempre atados a ventas**: cada pago se reparte sobre ventas concretas, de la más vieja a la más nueva, y el reparto se puede editar antes de confirmar. Si sobra plata queda como saldo a favor a la vista, y se aplica sola a la próxima venta. La única forma de mover un saldo sin una venta detrás es un **ajuste manual**, que exige motivo.
+* **Cuenta corriente**: resumen con el saldo corrido, cada venta que suma y cada pago que resta, y el detalle de qué pagó cada pago. El saldo nunca se guarda en una columna: se calcula de los movimientos, así siempre se puede discutir con el número a la vista.
+* **Devoluciones**: lo que el revendedor no vendió vuelve a estar disponible para la web.
+* Los pagos en pesos se registran con su tipo de cambio (el de MJ Dólar por defecto) y se imputan en dólares, que es la moneda en la que se acordó el precio.
+* Todo configurable: el rol de reventa, el formato de los códigos de entrega, qué ventas necesitan confirmación, si se puede vender más de lo entregado, los medios de cobro, y qué puede hacer el revendedor desde su panel.
+
+**Requisitos**
+
+* WordPress 6.0 o superior.
+* WooCommerce 7.0 o superior (compatible con HPOS / tablas de pedidos personalizadas).
+* PHP 7.4 o superior.
+
+**Seguridad**
+
+* Todas las rutas REST (`mjerp/v1`) exigen usuario autenticado con la capacidad `manage_mjerp` (o `manage_options`) y nonce de WordPress.
+* Todos los cálculos se realizan en el servidor; los valores enviados por el navegador nunca se confían para precios o costos.
+
+== Installation ==
+
+1. Subí la carpeta `mj-erp` a `/wp-content/plugins/` o instalá el archivo ZIP desde *Plugins → Añadir nuevo → Subir plugin*.
+2. Asegurate de tener WooCommerce instalado y activo.
+3. Activá **MJ ERP** desde el menú *Plugins*.
+4. Ingresá al ERP desde el menú **MJ ERP** del panel de WordPress, desde el enlace "Abrir ERP" en la fila del plugin, o directamente en `https://tu-sitio/mjerp/`.
+5. Revisá la **Configuración** del ERP (moneda base, TC por defecto, listas de precio, roles con acceso) antes de cargar la primera compra.
+
+Si tu sitio usa enlaces permanentes simples (sin URLs amigables), el ERP se abre en `https://tu-sitio/?mjerp_app=1`.
+
+== Frequently Asked Questions ==
+
+= ¿Quién puede entrar al ERP? =
+
+Los administradores siempre tienen acceso. Desde *Configuración → Acceso* podés habilitar otros roles (por ejemplo "Gestor de la tienda"). El plugin asigna la capacidad `manage_mjerp` a los roles elegidos.
+
+= ¿Qué pasa con el stock al marcar una compra como recibida? =
+
+Por cada ítem vinculado a un producto de WooCommerce se suma la cantidad recibida al stock (si el producto no gestiona stock y la opción está activada, se habilita la gestión de stock). Cada suma queda registrada en el historial de movimientos. Si deshacés la recepción, el stock se descuenta nuevamente; los costos y precios actualizados no se revierten.
+
+= ¿Cómo se calcula el costo puesto de cada producto? =
+
+Cada ítem se convierte a la moneda base con su TC (FOB). Los gastos marcados como "prorratea" se reparten entre los ítems según el método elegido (por FOB, por cantidad o sin prorrateo). El costo puesto por unidad es (FOB + gasto prorrateado) / cantidad. La diferencia de redondeo se aplica al ítem de mayor FOB.
+
+= ¿Puedo cambiar la URL del ERP? =
+
+Sí, desde *Configuración → General → Slug de la ruta*. Al guardar, el plugin regenera las reglas de reescritura.
+
+= ¿Se borran los datos al desinstalar? =
+
+No, salvo que actives *Configuración → Avanzado → Eliminar datos al desinstalar*. En ese caso se eliminan las tablas del ERP, sus opciones y los metadatos de costo (`_mjerp_*`) de los productos.
+
+= ¿Funciona con HPOS (almacenamiento de pedidos de alto rendimiento)? =
+
+Sí, el plugin declara compatibilidad con `custom_order_tables`.
+
+== Screenshots ==
+
+1. Detalle de una compra con productos, gastos y costeo en vivo.
+2. Listado de compras con filtros por estado, proveedor y fechas.
+3. Configuración del ERP.
+
+== Changelog ==
+
+= 1.3.0 =
+* Nuevo módulo **Consignaciones**: revendedores, entregas de mercadería, ventas, devoluciones, pagos y cuenta corriente.
+* Los revendedores son usuarios de WordPress con rol de reventa (se crea solo si no existe), así quedan también como clientes de WooCommerce. Se pueden crear desde el ERP o vincular cuentas existentes.
+* Las entregas congelan el precio acordado por unidad en dólares el día que sale la mercadería.
+* El stock de WooCommerce baja cuando el revendedor vende, no al entregar. La página de Productos avisa cuántas unidades están en poder de un revendedor.
+* Panel del revendedor en su propia dirección, pensado para el celular: ve lo que tiene, avisa lo que vendió y consulta su cuenta. Lo que carga queda pendiente de confirmación.
+* Cada pago se imputa a ventas concretas (de la más vieja a la más nueva, editable antes de confirmar). El sobrante queda como saldo a favor y se aplica solo a la próxima venta. Los ajustes manuales exigen motivo.
+* Resumen de cuenta con saldo corrido, y el detalle de qué venta pagó cada pago.
+* Nueva pestaña de Configuración → Consignaciones: rol de reventa, códigos de entrega, qué ventas necesitan confirmación, medios de cobro, imputación de pagos y permisos del panel del revendedor.
+* Contador en el menú y tarjetas en el tablero con lo que está en la calle, lo que te deben y las ventas esperando confirmación.
+
+= 1.2.0 =
+* Precios de venta en dólares: al recibir una compra, el precio sugerido se publica como precio USD del producto a través de MJ Dólar, y la tienda lo pasa a pesos con el TC vigente. Cuando cambiás el TC en MJ Dólar, los precios se actualizan solos.
+* El diálogo de recepción muestra, por ítem, el costo final y el precio de venta sugerido al público en dólares con su equivalente en pesos, calculado con el mismo TC y el mismo redondeo que usa la tienda.
+* El TC de venta del ERP puede tomarse de MJ Dólar (opción por defecto), así el precio sugerido en el ERP y el que ve el cliente son el mismo número.
+* Nuevos ajustes en Recepción y stock: cómo se publica el precio (automático, en dólares o en la moneda de la tienda), redondeo del precio en dólares (al dólar, a los 50 centavos, a los 5 o 10 dólares) y su modo (al más cercano o siempre para arriba).
+* La página de Productos muestra el precio publicado en dólares y el margen y el markup medidos en dólares, que no se mueven cuando cambia el TC.
+* Al crear un producto desde el ERP se pide el precio de venta en dólares cuando MJ Dólar está activo.
+* Sin MJ Dólar, o sin TC cargado, todo funciona como antes: el precio se escribe en la moneda de la tienda.
+
+= 1.1.0 =
+* Carga masiva de productos en una compra: buscador y catálogo con selección múltiple, configuración común (cantidad, costo, moneda y TC) que se copia a las filas tildadas o a todas, edición fila por fila y alta de todos los productos en una sola operación.
+* La importación por lote acepta productos ya identificados (product_id / variation_id), así que lo elegido en el selector se vincula exacto sin buscar por SKU ni por nombre.
+* Nuevo contador linked_by_id en el reporte de la importación.
+
+= 1.0.0 =
+* Versión inicial.
+* Módulo Compras: compras, ítems, gastos, costeo en vivo, prorrateo, listas de precio, importación desde planilla.
+* Recepción de compras con actualización de stock, costos y precios en WooCommerce; historial de movimientos.
+* Proveedores y cajas.
+* Página de productos con costo, precio, margen y markup.
+* Configuración completa y control de acceso por roles.
+
+== Upgrade Notice ==
+
+= 1.3.0 =
+Agrega el módulo de Consignaciones. Crea siete tablas nuevas y el rol de reventa al activarse; no toca nada de lo que ya tenías. Después de actualizar, entrá una vez a Ajustes → Enlaces permanentes y guardá, para que funcione la dirección del panel del revendedor.
+
+= 1.2.0 =
+Publica los precios de venta en dólares a través de MJ Dólar. Si tenés MJ Dólar activo con el TC cargado, la nueva opción se activa sola; si no, todo sigue igual que antes.
+
+= 1.1.0 =
+Agrega la carga masiva de productos a una compra. No requiere ningún cambio manual.
+
+= 1.0.0 =
+Versión inicial.

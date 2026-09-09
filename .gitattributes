@@ -1,0 +1,28 @@
+# Fin de línea normalizado: LF en el repositorio, sea cual sea el sistema en el
+# que se trabaje. Los archivos suben a servidores Linux, así que LF es lo que
+# corresponde guardar.
+* text=auto eol=lf
+
+# PowerShell se ejecuta en Windows y prefiere CRLF.
+*.ps1 text eol=crlf
+
+# Binarios: git no los toca ni intenta hacer diff de texto.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.avif binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.pdf  binary
+*.zip  binary
+
+# Los bundles compilados ensucian los diff y los conflictos: se marcan como
+# generados para que GitHub los colapse y no cuenten como código escrito.
+themes/mj-appearance/dist/**   linguist-generated=true
+plugins/mj-turnos-online/dist/** linguist-generated=true
+package-lock.json              linguist-generated=true
