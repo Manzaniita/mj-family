@@ -202,6 +202,7 @@ function mjto_optional_text_keys() {
 		'home_booking_image',
 		'deposit_instructions',
 		'deposit_link',
+		'deposit_receipt_text',
 		'business_address',
 		'business_instagram',
 		'mail_from_name',
@@ -228,6 +229,15 @@ function mjto_option_defaults() {
 		'deposit_instructions'  => '',
 		'deposit_link'          => '',
 		'deposit_hours'         => 24,        // 0 = sin vencimiento
+		/*
+		 * Comprobante de la seña. Lo guarda MJ Medios de Pago (bóveda privada,
+		 * bandeja de revisión, retención), así que acá solo se decide si se pide
+		 * y qué se le dice a la clienta. Sin ese plugin, estas opciones no hacen
+		 * nada y el circuito sigue siendo el de siempre ("ya transferí").
+		 */
+		'deposit_receipt'       => 'no',      // no | opcional | obligatorio
+		'deposit_receipt_text'  => '',        // Vacío = el texto general de MJ Medios de Pago.
+		'deposit_receipt_confirm' => 1,       // Aprobar el comprobante confirma el turno y marca la seña paga.
 		'client_can_cancel'     => 1,
 		'cancel_hours_before'   => 24,
 		'booking_policy'        => '',
@@ -847,6 +857,9 @@ function mjto_option_schema() {
 		'deposit_instructions' => ['reservas', 'textarea'],
 		'deposit_link'         => ['reservas', 'url'],
 		'deposit_hours'        => ['reservas', 'int', [0, 720]],
+		'deposit_receipt'      => ['reservas', 'enum', ['no', 'opcional', 'obligatorio']],
+		'deposit_receipt_text' => ['reservas', 'textarea'],
+		'deposit_receipt_confirm' => ['reservas', 'bool'],
 		'client_can_cancel'    => ['reservas', 'bool'],
 		'cancel_hours_before'  => ['reservas', 'int', [0, 720]],
 		'booking_policy'       => ['reservas', 'textarea'],
@@ -1566,6 +1579,38 @@ function mjto_settings_tab_reservas() {
 		mjto_field_row('Instrucciones para transferir', 'deposit_instructions', fn () => mjto_field_textarea('deposit_instructions', 5, "Alias: mi.alias.mp\nCBU: 0000000000000000000000\nTitular: Nombre Apellido"), 'Se muestran al terminar la reserva y en el mail de seña ({instrucciones_sena}). Vacío = no se muestran.');
 		mjto_field_row('Link de pago (opcional)', 'deposit_link', fn () => mjto_field_text('deposit_link', 'https://link.mercadopago.com.ar/…', 'large-text', 'url'), 'Si lo cargás, aparece el botón "Pagar la seña online" ({link_pago}).');
 		mjto_field_row('Plazo para enviar la seña', 'deposit_hours', fn () => mjto_field_number('deposit_hours', 0, 720, 1, 'horas'), 'Pasado el plazo sin aviso de la clienta, el turno se cancela solo y avisa por email. <strong>0 = sin vencimiento</strong> (nunca se cancela sola).');
+
+		/* Comprobante de la seña: lo maneja MJ Medios de Pago. */
+		$mjto_receipts = class_exists('MJPM_Receipts') && MJPM_Receipts::enabled();
+		$mjto_noun     = $mjto_receipts ? MJPM_Receipts::noun() : 'comprobante';
+
+		mjto_field_row(
+			'Comprobante de la seña',
+			'deposit_receipt',
+			function () use ($mjto_receipts) {
+				mjto_field_radios('deposit_receipt', [
+					'no'          => 'No se lo pedimos',
+					'opcional'    => 'Puede adjuntarlo',
+					'obligatorio' => 'Tiene que adjuntarlo',
+				]);
+				if (!$mjto_receipts) {
+					echo '<p class="description"><strong>Ahora mismo no tiene efecto:</strong> necesita el plugin MJ Medios de Pago activo, con los comprobantes prendidos.</p>';
+				}
+			},
+			'En lugar de solo apretar "ya transferí", la clienta sube la foto o el PDF. Lo revisás desde la bandeja de comprobantes.'
+		);
+		mjto_field_row(
+			'Qué le decimos',
+			'deposit_receipt_text',
+			fn () => mjto_field_textarea('deposit_receipt_text', 3, 'Subí una foto de la transferencia y te confirmamos el turno.'),
+			'Vacío = el texto general que tengas configurado en MJ Medios de Pago.'
+		);
+		mjto_field_row(
+			'Al aprobar el ' . esc_html($mjto_noun),
+			'deposit_receipt_confirm',
+			fn () => mjto_field_check('deposit_receipt_confirm', 'Marcar la seña como pagada y confirmar el turno'),
+			'Apagado, aprobar el ' . esc_html($mjto_noun) . ' no toca el turno: lo confirmás a mano desde el panel.'
+		);
 		?>
 	</table>
 

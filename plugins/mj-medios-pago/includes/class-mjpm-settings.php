@@ -1,22 +1,31 @@
 <?php
 /**
- * Ajustes: tres opciones.
+ * Ajustes: cinco opciones.
  *   mjpm_settings  ajustes generales (precio base, método por defecto, redondeo, visibilidad)
  *   mjpm_methods   ajuste por medio de pago, indexado por id de gateway
  *   mjpm_custom    métodos propios, indexados por slug
+ *   mjpm_receipts  ajustes generales de comprobantes de pago
+ *   mjpm_mapping   equivalencia gateway de WooCommerce → método del ERP
+ *
+ * Regla de toda la configuración por método: los valores "heredar" (o -1 en los
+ * numéricos) significan "lo que diga el ajuste general". Así subir un default
+ * después sigue alcanzando a todos los métodos que nunca se tocaron a mano.
  */
 
 defined('ABSPATH') || exit;
 
 class MJPM_Settings {
 
-	const OPTION  = 'mjpm_settings';
-	const METHODS = 'mjpm_methods';
-	const CUSTOM  = 'mjpm_custom';
+	const OPTION   = 'mjpm_settings';
+	const METHODS  = 'mjpm_methods';
+	const CUSTOM   = 'mjpm_custom';
+	const RECEIPTS = 'mjpm_receipts';
+	const MAPPING  = 'mjpm_mapping';
 
-	private static $cache   = null;
-	private static $methods = null;
-	private static $custom  = null;
+	private static $cache    = null;
+	private static $methods  = null;
+	private static $custom   = null;
+	private static $receipts = null;
 
 	/* ------------------------------ Generales ---------------------------- */
 
@@ -65,9 +74,10 @@ class MJPM_Settings {
 	}
 
 	public static function flush() {
-		self::$cache   = null;
-		self::$methods = null;
-		self::$custom  = null;
+		self::$cache    = null;
+		self::$methods  = null;
+		self::$custom   = null;
+		self::$receipts = null;
 	}
 
 	public static function sanitize_settings($in) {
@@ -104,7 +114,32 @@ class MJPM_Settings {
 			'short'      => '',        // Nombre corto para selector y panel ('' = título del gateway).
 			'show'       => 1,         // Aparece en selector, panel y tarjetas.
 			'min_amount' => 0,         // Subtotal mínimo (elegible) para aplicar el ajuste.
+
+			/*
+			 * Comprobante de pago. 'heredar' y -1 = lo que diga el ajuste general
+			 * (Comprobantes), así cambiar la regla general alcanza a todos los
+			 * métodos que no la pisaron a mano.
+			 */
+			'receipt'       => 'heredar', // heredar | no | opcional | obligatorio
+			'receipt_text'  => '',        // Instrucción para el cliente ('' = el texto general).
+			'receipt_files' => 0,         // Máximo de archivos (0 = el general).
+			'receipt_hours' => -1,        // Plazo en horas para subirlo (-1 general, 0 sin plazo).
+			'receipt_on_ok' => 'heredar', // Estado del pedido al aprobar ('heredar' general, '' no tocar).
+			'receipt_attach' => -1,       // Adjuntar al email del pedido (-1 general, 0 no, 1 sí).
 		];
+	}
+
+	/** Modos de exigencia del comprobante. */
+	public static function receipt_modes($with_inherit = false) {
+		$modes = [
+			'no'          => 'No pide comprobante',
+			'opcional'    => 'Puede subirlo (opcional)',
+			'obligatorio' => 'Tiene que subirlo',
+		];
+		if ($with_inherit) {
+			return ['heredar' => 'Heredar del ajuste general'] + $modes;
+		}
+		return $modes;
 	}
 
 	/** Todos los ajustes guardados: id de gateway => config completa. */
@@ -163,6 +198,33 @@ class MJPM_Settings {
 		$out['show']       = empty($in['show']) ? 0 : 1;
 		$out['min_amount'] = isset($in['min_amount']) ? max(0, self::decimal($in['min_amount'])) : 0;
 
+		$mode           = isset($in['receipt']) ? sanitize_key($in['receipt']) : $d['receipt'];
+		$out['receipt'] = array_key_exists($mode, self::receipt_modes(true)) ? $mode : $d['receipt'];
+
+		$out['receipt_text']  = isset($in['receipt_text']) ? sanitize_textarea_field($in['receipt_text']) : '';
+		$out['receipt_files'] = isset($in['receipt_files']) ? max(0, min(20, absint($in['receipt_files']))) : 0;
+
+		$hours                = isset($in['receipt_hours']) && '' !== trim((string) $in['receipt_hours']) ? (int) $in['receipt_hours'] : -1;
+		$out['receipt_hours'] = $hours < 0 ? -1 : min(8760, $hours);
+
+		$on_ok = isset($in['receipt_on_ok']) ? sanitize_key($in['receipt_on_ok']) : $d['receipt_on_ok'];
+		$out['receipt_on_ok'] = 'heredar' === $on_ok || '' === $on_ok || array_key_exists($on_ok, self::order_statuses()) ? $on_ok : 'heredar';
+
+		$attach                = isset($in['receipt_attach']) && '' !== (string) $in['receipt_attach'] ? (int) $in['receipt_attach'] : -1;
+		$out['receipt_attach'] = in_array($attach, [0, 1], true) ? $attach : -1;
+
+		return $out;
+	}
+
+	/** Estados de pedido de WooCommerce, sin el prefijo wc-. */
+	public static function order_statuses() {
+		if (!function_exists('wc_get_order_statuses')) {
+			return [];
+		}
+		$out = [];
+		foreach (wc_get_order_statuses() as $slug => $label) {
+			$out[substr($slug, 3)] = $label;
+		}
 		return $out;
 	}
 
@@ -251,6 +313,150 @@ class MJPM_Settings {
 		$out['status']       = array_key_exists($status, self::statuses()) ? $status : $d['status'];
 		$currency            = isset($in['currency']) ? strtoupper(sanitize_key($in['currency'])) : $d['currency'];
 		$out['currency']     = 'USD' === $currency ? 'USD' : 'ARS';
+
+		return $out;
+	}
+
+	/* --------------------------- Comprobantes ---------------------------- */
+
+	/**
+	 * Ajustes generales de comprobantes de pago.
+	 *
+	 * Son el default de todo lo que cada medio de pago puede pisar, más lo que
+	 * solo tiene sentido una vez (cómo se llaman, cuánto se guardan, quién los
+	 * mira, qué mails salen). Nada de esto está fijo en el código.
+	 */
+	public static function receipt_defaults() {
+		return [
+			/* Qué se pide ------------------------------------------------ */
+			'enabled'      => 1,                                   // Interruptor maestro de la función.
+			'noun'         => 'comprobante',                       // Cómo se lo llama en toda la interfaz.
+			'noun_plural'  => 'comprobantes',
+			'mode'         => 'no',                                // Default para los métodos en "heredar".
+			'text'         => 'Subí una foto o el PDF del comprobante de la transferencia. Lo revisamos y te confirmamos el pago.',
+			'ask_amount'   => 1,                                   // Pedirle el importe que pagó.
+			'ask_reference' => 1,                                  // Pedirle el número de operación.
+			'ask_note'     => 1,                                   // Dejarle escribir una aclaración.
+
+			/* Archivos --------------------------------------------------- */
+			'types'        => 'jpg,jpeg,png,webp,pdf,heic',
+			'max_mb'       => 8,
+			'max_files'    => 3,
+			'optimize'     => 0,                                   // Pasar las imágenes por MJ Optimizador de Imágenes.
+			'keep_days'    => 365,                                 // Borrado automático (0 = guardar para siempre).
+
+			/* Plazos ----------------------------------------------------- */
+			'hours'        => 0,                                   // Plazo para subirlo (0 = sin plazo).
+			'remind_hours' => 0,                                   // Recordatorio al cliente (0 = sin recordatorio).
+
+			/* Qué pasa cuando decidís ------------------------------------ */
+			'on_ok'        => 'processing',                         // Estado del pedido al aprobar ('' = no tocar).
+			'on_reject'    => '',                                  // Estado del pedido al rechazar ('' = no tocar).
+			'attach'       => 0,                                   // Adjuntar el archivo al email del pedido.
+
+			/* Dónde lo ve el cliente ------------------------------------- */
+			'show_account' => 1,                                   // Bloque en Mi cuenta → detalle del pedido.
+			'guest_links'  => 1,                                   // Subida por link firmado (compras sin cuenta).
+			'link_days'    => 30,                                  // Días que vive ese link.
+
+			/* Quién puede revisarlos ------------------------------------- */
+			'cap_shop'     => 1,                                   // Quien administra la tienda (manage_woocommerce).
+			'cap_erp'      => 0,                                   // Quien administra el ERP (manage_mjerp).
+
+			/* Avisos ----------------------------------------------------- */
+			'mail_new'        => 1,                                // Aviso a la tienda cuando entra uno nuevo.
+			'mail_new_to'     => '',                               // '' = el email de administración del sitio.
+			'mail_ok'         => 1,
+			'mail_ok_subject' => 'Confirmamos el pago de tu pedido {numero}',
+			'mail_ok_body'    => "Hola {cliente},\n\nRecibimos y confirmamos el {comprobante} de tu pedido {numero}. ¡Gracias!\n\n{tienda}",
+			'mail_no'         => 1,
+			'mail_no_subject' => 'Necesitamos otro {comprobante} de tu pedido {numero}',
+			'mail_no_body'    => "Hola {cliente},\n\nNo pudimos validar el {comprobante} de tu pedido {numero}.\n\nMotivo: {motivo}\n\nPodés subir otro desde acá: {link}\n\n{tienda}",
+			'whatsapp'        => 1,                                // Botón de WhatsApp en la bandeja.
+			'whatsapp_ok'     => 'Hola {cliente}! Recibimos el {comprobante} de tu pedido {numero} y confirmamos el pago. ¡Gracias!',
+			'whatsapp_no'     => 'Hola {cliente}! No pudimos validar el {comprobante} del pedido {numero}: {motivo}. ¿Me lo podés mandar de nuevo? {link}',
+		];
+	}
+
+	/** Opciones de retención para el selector. */
+	public static function keep_choices() {
+		return [
+			0    => 'Para siempre',
+			30   => '30 días',
+			90   => '90 días',
+			180  => '6 meses',
+			365  => '1 año',
+			730  => '2 años',
+			1825 => '5 años',
+		];
+	}
+
+	public static function receipts($key = null) {
+		if (null === self::$receipts) {
+			$saved          = get_option(self::RECEIPTS, []);
+			self::$receipts = wp_parse_args(is_array($saved) ? $saved : [], self::receipt_defaults());
+		}
+		if (null === $key) {
+			return self::$receipts;
+		}
+		return isset(self::$receipts[$key]) ? self::$receipts[$key] : null;
+	}
+
+	/** Guarda ajustes de comprobantes (parciales: lo ausente conserva su valor). */
+	public static function update_receipts(array $values) {
+		update_option(self::RECEIPTS, self::sanitize_receipts(wp_parse_args($values, self::receipts())));
+		self::$receipts = null;
+	}
+
+	public static function sanitize_receipts($in) {
+		$d   = self::receipt_defaults();
+		$in  = is_array($in) ? $in : [];
+		$out = [];
+
+		foreach (['enabled', 'ask_amount', 'ask_reference', 'ask_note', 'optimize', 'attach', 'show_account', 'guest_links', 'cap_shop', 'cap_erp', 'mail_new', 'mail_ok', 'mail_no', 'whatsapp'] as $flag) {
+			$out[$flag] = empty($in[$flag]) ? 0 : 1;
+		}
+
+		foreach (['noun' => 40, 'noun_plural' => 40, 'mail_ok_subject' => 190, 'mail_no_subject' => 190] as $field => $max) {
+			$value        = isset($in[$field]) ? trim(sanitize_text_field($in[$field])) : '';
+			$out[$field]  = '' !== $value ? mb_substr($value, 0, $max) : $d[$field];
+		}
+
+		foreach (['text', 'mail_ok_body', 'mail_no_body', 'whatsapp_ok', 'whatsapp_no'] as $field) {
+			$value       = isset($in[$field]) ? trim(sanitize_textarea_field($in[$field])) : '';
+			$out[$field] = '' !== $value ? $value : $d[$field];
+		}
+
+		$mode        = isset($in['mode']) ? sanitize_key($in['mode']) : $d['mode'];
+		$out['mode'] = array_key_exists($mode, self::receipt_modes()) ? $mode : $d['mode'];
+
+		$types = isset($in['types']) ? strtolower((string) $in['types']) : $d['types'];
+		$clean = [];
+		foreach (preg_split('/[^a-z0-9]+/', $types) as $ext) {
+			if ('' !== $ext && array_key_exists($ext, MJPM_Vault::known_types())) {
+				$clean[$ext] = true;
+			}
+		}
+		$out['types'] = $clean ? implode(',', array_keys($clean)) : $d['types'];
+
+		$out['max_mb']    = max(1, min(64, absint(isset($in['max_mb']) ? $in['max_mb'] : $d['max_mb'])));
+		$out['max_files'] = max(1, min(20, absint(isset($in['max_files']) ? $in['max_files'] : $d['max_files'])));
+		$out['link_days'] = max(1, min(365, absint(isset($in['link_days']) ? $in['link_days'] : $d['link_days'])));
+
+		$keep             = isset($in['keep_days']) ? absint($in['keep_days']) : $d['keep_days'];
+		$out['keep_days'] = array_key_exists($keep, self::keep_choices()) ? $keep : $d['keep_days'];
+
+		$out['hours']        = max(0, min(8760, absint(isset($in['hours']) ? $in['hours'] : 0)));
+		$out['remind_hours'] = max(0, min(8760, absint(isset($in['remind_hours']) ? $in['remind_hours'] : 0)));
+
+		$statuses = self::order_statuses();
+		foreach (['on_ok', 'on_reject'] as $field) {
+			$status        = isset($in[$field]) ? sanitize_key($in[$field]) : $d[$field];
+			$out[$field]   = '' !== $status && (array_key_exists($status, $statuses) || !$statuses) ? $status : '';
+		}
+
+		$to               = isset($in['mail_new_to']) ? trim((string) $in['mail_new_to']) : '';
+		$out['mail_new_to'] = is_email($to) ? sanitize_email($to) : '';
 
 		return $out;
 	}

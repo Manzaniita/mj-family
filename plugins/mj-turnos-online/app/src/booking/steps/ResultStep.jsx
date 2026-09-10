@@ -47,7 +47,7 @@ export default function ResultStep({ result, service, onViewStatus, onRestart })
       <div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 gap-4 md:grid-cols-2 md:items-start">
         <Summary item={item} />
         {depositRequired && status === 'awaiting_deposit' && (
-          <DepositCard deposit={deposit} token={result.token} whatsapp={result.whatsapp} notified={notified} onNotified={() => setNotified(true)} />
+          <DepositCard deposit={deposit} receipt={result.receipt} token={result.token} whatsapp={result.whatsapp} notified={notified} onNotified={() => setNotified(true)} />
         )}
       </div>
 

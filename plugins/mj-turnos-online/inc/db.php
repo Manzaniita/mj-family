@@ -1028,7 +1028,7 @@ function mjto_appointment_public($row, $with_client = true) {
 		$visit_id = $v ? (int) $v['id'] : null;
 	}
 
-	return [
+	$out = [
 		'id'                => (int) ($row['id'] ?? 0),
 		'clientId'          => (int) ($row['client_id'] ?? 0),
 		'client'            => $client,
@@ -1065,6 +1065,16 @@ function mjto_appointment_public($row, $with_client = true) {
 		'createdAt'         => mjto_dt_or_null($row['created_at'] ?? ''),
 		'updatedAt'         => mjto_dt_or_null($row['updated_at'] ?? ''),
 	];
+
+	/*
+	 * Comprobante de la seña, solo para el panel: la vista pública de la clienta
+	 * arma su propio bloque (con token de subida) en mjto_rest_booking_view().
+	 */
+	if (function_exists('mjto_receipt_panel_payload') && current_user_can('mjto_manage')) {
+		$out['receipt'] = mjto_receipt_panel_payload((int) $out['id']);
+	}
+
+	return $out;
 }
 
 function mjto_visit_public($row) {

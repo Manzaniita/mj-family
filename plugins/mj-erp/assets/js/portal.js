@@ -161,10 +161,71 @@
 		tab: 'stock',
 		data: null,
 		statement: null,
+		payments: null,
 		error: null,
 		busy: false,
 		toast: null,
 	};
+
+	/* ------------------------------------------------------------------ */
+	/* Comprobantes de pago                                                */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * El widget de subida lo pone MJ Medios de Pago (window.MJPM.uploader). Acá
+	 * solo se dibuja el contenedor y se lo monta: la subida, la validación y el
+	 * estado los maneja ese plugin, igual que en la tienda.
+	 */
+	function uploaderAvailable() {
+		return !!(window.MJPM && window.MJPM.uploader);
+	}
+
+	function uploaderHtml(paymentId, title) {
+		return '<div class="mj-portal__uploader" data-mjpm-uploader' +
+			' data-context="erp_payment" data-objeto="' + parseInt(paymentId, 10) + '"' +
+			' data-token="" data-title="' + h(title || '') + '"></div>';
+	}
+
+	/** Monta los contenedores que acaban de entrar al DOM. */
+	function mountUploaders(root) {
+		if (!uploaderAvailable()) return;
+		try {
+			window.MJPM.uploader.mountAll(root || document);
+		} catch (e) { /* El widget no debe romper el portal. */ }
+	}
+
+	/** Los pagos que todavía esperan un comprobante (o que fueron rechazados). */
+	function paymentsAwaitingReceipt() {
+		const rows = Array.isArray(state.payments) ? state.payments : [];
+		return rows.filter(function (row) {
+			const r = row && row.receipt;
+			return r && r.state !== 'aprobado';
+		});
+	}
+
+	function receiptsHtml() {
+		const rows = paymentsAwaitingReceipt();
+		if (!rows.length || !uploaderAvailable()) return '';
+
+		const noun = (rows[0].receipt && rows[0].receipt.noun_title) || 'Comprobante';
+
+		return '<div class="mj-portal__receipts">' +
+			'<div class="mj-portal__receipts-title">' + h(noun) + '</div>' +
+			rows.map(function (row) {
+				const r = row.receipt || {};
+				const label = money(row.amount_base) + ' · ' + h(row.method_label || '') +
+					(row.payment_date ? ' · ' + h(date(row.payment_date)) : '');
+				return '<div class="mj-portal__receipt">' +
+					'<div class="mj-portal__receipt-head">' +
+						'<span class="mj-portal__receipt-label">' + label + '</span>' +
+						(r.state_label ? '<span class="mj-portal__receipt-state is-' + h(r.state) + '">' + h(r.state_label) + '</span>' : '') +
+					'</div>' +
+					(r.reason ? '<div class="mj-portal__receipt-reason">' + h(r.reason) + '</div>' : '') +
+					uploaderHtml(row.id, '') +
+				'</div>';
+			}).join('') +
+		'</div>';
+	}
 
 	/** Permisos resueltos por el servidor. */
 	function can(what) {
@@ -402,7 +463,7 @@
 		} else if (state.tab === 'ventas') {
 			panel = salesHtml(state.data.sales, !!CFG.needsApproval);
 		} else if (can('see_account')) {
-			panel = statementHtml(state.statement, account);
+			panel = receiptsHtml() + statementHtml(state.statement, account);
 		} else {
 			panel = '<div class="mj-portal__empty">' + icon('lock') +
 				'<div class="mj-portal__empty-title">Tu cuenta la lleva la tienda</div>' +
@@ -415,12 +476,72 @@
 
 	function paint() {
 		const body = qs('[data-region="body"]');
-		if (body) body.innerHTML = bodyHtml();
+		if (body) {
+			body.innerHTML = bodyHtml();
+			mountUploaders(body);
+		}
 	}
 
 	/* ------------------------------------------------------------------ */
 	/* Diálogo de pago                                                     */
 	/* ------------------------------------------------------------------ */
+
+	/** Qué comprobante le pide la tienda a este revendedor: resuelto en el servidor. */
+	function receiptRequirement() {
+		if (!uploaderAvailable()) return 'no';
+		const abilities = (state.data && state.data.can) || CFG.can || {};
+		const mode = abilities.payment_receipt || 'no';
+		/* 'heredar' lo resuelve el servidor al crear el pago; acá no se adivina. */
+		return 'heredar' === mode ? '' : mode;
+	}
+
+	function receiptNoun() {
+		const abilities = (state.data && state.data.can) || CFG.can || {};
+		return abilities.receipt_noun || 'comprobante';
+	}
+
+	/**
+	 * Diálogo con el widget de subida, apenas se avisó el pago.
+	 *
+	 * @param {number} paymentId Id del pago recién creado.
+	 * @param {Object} receipt   Bloque `receipt` que devolvió el servidor.
+	 */
+	function openReceiptSheet(paymentId, receipt) {
+		if (!uploaderAvailable()) return;
+
+		const title = (receipt && receipt.noun_title) || 'Comprobante';
+		const sheet = document.createElement('div');
+		sheet.className = 'mj-portal__sheet';
+		sheet.innerHTML =
+			'<div class="mj-portal__sheet-panel" role="dialog" aria-modal="true" aria-label="' + h(title) + '">' +
+				'<div class="mj-portal__sheet-title">' + h(title) + '</div>' +
+				'<div class="mj-portal__sheet-sub">' +
+					h(receipt && receipt.required
+						? 'Adjuntalo para que podamos confirmar el pago.'
+						: 'Si lo tenés a mano, adjuntalo: confirmamos más rápido.') +
+				'</div>' +
+				uploaderHtml(paymentId, '') +
+				'<div class="mj-portal__sheet-actions">' +
+					'<button type="button" class="mj-btn mj-btn--ghost" data-cancel>' +
+						h(receipt && receipt.required ? 'Lo subo después' : 'Listo') +
+					'</button>' +
+				'</div>' +
+			'</div>';
+
+		document.body.appendChild(sheet);
+		document.body.classList.add('mj-portal-locked');
+
+		function close() {
+			if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+			document.body.classList.remove('mj-portal-locked');
+			loadStatement();
+		}
+
+		qs('[data-cancel]', sheet).addEventListener('click', close);
+		sheet.addEventListener('click', function (e) { if (e.target === sheet) close(); });
+
+		mountUploaders(sheet);
+	}
 
 	function openPaymentSheet() {
 		const account = (state.data && state.data.account) || {};
@@ -429,6 +550,17 @@
 		const partial = can('partial_payments');
 		const needsApproval = can('payment_needs_approval');
 		const localCurrency = CFG.localCurrency || 'ARS';
+
+		/*
+		 * El comprobante se adjunta DESPUÉS de avisar el pago, contra el pago ya
+		 * creado: el archivo necesita algo a lo que pegarse, y así se puede avisar
+		 * ahora y mandar la foto cuando se la tenga a mano.
+		 */
+		const receiptMode = receiptRequirement();
+		const receiptName = receiptNoun();
+		const receiptNotice = 'obligatorio' === receiptMode
+			? 'Después de avisar te vamos a pedir el ' + receiptName + '.'
+			: ('opcional' === receiptMode ? 'Después de avisar vas a poder adjuntar el ' + receiptName + '.' : '');
 
 		const sheet = document.createElement('div');
 		sheet.className = 'mj-portal__sheet';
@@ -465,6 +597,9 @@
 					'</div>' +
 					(needsApproval
 						? '<div class="mj-portal__note">' + icon('info') + '<span>Tu saldo baja cuando la tienda confirme el pago.</span></div>'
+						: '') +
+					(receiptNotice
+						? '<div class="mj-portal__note">' + icon('info') + '<span>' + h(receiptNotice) + '</span></div>'
 						: '') +
 					'<div class="mj-portal__sheet-error" data-error></div>' +
 					'<div class="mj-portal__sheet-actions">' +
@@ -516,6 +651,9 @@
 			}).then(function (res) {
 				close();
 				toast(res && res.needs_approval ? 'Listo, avisamos tu pago.' : 'Pago registrado.', 'success');
+				if (res && res.receipt && res.id) {
+					openReceiptSheet(res.id, res.receipt);
+				}
 				load();
 			}).catch(function (err) {
 				submitting = false;
@@ -680,10 +818,13 @@
 	function loadStatement() {
 		return api.get('account').then(function (res) {
 			state.statement = Array.isArray(res && res.statement) ? res.statement : [];
+			/* Los pagos vienen con su comprobante resuelto por el servidor. */
+			state.payments = (res && res.payments && Array.isArray(res.payments.items)) ? res.payments.items : [];
 			if (res && res.account && state.data) state.data.account = res.account;
 			if (state.tab === 'cuenta') paint();
 		}).catch(function () {
 			state.statement = [];
+			state.payments = [];
 			if (state.tab === 'cuenta') paint();
 		});
 	}

@@ -83,6 +83,7 @@ final class MJERP_Plugin {
 			'includes/class-mjerp-pricing.php',
 			'includes/class-mjerp-frontend.php',
 			'includes/class-mjerp-portal.php',
+			'includes/class-mjerp-receipts.php',
 			'includes/rest/class-mjerp-rest-controller.php',
 			'includes/rest/class-mjerp-rest-bootstrap.php',
 			'includes/rest/class-mjerp-rest-purchases.php',
@@ -150,6 +151,7 @@ final class MJERP_Plugin {
 		MJERP_Pricing::init();
 		MJERP_Frontend::init();
 		MJERP_Portal::init();
+		MJERP_Receipts::init();
 		MJERP_REST::init();
 
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );

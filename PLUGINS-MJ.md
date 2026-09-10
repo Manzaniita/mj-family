@@ -18,7 +18,7 @@ desactivar sin romper el resto.
 | Plugin | Qué hace | Estado |
 |---|---|---|
 | **MJ Dólar** | Cargás el precio en dólares y la tienda lo pasa a pesos con el tipo de cambio que ponés vos. Campos USD en productos, variaciones, edición rápida, en lote y CSV. El dólar se ve en el header. | Entregado |
-| **MJ Medios de Pago** | Descuento o recargo según el medio de pago, con precio distinto en tarjetas, ficha y carrito. Te deja crear medios de pago propios, como pago en dólares en el local. | Entregado |
+| **MJ Medios de Pago** | Descuento o recargo según el medio de pago, con precio distinto en tarjetas, ficha y carrito. Te deja crear medios de pago propios, como pago en dólares en el local. Y comprobantes de pago: elegís en qué medios se piden, el cliente sube la foto o el PDF, y vos aprobás o rechazás cada compra desde una sola bandeja (sirve también para los pagos de reventa de MJ ERP y para las señas de MJ Turnos Online). | Entregado |
 | **MJ Fotos Rápidas** | Subís las fotos de los productos desde el celular en dos toques y los publicás desde ahí mismo. | Ya lo tenías |
 | **WC Image Optimizer Ilimitado** | Achica y convierte todas las imágenes de la tienda usando tu propio servidor, sin límites ni créditos. | Ya lo tenías |
 | **MJ Colegas** | Productos de terceros dentro de la tienda: cada producto lleva quién lo hizo, vos cobrás y liquidás a cada colega descontando la comisión. Hecho para Yamana / Entre Hilos, pero sirve en cualquier tienda con el tema. Ver `YAMANA-ENTRE-HILOS.md`. | Entregado |

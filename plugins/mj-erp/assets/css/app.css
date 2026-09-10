@@ -4293,3 +4293,104 @@ th.mj-truncate {
 .mj-table tr.is-pending td {
 	background: var(--mj-warning-soft);
 }
+
+/* ------------------------------------------------------------------------- */
+/* Comprobantes de pago en el portal del revendedor                          */
+/*                                                                           */
+/* El widget de subida lo trae MJ Medios de Pago con estilos neutros. Acá se  */
+/* lo ata a los tokens del portal para que no aparezca una caja blanca en el  */
+/* tema oscuro.                                                              */
+/* ------------------------------------------------------------------------- */
+
+.mj-portal__receipts {
+	margin-bottom: var(--mj-sp-4);
+	padding: var(--mj-sp-3);
+	border: 1px solid var(--mj-warning-border);
+	border-radius: var(--mj-radius-lg, 14px);
+	background: var(--mj-warning-soft);
+}
+
+.mj-portal__receipts-title {
+	font-weight: 600;
+	margin-bottom: var(--mj-sp-2);
+}
+
+.mj-portal__receipt + .mj-portal__receipt {
+	margin-top: var(--mj-sp-3);
+	padding-top: var(--mj-sp-3);
+	border-top: 1px solid var(--mj-border);
+}
+
+.mj-portal__receipt-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--mj-sp-2);
+	flex-wrap: wrap;
+	font-size: 0.9rem;
+}
+
+.mj-portal__receipt-label {
+	font-weight: 500;
+}
+
+.mj-portal__receipt-state {
+	font-size: 0.72rem;
+	font-weight: 600;
+	padding: 2px 9px;
+	border-radius: 999px;
+	border: 1px solid currentColor;
+	white-space: nowrap;
+}
+
+.mj-portal__receipt-state.is-pendiente { color: var(--mj-warning); }
+.mj-portal__receipt-state.is-aprobado  { color: var(--mj-success, #4ade80); }
+.mj-portal__receipt-state.is-rechazado { color: var(--mj-danger); }
+
+.mj-portal__receipt-reason {
+	margin-top: 2px;
+	font-size: 0.82rem;
+	color: var(--mj-danger);
+}
+
+/* El widget, vestido con los tokens del portal. */
+.mj-portal__uploader .mjpm-uploader,
+.mj-portal__sheet .mjpm-uploader {
+	--mjpm-line: var(--mj-border);
+	--mjpm-soft: var(--mj-surface-2);
+	--mjpm-ink-soft: var(--mj-text-muted);
+	--mjpm-ok: var(--mj-success, #4ade80);
+	--mjpm-no: var(--mj-danger);
+	--mjpm-wait: var(--mj-warning);
+	margin: var(--mj-sp-2) 0 0;
+	color: var(--mj-text);
+}
+
+.mj-portal__uploader .mjpm-uploader__card,
+.mj-portal__sheet .mjpm-uploader__card {
+	border: 0;
+	padding: 0;
+	background: none;
+}
+
+.mj-portal__uploader .mjpm-uploader__title,
+.mj-portal__sheet .mjpm-uploader__title {
+	display: none;
+}
+
+.mj-portal__uploader .mjpm-uploader__item,
+.mj-portal__sheet .mjpm-uploader__item,
+.mj-portal__uploader .mjpm-uploader__input,
+.mj-portal__sheet .mjpm-uploader__input {
+	background: var(--mj-surface);
+	color: var(--mj-text);
+}
+
+/* El badge del comprobante es un link a la bandeja de MJ Medios de Pago. */
+.mj-receipt-link {
+	text-decoration: none;
+}
+
+.mj-receipt-link:hover .mj-badge {
+	filter: brightness(1.15);
+}

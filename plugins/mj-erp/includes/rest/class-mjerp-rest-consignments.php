@@ -1177,6 +1177,7 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 
 		$result['methods']        = MJERP_Settings::payment_methods();
 		$result['declared_count'] = MJERP_Consignment_Payments_Repo::declared_count( $this->int( $p, 'consignee_id', 0 ) );
+		$result                   = $this->with_receipts( $result );
 
 		return $this->ok( $result );
 	}
@@ -1307,7 +1308,27 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 		if ( ! $payment ) {
 			return $this->fail( 'mjerp_not_found', __( 'El pago no existe.', 'mj-erp' ), 404 );
 		}
+		if ( class_exists( 'MJERP_Receipts' ) && MJERP_Receipts::available() ) {
+			$payment['receipt'] = MJERP_Receipts::payload( $payment );
+		}
 		return $this->ok( $payment );
+	}
+
+	/**
+	 * Agrega a cada pago su bloque de comprobante, para que la pantalla del
+	 * revendedor pueda mostrar el archivo antes de confirmar el pago.
+	 *
+	 * @param array $result Resultado de la consulta.
+	 * @return array
+	 */
+	protected function with_receipts( array $result ) : array {
+		if ( ! class_exists( 'MJERP_Receipts' ) || ! MJERP_Receipts::available() || empty( $result['items'] ) ) {
+			return $result;
+		}
+		foreach ( $result['items'] as $index => $payment ) {
+			$result['items'][ $index ]['receipt'] = MJERP_Receipts::payload( $payment );
+		}
+		return $result;
 	}
 
 	/**
@@ -1360,6 +1381,11 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 		$payment = MJERP_Consignment_Payments_Repo::find( absint( $request['id'] ) );
 		if ( ! $payment ) {
 			return $this->fail( 'mjerp_not_found', __( 'El pago no existe.', 'mj-erp' ), 404 );
+		}
+
+		/* El comprobante se va con el pago. */
+		if ( class_exists( 'MJPM_Receipts' ) && class_exists( 'MJERP_Receipts' ) ) {
+			MJPM_Receipts::delete_for_object( MJERP_Receipts::CONTEXT, (int) $payment['id'] );
 		}
 
 		$result = MJERP_Consignment_Payments_Repo::delete( (int) $payment['id'] );

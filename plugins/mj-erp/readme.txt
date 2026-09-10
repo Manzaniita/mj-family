@@ -5,7 +5,7 @@ Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
 WC requires at least: 7.0
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,14 @@ Sí, el plugin declara compatibilidad con `custom_order_tables`.
 3. Configuración del ERP.
 
 == Changelog ==
+
+= 1.5.0 =
+* **Comprobante de los pagos de reventa.** Cuando un revendedor avisa un pago desde su panel, puede adjuntar la foto o el PDF de la transferencia. Aprobar ese comprobante confirma el pago: baja su saldo y se imputa a sus ventas, igual que si lo confirmaras a mano.
+* Se configura una sola vez: nuevo permiso "Comprobante del pago" por rol y por revendedor, y en "Heredar" sigue la regla del medio de pago equivalente en MJ Medios de Pago.
+* Nueva pantalla en MJ Medios de Pago para declarar esas equivalencias (qué método del ERP es cada medio de pago de la tienda). Arregla de paso que una venta capturada de la tienda cayera en el método "Otro" cuando el id del gateway no coincidía por nombre.
+* En la ficha del revendedor, cada pago muestra en qué está su comprobante y linkea a la bandeja donde se aprueba o se rechaza.
+* Al rechazar, el motivo queda escrito en la nota del pago, visible desde el ERP.
+* Los archivos los guarda MJ Medios de Pago en su bóveda privada, con su retención y sus permisos: el ERP no guarda archivos por su cuenta. Sin ese plugin, todo sigue funcionando como antes.
 
 = 1.4.0 =
 * Nuevo módulo **Ventas**: todo lo que sale de la tienda queda registrado en un solo lugar, venga del mostrador, de la tienda online o de un revendedor.

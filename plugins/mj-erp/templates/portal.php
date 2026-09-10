@@ -37,6 +37,15 @@ $mjp_favicon = 'data:image/svg+xml,' . rawurlencode( '<svg xmlns="http://www.w3.
 <title><?php echo esc_html( $mjp_title . ( '' !== $mjp_site ? ' · ' . $mjp_site : '' ) ); ?></title>
 <link rel="icon" href="<?php echo esc_attr( $mjp_favicon ); ?>">
 <link rel="stylesheet" href="<?php echo esc_url( add_query_arg( 'ver', $mjp_version, $mjp_plugin_url . 'assets/css/app.css' ) ); ?>">
+<?php
+/*
+ * Comprobantes de pago: los maneja MJ Medios de Pago y esta plantilla no pasa
+ * por wp_head(), así que se piden explícitamente. Sin ese plugin no imprime nada.
+ */
+if ( class_exists( 'MJPM_Receipts_Front' ) ) {
+	MJPM_Receipts_Front::print_styles();
+}
+?>
 <script>window.MJPORTAL = <?php echo wp_json_encode( $config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE ); ?>;</script>
 </head>
 <body class="mj-body mj-body--portal">
@@ -44,6 +53,11 @@ $mjp_favicon = 'data:image/svg+xml,' . rawurlencode( '<svg xmlns="http://www.w3.
 <noscript>
 	<div class="mj-boot" style="padding:24px;text-align:center"><?php esc_html_e( 'Esta pantalla necesita JavaScript habilitado en el navegador.', 'mj-erp' ); ?></div>
 </noscript>
+<?php
+if ( class_exists( 'MJPM_Receipts_Front' ) ) {
+	MJPM_Receipts_Front::print_scripts();
+}
+?>
 <script src="<?php echo esc_url( add_query_arg( 'ver', $mjp_version, $mjp_plugin_url . 'assets/js/portal.js' ) ); ?>"></script>
 </body>
 </html>

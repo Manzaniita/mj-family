@@ -427,6 +427,11 @@ function mjto_rest_booking_view(array $row) {
 		'canCancel'       => mjto_rest_can_cancel($row),
 		'depositNotified' => !empty($public['depositNotifiedAt']),
 		'cancelReason'    => 'cancelled' === $status ? $public['cancelReason'] : '',
+		/*
+		 * Comprobante de la seña. Trae el token de subida firmado: solo lo recibe
+		 * quien ya demostró tener el token de esta reserva.
+		 */
+		'receipt'         => function_exists('mjto_receipt_public_payload') ? mjto_receipt_public_payload($public) : null,
 	];
 }
 

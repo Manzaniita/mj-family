@@ -6,6 +6,7 @@ import { Section } from '@/components/layout/Layout';
 import { Input, Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ProductImage } from '@/components/ui/ProductImage';
+import { ReceiptUploader } from '@/components/ui/ReceiptUploader';
 import { Reveal } from '@/components/motion/Reveal';
 import { useCart } from '@/store';
 import { effectivePrice } from '@/lib/api';
@@ -108,6 +109,8 @@ export default function Checkout() {
     usePaymentMethod.getState().set(id); // Sincroniza los precios de la tienda y la línea de ajuste del carrito.
   };
   const [placed, setPlaced] = useState(false);
+  /* Comprobante de pago: el token solo hace falta si compró sin cuenta. */
+  const [receipt, setReceipt] = useState(null);
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState(null);
   const [orderId, setOrderId] = useState(null);
@@ -289,6 +292,11 @@ export default function Checkout() {
               <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{placedMethod.instructions}</p>
             </div>
           )}
+          {receipt && (
+            <div className="mj-panel mt-6 rounded-xl2 border border-line glass p-5 text-left">
+              <ReceiptUploader objectId={receipt.objectId} token={receipt.token} />
+            </div>
+          )}
           <div className="mt-8 flex justify-center gap-3">
             <Button to="/cuenta/pedidos" variant="secondary">Ver mis pedidos</Button>
             <Button to="/tienda">Seguir comprando</Button>
@@ -365,6 +373,19 @@ export default function Checkout() {
       setPlacedMethod(payMethod);
       setPlacedUsd(usdTotal);
       setPlaced(true);
+
+      /*
+       * El comprobante se sube DESPUÉS de cerrar el pedido: el archivo necesita
+       * un pedido al que pegarse. El servidor decide si este medio de pago lo
+       * pide; acá solo se pregunta, y el token autoriza a quien compró sin cuenta.
+       */
+      if (order?.order_id && order?.order_key) {
+        wc.getReceiptToken(order.order_id, order.order_key)
+          .then((res) => {
+            if (res?.asks) setReceipt({ objectId: res.objectId, token: res.token, noun: res.noun });
+          })
+          .catch(() => { /* Sin comprobante: el pedido ya está hecho igual. */ });
+      }
       clear();
       window.scrollTo({ top: 0 });
     } catch (err) {

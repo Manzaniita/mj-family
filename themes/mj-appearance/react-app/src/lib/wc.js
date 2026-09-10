@@ -336,6 +336,16 @@ export const getOrder = (id) => apiReq(`/account/orders/${id}`);
 /** Cancela un pedido propio (solo si su estado lo permite). */
 export const cancelOrder = (id) => apiReq(`/account/orders/${id}/cancel`, { method: 'POST' });
 
+/**
+ * Token de subida del comprobante de un pedido, a cambio de su clave.
+ *
+ * Solo hace falta para quien compró SIN cuenta: con sesión, el widget autoriza
+ * por el pedido mismo. La clave la devuelve la Store API al cerrar el checkout,
+ * y es la misma prueba de propiedad que usa la página de gracias de WooCommerce.
+ */
+export const getReceiptToken = (orderId, orderKey) =>
+  apiReq(`/comprobantes/token?pedido=${encodeURIComponent(orderId)}&clave=${encodeURIComponent(orderKey)}`, {}, 'mjpm/v1');
+
 /** kind: 'contact' | 'newsletter'. */
 export const sendContact = (data) => apiReq('/contact', { method: 'POST', body: data });
 

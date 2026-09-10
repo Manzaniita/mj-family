@@ -11,6 +11,30 @@ class MJPM_Orders {
 	public static function init() {
 		add_action('woocommerce_admin_order_data_after_order_details', [__CLASS__, 'admin_order_details']);
 		add_filter('mj_rest_order_detail', [__CLASS__, 'rest_order_detail'], 20, 2);
+
+		/* Marcar el pedido como "falta el comprobante" en cuanto nace. */
+		add_action('woocommerce_checkout_order_created', [__CLASS__, 'on_order_created'], 30, 1);
+		add_action('woocommerce_store_api_checkout_order_processed', [__CLASS__, 'on_order_created'], 30, 1);
+		add_action('woocommerce_new_order', [__CLASS__, 'on_new_order'], 30, 2);
+	}
+
+	/**
+	 * Arranca el circuito del comprobante: si el medio de pago lo pide, el pedido
+	 * queda "a revisar" y se guarda cuándo se le pidió (de ahí sale el plazo).
+	 *
+	 * @param WC_Order $order Pedido.
+	 * @return void
+	 */
+	public static function on_order_created($order) {
+		if (!$order instanceof WC_Order || !MJPM_Receipts::enabled()) {
+			return;
+		}
+		MJPM_Receipts::mark_asked($order);
+		$order->save();
+	}
+
+	public static function on_new_order($order_id, $order = null) {
+		self::on_order_created($order instanceof WC_Order ? $order : wc_get_order((int) $order_id));
 	}
 
 	/** Total del pedido en dólares (solo métodos propios cobrados en USD), o null. */
@@ -97,6 +121,42 @@ class MJPM_Orders {
 		$custom                      = MJPM_Settings::custom_by_gateway((string) $order->get_payment_method());
 		$data['paymentInstructions'] = $custom && in_array($order->get_status(), ['on-hold', 'pending', 'processing'], true) ? (string) $custom['instructions'] : '';
 
+		$data['receipt'] = self::rest_receipt($order);
+
 		return $data;
+	}
+
+	/**
+	 * Bloque de comprobante para la SPA: con esto el tema sabe si tiene que
+	 * pintar el widget y qué mostrarle al cliente mientras espera.
+	 *
+	 * @param WC_Order $order Pedido.
+	 * @return array|null null cuando ese pedido no pide comprobante.
+	 */
+	private static function rest_receipt($order) {
+		if (!MJPM_Receipts::enabled() || !MJPM_Settings::receipts('show_account')) {
+			return null;
+		}
+		$req = MJPM_Receipts::requirement('order', $order->get_id());
+		if (!$req['asks']) {
+			return null;
+		}
+		$state = MJPM_Receipts::state('order', $order->get_id());
+		$files = MJPM_Receipts::for_object('order', $order->get_id());
+
+		return [
+			'context'   => 'order',
+			'objectId'  => $order->get_id(),
+			'noun'      => MJPM_Receipts::noun(),
+			'nounTitle' => MJPM_Receipts::noun(false, true),
+			'required'  => (bool) $req['required'],
+			'text'      => (string) $req['text'],
+			'state'     => $state,
+			'stateLabel' => '' !== $state ? MJPM_Receipts::status_label($state) : '',
+			'count'     => count($files),
+			'maxFiles'  => (int) $req['files'],
+			'deadline'  => MJPM_Receipts::deadline('order', $order->get_id()),
+			'reason'    => (string) $order->get_meta(MJPM_Receipts::META_REASON),
+		];
 	}
 }

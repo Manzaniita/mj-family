@@ -8,7 +8,7 @@
  *   showDate?: boolean (fecha además de la hora: listas de varios días), compact?: boolean, className? }} props
  */
 import { Link } from 'react-router-dom';
-import { BellRing, ClipboardList, Coins, Globe, StickyNote } from 'lucide-react';
+import { BellRing, ClipboardList, Coins, Globe, Receipt, StickyNote } from 'lucide-react';
 import { cn, dateLabel, formatTime, fullName, prettyPhone, timeAgo } from '@/lib/format';
 import { Badge, StatusBadge } from '@/ui';
 import { usePanel } from '../store';
@@ -31,6 +31,8 @@ export function AppointmentCard({ appointment, onChange, onOpenFicha, showDate =
   const missingFicha = (a.status === 'confirmed' || a.status === 'completed') && !a.visitId;
   const paid = num(a.depositPaid);
   const required = num(a.depositRequired);
+  /* null cuando este turno no pide comprobante o el plugin no está. */
+  const receipt = a.receipt || null;
   const phone = prettyPhone(client.phoneRaw || client.phone);
 
   return (
@@ -72,7 +74,7 @@ export function AppointmentCard({ appointment, onChange, onOpenFicha, showDate =
           {num(a.price) > 0 && <span className="text-ink-soft"> · {store.formatPrice(a.price)}</span>}
         </p>
 
-        {(notified || missingFicha || paid > 0 || (required > 0 && paid <= 0 && a.status === 'awaiting_deposit') || a.source === 'web') && (
+        {(notified || missingFicha || paid > 0 || receipt || (required > 0 && paid <= 0 && a.status === 'awaiting_deposit') || a.source === 'web') && (
           <div className="mjto-appt__badges mt-2 flex flex-wrap items-center gap-1.5">
             {notified && (
               <Badge tone="info" icon={BellRing} title={`Avisó seña ${timeAgo(a.depositNotifiedAt)}`}>
@@ -95,6 +97,24 @@ export function AppointmentCard({ appointment, onChange, onOpenFicha, showDate =
                 Seña {store.formatPrice(required)}
               </Badge>
             )}
+            {/* Comprobante de la seña: lo guarda MJ Medios de Pago y se revisa en su bandeja. */}
+            {receipt && (() => {
+              const badge = (
+                <Badge
+                  tone={receipt.state === 'aprobado' ? 'success' : receipt.state === 'rechazado' ? 'danger' : 'warning'}
+                  icon={Receipt}
+                >
+                  {receipt.files?.length ? `${receipt.nounTitle}: ${receipt.stateLabel}` : `Sin ${receipt.noun}`}
+                </Badge>
+              );
+              return receipt.reviewUrl ? (
+                <a href={receipt.reviewUrl} target="_blank" rel="noopener noreferrer" title={`Revisar el ${receipt.noun}`}>
+                  {badge}
+                </a>
+              ) : (
+                badge
+              );
+            })()}
             {a.source === 'web' && (
               <Badge tone="neutral" icon={Globe} title="Reservado desde la web">
                 Web

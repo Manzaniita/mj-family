@@ -97,6 +97,7 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 | MJ Colegas | Colegas → Ajustes | Nombre del proyecto, etiquetas, comisión, textos. |
 | MJ Dólar | WooCommerce → Dólar | Tipo de cambio, redondeo, cotización de referencia y su proveedor. |
 | MJ Medios de Pago | WooCommerce → Medios de pago | Recargos y descuentos por medio de pago. |
+| MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos, qué pasa al aprobar, quién puede revisarlos, mails y WhatsApp, cuánto se guardan, y las equivalencias con los métodos de MJ ERP. |
 | MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. |
 | MJ ERP | MJ ERP → Ajustes | Ventas, costeo, proveedores, consignación y permisos del revendedor (por rol y por usuario). |
@@ -123,6 +124,12 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Datos que recibe la tienda (`window.MJ`) | — | `mj_app_config` |
 | Proveedor de la cotización del dólar | `MJD_SUGGEST_ENDPOINT` | `mjd_suggest_endpoint`, `mjd_suggest_sources` |
 | Achique de fotos desde el celular | — | `mj_fotos_rapidas_ajustes` |
+| Tope de subidas de comprobante por IP y hora | — | `mjpm_receipt_rate_limit` |
+| Dónde se carga el widget de comprobantes | — | `mjpm_enqueue_uploader` |
+| Contextos que pueden pedir un comprobante | — | `mjpm_receipt_contexts` |
+| Regla del comprobante de un pedido | — | `mjpm_order_receipt_requirement` |
+| Regla del comprobante de un pago de reventa | — | `mjerp_payment_receipt_requirement` |
+| Regla del comprobante de una seña | — | `mjto_receipt_requirement` |
 
 Ejemplo — dejar los ajustes del tema solo para quien administre la tienda:
 
@@ -144,3 +151,10 @@ Para que quede claro dónde está el límite:
   rompe la navegación.
 - **Las reglas de negocio** (cómo se calcula un total, cuándo un turno queda
   pendiente, cómo se liquida a un colega). Eso es el producto, no un ajuste.
+- **Que aprobar una compra sea una decisión tuya.** Un comprobante aprobado no
+  da la compra por cobrada solo: un archivo por la mitad del monto no debería
+  cerrar una venta. Los archivos se marcan con lo que decidas, pero el botón lo
+  apretás vos.
+- **Dónde se guardan los comprobantes.** Van a una carpeta privada, nunca a la
+  Biblioteca de Medios: son datos bancarios de tus clientes y las URLs de
+  uploads son públicas.

@@ -63,6 +63,17 @@ class MJERP_Permissions {
 				'help'  => __( 'Vacío = todos los medios de pago configurados.', 'mj-erp' ),
 				'type'  => 'methods',
 			),
+			'payment_receipt'        => array(
+				'label'   => __( 'Comprobante del pago', 'mj-erp' ),
+				'help'    => __( 'Heredar usa la regla del medio de pago equivalente en MJ Medios de Pago. Necesita ese plugin activo.', 'mj-erp' ),
+				'type'    => 'enum',
+				'options' => array(
+					'heredar'     => __( 'Heredar del medio de pago', 'mj-erp' ),
+					'no'          => __( 'No le pedimos comprobante', 'mj-erp' ),
+					'opcional'    => __( 'Puede adjuntarlo', 'mj-erp' ),
+					'obligatorio' => __( 'Tiene que adjuntarlo', 'mj-erp' ),
+				),
+			),
 			'returns'                => array(
 				'label' => __( 'Informar devoluciones', 'mj-erp' ),
 				'help'  => __( 'Puede avisar que devuelve mercadería que no vendió.', 'mj-erp' ),

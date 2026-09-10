@@ -238,6 +238,7 @@ class MJERP_Settings {
 					'partial_payments'       => true,
 					'payment_needs_approval' => true,
 					'payment_methods'        => array(),
+					'payment_receipt'        => 'heredar',
 					'returns'                => false,
 					'see_account'            => true,
 					'shop_consignment'       => true,
@@ -1216,6 +1217,10 @@ class MJERP_Settings {
 
 				case 'price_mode':
 					$out[ $key ] = self::enum( $raw, array( 'heredar', 'publico', 'lista' ), 'heredar' );
+					break;
+
+				case 'payment_receipt':
+					$out[ $key ] = self::enum( $raw, array( 'heredar', 'no', 'opcional', 'obligatorio' ), 'heredar' );
 					break;
 
 				case 'price_list_key':

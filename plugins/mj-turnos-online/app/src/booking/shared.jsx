@@ -8,7 +8,7 @@
  *    y la vista de estado.
  *  - Token en sessionStorage (para "Ver el estado de mi turno" en el shortcode).
  */
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, CheckCircle2, CreditCard, MessageCircle, AlertTriangle, Info, XCircle } from 'lucide-react';
 import { BOOT, CUR, HOME_URL, REST_URL } from '@/lib/config';
 import { publicApi } from '@/lib/api';
@@ -399,7 +399,51 @@ export function Summary({ item, title, className, compact = false }) {
  * @param {{ deposit: { amount, instructions, link, deadline, deadlineLabel }, token, whatsapp?: { url },
  *   notified?: boolean, onNotified?: () => void, className? }} props
  */
-export function DepositCard({ deposit, token, whatsapp, notified = false, onNotified, className }) {
+/**
+ * Subida del comprobante de la seña.
+ *
+ * El widget lo trae MJ Medios de Pago (window.MJPM.uploader) y se monta sobre un
+ * div vacío: la subida, la validación de tipo y tamaño, y el estado de revisión
+ * los maneja ese plugin, igual que en la tienda. Acá solo se le da un lugar.
+ *
+ * El `token` viene del servidor junto al estado del turno, así que la clienta
+ * puede subir sin tener cuenta.
+ *
+ * @param {{ receipt: Object|null, className?: string }} props
+ */
+export function ReceiptUploader({ receipt, className }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || !receipt) return;
+    const uploader = window.MJPM?.uploader;
+    if (!uploader) return;
+    try {
+      uploader.mount(node);
+    } catch (e) {
+      /* Que el widget falle no puede romper la página del turno. */
+    }
+  }, [receipt]);
+
+  if (!receipt || !receipt.objectId) return null;
+  /* Sin el plugin cargado no dibujamos una caja vacía. */
+  if (typeof window !== 'undefined' && !window.MJPM?.uploader) return null;
+
+  return (
+    <div
+      className={cn('mjto-receipt', className)}
+      ref={ref}
+      data-mjpm-uploader
+      data-context={receipt.context || 'turno'}
+      data-objeto={receipt.objectId}
+      data-token={receipt.token || ''}
+      data-title={receipt.nounTitle || ''}
+    />
+  );
+}
+
+export function DepositCard({ deposit, receipt, token, whatsapp, notified = false, onNotified, className }) {
   const { t, priceOf } = useBooking();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -444,13 +488,15 @@ export function DepositCard({ deposit, token, whatsapp, notified = false, onNoti
             {t('booking_whatsapp_button')}
           </Button>
         )}
-        {!notified && token && (
+        {!notified && token && !receipt?.required && (
           <Button variant="soft" onClick={notify} loading={busy} icon={CheckCircle2} className="sm:flex-1">
             {t('booking_notified_button')}
           </Button>
         )}
       </div>
-      {notified && <Alert tone="success" className="mt-3">{t('booking_notified_done')}</Alert>}
+      {/* Con comprobante obligatorio, el aviso lo da la subida misma. */}
+      <ReceiptUploader receipt={receipt} className="mt-4" />
+      {notified && !receipt?.required && <Alert tone="success" className="mt-3">{t('booking_notified_done')}</Alert>}
       {error && <Alert tone="danger" className="mt-3">{error}</Alert>}
     </section>
   );

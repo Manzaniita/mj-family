@@ -2,14 +2,14 @@
 /**
  * Plugin Name: MJ Turnos Online
  * Description: Reserva de turnos online con agenda, ficha técnica por clienta, seña, recordatorios y panel para la dueña. La clienta elige servicio, día y hora desde /turnos; la administradora entra a la misma URL y ve el panel. Se integra con el tema MJ Appearance (menú, portada, página de servicios) y funciona con cualquier tema mediante el shortcode [mj_turnos]. No necesita WooCommerce.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: MJ
  * Text Domain: mj-turnos-online
  */
 
 defined('ABSPATH') || exit;
 
-define('MJTO_VERSION', '1.1.0');
+define('MJTO_VERSION', '1.2.0');
 define('MJTO_FILE', __FILE__);
 define('MJTO_DIR', plugin_dir_path(__FILE__));
 define('MJTO_URL', plugin_dir_url(__FILE__));
@@ -22,6 +22,7 @@ require_once MJTO_DIR . 'inc/services.php';      // CPT mjto_service + metabox +
 require_once MJTO_DIR . 'inc/availability.php';  // Motor de disponibilidad.
 require_once MJTO_DIR . 'inc/bookings.php';      // Crear reserva, estados, ficha automática, seña.
 require_once MJTO_DIR . 'inc/notifications.php'; // Plantillas, mails, links de WhatsApp, cron.
+require_once MJTO_DIR . 'inc/receipts.php';      // Comprobante de la seña (sobre MJ Medios de Pago).
 require_once MJTO_DIR . 'inc/rest.php';          // REST mjto/v1 (público + panel).
 require_once MJTO_DIR . 'inc/panel.php';         // Intercepción de /{slug} para el panel + export CSV.
 require_once MJTO_DIR . 'inc/frontend.php';      // Integración con MJ Appearance + shortcode [mj_turnos].

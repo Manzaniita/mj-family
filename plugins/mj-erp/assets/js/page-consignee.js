@@ -292,6 +292,29 @@
 		'</tbody></table></div>';
 	}
 
+	/**
+	 * Estado del comprobante de un pago, con link a la bandeja de MJ Medios de
+	 * Pago, que es donde se aprueba o se rechaza. Devuelve '' cuando ese pago no
+	 * pide comprobante o el plugin no está instalado.
+	 *
+	 * @param {Object} payment Pago.
+	 * @returns {string} HTML.
+	 */
+	function receiptHint(payment) {
+		const r = payment && payment.receipt;
+		if (!r) return '';
+
+		const tone = r.state === 'aprobado' ? 'success' : (r.state === 'rechazado' ? 'danger' : 'warning');
+		const label = r.count > 0
+			? (r.noun_title || 'Comprobante') + ': ' + (r.state_label || '')
+			: 'Sin ' + (r.noun || 'comprobante');
+		const badge = MJ.ui.badgeRaw(label, r.count > 0 ? tone : 'neutral');
+
+		return ' ' + (r.review_url
+			? '<a class="mj-receipt-link" href="' + h(r.review_url) + '" target="_blank" rel="noopener" title="Revisar el comprobante">' + badge + '</a>'
+			: badge);
+	}
+
 	function paymentsHtml(payments) {
 		const rows = (payments && payments.items) || [];
 		if (!rows.length) {
@@ -347,6 +370,7 @@
 						: '<div>' + h(payment.method_label || '') + '</div>' +
 						  (payment.reference ? '<div class="mj-small mj-muted mj-truncate">' + h(payment.reference) + '</div>' : '')) +
 					(payment.is_declared ? ' ' + MJ.ui.badgeRaw('A confirmar', 'warning') : '') +
+					receiptHint(payment) +
 				'</td>' +
 				'<td class="is-num">' + h(MJ.fmt.money(amount, payment.currency)) +
 					(sameCurrency ? '' : '<div class="mj-small mj-muted">TC ' + h(MJ.fmt.rate(payment.rate)) + '</div>') + '</td>' +

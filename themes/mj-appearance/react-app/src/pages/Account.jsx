@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { ReceiptUploader } from '@/components/ui/ReceiptUploader';
 import { Reveal } from '@/components/motion/Reveal';
 import { useAuth, useWishlist, useCatalog, useCart, useUI } from '@/store';
 import { ProductGrid } from '@/components/product/ProductGrid';
@@ -417,6 +418,17 @@ export function AccountOrderDetail() {
         <div className="mj-panel mt-6 rounded-xl3 border border-line glass p-6">
           <h3 className="font-display text-lg font-semibold">Cómo pagar{order.paymentMethodTitle ? ` · ${order.paymentMethodTitle}` : ''}</h3>
           <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{order.paymentInstructions}</p>
+        </div>
+      )}
+
+      {/* Comprobante de pago: lo maneja el plugin MJ Medios de Pago. */}
+      {order.receipt && (
+        <div className="mj-panel mt-6 rounded-xl3 border border-line glass p-6">
+          <ReceiptUploader
+            objectId={order.receipt.objectId}
+            context={order.receipt.context}
+            title={`${order.receipt.nounTitle} de pago`}
+          />
         </div>
       )}
 

@@ -129,6 +129,7 @@ export default function StatusView({ token, onBack, onForget, onStatusChange }) 
             {status === 'awaiting_deposit' && depositRequired && (
               <DepositCard
                 deposit={deposit}
+                receipt={data.receipt}
                 token={token}
                 whatsapp={data.whatsapp}
                 notified={!!data.depositNotified}

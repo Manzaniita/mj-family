@@ -1,0 +1,331 @@
+/**
+ * Bandeja y ajustes de comprobantes (wp-admin).
+ *
+ * Cada compra es un panel con la foto grande del comprobante a la izquierda:
+ * la decisión se toma mirando el archivo, así que el archivo manda.
+ */
+
+.mjpm-rc-wrap .mjpm-rc-title {
+	margin-bottom: .25rem;
+}
+
+.mjpm-rc-tabs {
+	margin: 1rem 0 1.5rem;
+}
+
+.mjpm-rc-count {
+	display: inline-block;
+	min-width: 18px;
+	padding: 0 5px;
+	margin-left: 4px;
+	border-radius: 9px;
+	background: #d63638;
+	color: #fff;
+	font-size: 11px;
+	line-height: 18px;
+	text-align: center;
+	font-weight: 600;
+}
+
+.mjpm-rc-filters {
+	margin: 0 0 .75rem;
+}
+
+.mjpm-rc-search {
+	display: flex;
+	gap: .5rem;
+	align-items: center;
+	flex-wrap: wrap;
+	margin-bottom: 1rem;
+}
+
+.mjpm-rc-blank {
+	padding: 2.5rem 1.5rem;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	text-align: center;
+	color: #50575e;
+}
+
+/* -------------------------------- Paneles -------------------------------- */
+
+.mjpm-rc-panel {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	padding: 1rem 1.25rem 1.25rem;
+	margin-bottom: 1rem;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+}
+
+.mjpm-rc-panel.is-inline {
+	border: 0;
+	box-shadow: none;
+	padding: 0;
+	margin: 0;
+}
+
+.mjpm-rc-panel__head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	flex-wrap: wrap;
+	padding-bottom: .75rem;
+	margin-bottom: .75rem;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.mjpm-rc-panel__who {
+	margin: 0;
+	font-size: 14px;
+}
+
+.mjpm-rc-panel__mail {
+	margin-left: .5rem;
+	color: #646970;
+	font-weight: 400;
+}
+
+.mjpm-rc-panel__what {
+	margin: .2rem 0 0;
+	color: #646970;
+	font-size: 13px;
+}
+
+.mjpm-rc-empty {
+	margin: 0;
+	color: #646970;
+	font-size: 13px;
+}
+
+.mjpm-rc-dash {
+	color: #a7aaad;
+}
+
+/* --------------------------------- Pills --------------------------------- */
+
+.mjpm-rc-pill {
+	display: inline-block;
+	padding: 2px 9px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.7;
+	text-decoration: none;
+	border: 1px solid currentColor;
+	white-space: nowrap;
+}
+
+.mjpm-rc-pill.is-pendiente { color: #8a5a00; background: #fcf4e4; }
+.mjpm-rc-pill.is-aprobado  { color: #0f7b3f; background: #edf8f1; }
+.mjpm-rc-pill.is-rechazado { color: #b42318; background: #fdf0ef; }
+
+/* -------------------------------- Archivos -------------------------------- */
+
+.mjpm-rc-files {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: .75rem;
+}
+
+.mjpm-rc-file {
+	display: flex;
+	gap: 1rem;
+	align-items: flex-start;
+	padding: .75rem;
+	border: 1px solid #f0f0f1;
+	border-radius: 6px;
+	background: #fbfbfc;
+}
+
+.mjpm-rc-file.is-rechazado { background: #fdf7f7; }
+.mjpm-rc-file.is-aprobado  { background: #f7fbf8; }
+
+.mjpm-rc-file__thumb {
+	flex: 0 0 110px;
+	width: 110px;
+}
+
+.mjpm-rc-file__thumb img {
+	display: block;
+	width: 110px;
+	height: 110px;
+	object-fit: cover;
+	border-radius: 5px;
+	border: 1px solid #dcdcde;
+	background: #fff;
+}
+
+.mjpm-rc-file__doc {
+	display: grid;
+	place-items: center;
+	width: 110px;
+	height: 110px;
+	border-radius: 5px;
+	border: 1px solid #dcdcde;
+	background: #fff;
+	font-weight: 700;
+	font-size: 13px;
+	color: #b42318;
+	text-decoration: none;
+	letter-spacing: .04em;
+}
+
+.mjpm-rc-file__doc.is-gone {
+	color: #a7aaad;
+	border-style: dashed;
+}
+
+.mjpm-rc-file__body {
+	flex: 1 1 18rem;
+	min-width: 0;
+}
+
+.mjpm-rc-file__name {
+	margin: 0 0 .3rem;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: .5rem;
+	flex-wrap: wrap;
+	overflow-wrap: anywhere;
+}
+
+.mjpm-rc-file__meta {
+	margin: 0;
+	display: flex;
+	gap: .85rem;
+	flex-wrap: wrap;
+	color: #646970;
+	font-size: 12px;
+}
+
+.mjpm-rc-gone {
+	color: #b42318;
+}
+
+.mjpm-rc-file__note {
+	margin: .35rem 0 0;
+	font-size: 13px;
+	font-style: italic;
+	color: #3c434a;
+}
+
+.mjpm-rc-file__reason {
+	margin: .35rem 0 0;
+	font-size: 13px;
+	color: #b42318;
+}
+
+.mjpm-rc-file__actions,
+.mjpm-rc-decide__actions {
+	display: flex;
+	gap: .5rem;
+	align-items: center;
+	flex-wrap: wrap;
+	margin-top: .6rem;
+}
+
+.mjpm-rc-form {
+	display: inline-flex;
+	align-items: center;
+	gap: .35rem;
+	margin: 0;
+}
+
+.mjpm-rc-reject__box {
+	display: inline-flex;
+	gap: .35rem;
+	align-items: center;
+}
+
+.mjpm-rc-reject__input {
+	min-width: 16rem;
+}
+
+.mjpm-rc-danger {
+	color: #b42318 !important;
+}
+
+/* -------------------------------- Decisión -------------------------------- */
+
+.mjpm-rc-decide {
+	margin-top: 1rem;
+	padding-top: .9rem;
+	border-top: 1px solid #f0f0f1;
+}
+
+.mjpm-rc-decide__title {
+	margin: 0;
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.mjpm-rc-decide__help {
+	margin: .2rem 0 0;
+	color: #646970;
+	font-size: 12px;
+}
+
+.mjpm-rc-wa {
+	color: #0f7b3f !important;
+	border-color: #0f7b3f !important;
+}
+
+/* --------------------------------- Ajustes -------------------------------- */
+
+.mjpm-rc-card {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	padding: .5rem 1.25rem 1.25rem;
+	margin-bottom: 1.5rem;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+	max-width: 1100px;
+}
+
+.mjpm-rc-card h2 {
+	margin-top: 1rem;
+}
+
+.mjpm-rc-bajada {
+	max-width: 70ch;
+	color: #50575e;
+}
+
+.mjpm-rc-inline {
+	display: inline-block;
+	margin-right: 1rem;
+	white-space: nowrap;
+}
+
+.mjpm-rc-placeholders {
+	padding: .75rem 1rem;
+	background: #f6f7f7;
+	border-radius: 6px;
+	font-size: 13px;
+	max-width: 70ch;
+}
+
+.mjpm-rc-placeholders code {
+	margin-right: .2rem;
+}
+
+.mjpm-rc-methods td,
+.mjpm-rc-mapping td {
+	vertical-align: top;
+}
+
+.mjpm-rc-textarea {
+	width: 100%;
+	min-width: 14rem;
+}
+
+.mjpm-rc-off {
+	color: #b42318;
+	font-size: 12px;
+}

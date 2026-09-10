@@ -300,6 +300,10 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 	 * @return array
 	 */
 	protected function abilities() : array {
+		$consignee = $this->current_consignee();
+		$consignee = is_array( $consignee ) ? $consignee : null;
+		$user_id   = $consignee ? (int) $consignee['user_id'] : 0;
+
 		return array(
 			'report_sale'            => $this->can( 'report_sale' ),
 			'register_payment'       => $this->can( 'register_payment' ),
@@ -307,6 +311,13 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 			'payment_needs_approval' => $this->can( 'payment_needs_approval' ),
 			'returns'                => $this->can( 'returns' ),
 			'see_account'            => $this->can( 'see_account' ),
+			/* Qué comprobante se le va a pedir cuando declare un pago. */
+			'payment_receipt'        => class_exists( 'MJERP_Receipts' ) && MJERP_Receipts::available()
+				? (string) MJERP_Permissions::value( 'payment_receipt', $user_id, $consignee, 'heredar' )
+				: 'no',
+			'receipt_noun'           => class_exists( 'MJPM_Receipts' ) && MJERP_Receipts::available()
+				? MJPM_Receipts::noun()
+				: '',
 		);
 	}
 
@@ -466,14 +477,33 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 			array(
 				'account'   => $this->public_account( MJERP_Consignment_Account::summary( $id ) ),
 				'statement' => MJERP_Consignment_Account::statement( $id, $this->int( $p, 'limit', 100 ) ),
-				'payments'  => MJERP_Consignment_Payments_Repo::query(
-					array(
-						'consignee_id' => $id,
-						'per_page'     => min( 100, max( 1, $this->int( $p, 'limit', 100 ) ) ),
+				'payments'  => $this->with_receipts(
+					MJERP_Consignment_Payments_Repo::query(
+						array(
+							'consignee_id' => $id,
+							'per_page'     => min( 100, max( 1, $this->int( $p, 'limit', 100 ) ) ),
+						)
 					)
 				),
 			)
 		);
+	}
+
+	/**
+	 * Agrega a cada pago su bloque de comprobante, para que el portal pueda
+	 * pintar el widget de subida y el estado sin pedir nada más.
+	 *
+	 * @param array $result Resultado de la consulta de pagos.
+	 * @return array
+	 */
+	protected function with_receipts( array $result ) : array {
+		if ( ! class_exists( 'MJERP_Receipts' ) || ! MJERP_Receipts::available() || empty( $result['items'] ) ) {
+			return $result;
+		}
+		foreach ( $result['items'] as $index => $payment ) {
+			$result['items'][ $index ]['receipt'] = MJERP_Receipts::payload( $payment );
+		}
+		return $result;
 	}
 
 	/**
@@ -490,11 +520,13 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 		$p = $this->params( $request );
 
 		return $this->ok(
-			MJERP_Consignment_Payments_Repo::query(
-				array(
-					'consignee_id' => $this->consignee_id(),
-					'page'         => $this->int( $p, 'page', 1 ),
-					'per_page'     => min( 100, max( 1, $this->int( $p, 'per_page', 30 ) ) ),
+			$this->with_receipts(
+				MJERP_Consignment_Payments_Repo::query(
+					array(
+						'consignee_id' => $this->consignee_id(),
+						'page'         => $this->int( $p, 'page', 1 ),
+						'per_page'     => min( 100, max( 1, $this->int( $p, 'per_page', 30 ) ) ),
+					)
 				)
 			)
 		);
@@ -572,11 +604,23 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 			return $payment_id;
 		}
 
+		/*
+		 * El comprobante se sube DESPUÉS, contra el pago ya creado: el archivo
+		 * necesita un id al que pegarse, y así el revendedor puede declarar el
+		 * pago ahora y mandar la foto cuando la tenga a mano.
+		 */
+		$receipt = null;
+		if ( class_exists( 'MJERP_Receipts' ) && MJERP_Receipts::available() ) {
+			$saved   = MJERP_Consignment_Payments_Repo::find( (int) $payment_id );
+			$receipt = $saved ? MJERP_Receipts::payload( $saved ) : null;
+		}
+
 		return $this->ok(
 			array(
 				'id'          => $payment_id,
 				'status'      => $status,
 				'needs_approval' => MJERP_Consignment_Payments_Repo::STATUS_DECLARED === $status,
+				'receipt'     => $receipt,
 				'account'     => $this->public_account( MJERP_Consignment_Account::summary( $id ) ),
 			),
 			201
@@ -601,6 +645,11 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 		}
 		if ( ! $payment['is_declared'] ) {
 			return $this->fail( 'mjerp_payment_confirmed', __( 'Ese pago ya fue confirmado: hablalo con el administrador.', 'mj-erp' ), 409 );
+		}
+
+		/* El comprobante se va con el pago que deshace. */
+		if ( class_exists( 'MJPM_Receipts' ) && class_exists( 'MJERP_Receipts' ) ) {
+			MJPM_Receipts::delete_for_object( MJERP_Receipts::CONTEXT, (int) $payment['id'] );
 		}
 
 		$result = MJERP_Consignment_Payments_Repo::delete( (int) $payment['id'] );
