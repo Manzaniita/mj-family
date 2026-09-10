@@ -246,7 +246,7 @@ class MJERP_Orders {
 				'currency'     => $sale['currency'],
 				'rate'         => $sale['rate'],
 				'method'       => $sale['payment_method'],
-				'cashbox_id'   => MJERP_Settings::get( 'sales_default_cashbox', 0 ),
+				// cashbox_id omitted on purpose: the repo puts it in the box its method points at.
 				'reference'    => (string) $order->get_transaction_id(),
 				'note'         => (string) $order->get_payment_method_title(),
 				'payment_date' => $sale['sale_date'],

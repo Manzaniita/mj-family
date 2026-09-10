@@ -23,6 +23,44 @@ class MJERP_Helpers {
 	 * @param float $default Value returned when the input cannot be parsed.
 	 * @return float
 	 */
+	/**
+	 * A quantity written the short way: 3 instead of 3.0000, 2.5 instead of 2.5000.
+	 *
+	 * Las cantidades se guardan con cuatro decimales porque hay rubros que venden por peso, pero
+	 * al leerlo en pantalla «quedan 1 unidades» tiene que decir 1 y no 1.0000.
+	 *
+	 * @param float $value    Quantity.
+	 * @param int   $decimals Maximum decimals to keep.
+	 * @return string
+	 */
+	/**
+	 * Un importe en moneda base escrito como se lee: "US$ 14,01".
+	 *
+	 * Se usa en los textos que van a la bitácora del revendedor, que se guardan ya redactados:
+	 * el importe de ese día tiene que quedar congelado en la frase, no recalcularse después.
+	 *
+	 * @param float $value Importe en moneda base.
+	 * @return string
+	 */
+	public static function money_base( $value ) {
+		$currency = class_exists( 'MJERP_Settings' ) ? strtoupper( (string) MJERP_Settings::get( 'base_currency', 'USD' ) ) : 'USD';
+		$symbols  = class_exists( 'MJERP_Settings' ) ? (array) MJERP_Settings::get( 'currency_symbols', array() ) : array();
+		$symbol   = isset( $symbols[ $currency ] ) && '' !== (string) $symbols[ $currency ] ? (string) $symbols[ $currency ] : $currency;
+		$amount   = (float) $value;
+		$decimals = ( abs( $amount - round( $amount ) ) < 0.005 ) ? 0 : 2;
+
+		return $symbol . ' ' . number_format_i18n( $amount, $decimals );
+	}
+
+	public static function trim_number( $value, $decimals = 4 ) {
+		$decimals  = max( 0, min( 8, (int) $decimals ) );
+		$formatted = number_format( (float) $value, $decimals, '.', '' );
+		if ( $decimals > 0 && false !== strpos( $formatted, '.' ) ) {
+			$formatted = rtrim( rtrim( $formatted, '0' ), '.' );
+		}
+		return '' === $formatted ? '0' : $formatted;
+	}
+
 	public static function to_float( $value, $default = 0.0 ) {
 		if ( is_int( $value ) || is_float( $value ) ) {
 			return (float) $value;

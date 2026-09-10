@@ -3,11 +3,11 @@
         "Slug":  "mj-appearance",
         "Name":  "MJ Appearance",
         "Type":  "theme",
-        "Version":  "3.8.0",
+        "Version":  "3.9.0",
         "Parent":  null,
-        "Zip":  "mj-appearance-3.8.0.zip",
+        "Zip":  "mj-appearance-3.9.0.zip",
         "SizeKB":  460,
-        "Sha256":  "bdacbe47db4c3b1b7802e42f5a6fa9f4514c3a1ed9fa0c134555334f0d40a371"
+        "Sha256":  "07a5055063b18216fb24b89da4f6fcf0dd488f8dd839e180236f27eab87cfe14"
     },
     {
         "Slug":  "mj-atelier",
@@ -17,7 +17,7 @@
         "Parent":  "mj-appearance",
         "Zip":  "mj-atelier-1.1.0.zip",
         "SizeKB":  607,
-        "Sha256":  "b77032acb491f6686f0dfa45729d0d7f936a97bf808aefabdce35189ac676fba"
+        "Sha256":  "ff57de6b4c156a033f1636aee0cf2668c99ca62675227571b5fa184da07b5278"
     },
     {
         "Slug":  "mj-colegas",
@@ -27,7 +27,7 @@
         "Parent":  null,
         "Zip":  "mj-colegas-1.0.0.zip",
         "SizeKB":  22,
-        "Sha256":  "3cfbfb8a225f42ea7900b50d0b0500ccc65f55f1b19a6cd5d01821792e2a852e"
+        "Sha256":  "cf42e2cadf8870b71aa0e4266c0937292ca33d160adcf3fea152f0eacd3c1297"
     },
     {
         "Slug":  "mj-dolar",
@@ -37,17 +37,17 @@
         "Parent":  null,
         "Zip":  "mj-dolar-1.0.0.zip",
         "SizeKB":  41,
-        "Sha256":  "ea34406723040091e9f0c4316e07c4afaa1addad06a5f9d0f8f8a13048016310"
+        "Sha256":  "041536260879142c2bf17e367efd53ff673a3db057c742b876db64a9dc338199"
     },
     {
         "Slug":  "mj-erp",
         "Name":  "MJ ERP",
         "Type":  "plugin",
-        "Version":  "1.5.0",
+        "Version":  "1.8.0",
         "Parent":  null,
-        "Zip":  "mj-erp-1.5.0.zip",
-        "SizeKB":  437,
-        "Sha256":  "55815fdf9ec8c73f10dee6e2c143bda0f2a3b537960dcb08cfd5e6e68b6a1115"
+        "Zip":  "mj-erp-1.8.0.zip",
+        "SizeKB":  463,
+        "Sha256":  "6f704e5a277fb03f6a219b36ee0615efbd7669b641ba2f708e3064976a991b65"
     },
     {
         "Slug":  "mj-fotos-rapidas",
@@ -57,7 +57,7 @@
         "Parent":  null,
         "Zip":  "mj-fotos-rapidas-1.2.0.zip",
         "SizeKB":  7,
-        "Sha256":  "93158e4ec54ee632388211e2a5b80f011ea60276e221464e1515664df114fc04"
+        "Sha256":  "115b06fc8231eea2817ecaa037df7e37783f51d146d6ded0aae9525b732cf106"
     },
     {
         "Slug":  "mj-glossyhair",
@@ -67,17 +67,17 @@
         "Parent":  "mj-appearance",
         "Zip":  "mj-glossyhair-1.1.0.zip",
         "SizeKB":  90,
-        "Sha256":  "6c83a7e97c463ce0783969242d84845197e8fa89ace0377aad90842ad1e1c974"
+        "Sha256":  "c9fab83b7e29e074165c1dd155f8b866a967ad0f73575a829c3f4a3cac7958ab"
     },
     {
         "Slug":  "mj-medios-pago",
         "Name":  "MJ Medios de Pago",
         "Type":  "plugin",
-        "Version":  "1.1.0",
+        "Version":  "1.2.0",
         "Parent":  null,
-        "Zip":  "mj-medios-pago-1.1.0.zip",
+        "Zip":  "mj-medios-pago-1.2.0.zip",
         "SizeKB":  87,
-        "Sha256":  "f965b5767317d0deb55b636f925ded7970c4294f06e2ab3116d657a5d15f2cf4"
+        "Sha256":  "ab8df117627185e8a837824018ab32d92e797647d4eac5bd637e6ff7121806d7"
     },
     {
         "Slug":  "mj-optimizador-imagenes",
@@ -87,7 +87,7 @@
         "Parent":  null,
         "Zip":  "mj-optimizador-imagenes-1.1.0.zip",
         "SizeKB":  46,
-        "Sha256":  "61a04cc9182ea75619f88828daff8c65fd9d80a7cea0da419ea1c6ef9f4e6a98"
+        "Sha256":  "04532140a269d261f1632ae695b207f5a1e41d620e11a2972647046a35f55211"
     },
     {
         "Slug":  "mj-turnos-online",
@@ -97,7 +97,7 @@
         "Parent":  null,
         "Zip":  "mj-turnos-online-1.2.0.zip",
         "SizeKB":  235,
-        "Sha256":  "a5ba289d4e6b75f0e0d0b535dbf6293704e504c1fc369d85f6ba5e8073b029b9"
+        "Sha256":  "47f103a52635724053b6d61cae498e14222ea5762a24a64763e67a8296156e0a"
     },
     {
         "Slug":  "mj-yamana",
@@ -107,6 +107,6 @@
         "Parent":  "mj-appearance",
         "Zip":  "mj-yamana-1.1.0.zip",
         "SizeKB":  328,
-        "Sha256":  "09bab4b24151f5b3d2c5b13532ed383fb21a998a1e38dc0c958f6122ed42b904"
+        "Sha256":  "6348b4df7207834d5a5243ebb312663f057f897fae8a1ad8d57711d2991c1907"
     }
 ]

@@ -86,6 +86,24 @@ export const SITE = {
   locale: WP?.locale || 'es-AR',
 };
 
+/**
+ * Accesos extra en «Mi cuenta» que agregan los plugins MJ (filtro `mj_account_links`).
+ * Cada uno es `{ key, label, href, description }` y se dibuja al final del menú lateral,
+ * debajo de los ítems propios de la tienda.
+ *
+ * Existe porque un cliente puede ser además otra cosa —hoy revendedor de MJ ERP— y esa
+ * pantalla tiene que poder encontrarse desde su cuenta, sin que el tema sepa qué plugins
+ * hay instalados. Sin plugins, la lista viene vacía y el menú queda igual que siempre.
+ */
+export const ACCOUNT_LINKS = (Array.isArray(WP?.accountLinks) ? WP.accountLinks : [])
+  .map((link) => ({
+    key: String(link?.key || link?.href || ''),
+    label: String(link?.label || ''),
+    href: String(link?.href || ''),
+    description: String(link?.description || ''),
+  }))
+  .filter((link) => link.label && link.href);
+
 /* ---------------------------------------------------------------------------
  * Presentación: tema por defecto, skin activa, nivel de animación e intro.
  *

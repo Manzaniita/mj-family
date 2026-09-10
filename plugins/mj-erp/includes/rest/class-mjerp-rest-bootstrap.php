@@ -183,10 +183,15 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 			$info['declared_count'] = class_exists( 'MJERP_Sale_Payments_Repo' ) ? MJERP_Sale_Payments_Repo::declared_count() : 0;
 		}
 
+		$default_method = (string) MJERP_Helpers::array_get( $settings, 'sales_default_payment_method', 'efectivo' );
+
 		$info['defaults'] = array(
 			'channel'        => (string) MJERP_Helpers::array_get( $settings, 'sales_default_channel', 'mostrador' ),
-			'payment_method' => (string) MJERP_Helpers::array_get( $settings, 'sales_default_payment_method', 'efectivo' ),
-			'cashbox_id'     => (int) MJERP_Helpers::array_get( $settings, 'sales_default_cashbox', 0 ),
+			'payment_method' => $default_method,
+			// The box of the default method, not the general one: the form opens already pointing
+			// where that money actually goes.
+			'cashbox_id'     => (int) MJERP_Settings::cashbox_for_method( $default_method, 'sales' ),
+			'fallback_cashbox_id' => (int) MJERP_Helpers::array_get( $settings, 'sales_default_cashbox', 0 ),
 			'price_list'     => (string) MJERP_Helpers::array_get( $settings, 'sales_price_list', '' ),
 			'create_order'   => MJERP_Helpers::bool( MJERP_Helpers::array_get( $settings, 'sales_create_order', true ) ),
 			'rate'           => MJERP_Sales_Repo::default_rate( MJERP_Sales_Repo::shop_currency() ),

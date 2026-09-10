@@ -18,7 +18,7 @@ piel: paleta, tipografías y textos.
 
 | Tema | Versión | Qué es |
 | --- | --- | --- |
-| **MJ Appearance** | 3.7.0 | El motor. Tienda completa en React (una sola página) sobre la Store API de WooCommerce: catálogo, carrito, checkout con compra rápida, cuenta y turnos. Modo día/noche, niveles de animación y **todo** configurable desde Apariencia → MJ Appearance. |
+| **MJ Appearance** | 3.9.0 | El motor. Tienda completa en React (una sola página) sobre la Store API de WooCommerce: catálogo, carrito, checkout con compra rápida, cuenta y turnos. Modo día/noche, niveles de animación y **todo** configurable desde Apariencia → MJ Appearance. |
 | **GlossyHair** | 1.1.0 | Salón de alisados que además vende productos. Blanco y fucsia, Urbanist + Manrope. Portada pensada para turnos. |
 | **Yamana** | 1.1.0 | Tejidos artesanales y cursos. Lino y terracota, Fraunces + Nunito. Incluye el proyecto colectivo "Entre Hilos". |
 | **MJ Atelier** | 1.1.0 | Tienda editorial de lujo. Marfil y bronce, Fraunces + Manrope, movimiento cinematográfico. |
@@ -35,8 +35,8 @@ como paletas que se aplican con un botón y después se editan campo por campo.
 | **MJ Turnos Online** | 1.1.0 | Reserva de turnos con seña, fichas técnicas por visita y panel de agenda para quien atiende. |
 | **MJ Colegas** | 1.0.0 | Productos de terceros en la tienda: cada uno lleva quién lo hizo, y se liquida descontando la comisión. |
 | **MJ Dólar** | 1.0.0 | Precios cargados en dólares y convertidos con el tipo de cambio que decido yo. Campos USD en productos, variaciones, edición en lote y CSV. |
-| **MJ Medios de Pago** | 1.0.0 | Descuento o recargo según el medio de pago, con el precio reflejado en ficha, carrito y checkout. |
-| **MJ ERP** | 1.4.0 | Ventas (propias y de la tienda), costeo, compras, proveedores, stock y consignación, con portal para consignatarios. |
+| **MJ Medios de Pago** | 1.2.0 | Descuento o recargo según el medio de pago, con el precio reflejado en ficha, carrito y checkout. Cada medio de la tienda se declara equivalente a uno del ERP, y con eso hereda su caja de ingreso. |
+| **MJ ERP** | 1.8.0 | Ventas (propias y de la tienda), costeo, compras, proveedores, stock y consignación, con portal para consignatarios. Cada medio de pago tiene su caja de ingreso. |
 | **MJ Optimizador de Imágenes** | 1.1.0 | Achica y convierte las imágenes en mi propio servidor, sin límites ni créditos. |
 | **MJ Fotos Rápidas** | 1.2.0 | Cargar las fotos de un producto desde el celular en dos toques y publicarlo ahí mismo. |
 

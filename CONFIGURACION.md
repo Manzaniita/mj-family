@@ -100,7 +100,110 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 | MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos, qué pasa al aprobar, quién puede revisarlos, mails y WhatsApp, cuánto se guardan, y las equivalencias con los métodos de MJ ERP. |
 | MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. |
-| MJ ERP | MJ ERP → Ajustes | Ventas, costeo, proveedores, consignación y permisos del revendedor (por rol y por usuario). |
+| MJ ERP | MJ ERP → Ajustes | Ventas, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, y permisos del revendedor (por rol y por usuario). |
+
+---
+
+## 3.1. La caja de cada medio de pago
+
+Toda la plata que entra tiene que caer en alguna caja, y no en la misma: una
+transferencia va a la caja de transferencias, los dólares físicos a la caja de
+dólares. Eso se decide **una sola vez**, sobre el medio de pago.
+
+**Dónde:** MJ ERP → Configuración → Ventas → *Medios de pago*. Cada fila tiene
+ahora una columna **Caja de ingreso**. Lo mismo en Consignaciones → *Medios de
+cobro*.
+
+**Qué alcanza esa decisión**, sin configurar nada más:
+
+- Las ventas cargadas en el ERP (mostrador, WhatsApp, feria).
+- Los cobros contra una venta ya existente.
+- Los pagos que registra un revendedor desde su panel.
+- **Los pedidos de la tienda**, a través de la equivalencia gateway → método del
+  ERP que ya se carga en *WooCommerce → Comprobantes → Ajustes*. Esa pantalla
+  muestra en una columna a qué caja va a parar cada medio de la tienda, para
+  verificarlo de un vistazo.
+
+**Las reglas, en orden:**
+
+1. Si el medio de pago tiene una caja propia, esa.
+2. Si no, la que tenga el mismo medio en el otro catálogo (ventas ↔
+   consignaciones comparten las claves: `transferencia` es la misma plata venga
+   de un cliente o de un revendedor).
+3. Si no, la **Caja por defecto** de Ventas.
+4. Si tampoco hay, queda sin caja — igual que antes de esta función.
+
+Elegir la caja a mano en la pantalla de venta sigue mandando sobre todo lo
+anterior. Y una caja borrada nunca queda pegada: se cae al default sola.
+
+Un plugin puede cambiar la resolución con el filtro `mjerp_cashbox_for_method`.
+
+---
+
+## 3.2. Cómo funciona una consignación
+
+El circuito es el de la calle, no el de un formulario:
+
+1. **Entregás** mercadería a un revendedor. El stock de WooCommerce **no** baja:
+   las unidades siguen siendo tuyas, solo que están en otro lado.
+2. **El revendedor avisa lo que vendió** desde su panel. Eso vale desde el
+   momento en que lo carga: baja el stock de WooCommerce y le queda la deuda.
+   No espera que confirmes nada — la venta ya pasó.
+3. **El revendedor avisa lo que pagó.** *Eso* sí queda esperando: vos confirmás
+   que la plata entró, y recién ahí se le descuenta de la cuenta. Es lo único
+   que podés verificar de verdad.
+
+Nunca puede avisar más unidades de las que le entregaste. Una venta avisada
+reserva su unidad aunque todavía no esté confirmada, así que la misma unidad no
+se puede vender dos veces.
+
+**Lo que se puede cambiar** (MJ ERP → Configuración → Consignaciones):
+
+| Ajuste | Para qué |
+| --- | --- |
+| Qué ventas necesitan tu confirmación | Por defecto ninguna. Si querés revisar lo que carga el revendedor antes de que cuente, poné «Solo lo que carga el revendedor». |
+| Minutos para deshacer una venta | Como la venta cuenta al toque, este es el rato que tiene para arreglar un botón mal apretado. Un día por defecto; 0 lo desactiva. Nunca sobre una venta que ya tiene un pago aplicado. |
+| Dejar registrar más ventas que unidades entregadas | Apagado. Encendelo solo si vas a ordenar los papeles después. |
+| Stock al vender | Si cada venta descuenta de WooCommerce o no toca el stock. |
+
+Los pagos del revendedor esperan tu confirmación según el permiso
+**«El pago necesita mi confirmación»**, que se configura por rol y por persona
+en la ficha de cada revendedor.
+
+### Precios en pesos y el dólar
+
+La deuda de un revendedor se lleva **en dólares**. Los pesos que ves al lado son
+la lectura de hoy, no un segundo número guardado: si el dólar sube, la misma
+deuda se lee como más pesos.
+
+Por eso el precio acordado se puede **escribir en pesos**: ponés 22.000, el ERP
+lo divide por el dólar del momento y guarda US$ 14,01. Es lo que evita el
+centavo de diferencia que aparecía al cargar «14» a ojo y después cobrar 22.000.
+
+El dólar que usa es el de **MJ Dólar**; si ese plugin está apagado, el «TC de
+venta» de MJ ERP → Configuración → General.
+
+### Corregir lo ya cargado
+
+Desde la ficha del revendedor se puede editar y eliminar:
+
+- **El precio acordado** de cada línea entregada, incluso después de entregada.
+  Las ventas ya registradas conservan el precio que tenían: el nuevo rige de ahí
+  en adelante.
+- **Las ventas**: cantidad, precio, fecha y nota. No se puede tocar una venta que
+  ya tiene un pago aplicado — primero se quita el pago.
+- **Los pagos**: importe, moneda, tipo de cambio, fecha, medio y referencia. Al
+  guardar se vuelven a repartir sobre las ventas impagas.
+
+Cada corrección queda anotada en la **bitácora**, que el revendedor ve en su
+panel bajo «Novedades». No es opcional: si le cambiás el precio de algo que ya
+tiene, se tiene que enterar sin preguntarte.
+
+### Comprobantes
+
+Los comprobantes que sube el revendedor se ven **dentro del ERP**, en el botón
+de la fila del pago, con la imagen o el PDF y los botones de aprobar y rechazar.
+No hace falta entrar a wp-admin.
 
 ---
 
@@ -122,6 +225,8 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Quién ve la barra de administración | — | `mj_admin_bar_capability`, `mj_admin_bar_modes` |
 | Variables CSS por tema | — | `mj_design_vars` |
 | Datos que recibe la tienda (`window.MJ`) | — | `mj_app_config` |
+| Accesos extra en «Mi cuenta» de la tienda | — | `mj_account_links` |
+| Caja de ingreso de un medio de pago | — | `mjerp_cashbox_for_method` |
 | Proveedor de la cotización del dólar | `MJD_SUGGEST_ENDPOINT` | `mjd_suggest_endpoint`, `mjd_suggest_sources` |
 | Achique de fotos desde el celular | — | `mj_fotos_rapidas_ajustes` |
 | Tope de subidas de comprobante por IP y hora | — | `mjpm_receipt_rate_limit` |

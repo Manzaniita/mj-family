@@ -93,6 +93,25 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 			)
 		);
 
+		/*
+		 * La bitácora: qué le cambiaron de su cuenta y cuándo. Solo lectura, y solo lo marcado
+		 * como visible — hay anotaciones internas que no le incumben.
+		 */
+		register_rest_route(
+			$ns,
+			'/portal/log',
+			array(
+				$this->portal_endpoint(
+					WP_REST_Server::READABLE,
+					'list_log',
+					array(
+						'page'     => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
+						'per_page' => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
+					)
+				),
+			)
+		);
+
 		register_rest_route(
 			$ns,
 			'/portal/payments',
@@ -244,10 +263,12 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 				'consignee' => $this->public_consignee( $consignee ),
 				'account'   => $this->public_account( MJERP_Consignment_Account::summary( $id ) ),
 				'stock'     => MJERP_Consignments_Repo::stock_on_hand( $id, true ),
-				'sales'     => MJERP_Consignment_Sales_Repo::query(
-					array(
-						'consignee_id' => $id,
-						'per_page'     => 30,
+				'sales'     => $this->with_undo(
+					MJERP_Consignment_Sales_Repo::query(
+						array(
+							'consignee_id' => $id,
+							'per_page'     => 30,
+						)
 					)
 				),
 				'payments'   => $this->can( 'see_account' )
@@ -258,6 +279,18 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 						)
 					)
 					: array( 'items' => array() ),
+				'log'        => class_exists( 'MJERP_Consignment_Log' )
+					? MJERP_Consignment_Log::query(
+						array(
+							'consignee_id' => $id,
+							'only_visible' => true,
+							'per_page'     => 30,
+						)
+					)
+					: array(
+						'items' => array(),
+						'total' => 0,
+					),
 				'can'        => $this->abilities(),
 				'payment_methods' => $this->allowed_methods(),
 				// Kept for older portal builds that read these two names.
@@ -360,10 +393,43 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 		$p = $this->params( $request );
 
 		return $this->ok(
-			MJERP_Consignment_Sales_Repo::query(
+			$this->with_undo(
+				MJERP_Consignment_Sales_Repo::query(
+					array(
+						'consignee_id' => $this->consignee_id(),
+						'status'       => $this->str( $p, 'status' ),
+						'page'         => $this->int( $p, 'page', 1 ),
+						'per_page'     => min( 100, max( 1, $this->int( $p, 'per_page', 30 ) ) ),
+					)
+				)
+			)
+		);
+	}
+
+	/**
+	 * GET /portal/log — las novedades de su cuenta.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function list_log( $request ) {
+		if ( ! class_exists( 'MJERP_Consignment_Log' ) ) {
+			return $this->ok(
+				array(
+					'items' => array(),
+					'total' => 0,
+					'pages' => 1,
+				)
+			);
+		}
+
+		$p = $this->params( $request );
+
+		return $this->ok(
+			MJERP_Consignment_Log::query(
 				array(
 					'consignee_id' => $this->consignee_id(),
-					'status'       => $this->str( $p, 'status' ),
+					'only_visible' => true,
 					'page'         => $this->int( $p, 'page', 1 ),
 					'per_page'     => min( 100, max( 1, $this->int( $p, 'per_page', 30 ) ) ),
 				)
@@ -421,10 +487,70 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 	}
 
 	/**
-	 * DELETE /portal/sales/{id} — undo a report that is still waiting for approval.
+	 * Minutes a reseller has to undo a sale they loaded ('portal_undo_minutes', 0 = never).
 	 *
-	 * Only pending sales the reseller loaded themselves: once approved it is a debt, and a debt is
-	 * not something the person who owes it gets to delete.
+	 * @return int
+	 */
+	protected function undo_window() : int {
+		return max( 0, (int) MJERP_Settings::get( 'portal_undo_minutes', 0 ) );
+	}
+
+	/**
+	 * Whether this reseller may still undo one of their own sales.
+	 *
+	 * A sale counts the moment it is loaded, so the only protection against a mis-tap is a short
+	 * window. It closes for good once any money was applied to that sale: undoing it then would
+	 * leave a payment pointing at nothing.
+	 *
+	 * @param array $sale Sale row.
+	 * @return bool
+	 */
+	protected function can_undo_sale( array $sale ) : bool {
+		if ( MJERP_Consignment_Sales_Repo::SOURCE_PORTAL !== $sale['source'] ) {
+			return false;
+		}
+		if ( (float) $sale['allocated_base'] > 0.0001 ) {
+			return false;
+		}
+		// Lo que todavía espera confirmación siempre se puede deshacer: no llegó a ser deuda.
+		if ( MJERP_Consignment_Sales_Repo::STATUS_PENDING === $sale['status'] ) {
+			return true;
+		}
+		if ( MJERP_Consignment_Sales_Repo::STATUS_APPROVED !== $sale['status'] ) {
+			return false;
+		}
+
+		$minutes = $this->undo_window();
+		if ( $minutes <= 0 ) {
+			return false;
+		}
+
+		$created = ! empty( $sale['created_at'] ) ? strtotime( (string) $sale['created_at'] . ' ' . wp_timezone_string() ) : 0;
+		if ( ! $created ) {
+			return false;
+		}
+
+		return ( time() - $created ) <= ( $minutes * MINUTE_IN_SECONDS );
+	}
+
+	/**
+	 * Marks each sale with whether the reseller can still undo it.
+	 *
+	 * @param array $result Query result with `items`.
+	 * @return array
+	 */
+	protected function with_undo( array $result ) : array {
+		if ( ! isset( $result['items'] ) || ! is_array( $result['items'] ) ) {
+			return $result;
+		}
+		foreach ( $result['items'] as $index => $sale ) {
+			$result['items'][ $index ]['can_undo'] = is_array( $sale ) && $this->can_undo_sale( $sale );
+		}
+		return $result;
+	}
+
+	/**
+	 * DELETE /portal/sales/{id} — undo a sale the reseller loaded themselves.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
@@ -434,15 +560,29 @@ class MJERP_REST_Portal extends MJERP_REST_Controller {
 		if ( ! $sale || (int) $sale['consignee_id'] !== $this->consignee_id() ) {
 			return $this->fail( 'mjerp_not_found', __( 'Esa venta no está en tu cuenta.', 'mj-erp' ), 404 );
 		}
-		if ( MJERP_Consignment_Sales_Repo::STATUS_PENDING !== $sale['status'] ) {
+		if ( MJERP_Consignment_Sales_Repo::SOURCE_PORTAL !== $sale['source'] ) {
+			return $this->fail( 'mjerp_sale_not_yours', __( 'Esa venta la cargó el administrador.', 'mj-erp' ), 409 );
+		}
+		if ( (float) $sale['allocated_base'] > 0.0001 ) {
 			return $this->fail(
-				'mjerp_sale_not_pending',
-				__( 'Esa venta ya fue confirmada: pedile al administrador que la corrija.', 'mj-erp' ),
+				'mjerp_sale_paid',
+				__( 'Esa venta ya tiene un pago aplicado: pedinos que la corrijamos.', 'mj-erp' ),
 				409
 			);
 		}
-		if ( MJERP_Consignment_Sales_Repo::SOURCE_PORTAL !== $sale['source'] ) {
-			return $this->fail( 'mjerp_sale_not_yours', __( 'Esa venta la cargó el administrador.', 'mj-erp' ), 409 );
+		if ( ! $this->can_undo_sale( $sale ) ) {
+			$minutes = $this->undo_window();
+			return $this->fail(
+				'mjerp_undo_window_closed',
+				$minutes > 0
+					? sprintf(
+						/* translators: %s: minutes */
+						__( 'Ya pasó el tiempo para deshacerla (tenías %s minutos). Pedinos que la corrijamos.', 'mj-erp' ),
+						number_format_i18n( $minutes )
+					)
+					: __( 'Las ventas cargadas no se pueden deshacer desde acá. Pedinos que la corrijamos.', 'mj-erp' ),
+				409
+			);
 		}
 
 		$result = MJERP_Consignment_Sales_Repo::delete( (int) $sale['id'] );

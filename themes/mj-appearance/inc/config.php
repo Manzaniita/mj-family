@@ -314,10 +314,61 @@ function mj_app_config() {
 	];
 
 	/*
+	 * Accesos extra en «Mi cuenta». Un cliente puede ser además otra cosa —revendedor,
+	 * por ejemplo— y esa pantalla tiene que poder encontrarse desde su cuenta. El tema no
+	 * sabe qué plugins hay: solo dibuja lo que le pasen por acá.
+	 *
+	 * Cada entrada: [ 'key' => '', 'label' => '', 'href' => '', 'description' => '' ].
+	 */
+	$config['accountLinks'] = mj_account_links();
+
+	/*
 	 * Otros plugins MJ agregan sus datos acá (p. ej. MJ Dólar → exchangeRate).
 	 * La SPA trata cada clave extra como opcional: sin plugin, no muestra nada.
 	 */
 	return apply_filters('mj_app_config', $config);
+}
+
+/**
+ * Accesos extra del menú de «Mi cuenta», declarados por los plugins MJ.
+ *
+ * Solo para quien inició sesión: son atajos a pantallas propias de ese usuario.
+ *
+ * @return array
+ */
+function mj_account_links() {
+	if (!is_user_logged_in()) {
+		return [];
+	}
+
+	/**
+	 * Filtra los accesos extra de «Mi cuenta».
+	 *
+	 * @param array $links [ { key, label, href, description } ]
+	 */
+	$links = apply_filters('mj_account_links', []);
+	if (!is_array($links)) {
+		return [];
+	}
+
+	$out = [];
+	foreach ($links as $link) {
+		if (!is_array($link)) {
+			continue;
+		}
+		$label = isset($link['label']) ? sanitize_text_field((string) $link['label']) : '';
+		$href  = isset($link['href']) ? esc_url_raw((string) $link['href']) : '';
+		if ('' === $label || '' === $href) {
+			continue;
+		}
+		$out[] = [
+			'key'         => isset($link['key']) ? sanitize_key((string) $link['key']) : sanitize_key($label),
+			'label'       => $label,
+			'href'        => $href,
+			'description' => isset($link['description']) ? sanitize_text_field((string) $link['description']) : '',
+		];
+	}
+	return $out;
 }
 
 /* -------------------------------------------------------------------------

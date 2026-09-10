@@ -313,6 +313,53 @@
 		moneyLocal(value, decimals) {
 			return fmt.money(value, MJ.setting('local_currency', 'ARS'), decimals);
 		},
+		/**
+		 * Tipo de cambio vigente: el de MJ Dólar si está andando, si no el de la configuración.
+		 * Es el mismo número que usa la tienda para publicar precios, así que lo que se ve en el
+		 * ERP y lo que ve el cliente no pueden discrepar.
+		 *
+		 * @returns {number} 0 si no hay ninguno cargado.
+		 */
+		tc() {
+			const dolar = MJ.setting('dolar', null);
+			const live = dolar && toNumber(dolar.rate);
+			if (live && live > 0) return live;
+			const configured = toNumber(MJ.setting('sale_rate', 0));
+			return configured && configured > 0 ? configured : 0;
+		},
+		/**
+		 * Un importe en moneda base pasado a moneda local. null si no hay TC.
+		 *
+		 * @param {*} value Importe en moneda base (USD).
+		 * @returns {number|null}
+		 */
+		toLocal(value) {
+			const n = toNumber(value);
+			const rate = fmt.tc();
+			if (n === null || rate <= 0) return null;
+			return n * rate;
+		},
+		/**
+		 * "US$ 14,01" con "$ 21.996" al lado. La deuda se lleva en dólares; los pesos son la
+		 * lectura del día, no un segundo número guardado.
+		 *
+		 * @param {*} value       Importe en moneda base.
+		 * @param {Object} [opts] { decimals, localDecimals, sep, wrap }
+		 * @returns {string} Texto plano (usar moneyPairHtml para la versión con estilos).
+		 */
+		moneyPair(value, opts) {
+			const o = opts || {};
+			const n = toNumber(value);
+			// Misma regla que el resto del ERP: un importe redondo se escribe redondo.
+			const decimals = (o.decimals === undefined || o.decimals === null)
+				? (n !== null && Math.abs(n - Math.round(n)) < 0.005 ? 0 : 2)
+				: o.decimals;
+			const base = fmt.money(value, MJ.setting('base_currency', 'USD'), decimals);
+			const local = fmt.toLocal(value);
+			if (local === null) return base;
+			const localDecimals = (o.localDecimals === undefined || o.localDecimals === null) ? 0 : o.localDecimals;
+			return base + (o.sep || ' · ') + fmt.moneyLocal(local, localDecimals);
+		},
 		pct(v, decimals) {
 			const n = toNumber(v);
 			if (n === null) return '—';

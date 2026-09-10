@@ -467,6 +467,23 @@ class MJERP_Consignment_Payments_Repo {
 			return new WP_Error( 'mjerp_db_error', __( 'No se pudo confirmar el pago.', 'mj-erp' ), array( 'status' => 500 ) );
 		}
 
+		if ( class_exists( 'MJERP_Consignment_Log' ) ) {
+			MJERP_Consignment_Log::add(
+				array(
+					'consignee_id' => (int) $payment['consignee_id'],
+					'kind'         => MJERP_Consignment_Log::KIND_PAYMENT,
+					'action'       => MJERP_Consignment_Log::ACTION_CONFIRMED,
+					'object_id'    => (int) $payment['id'],
+					'amount_base'  => (float) $payment['amount_base'],
+					'summary'      => sprintf(
+						/* translators: %s: amount */
+						__( 'Confirmamos tu pago de %s.', 'mj-erp' ),
+						MJERP_Helpers::money_base( (float) $payment['amount_base'] )
+					),
+				)
+			);
+		}
+
 		$applied = self::apply_allocations( (int) $payment['id'], $allocations );
 		if ( is_wp_error( $applied ) ) {
 			return $applied;
@@ -522,6 +539,24 @@ class MJERP_Consignment_Payments_Repo {
 	}
 
 	/**
+	 * Cashbox of a reseller payment: the one asked for, or the one its method points at.
+	 *
+	 * @param mixed  $requested Explicit cashbox id (0/empty = decide from the method).
+	 * @param string $method    Payment method key.
+	 * @return int
+	 */
+	public static function resolve_cashbox( $requested, $method ) : int {
+		$requested = absint( $requested );
+		if ( $requested > 0 ) {
+			return $requested;
+		}
+		if ( ! is_callable( array( 'MJERP_Settings', 'cashbox_for_method' ) ) ) {
+			return 0;
+		}
+		return absint( MJERP_Settings::cashbox_for_method( $method, 'consignment' ) );
+	}
+
+	/**
 	 * Updates a payment and re-applies it.
 	 *
 	 * @param int   $id   Payment id.
@@ -558,6 +593,33 @@ class MJERP_Consignment_Payments_Repo {
 			}
 		}
 
+		if ( class_exists( 'MJERP_Consignment_Log' ) && isset( $row['amount_base'] ) ) {
+			$before = round( (float) $existing['amount_base'], 4 );
+			$after  = round( (float) $row['amount_base'], 4 );
+			if ( abs( $after - $before ) > 0.0001 ) {
+				MJERP_Consignment_Log::add(
+					array(
+						'consignee_id' => (int) $existing['consignee_id'],
+						'kind'         => MJERP_Consignment_Log::KIND_PAYMENT,
+						'action'       => MJERP_Consignment_Log::ACTION_UPDATED,
+						'object_id'    => (int) $existing['id'],
+						'amount_base'  => $after,
+						'reason'       => isset( $data['reason'] ) ? (string) $data['reason'] : '',
+						'summary'      => sprintf(
+							/* translators: 1: old amount, 2: new amount */
+							__( 'Se corrigió un pago: de %1$s a %2$s.', 'mj-erp' ),
+							MJERP_Helpers::money_base( $before ),
+							MJERP_Helpers::money_base( $after )
+						),
+						'detail'       => array(
+							'from' => $before,
+							'to'   => $after,
+						),
+					)
+				);
+			}
+		}
+
 		return true;
 	}
 
@@ -580,6 +642,23 @@ class MJERP_Consignment_Payments_Repo {
 		$result = $wpdb->delete( self::table(), array( 'id' => $existing['id'] ), array( '%d' ) );
 		if ( false === $result ) {
 			return new WP_Error( 'mjerp_db_error', __( 'No se pudo eliminar el pago.', 'mj-erp' ), array( 'status' => 500 ) );
+		}
+
+		if ( class_exists( 'MJERP_Consignment_Log' ) ) {
+			MJERP_Consignment_Log::add(
+				array(
+					'consignee_id' => (int) $existing['consignee_id'],
+					'kind'         => MJERP_Consignment_Log::KIND_PAYMENT,
+					'action'       => MJERP_Consignment_Log::ACTION_DELETED,
+					'object_id'    => (int) $existing['id'],
+					'amount_base'  => (float) $existing['amount_base'],
+					'summary'      => sprintf(
+						/* translators: %s: amount */
+						__( 'Se borró un pago de %s. Vuelve a figurar como deuda.', 'mj-erp' ),
+						MJERP_Helpers::money_base( (float) $existing['amount_base'] )
+					),
+				)
+			);
 		}
 
 		return true;
@@ -975,8 +1054,19 @@ class MJERP_Consignment_Payments_Repo {
 			$row['method'] = $method;
 		}
 
+		/*
+		 * Cashbox: what the caller named, or the box the payment method points at in the settings.
+		 * Same rule as a sale collection, so a reseller paying by transfer lands in the very same
+		 * box as a customer paying by transfer.
+		 */
+		$method_for_box = isset( $row['method'] ) ? $row['method'] : ( $existing ? (string) $existing['method'] : '' );
 		if ( array_key_exists( 'cashbox_id', $data ) ) {
-			$row['cashbox_id'] = absint( $data['cashbox_id'] );
+			$row['cashbox_id'] = self::resolve_cashbox( $data['cashbox_id'], $method_for_box );
+		} elseif ( ! $existing ) {
+			$row['cashbox_id'] = self::resolve_cashbox( 0, $method_for_box );
+		} elseif ( isset( $row['method'] ) && $row['method'] !== (string) $existing['method'] ) {
+			// The method moved and no box was named: the money follows the new method's box.
+			$row['cashbox_id'] = self::resolve_cashbox( 0, $row['method'] );
 		}
 
 		if ( array_key_exists( 'reference', $data ) ) {

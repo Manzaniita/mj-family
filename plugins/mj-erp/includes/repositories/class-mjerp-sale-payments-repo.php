@@ -203,6 +203,7 @@ class MJERP_Sale_Payments_Repo {
 
 		$status = self::sanitize_status( MJERP_Helpers::array_get( $data, 'status', self::STATUS_CONFIRMED ) );
 		$now    = current_time( 'mysql' );
+		$method = self::sanitize_method( MJERP_Helpers::array_get( $data, 'method', '' ) );
 
 		$row = array(
 			'sale_id'      => $sale_id,
@@ -211,8 +212,8 @@ class MJERP_Sale_Payments_Repo {
 			'currency'     => $currency,
 			'rate'         => round( $rate, 6 ),
 			'amount_base'  => $amount_base,
-			'method'       => self::sanitize_method( MJERP_Helpers::array_get( $data, 'method', '' ) ),
-			'cashbox_id'   => absint( MJERP_Helpers::array_get( $data, 'cashbox_id', 0 ) ),
+			'method'       => $method,
+			'cashbox_id'   => self::resolve_cashbox( MJERP_Helpers::array_get( $data, 'cashbox_id', 0 ), $method ),
 			'reference'    => MJERP_Helpers::text( MJERP_Helpers::array_get( $data, 'reference', '' ), 190 ),
 			'note'         => MJERP_Helpers::text( MJERP_Helpers::array_get( $data, 'note', '' ), 255 ),
 			'status'       => $status,
@@ -288,7 +289,11 @@ class MJERP_Sale_Payments_Repo {
 			$row['method'] = self::sanitize_method( $data['method'] );
 		}
 		if ( array_key_exists( 'cashbox_id', $data ) ) {
-			$row['cashbox_id'] = absint( $data['cashbox_id'] );
+			$method            = isset( $row['method'] ) ? $row['method'] : (string) $payment['method'];
+			$row['cashbox_id'] = self::resolve_cashbox( $data['cashbox_id'], $method );
+		} elseif ( isset( $row['method'] ) && $row['method'] !== (string) $payment['method'] ) {
+			// The method moved and no box was named: the money follows the new method's box.
+			$row['cashbox_id'] = self::resolve_cashbox( 0, $row['method'] );
 		}
 		if ( array_key_exists( 'reference', $data ) ) {
 			$row['reference'] = MJERP_Helpers::text( $data['reference'], 190 );
@@ -442,6 +447,28 @@ class MJERP_Sale_Payments_Repo {
 		}
 		$default = (string) MJERP_Settings::get( 'sales_default_payment_method', 'efectivo' );
 		return in_array( $default, $keys, true ) ? $default : (string) reset( $keys );
+	}
+
+	/**
+	 * Cashbox of a collection: the one asked for, or the one the payment method points at.
+	 *
+	 * Every path that records a collection goes through here — the sales screen, the REST API and
+	 * the WooCommerce mirror — so "transfers land in the transfer box" is decided once, in the
+	 * settings, and holds everywhere without any caller having to remember it.
+	 *
+	 * @param mixed  $requested Explicit cashbox id (0/empty = decide from the method).
+	 * @param string $method    Payment method key.
+	 * @return int
+	 */
+	public static function resolve_cashbox( $requested, $method ) : int {
+		$requested = absint( $requested );
+		if ( $requested > 0 ) {
+			return $requested;
+		}
+		if ( ! is_callable( array( 'MJERP_Settings', 'cashbox_for_method' ) ) ) {
+			return 0;
+		}
+		return absint( MJERP_Settings::cashbox_for_method( $method, 'sales' ) );
 	}
 
 	/**

@@ -70,7 +70,7 @@
 		consignment_allow_oversell: 'consignaciones', consignment_allocation: 'consignaciones',
 		consignment_payment_methods: 'consignaciones',
 		portal_enabled: 'consignaciones', portal_slug: 'consignaciones', portal_title: 'consignaciones',
-		portal_allow_sales: 'consignaciones', portal_allow_returns: 'consignaciones',
+		portal_allow_sales: 'consignaciones', portal_allow_returns: 'consignaciones', portal_undo_minutes: 'consignaciones',
 		allowed_roles: 'acceso',
 		delete_data_on_uninstall: 'avanzado',
 	};
@@ -124,20 +124,21 @@
 		consignment_code_seq_digits: 4,
 		consignment_price_list: 'mayorista',
 		consignment_stock_on_sale: 'decrease',
-		consignment_approval: 'portal',
+		consignment_approval: 'never',
 		consignment_allow_oversell: false,
 		consignment_allocation: 'fifo',
 		consignment_payment_methods: [
-			{ key: 'efectivo', label: 'Efectivo' },
-			{ key: 'transferencia', label: 'Transferencia' },
-			{ key: 'dolares', label: 'Dólares' },
-			{ key: 'otro', label: 'Otro' },
+			{ key: 'efectivo', label: 'Efectivo', cashbox_id: 0 },
+			{ key: 'transferencia', label: 'Transferencia', cashbox_id: 0 },
+			{ key: 'dolares', label: 'Dólares', cashbox_id: 0 },
+			{ key: 'otro', label: 'Otro', cashbox_id: 0 },
 		],
 		portal_enabled: true,
 		portal_slug: 'reventa',
 		portal_title: 'Mi cuenta',
 		portal_allow_sales: true,
 		portal_allow_returns: false,
+		portal_undo_minutes: 1440,
 		portal_permissions: {
 			defaults: {
 				report_sale: true,
@@ -145,6 +146,7 @@
 				partial_payments: true,
 				payment_needs_approval: true,
 				payment_methods: [],
+				payment_receipt: 'heredar',
 				returns: false,
 				see_account: true,
 				shop_consignment: true,
@@ -166,13 +168,14 @@
 		],
 		sales_default_channel: 'mostrador',
 		sales_shop_channel: 'tienda',
+		// cashbox_id = caja de ingreso de ese medio (0 = la caja por defecto).
 		sales_payment_methods: [
-			{ key: 'efectivo', label: 'Efectivo' },
-			{ key: 'transferencia', label: 'Transferencia' },
-			{ key: 'tarjeta', label: 'Tarjeta' },
-			{ key: 'dolares', label: 'Dólares' },
-			{ key: 'cuenta_corriente', label: 'Cuenta corriente' },
-			{ key: 'otro', label: 'Otro' },
+			{ key: 'efectivo', label: 'Efectivo', cashbox_id: 0 },
+			{ key: 'transferencia', label: 'Transferencia', cashbox_id: 0 },
+			{ key: 'tarjeta', label: 'Tarjeta', cashbox_id: 0 },
+			{ key: 'dolares', label: 'Dólares', cashbox_id: 0 },
+			{ key: 'cuenta_corriente', label: 'Cuenta corriente', cashbox_id: 0 },
+			{ key: 'otro', label: 'Otro', cashbox_id: 0 },
 		],
 		sales_default_payment_method: 'efectivo',
 		sales_default_cashbox: 0,
@@ -274,9 +277,9 @@
 		{ value: 'none', label: 'No tocar el stock de WooCommerce' },
 	];
 	const CONSIGN_APPROVAL_OPTIONS = [
-		{ value: 'portal', label: 'Solo lo que carga el revendedor (recomendado)' },
+		{ value: 'never', label: 'Ninguna: la venta vale desde que se carga (recomendado)' },
+		{ value: 'portal', label: 'Solo lo que carga el revendedor' },
 		{ value: 'always', label: 'Todas las ventas, también las que cargo yo' },
-		{ value: 'never', label: 'Ninguna: las ventas quedan confirmadas al cargarlas' },
 	];
 	const CONSIGN_ALLOCATION_OPTIONS = [
 		{ value: 'fifo', label: 'De la venta más vieja a la más nueva (recomendado)' },
@@ -543,9 +546,9 @@
 		m.consignment_approval = ['portal', 'always', 'never'].indexOf(approval) >= 0 ? approval : DEFAULTS.consignment_approval;
 		m.consignment_allow_oversell = toBool(src.consignment_allow_oversell, DEFAULTS.consignment_allow_oversell);
 		m.consignment_allocation = str(src.consignment_allocation) === 'manual' ? 'manual' : 'fifo';
-		m.consignment_payment_methods = normalizePairs(src.consignment_payment_methods, DEFAULTS.consignment_payment_methods, false);
+		m.consignment_payment_methods = normalizePairs(src.consignment_payment_methods, DEFAULTS.consignment_payment_methods, false, true);
 		if (!m.consignment_payment_methods.some(function (x) { return x.key === 'otro'; })) {
-			m.consignment_payment_methods.push({ key: 'otro', label: 'Otro' });
+			m.consignment_payment_methods.push({ key: 'otro', label: 'Otro', cashbox_id: 0 });
 		}
 
 		m.portal_enabled = toBool(src.portal_enabled, DEFAULTS.portal_enabled);
@@ -553,6 +556,66 @@
 		m.portal_title = str(src.portal_title !== undefined ? src.portal_title : m.portal_title).trim() || DEFAULTS.portal_title;
 		m.portal_allow_sales = toBool(src.portal_allow_sales, DEFAULTS.portal_allow_sales);
 		m.portal_allow_returns = toBool(src.portal_allow_returns, DEFAULTS.portal_allow_returns);
+		m.portal_undo_minutes = clampInt(toInt(src.portal_undo_minutes, DEFAULTS.portal_undo_minutes), 0, 10080);
+
+		m.portal_permissions = normalizePermissions(src.portal_permissions);
+
+		/* --- Ventas ---------------------------------------------------------
+		 * Todo este bloque faltaba: el modelo se armaba con los valores por defecto y el panel
+		 * de Ventas nunca mostraba (ni podia guardar) lo que estaba realmente configurado.
+		 * -------------------------------------------------------------------- */
+		m.sales_enabled = toBool(src.sales_enabled, DEFAULTS.sales_enabled);
+		m.sales_code_prefix = str(src.sales_code_prefix !== undefined ? src.sales_code_prefix : m.sales_code_prefix).trim() || DEFAULTS.sales_code_prefix;
+		m.sales_code_format = str(src.sales_code_format !== undefined ? src.sales_code_format : m.sales_code_format).trim() || DEFAULTS.sales_code_format;
+		m.sales_code_seq_digits = clampInt(toInt(src.sales_code_seq_digits, DEFAULTS.sales_code_seq_digits), 1, 10);
+
+		m.sales_channels = normalizePairs(src.sales_channels, DEFAULTS.sales_channels, false);
+		if (!m.sales_channels.some(function (x) { return x.key === 'otro'; })) {
+			m.sales_channels.push({ key: 'otro', label: 'Otro' });
+		}
+		m.sales_payment_methods = normalizePairs(src.sales_payment_methods, DEFAULTS.sales_payment_methods, false, true);
+		if (!m.sales_payment_methods.some(function (x) { return x.key === 'otro'; })) {
+			m.sales_payment_methods.push({ key: 'otro', label: 'Otro', cashbox_id: 0 });
+		}
+
+		const channelKeys = m.sales_channels.map(function (c) { return c.key; });
+		const methodKeys = m.sales_payment_methods.map(function (c) { return c.key; });
+		m.sales_default_channel = pickKey(src.sales_default_channel, channelKeys, DEFAULTS.sales_default_channel);
+		m.sales_shop_channel = pickKey(src.sales_shop_channel, channelKeys, DEFAULTS.sales_shop_channel);
+		m.sales_default_payment_method = pickKey(src.sales_default_payment_method, methodKeys, DEFAULTS.sales_default_payment_method);
+		m.sales_consignment_payment_method = pickKey(src.sales_consignment_payment_method, methodKeys, DEFAULTS.sales_consignment_payment_method);
+		m.sales_default_cashbox = Math.max(0, toInt(src.sales_default_cashbox, DEFAULTS.sales_default_cashbox));
+
+		const salesList = str(src.sales_price_list !== undefined ? src.sales_price_list : m.sales_price_list);
+		m.sales_price_list = listKeys.indexOf(salesList) >= 0 ? salesList : '';
+
+		m.sales_track_cost = toBool(src.sales_track_cost, DEFAULTS.sales_track_cost);
+		m.sales_allow_discount = toBool(src.sales_allow_discount, DEFAULTS.sales_allow_discount);
+		m.sales_allow_oversell = toBool(src.sales_allow_oversell, DEFAULTS.sales_allow_oversell);
+
+		m.sales_create_order = toBool(src.sales_create_order, DEFAULTS.sales_create_order);
+		m.sales_order_status_paid = orderStatus(src.sales_order_status_paid, m.sales_order_status_paid);
+		m.sales_order_status_unpaid = orderStatus(src.sales_order_status_unpaid, m.sales_order_status_unpaid);
+		m.sales_order_created_via = str(src.sales_order_created_via !== undefined ? src.sales_order_created_via : m.sales_order_created_via).trim() || DEFAULTS.sales_order_created_via;
+		m.sales_order_note = str(src.sales_order_note !== undefined ? src.sales_order_note : m.sales_order_note);
+		m.sales_reduce_stock = pickEnum(src.sales_reduce_stock, ['auto', 'siempre', 'nunca'], DEFAULTS.sales_reduce_stock);
+
+		m.sales_capture_shop_orders = toBool(src.sales_capture_shop_orders, DEFAULTS.sales_capture_shop_orders);
+		m.sales_capture_manual_orders = toBool(src.sales_capture_manual_orders, DEFAULTS.sales_capture_manual_orders);
+		m.sales_capture_payment = toBool(src.sales_capture_payment, DEFAULTS.sales_capture_payment);
+		m.sales_capture_on = pickEnum(src.sales_capture_on, ['creada', 'estado'], DEFAULTS.sales_capture_on);
+		m.sales_capture_statuses = statusList(src.sales_capture_statuses, DEFAULTS.sales_capture_statuses);
+		m.sales_void_statuses = statusList(src.sales_void_statuses, DEFAULTS.sales_void_statuses);
+
+		m.sales_consignment_enabled = toBool(src.sales_consignment_enabled, DEFAULTS.sales_consignment_enabled);
+		m.sales_consignment_allocation = pickEnum(src.sales_consignment_allocation, ['fifo', 'lifo'], DEFAULTS.sales_consignment_allocation);
+		m.sales_consignment_approval = pickEnum(src.sales_consignment_approval, ['auto', 'pendiente'], DEFAULTS.sales_consignment_approval);
+		m.sales_consignment_partial_lines = toBool(src.sales_consignment_partial_lines, DEFAULTS.sales_consignment_partial_lines);
+
+		m.shop_price_mode = pickEnum(src.shop_price_mode, ['publico', 'lista'], DEFAULTS.shop_price_mode);
+		const shopList = str(src.shop_price_list !== undefined ? src.shop_price_list : m.shop_price_list);
+		m.shop_price_list = listKeys.indexOf(shopList) >= 0 ? shopList : (listKeys.length ? listKeys[0] : '');
+		m.shop_price_notice = toBool(src.shop_price_notice, DEFAULTS.shop_price_notice);
 
 		const roles = [];
 		(Array.isArray(src.allowed_roles) ? src.allowed_roles : DEFAULTS.allowed_roles).forEach(function (r) {
@@ -566,15 +629,91 @@
 		return m;
 	}
 
+	/** Elige `value` si es una de las claves conocidas; si no, el default. */
+	function pickKey(value, keys, def) {
+		const wanted = slugify(value).replace(/-/g, '_');
+		if (keys.indexOf(wanted) >= 0) return wanted;
+		if (keys.indexOf(def) >= 0) return def;
+		return keys.length ? keys[0] : '';
+	}
+
+	function pickEnum(value, allowed, def) {
+		const wanted = str(value).toLowerCase();
+		return allowed.indexOf(wanted) >= 0 ? wanted : def;
+	}
+
+	/** Estado de pedido en su forma corta ('processing', no 'wc-processing'). */
+	function orderStatus(value, def) {
+		const key = str(value === undefined || value === null ? def : value).trim().replace(/^wc-/, '');
+		return key || str(def).replace(/^wc-/, '');
+	}
+
+	function statusList(raw, def) {
+		const list = Array.isArray(raw) ? raw : def;
+		const out = [];
+		list.forEach(function (item) {
+			const key = orderStatus(item && item.key !== undefined ? item.key : item, '');
+			if (key && out.indexOf(key) === -1) out.push(key);
+		});
+		return out;
+	}
+
 	/**
-	 * Normalizes a list of `{key,label[,markup]}` rows.
+	 * Arbol de permisos del portal. `defaults` lleva el juego completo; cada rol guarda solo lo
+	 * que pisa, y una clave ausente significa «heredar» — es la diferencia entre "este rol dice
+	 * que no" y "este rol no opina".
+	 */
+	function normalizePermissions(raw) {
+		const src = isPlainObject(raw) ? raw : {};
+		const out = { defaults: clone(DEFAULTS.portal_permissions.defaults), roles: {} };
+		const keys = Object.keys(out.defaults);
+
+		if (isPlainObject(src.defaults)) {
+			keys.forEach(function (key) {
+				if (src.defaults[key] === undefined) return;
+				out.defaults[key] = permissionValue(key, src.defaults[key]);
+			});
+		}
+		if (isPlainObject(src.roles)) {
+			Object.keys(src.roles).forEach(function (role) {
+				const set = src.roles[role];
+				if (!isPlainObject(set)) return;
+				const clean = {};
+				keys.forEach(function (key) {
+					if (set[key] === undefined) return;
+					clean[key] = permissionValue(key, set[key]);
+				});
+				if (Object.keys(clean).length) out.roles[slugify(role).replace(/-/g, '_')] = clean;
+			});
+		}
+		return out;
+	}
+
+	function permissionValue(key, raw) {
+		if (key === 'payment_methods') {
+			const list = [];
+			(Array.isArray(raw) ? raw : []).forEach(function (item) {
+				const value = slugify(item && item.key !== undefined ? item.key : item).replace(/-/g, '_');
+				if (value && list.indexOf(value) === -1) list.push(value);
+			});
+			return list;
+		}
+		if (key === 'price_mode') return pickEnum(raw, ['heredar', 'publico', 'lista'], 'heredar');
+		if (key === 'payment_receipt') return pickEnum(raw, ['heredar', 'no', 'opcional', 'obligatorio'], 'heredar');
+		if (key === 'price_list_key') return slugify(raw).replace(/-/g, '_');
+		return toBool(raw, false);
+	}
+
+	/**
+	 * Normalizes a list of `{key,label[,markup][,cashbox_id]}` rows.
 	 *
-	 * @param {*} raw        Raw value from the API.
-	 * @param {Array} def    Fallback list.
+	 * @param {*} raw          Raw value from the API.
+	 * @param {Array} def      Fallback list.
 	 * @param {boolean} markup Whether rows carry a `markup` number.
+	 * @param {boolean} [cashbox] Whether rows carry the cashbox the money lands in.
 	 * @returns {Array}
 	 */
-	function normalizePairs(raw, def, markup) {
+	function normalizePairs(raw, def, markup, cashbox) {
 		const list = Array.isArray(raw) ? raw : def;
 		const out = [];
 		list.forEach(function (row) {
@@ -582,19 +721,47 @@
 			let key = '';
 			let label = '';
 			let mk = 0;
+			let box = 0;
 			if (typeof row === 'string') {
 				label = row.trim();
 			} else if (typeof row === 'object') {
 				key = slugify(row.key);
 				label = str(row.label).trim();
 				mk = toFloat(row.markup, 0);
+				box = toInt(row.cashbox_id, 0);
 			}
 			if (!key) key = slugify(label);
 			if (!key && !label) return;
 			const item = { key: key, label: label || key };
 			if (markup) item.markup = mk;
+			if (cashbox) item.cashbox_id = box > 0 ? box : 0;
 			out.push(item);
 		});
+		return out;
+	}
+
+	/** Idem, para el payload: descarta filas vacías y deduplica por clave. */
+	function payloadPairs(list, opts) {
+		const options = opts || {};
+		const out = [];
+		const seen = {};
+		(Array.isArray(list) ? list : []).forEach(function (row) {
+			if (!row) return;
+			const label = str(row.label).trim();
+			const key = slugify(row.key) || slugify(label);
+			if (!key || seen[key]) return;
+			seen[key] = true;
+			const item = { key: key, label: label || key };
+			if (options.markup) item.markup = MJ.fmt.round(toFloat(row.markup, 0), 4);
+			if (options.cashbox) item.cashbox_id = Math.max(0, toInt(row.cashbox_id, 0));
+			out.push(item);
+		});
+		if (options.locked && !seen[options.locked]) {
+			const extra = { key: options.locked, label: options.lockedLabel || 'Otro' };
+			if (options.markup) extra.markup = 0;
+			if (options.cashbox) extra.cashbox_id = 0;
+			out.push(extra);
+		}
 		return out;
 	}
 
@@ -621,37 +788,22 @@
 			if (sym) symbols[code] = sym;
 		});
 
-		const expenseTypes = [];
-		const seenExpense = {};
-		(m.expense_types || []).forEach(function (row) {
-			const label = str(row.label).trim();
-			const key = slugify(row.key) || slugify(label);
-			if (!key || seenExpense[key]) return;
-			seenExpense[key] = true;
-			expenseTypes.push({ key: key, label: label || key });
-		});
-		if (!seenExpense[LOCKED_EXPENSE_TYPE]) expenseTypes.push({ key: LOCKED_EXPENSE_TYPE, label: 'Otro' });
-
-		const priceLists = [];
+		const expenseTypes = payloadPairs(m.expense_types, { locked: LOCKED_EXPENSE_TYPE });
+		const priceLists = payloadPairs(m.price_lists, { markup: true });
 		const seenList = {};
-		(m.price_lists || []).forEach(function (row) {
-			const label = str(row.label).trim();
-			const key = slugify(row.key) || slugify(label);
-			if (!key || seenList[key]) return;
-			seenList[key] = true;
-			priceLists.push({ key: key, label: label || key, markup: MJ.fmt.round(toFloat(row.markup, 0), 4) });
-		});
+		priceLists.forEach(function (row) { seenList[row.key] = true; });
 
-		const paymentMethods = [];
-		const seenMethod = {};
-		(m.consignment_payment_methods || []).forEach(function (row) {
-			const label = str(row.label).trim();
-			const key = slugify(row.key) || slugify(label);
-			if (!key || seenMethod[key]) return;
-			seenMethod[key] = true;
-			paymentMethods.push({ key: key, label: label || key });
-		});
-		if (!seenMethod.otro) paymentMethods.push({ key: 'otro', label: 'Otro' });
+		const paymentMethods = payloadPairs(m.consignment_payment_methods, { cashbox: true, locked: 'otro' });
+		const salesChannels = payloadPairs(m.sales_channels, { locked: 'otro' });
+		const salesMethods = payloadPairs(m.sales_payment_methods, { cashbox: true, locked: 'otro' });
+		const channelKeys = salesChannels.map(function (c) { return c.key; });
+		const methodKeys = salesMethods.map(function (c) { return c.key; });
+		const inList = function (key, keys, def) {
+			const wanted = str(key);
+			if (keys.indexOf(wanted) >= 0) return wanted;
+			if (keys.indexOf(def) >= 0) return def;
+			return keys.length ? keys[0] : '';
+		};
 
 		const destinations = [];
 		(m.destinations || []).forEach(function (d) {
@@ -701,6 +853,43 @@
 			usd_rounding: nearestUsdStep(toFloat(m.usd_rounding, DEFAULTS.usd_rounding)),
 			usd_rounding_mode: m.usd_rounding_mode === 'up' ? 'up' : 'nearest',
 			allow_unreceive: !!m.allow_unreceive,
+
+			/* Ventas — sin estas claves el panel entero se guardaba en el vacío. */
+			sales_enabled: !!m.sales_enabled,
+			sales_code_prefix: str(m.sales_code_prefix).trim() || DEFAULTS.sales_code_prefix,
+			sales_code_format: str(m.sales_code_format).trim() || DEFAULTS.sales_code_format,
+			sales_code_seq_digits: clampInt(toInt(m.sales_code_seq_digits, DEFAULTS.sales_code_seq_digits), 1, 10),
+			sales_channels: salesChannels,
+			sales_default_channel: inList(m.sales_default_channel, channelKeys, DEFAULTS.sales_default_channel),
+			sales_shop_channel: inList(m.sales_shop_channel, channelKeys, DEFAULTS.sales_shop_channel),
+			sales_payment_methods: salesMethods,
+			sales_default_payment_method: inList(m.sales_default_payment_method, methodKeys, DEFAULTS.sales_default_payment_method),
+			sales_default_cashbox: Math.max(0, toInt(m.sales_default_cashbox, 0)),
+			sales_price_list: seenList[str(m.sales_price_list)] ? str(m.sales_price_list) : '',
+			sales_track_cost: !!m.sales_track_cost,
+			sales_allow_discount: !!m.sales_allow_discount,
+			sales_allow_oversell: !!m.sales_allow_oversell,
+			sales_create_order: !!m.sales_create_order,
+			sales_order_status_paid: orderStatus(m.sales_order_status_paid, DEFAULTS.sales_order_status_paid),
+			sales_order_status_unpaid: orderStatus(m.sales_order_status_unpaid, DEFAULTS.sales_order_status_unpaid),
+			sales_order_created_via: str(m.sales_order_created_via).trim() || DEFAULTS.sales_order_created_via,
+			sales_order_note: str(m.sales_order_note),
+			sales_reduce_stock: pickEnum(m.sales_reduce_stock, ['auto', 'siempre', 'nunca'], DEFAULTS.sales_reduce_stock),
+			sales_capture_shop_orders: !!m.sales_capture_shop_orders,
+			sales_capture_manual_orders: !!m.sales_capture_manual_orders,
+			sales_capture_payment: !!m.sales_capture_payment,
+			sales_capture_on: pickEnum(m.sales_capture_on, ['creada', 'estado'], DEFAULTS.sales_capture_on),
+			sales_capture_statuses: statusList(m.sales_capture_statuses, []),
+			sales_void_statuses: statusList(m.sales_void_statuses, []),
+			sales_consignment_enabled: !!m.sales_consignment_enabled,
+			sales_consignment_allocation: pickEnum(m.sales_consignment_allocation, ['fifo', 'lifo'], DEFAULTS.sales_consignment_allocation),
+			sales_consignment_approval: pickEnum(m.sales_consignment_approval, ['auto', 'pendiente'], DEFAULTS.sales_consignment_approval),
+			sales_consignment_partial_lines: !!m.sales_consignment_partial_lines,
+			sales_consignment_payment_method: inList(m.sales_consignment_payment_method, methodKeys, DEFAULTS.sales_consignment_payment_method),
+			shop_price_mode: pickEnum(m.shop_price_mode, ['publico', 'lista'], DEFAULTS.shop_price_mode),
+			shop_price_list: seenList[str(m.shop_price_list)] ? str(m.shop_price_list) : (priceLists.length ? priceLists[0].key : ''),
+			shop_price_notice: !!m.shop_price_notice,
+
 			consignee_role: slugify(m.consignee_role).replace(/-/g, '_') || DEFAULTS.consignee_role,
 			consignee_role_label: str(m.consignee_role_label).trim() || DEFAULTS.consignee_role_label,
 			consignment_code_prefix: str(m.consignment_code_prefix).trim() || DEFAULTS.consignment_code_prefix,
@@ -717,6 +906,8 @@
 			portal_title: str(m.portal_title).trim() || DEFAULTS.portal_title,
 			portal_allow_sales: !!m.portal_allow_sales,
 			portal_allow_returns: !!m.portal_allow_returns,
+			portal_undo_minutes: clampInt(toInt(m.portal_undo_minutes, DEFAULTS.portal_undo_minutes), 0, 10080),
+			portal_permissions: normalizePermissions(m.portal_permissions),
 			allowed_roles: roles,
 			new_product_status: m.new_product_status === 'publish' ? 'publish' : 'draft',
 			delete_data_on_uninstall: !!m.delete_data_on_uninstall,
@@ -960,7 +1151,8 @@
 	 * a single field named `value`. Binding is delegated at the page level through the
 	 * `data-editor` / `data-row` / `data-field` / `data-editor-action` attributes.
 	 *
-	 * @param {Object} cfg   { name, fields:[{key,label,placeholder,width,maxlength,inputmode,mono,upper}],
+	 * @param {Object} cfg   { name, fields:[{key,label,placeholder,width,maxlength,inputmode,mono,upper,
+	 *                                        type:'select', options():[{value,label}], number}],
 	 *                         addLabel, emptyText, showHead, locked(row,i), lockedTitle, lockedField(row,field) }
 	 * @param {Array}  rows  Rows to render.
 	 * @param {Function} [rowNote] (row, index) → html rendered under the row.
@@ -990,10 +1182,22 @@
 			fields.forEach(function (f) {
 				const value = row && row[f.key] !== undefined && row[f.key] !== null ? row[f.key] : '';
 				const readonly = locked && typeof cfg.lockedField === 'function' && cfg.lockedField(row, f.key);
+				const label = h(f.label + ' (fila ' + (index + 1) + ')');
+
+				if (f.type === 'select') {
+					const options = typeof f.options === 'function' ? (f.options() || []) : (f.options || []);
+					html += '<div class="mj-field" style="flex:' + h(f.width || '1 1 160px') + '">' +
+						'<select class="mj-select mj-select--sm" data-field="' + h(f.key) + '" aria-label="' + label + '">' +
+							optionsHtml(options, String(value)) +
+						'</select>' +
+					'</div>';
+					return;
+				}
+
 				html += '<div class="mj-field" style="flex:' + h(f.width || '1 1 160px') + '">' +
 					'<input class="mj-input mj-input--sm' + (f.mono ? ' mj-mono' : '') + '" type="text"' +
 						' data-field="' + h(f.key) + '"' +
-						' aria-label="' + h(f.label + ' (fila ' + (index + 1) + ')') + '"' +
+						' aria-label="' + label + '"' +
 						(f.placeholder ? ' placeholder="' + h(f.placeholder) + '"' : '') +
 						(f.maxlength ? ' maxlength="' + h(f.maxlength) + '"' : '') +
 						(f.inputmode ? ' inputmode="' + h(f.inputmode) + '"' : '') +
@@ -1076,8 +1280,9 @@
 			name: 'sales_payment_methods',
 			showHead: true,
 			fields: [
-				{ key: 'label', label: 'Nombre', placeholder: 'Efectivo', maxlength: 80, width: '1 1 200px' },
-				{ key: 'key', label: 'Clave', placeholder: 'se genera del nombre', maxlength: 40, mono: true, width: '1 1 160px' },
+				{ key: 'label', label: 'Nombre', placeholder: 'Efectivo', maxlength: 80, width: '1 1 180px' },
+				{ key: 'key', label: 'Clave', placeholder: 'se genera del nombre', maxlength: 40, mono: true, width: '1 1 150px' },
+				{ key: 'cashbox_id', label: 'Caja de ingreso', type: 'select', number: true, options: methodCashboxOptions, width: '1 1 180px' },
 			],
 			addLabel: 'Agregar medio de pago',
 			emptyText: 'No hay medios de pago configurados.',
@@ -1089,8 +1294,9 @@
 			name: 'consignment_payment_methods',
 			showHead: true,
 			fields: [
-				{ key: 'label', label: 'Nombre', placeholder: 'Transferencia', maxlength: 80, width: '1 1 200px' },
-				{ key: 'key', label: 'Clave', placeholder: 'se genera del nombre', maxlength: 40, mono: true, width: '1 1 160px' },
+				{ key: 'label', label: 'Nombre', placeholder: 'Transferencia', maxlength: 80, width: '1 1 180px' },
+				{ key: 'key', label: 'Clave', placeholder: 'se genera del nombre', maxlength: 40, mono: true, width: '1 1 150px' },
+				{ key: 'cashbox_id', label: 'Caja de ingreso', type: 'select', number: true, options: methodCashboxOptions, width: '1 1 180px' },
 			],
 			addLabel: 'Agregar medio de cobro',
 			emptyText: 'No hay medios de cobro configurados.',
@@ -1592,6 +1798,18 @@
 		return boxes;
 	}
 
+	/**
+	 * Cajas para la columna de cada medio de pago. El 0 no es «sin caja»: es «la que diga el
+	 * ajuste general», así un medio sin decidir sigue el default en vez de perder la plata.
+	 */
+	function methodCashboxOptions() {
+		const boxes = (MJ.state.cashboxes || []).map(function (c) {
+			return { value: String(c.id), label: c.name + (c.currency ? ' · ' + c.currency : '') };
+		});
+		boxes.unshift({ value: '0', label: boxes.length ? 'La caja por defecto' : 'Creá cajas en Proveedores → Cajas' });
+		return boxes;
+	}
+
 	function channelOptionsFrom(m) {
 		return (Array.isArray(m.sales_channels) ? m.sales_channels : []).map(function (c) {
 			return { value: slugify(c.key) || slugify(c.label), label: c.label || c.key };
@@ -1682,14 +1900,15 @@
 			'<div class="mj-field">' +
 				'<span class="mj-field__label">Medios de pago</span>' +
 				'<div data-region="editor-sales_payment_methods">' + listEditorHtml(EDITORS.sales_payment_methods, m.sales_payment_methods) + '</div>' +
-				'<div class="mj-field__hint">Son las opciones de «cómo pagó». Si dejás la clave vacía se genera del nombre.</div>' +
+				'<div class="mj-field__hint">Son las opciones de «cómo pagó». Si dejás la clave vacía se genera del nombre. <span class="mj-strong">La caja de ingreso</span> decide dónde entra esa plata: una transferencia a la caja de transferencias, los dólares físicos a la caja de dólares. Vale para las ventas del mostrador, los cobros de reventa y los pedidos de la tienda. Las cajas se crean en <span class="mj-strong">Proveedores → Cajas</span>.</div>' +
 			'</div>' +
 			'<div class="mj-form-row">' +
 				selectFieldHtml({
 					key: 'sales_default_payment_method', label: 'Medio por defecto', value: str(m.sales_default_payment_method), options: salesMethodOptionsFrom(m),
 				}) +
 				selectFieldHtml({
-					key: 'sales_default_cashbox', label: 'Caja por defecto', value: String(m.sales_default_cashbox || 0), options: cashboxOptions(), kind: 'number',
+					key: 'sales_default_cashbox', label: 'Caja por defecto', value: String(m.sales_default_cashbox || 0), options: cashboxOptions(), kind: 'intval',
+					hint: 'La que se usa cuando el medio de pago no tiene una caja propia.',
 				}) +
 			'</div>'
 		) +
@@ -1961,14 +2180,14 @@
 			'</div>'
 		) +
 		sectionHtml('Ventas del revendedor', 'Qué pasa cuando el revendedor vende una unidad.',
-			MJ.ui.alert('El stock de WooCommerce no baja al entregar: baja cuando se confirma la venta. Mientras la mercadería está en la calle, esas unidades siguen contando como stock propio, así que revisá el listado de Productos antes de prometer entregas grandes.', 'info') +
+			MJ.ui.alert('El stock de WooCommerce no baja al entregar: baja cuando el revendedor avisa la venta. Mientras la mercadería está en la calle, esas unidades siguen contando como stock propio, así que revisá el listado de Productos antes de prometer entregas grandes.', 'info') +
 			selectFieldHtml({
 				key: 'consignment_stock_on_sale', label: 'Stock al vender', value: m.consignment_stock_on_sale, options: CONSIGN_STOCK_OPTIONS,
-				hint: 'Con la primera opción, cada venta confirmada descuenta de WooCommerce y queda registrada en los movimientos de stock.',
+				hint: 'Con la primera opción, cada venta descuenta de WooCommerce y queda registrada en los movimientos de stock.',
 			}) +
 			selectFieldHtml({
 				key: 'consignment_approval', label: 'Qué ventas necesitan tu confirmación', value: m.consignment_approval, options: CONSIGN_APPROVAL_OPTIONS,
-				hint: 'Una venta sin confirmar no baja stock ni genera deuda: queda esperándote.',
+				hint: 'Lo normal es que ninguna: el revendedor avisa lo que vendió, baja el stock y le queda la deuda. Lo que sí confirmás es <span class="mj-strong">el pago</span>, más abajo, porque es lo único que podés verificar vos. Una venta sin confirmar no baja stock ni genera deuda, pero igual reserva las unidades para que no se vendan dos veces.',
 			}) +
 			checkboxFieldHtml({
 				key: 'consignment_allow_oversell', label: 'Dejar registrar más ventas que unidades entregadas', checked: !!m.consignment_allow_oversell,
@@ -1983,7 +2202,7 @@
 			'<div class="mj-field">' +
 				'<span class="mj-field__label">Medios de cobro</span>' +
 				'<div data-region="editor-consignment_payment_methods">' + listEditorHtml(EDITORS.consignment_payment_methods, m.consignment_payment_methods) + '</div>' +
-				'<div class="mj-field__hint">Son las opciones del campo «Cómo me pagó». Si dejás la clave vacía se genera a partir del nombre.</div>' +
+				'<div class="mj-field__hint">Son las opciones del campo «Cómo me pagó». Si dejás la clave vacía se genera a partir del nombre. La caja de cada medio es la misma que usás en Ventas: configúrala en cualquiera de los dos lados y vale para ambos.</div>' +
 			'</div>'
 		) +
 		sectionHtml('Panel del revendedor', 'Una pantalla propia, pensada para el celular, donde el revendedor ve lo que tiene y avisa lo que vendió.',
@@ -2004,7 +2223,11 @@
 			'</div>' +
 			checkboxFieldHtml({
 				key: 'portal_allow_sales', label: 'Dejar que el revendedor cargue sus ventas', checked: !!m.portal_allow_sales,
-				hint: 'Lo que carga queda pendiente de tu confirmación si así lo configuraste arriba.',
+				hint: 'Cada venta que avisa baja el stock y le queda la deuda en el momento. Solo espera tu confirmación si lo pediste arriba.',
+			}) +
+			textFieldHtml({
+				key: 'portal_undo_minutes', label: 'Minutos para deshacer una venta', value: numText(m.portal_undo_minutes), kind: 'number', inputmode: 'numeric', maxlength: 5,
+				hint: 'Como la venta cuenta en el momento, este es el rato que tiene para arreglar un botón mal apretado: borra la venta, devuelve la unidad y saca la deuda. Solo sobre ventas que cargó él y que todavía no tengan un pago aplicado. 0 = no puede deshacer nada y las corregís vos desde el ERP.',
 			}) +
 			checkboxFieldHtml({
 				key: 'portal_allow_returns', label: 'Dejar que el revendedor registre devoluciones', checked: !!m.portal_allow_returns,
@@ -2361,6 +2584,7 @@
 					value = cleanCurrency(value);
 					if (el.value !== value) el.value = value;
 				}
+				if (fieldCfg && fieldCfg.number) value = Math.max(0, toInt(value, 0));
 				rows[index][field] = value;
 
 				// Keys are auto-slugified from the label when left empty (on blur).
@@ -2404,7 +2628,7 @@
 
 				if (action === 'add') {
 					const row = {};
-					(cfg.fields || []).forEach(function (f) { row[f.key] = ''; });
+					(cfg.fields || []).forEach(function (f) { row[f.key] = f.number ? 0 : ''; });
 					rows.push(row);
 				} else if (action === 'remove') {
 					if (isNaN(index) || !rows[index]) return;

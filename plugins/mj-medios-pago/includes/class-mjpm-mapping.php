@@ -135,6 +135,53 @@ class MJPM_Mapping {
 		return ucfirst(str_replace(['_', '-'], ' ', (string) $key));
 	}
 
+	/* ------------------------------ Cajas -------------------------------- */
+
+	/**
+	 * ¿Se puede saber en qué caja entra la plata? (MJ ERP 1.6+).
+	 */
+	public static function cashboxes_available() {
+		return self::erp_available() && is_callable(['MJERP_Settings', 'cashbox_for_method']);
+	}
+
+	/**
+	 * Caja donde entra lo que se cobra por un gateway de la tienda.
+	 *
+	 * No hay una segunda configuración: se resuelve por la equivalencia que ya
+	 * cargaste acá y la caja que ese método tiene en el ERP. Configurás una vez
+	 * y vale para el mostrador, para las reventas y para la tienda.
+	 *
+	 * @param string $gateway_id Id del gateway.
+	 * @return int Id de caja (0 = ninguna).
+	 */
+	public static function cashbox_for_gateway($gateway_id) {
+		if (!self::cashboxes_available()) {
+			return 0;
+		}
+		$key = self::erp_key($gateway_id);
+		if ('' === $key) {
+			return 0;
+		}
+		return (int) MJERP_Settings::cashbox_for_method($key, 'sales');
+	}
+
+	/** Nombre de una caja del ERP, '' si no existe. */
+	public static function cashbox_label($cashbox_id) {
+		$cashbox_id = absint($cashbox_id);
+		if ($cashbox_id <= 0 || !class_exists('MJERP_Cashboxes_Repo')) {
+			return '';
+		}
+		$box = MJERP_Cashboxes_Repo::find($cashbox_id);
+		if (!is_array($box) || empty($box['name'])) {
+			return '';
+		}
+		$label = (string) $box['name'];
+		if (!empty($box['currency'])) {
+			$label .= ' (' . $box['currency'] . ')';
+		}
+		return $label;
+	}
+
 	/**
 	 * Sugerencia automática para un gateway que todavía no se mapeó: si la clave
 	 * del ERP coincide con el id del gateway o con el final de un método propio

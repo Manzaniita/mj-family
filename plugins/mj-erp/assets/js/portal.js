@@ -22,6 +22,9 @@
 	'use strict';
 
 	const CFG = window.MJPORTAL || {};
+
+	/** Última novedad que el revendedor ya miró, por navegador. */
+	const LOG_SEEN_KEY = 'mjerp-portal-log-seen';
 	const ROOT_ID = 'mjerp-portal';
 
 	/* ------------------------------------------------------------------ */
@@ -92,6 +95,32 @@
 		const m = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
 		if (!m) return String(value);
 		return m[3] + '/' + m[2] + '/' + m[1];
+	}
+
+	function datetime(value) {
+		if (!value) return '';
+		const m = String(value).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+		if (!m) return date(value);
+		return m[3] + '/' + m[2] + ' ' + m[4] + ':' + m[5];
+	}
+
+	/**
+	 * El mismo importe en pesos, al dólar de hoy. '' si no hay TC.
+	 *
+	 * La cuenta se lleva en dólares; esto es para que el revendedor sepa cuánta plata es hoy sin
+	 * tener que hacer la cuenta él.
+	 */
+	function localOf(value) {
+		const n = toNumber(value);
+		const rate = f(CFG.rate);
+		if (n === null || rate <= 0) return '';
+		return money(n * rate, CFG.localCurrency || 'ARS');
+	}
+
+	/** "US$ 14 · $ 21.996" */
+	function moneyBoth(value) {
+		const local = localOf(value);
+		return money(value) + (local ? ' · ' + local : '');
 	}
 
 	function icon(name) {
@@ -286,6 +315,7 @@
 		return '<div class="mj-portal__hero' + (owes ? ' is-owing' : '') + '">' +
 			'<div class="mj-portal__hero-label">' + h(owes ? 'Tenés que pagar' : (credit ? 'Tenés a favor' : 'Estás al día')) + '</div>' +
 			'<div class="mj-portal__hero-value">' + h(money(Math.abs(balance))) + '</div>' +
+			(localOf(Math.abs(balance)) ? '<div class="mj-portal__hero-local">' + h(localOf(Math.abs(balance))) + '</div>' : '') +
 			'<div class="mj-portal__hero-hint">' +
 				h(owes
 					? (account.unpaid_sales === 1 ? '1 venta sin pagar' : account.unpaid_sales + ' ventas sin pagar')
@@ -319,6 +349,7 @@
 			{ key: 'stock', label: 'Lo que tengo', icon: 'box' },
 			{ key: 'ventas', label: 'Mis ventas', icon: 'cart', badge: parseInt(account.pending_sales, 10) || 0 },
 			{ key: 'cuenta', label: 'Mi cuenta', icon: 'list' },
+			{ key: 'novedades', label: 'Novedades', icon: 'clock', badge: unreadLog() },
 		];
 		return '<nav class="mj-portal__tabs" role="tablist">' +
 			tabs.map(function (t) {
@@ -330,6 +361,27 @@
 				'</button>';
 			}).join('') +
 		'</nav>';
+	}
+
+	/**
+	 * Novedades que todavía no miró, contra la última visita guardada en el navegador.
+	 *
+	 * Es a propósito local: no vale la pena una columna en la base para saber si alguien miró
+	 * una pantalla, y si cambia de teléfono lo peor que pasa es que las vea de nuevo.
+	 */
+	function unreadLog() {
+		const rows = (state.data && state.data.log && state.data.log.items) || [];
+		if (!rows.length) return 0;
+		let seen = '';
+		try { seen = window.localStorage.getItem(LOG_SEEN_KEY) || ''; } catch (e) { seen = ''; }
+		if (!seen) return rows.length;
+		return rows.filter(function (row) { return String(row.created_at || '') > seen; }).length;
+	}
+
+	function markLogSeen() {
+		const rows = (state.data && state.data.log && state.data.log.items) || [];
+		if (!rows.length) return;
+		try { window.localStorage.setItem(LOG_SEEN_KEY, String(rows[0].created_at || '')); } catch (e) { /* sin storage, se ven siempre */ }
 	}
 
 	function stockHtml(stock, canSell, canReturn) {
@@ -348,7 +400,7 @@
 						(row.sku ? '<div class="mj-portal__card-sub">SKU ' + h(row.sku) + '</div>' : '') +
 						'<div class="mj-portal__card-sub">' +
 							'Te quedan <strong>' + h(qty(row.qty_on_hand)) + '</strong> de ' + h(qty(row.qty)) +
-							' · ' + h(money(row.unit_price_base)) + ' cada uno' +
+							' · ' + h(moneyBoth(row.unit_price_base)) + ' cada uno' +
 						'</div>' +
 					'</div>' +
 					'<div class="mj-portal__card-actions">' +
@@ -369,31 +421,36 @@
 			'</div>';
 		}
 
+		/*
+		 * Sin confirmación, una venta es simplemente una venta: decirle «Confirmada» sugiere que
+		 * alguien tuvo que aprobarla y no es lo que pasa.
+		 */
 		const labels = {
 			pendiente: ['Esperando confirmación', 'warning'],
-			aprobada: ['Confirmada', 'success'],
+			aprobada: [needsApproval ? 'Confirmada' : 'Registrada', 'success'],
 			rechazada: ['Rechazada', 'neutral'],
 		};
 
 		return (needsApproval
 			? '<div class="mj-portal__note">' + icon('info') + '<span>Lo que cargás queda esperando que lo confirmemos. Recién ahí se suma a tu cuenta.</span></div>'
-			: '') +
+			: '<div class="mj-portal__note">' + icon('info') + '<span>Cada venta que avisás se suma a tu cuenta en el momento. Lo que confirmamos nosotros son los pagos.</span></div>') +
 		'<div class="mj-portal__list">' +
 			rows.map(function (sale) {
 				const info = labels[sale.status] || [sale.status, 'neutral'];
 				const balance = f(sale.balance_base);
-				const canUndo = sale.status === 'pendiente' && sale.source === 'portal';
+				// El servidor decide: es suya, no tiene pagos aplicados y sigue dentro de la ventana.
+				const canUndo = sale.can_undo === true;
 
 				let money_line = '';
 				if (sale.status === 'aprobada') {
 					money_line = balance <= 0.005
 						? '<span class="mj-portal__paid">Pagada</span>'
-						: 'Debés <strong>' + h(money(balance)) + '</strong>';
+						: 'Debés <strong>' + h(moneyBoth(balance)) + '</strong>';
 				} else if (sale.status === 'pendiente') {
-					money_line = 'Serían ' + h(money(sale.amount_base));
+					money_line = 'Serían ' + h(money(sale.amount_base)) + ' cuando la confirmemos';
 				}
 
-				return '<div class="mj-portal__card" data-sale="' + h(sale.id) + '">' +
+				return '<div class="mj-portal__card" data-sale="' + h(sale.id) + '" data-status="' + h(sale.status) + '">' +
 					'<div class="mj-portal__card-main">' +
 						'<div class="mj-portal__card-title">' + h(sale.name || '') + '</div>' +
 						'<div class="mj-portal__card-sub">' +
@@ -409,6 +466,42 @@
 							'<button type="button" class="mj-btn mj-btn--ghost mj-btn--sm" data-action="undo-sale">' + icon('x') + '<span>Deshacer</span></button>' +
 						'</div>'
 						: '') +
+				'</div>';
+			}).join('') +
+		'</div>';
+	}
+
+	/**
+	 * Bitácora: qué se le tocó de la cuenta y cuándo.
+	 *
+	 * Existe porque desde el ERP se pueden corregir precios, ventas y pagos. Sin esto, el
+	 * revendedor abre su panel un día y debe otra cosa sin que nadie le haya avisado.
+	 */
+	function logHtml(log) {
+		const rows = (log && log.items) || [];
+		if (!rows.length) {
+			return '<div class="mj-portal__empty">' + icon('clock') +
+				'<div class="mj-portal__empty-title">Sin novedades</div>' +
+				'<div class="mj-portal__empty-text">Acá van a aparecer los cambios que hagamos sobre tu cuenta: precios, ventas o pagos.</div>' +
+			'</div>';
+		}
+
+		const tone = {
+			eliminado: 'is-danger',
+			editado: 'is-warning',
+			confirmado: 'is-success',
+			rechazado: 'is-danger',
+		};
+
+		return '<div class="mj-portal__list">' +
+			rows.map(function (row) {
+				return '<div class="mj-portal__card mj-portal__card--log">' +
+					'<div class="mj-portal__card-main">' +
+						'<div class="mj-portal__card-sub mj-portal__log-when">' + h(datetime(row.created_at)) +
+							(row.actor_name ? ' · ' + h(row.actor_name) : '') + '</div>' +
+						'<div class="mj-portal__log-text ' + h(tone[row.action] || '') + '">' + h(row.summary || '') + '</div>' +
+						(row.reason ? '<div class="mj-portal__card-sub mj-muted">Motivo: ' + h(row.reason) + '</div>' : '') +
+					'</div>' +
 				'</div>';
 			}).join('') +
 		'</div>';
@@ -460,6 +553,8 @@
 		let panel = '';
 		if (state.tab === 'stock') {
 			panel = stockHtml(state.data.stock || [], !!state.data.can_sell, !!state.data.can_return);
+		} else if (state.tab === 'novedades') {
+			panel = logHtml(state.data.log);
 		} else if (state.tab === 'ventas') {
 			panel = salesHtml(state.data.sales, !!CFG.needsApproval);
 		} else if (can('see_account')) {
@@ -698,7 +793,7 @@
 					'<div class="mj-portal__sheet-error" data-error></div>' +
 					'<div class="mj-portal__sheet-actions">' +
 						'<button type="button" class="mj-btn mj-btn--ghost" data-cancel>Cancelar</button>' +
-						'<button type="submit" class="mj-btn mj-btn--primary" data-submit>' + icon('check') + '<span>Avisar la venta</span></button>' +
+						'<button type="submit" class="mj-btn mj-btn--primary" data-submit>' + icon('check') + '<span>' + (CFG.needsApproval ? 'Avisar la venta' : 'Registrar la venta') + '</span></button>' +
 					'</div>' +
 				'</form>' +
 			'</div>';
@@ -722,7 +817,9 @@
 			const value = f(toNumber(qtyInput.value));
 			const total = value * f(item.unit_price_base);
 			totalEl.innerHTML = value > 0
-				? 'Vas a deber <strong>' + h(money(total)) + '</strong>'
+				? (CFG.needsApproval
+					? 'Vas a deber <strong>' + h(moneyBoth(total)) + '</strong> cuando la confirmemos'
+					: 'Vas a deber <strong>' + h(moneyBoth(total)) + '</strong>')
 				: '';
 		}
 
@@ -768,7 +865,7 @@
 				note: String(qs('[name="note"]', form).value || ''),
 			}).then(function (res) {
 				close();
-				toast(CFG.needsApproval ? 'Listo, avisamos la venta. Queda esperando confirmación.' : 'Venta registrada.', 'success');
+				toast(CFG.needsApproval ? 'Listo, avisamos la venta. Queda esperando confirmación.' : 'Venta registrada y sumada a tu cuenta.', 'success');
 				if (res && res.stock) state.data.stock = res.stock;
 				if (res && res.account) state.data.account = res.account;
 				return load();
@@ -847,6 +944,7 @@
 			const tab = e.target.closest ? e.target.closest('[data-tab]') : null;
 			if (tab) {
 				state.tab = tab.getAttribute('data-tab');
+				if (state.tab === 'novedades') markLogSeen();
 				paint();
 				if (state.tab === 'cuenta' && state.statement === null) loadStatement();
 				return;
@@ -879,10 +977,15 @@
 				const card = undo.closest('[data-sale]');
 				const saleId = card ? parseInt(card.getAttribute('data-sale'), 10) : 0;
 				if (!saleId) return;
-				if (!window.confirm('¿Deshacer este aviso de venta?')) return;
+				// Deshacer una venta ya contada devuelve la unidad y borra la deuda: vale preguntar.
+				const pendingUndo = card.getAttribute('data-status') === 'pendiente';
+				const question = pendingUndo
+					? '¿Deshacer este aviso de venta?'
+					: '¿Deshacer esta venta? Vuelve a quedar como unidad tuya y se saca de tu cuenta.';
+				if (!window.confirm(question)) return;
 				undo.disabled = true;
 				api.del('sales/' + saleId).then(function () {
-					toast('Aviso deshecho.', 'success');
+					toast(pendingUndo ? 'Aviso deshecho.' : 'Venta deshecha.', 'success');
 					return load();
 				}).catch(function (err) {
 					undo.disabled = false;

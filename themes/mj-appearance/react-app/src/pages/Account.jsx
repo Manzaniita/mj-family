@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { LayoutDashboard, Package, MapPin, Heart, Download, Settings, LogOut, Loader2, AlertCircle, CheckCircle2, ArrowLeft, RotateCcw, MessageCircle, XCircle, Plus, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Package, MapPin, Heart, Download, Settings, LogOut, Loader2, AlertCircle, CheckCircle2, ArrowLeft, RotateCcw, MessageCircle, XCircle, Plus, ChevronRight, ExternalLink } from 'lucide-react';
 import { Section } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
@@ -12,7 +12,7 @@ import { useAuth, useWishlist, useCatalog, useCart, useUI } from '@/store';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import * as wc from '@/lib/wc';
 import { whatsappUrl } from '@/lib/consult';
-import { IS_WP, SITE, CONTACT, WHATSAPP_NUMBERS } from '@/lib/config';
+import { IS_WP, SITE, CONTACT, WHATSAPP_NUMBERS, ACCOUNT_LINKS } from '@/lib/config';
 import { formatPrice, isValidCuit, cn } from '@/lib/format';
 
 const nav = [
@@ -136,6 +136,16 @@ export function AccountLayout() {
               >
                 <Icon size={17} strokeWidth={1.8} /> {label}
               </NavLink>
+            ))}
+            {ACCOUNT_LINKS.map((link) => (
+              <a
+                key={link.key}
+                href={link.href}
+                title={link.description || undefined}
+                className="flex items-center gap-3 rounded-xl2 px-4 py-3 text-sm font-medium text-ink-soft transition-colors hover:bg-surface hover:text-ink"
+              >
+                <ExternalLink size={17} strokeWidth={1.8} /> {link.label}
+              </a>
             ))}
             <button
               onClick={handleLogout}

@@ -320,6 +320,16 @@ class MJERP_Consignees {
 			return new WP_Error( 'mjerp_db_error', __( 'No se pudo actualizar el revendedor.', 'mj-erp' ), array( 'status' => 500 ) );
 		}
 
+		/*
+		 * Autorreparación: un revendedor activo tiene que poder entrar a su panel. Si el rol se
+		 * perdió por el camino (lo cambiaron a mano en WordPress, se renombró el rol en la
+		 * configuración, se importó la cuenta de otro lado), guardar su ficha lo devuelve.
+		 */
+		$is_active = array_key_exists( 'is_active', $row ) ? (int) $row['is_active'] : (int) $existing['is_active'];
+		if ( $is_active && $user instanceof WP_User ) {
+			self::grant_role( $existing['user_id'] );
+		}
+
 		self::flush_current();
 
 		/**
@@ -848,6 +858,9 @@ class MJERP_Consignees {
 		$list                 = MJERP_Settings::price_list( self::price_list_key( $out ) );
 		$out['price_list']    = $list ? $list : null;
 		$out['has_portal']    = $user instanceof WP_User && user_can( $user_id, MJERP_Capabilities::CAP_PORTAL );
+		// La dirección que hay que pasarle: sin esto el revendedor no sabe a dónde entrar y
+		// termina golpeando la puerta del ERP.
+		$out['portal_url']    = class_exists( 'MJERP_Portal' ) && MJERP_Portal::is_enabled() ? MJERP_Portal::url() : '';
 
 		$out['overrides']   = self::overrides( $row );
 		$out['permissions'] = isset( $out['overrides']['permissions'] ) ? $out['overrides']['permissions'] : array();

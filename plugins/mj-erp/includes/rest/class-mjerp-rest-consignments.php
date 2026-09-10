@@ -209,6 +209,7 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 						'qty'             => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'unit_price_base' => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'price_list_key'  => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
+						'reason'          => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'name'            => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'sku'             => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 					)
@@ -455,6 +456,126 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 				$this->endpoint( WP_REST_Server::DELETABLE, 'delete_payment' ),
 			)
 		);
+
+		/*
+		 * Los comprobantes se miran desde acá y no rebotando a wp-admin: quien lleva el ERP no
+		 * necesariamente entra al panel de WordPress, y mandarlo a una pantalla que quizá no
+		 * puede abrir es lo mismo que no dejarlo ver el comprobante.
+		 */
+		register_rest_route(
+			$ns,
+			'/consignment-payments/(?P<id>\d+)/receipts',
+			array(
+				'args' => array( 'id' => $this->id_arg( __( 'ID del pago.', 'mj-erp' ) ) ),
+				$this->endpoint( WP_REST_Server::READABLE, 'list_payment_receipts' ),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/receipts/(?P<id>\d+)/review',
+			array(
+				'args' => array( 'id' => $this->id_arg( __( 'ID del comprobante.', 'mj-erp' ) ) ),
+				$this->endpoint(
+					WP_REST_Server::CREATABLE,
+					'review_receipt',
+					array(
+						'decision' => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
+						'reason'   => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+					)
+				),
+			)
+		);
+	}
+
+	/* ------------------------------------------------------------------
+	 * Comprobantes
+	 * ---------------------------------------------------------------- */
+
+	/**
+	 * GET /consignment-payments/{id}/receipts
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function list_payment_receipts( $request ) {
+		$id = absint( $request['id'] );
+
+		$payment = MJERP_Consignment_Payments_Repo::find( $id );
+		if ( ! $payment ) {
+			return $this->fail( 'mjerp_not_found', __( 'El pago no existe.', 'mj-erp' ), 404 );
+		}
+		if ( ! class_exists( 'MJPM_Receipts' ) || ! class_exists( 'MJERP_Receipts' ) ) {
+			return $this->fail(
+				'mjerp_receipts_unavailable',
+				__( 'MJ Medios de Pago no está activo, así que no hay comprobantes que mostrar.', 'mj-erp' ),
+				409
+			);
+		}
+
+		$can_review = MJERP_Receipts::can_review();
+		$items      = array();
+
+		foreach ( (array) MJPM_Receipts::for_object( MJERP_Receipts::CONTEXT, $id ) as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$items[] = array_merge(
+				$row,
+				array(
+					'url'          => MJPM_Receipts::file_url( $row ),
+					'download_url' => MJPM_Receipts::file_url( $row, true ),
+					'can_review'   => $can_review,
+				)
+			);
+		}
+
+		return $this->ok(
+			array(
+				'items'      => $items,
+				'total'      => count( $items ),
+				'can_review' => $can_review,
+			)
+		);
+	}
+
+	/**
+	 * POST /receipts/{id}/review — aprobar o rechazar un comprobante sin salir del ERP.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function review_receipt( $request ) {
+		if ( ! class_exists( 'MJPM_Receipts' ) || ! class_exists( 'MJERP_Receipts' ) ) {
+			return $this->fail( 'mjerp_receipts_unavailable', __( 'MJ Medios de Pago no está activo.', 'mj-erp' ), 409 );
+		}
+		if ( ! MJERP_Receipts::can_review() ) {
+			return $this->fail( 'mjerp_forbidden', __( 'No tenés permiso para revisar comprobantes.', 'mj-erp' ), 403 );
+		}
+
+		$id       = absint( $request['id'] );
+		$p        = $this->params( $request );
+		$decision = $this->str( $p, 'decision' );
+
+		if ( ! in_array( $decision, array( 'aprobado', 'rechazado', 'pendiente' ), true ) ) {
+			return $this->fail( 'mjerp_invalid_decision', __( 'La decisión tiene que ser aprobado, rechazado o pendiente.', 'mj-erp' ), 400, array( 'field' => 'decision' ) );
+		}
+
+		$receipt = MJPM_Receipts::find( $id );
+		if ( ! $receipt ) {
+			return $this->fail( 'mjerp_not_found', __( 'El comprobante no existe.', 'mj-erp' ), 404 );
+		}
+		// Solo comprobantes de pagos del ERP: esta ruta no es una puerta trasera al resto.
+		if ( MJERP_Receipts::CONTEXT !== (string) $receipt['context'] ) {
+			return $this->fail( 'mjerp_not_found', __( 'Ese comprobante no es de un pago de reventa.', 'mj-erp' ), 404 );
+		}
+
+		$result = MJPM_Receipts::review( $id, $decision, $this->str( $p, 'reason', '', 255 ) );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->ok( array( 'receipt' => MJPM_Receipts::find( $id ) ) );
 	}
 
 	/* ------------------------------------------------------------------
@@ -849,6 +970,10 @@ class MJERP_REST_Consignments extends MJERP_REST_Controller {
 			if ( $this->has( $p, $key ) ) {
 				$data[ $key ] = $p[ $key ];
 			}
+		}
+		// No es una columna: viaja para quedar anotado en la bitácora del revendedor.
+		if ( $this->has( $p, 'reason' ) ) {
+			$data['reason'] = $this->str( $p, 'reason', '', 255 );
 		}
 
 		$result = MJERP_Consignments_Repo::update_item( $item_id, $data );

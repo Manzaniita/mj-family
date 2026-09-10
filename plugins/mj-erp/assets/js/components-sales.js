@@ -44,6 +44,36 @@
 		return salesInfo().defaults || {};
 	}
 
+	/**
+	 * Caja donde entra la plata de un medio de pago, tal como quedó configurada en
+	 * Configuración → Ventas. 0 = la caja por defecto del ERP.
+	 *
+	 * Es la misma regla que aplica el servidor al guardar; acá solo se adelanta para que el
+	 * formulario muestre desde el principio la caja correcta.
+	 *
+	 * @param {string} method Clave del medio de pago.
+	 * @returns {number} Id de caja (0 = ninguna).
+	 */
+	function cashboxForMethod(method) {
+		const key = String(method || '');
+		const rows = salesInfo().payment_methods || [];
+		for (let i = 0; i < rows.length; i++) {
+			if (String(rows[i].key) === key) {
+				const box = parseInt(rows[i].cashbox_id, 10) || 0;
+				if (box > 0) return box;
+				break;
+			}
+		}
+		return parseInt(defaults().fallback_cashbox_id, 10) || 0;
+	}
+
+	/** Opciones de caja para los formularios de cobro. */
+	function cashboxOptions() {
+		return (MJ.state.cashboxes || []).map(function (c) {
+			return { value: c.id, label: c.name + (c.currency ? ' (' + c.currency + ')' : '') };
+		});
+	}
+
 	C.saleHelpers = {
 		info: salesInfo,
 		currency: saleCurrency,
@@ -51,6 +81,8 @@
 		methodOptions: methodOptions,
 		channelOptions: channelOptions,
 		defaults: defaults,
+		cashboxForMethod: cashboxForMethod,
+		cashboxOptions: cashboxOptions,
 	};
 
 	/* ------------------------------------------------------------------ */
@@ -190,9 +222,7 @@
 		opts = opts || {};
 		const sale = opts.sale || {};
 		const due = MJ.fmt.toNumber(sale.due) || 0;
-		const cashboxes = (MJ.state.cashboxes || []).map(function (c) {
-			return { value: c.id, label: c.name + (c.currency ? ' (' + c.currency + ')' : '') };
-		});
+		const cashboxes = cashboxOptions();
 
 		const body =
 			'<form class="mj-form" data-form novalidate autocomplete="off">' +
@@ -234,8 +264,21 @@
 				'<button type="button" class="mj-btn mj-btn--primary" data-action="save">' + MJ.icon('cash') + '<span>Registrar</span></button>',
 		});
 
-		MJ.ui.fillSelect(qs('#mj-sp-method', modal.el), methodOptions(), sale.payment_method || defaults().payment_method);
-		MJ.ui.fillSelect(qs('#mj-sp-cashbox', modal.el), cashboxes, sale.cashbox_id || defaults().cashbox_id, 'Sin caja');
+		const methodSelect = qs('#mj-sp-method', modal.el);
+		const cashboxSelect = qs('#mj-sp-cashbox', modal.el);
+		const initialMethod = sale.payment_method || defaults().payment_method;
+
+		MJ.ui.fillSelect(methodSelect, methodOptions(), initialMethod);
+		MJ.ui.fillSelect(cashboxSelect, cashboxes, sale.cashbox_id || cashboxForMethod(initialMethod), 'Sin caja');
+
+		// La caja sigue al medio de pago: si cobrás en dólares, la plata va a la caja de dólares.
+		// Se puede pisar a mano, y a partir de ahí el select deja de moverse solo.
+		let cashboxTouched = false;
+		MJ.ui.on(modal.el, 'change', '#mj-sp-cashbox', function () { cashboxTouched = true; });
+		MJ.ui.on(modal.el, 'change', '#mj-sp-method', function (e, elx) {
+			if (cashboxTouched) return;
+			MJ.ui.fillSelect(cashboxSelect, cashboxes, cashboxForMethod(elx.value), 'Sin caja');
+		});
 
 		MJ.ui.on(modal.el, 'click', '[data-action="save"]', function (e, btn) {
 			const form = qs('[data-form]', modal.el);

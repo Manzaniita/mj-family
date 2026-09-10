@@ -272,13 +272,40 @@ class MJERP_Consignment_Sales_Repo {
 			return new WP_Error( 'mjerp_invalid_qty', __( 'La cantidad vendida tiene que ser mayor a cero.', 'mj-erp' ), array( 'status' => 400, 'field' => 'qty' ) );
 		}
 
+		/*
+		 * Nunca más unidades de las que tiene. `qty_on_hand` ya descuenta lo vendido, lo devuelto y
+		 * lo avisado sin confirmar, así que la misma unidad no se puede vender dos veces ni
+		 * aprovechando la ventana entre el aviso y la confirmación.
+		 */
 		$allow_oversell = MJERP_Helpers::bool( MJERP_Settings::get( 'consignment_allow_oversell', false ) );
 		if ( ! $allow_oversell && $qty > $item['qty_on_hand'] + 0.0001 ) {
+			$available = MJERP_Helpers::trim_number( (float) $item['qty_on_hand'] );
+			$pending   = (float) ( isset( $item['qty_pending'] ) ? $item['qty_pending'] : 0 );
+
+			if ( $pending > 0.0001 ) {
+				$message = sprintf(
+					/* translators: 1: units still sellable, 2: units already reported and unconfirmed */
+					__( 'Solo quedan %1$s unidades disponibles: ya hay %2$s avisadas y sin confirmar.', 'mj-erp' ),
+					$available,
+					MJERP_Helpers::trim_number( $pending )
+				);
+			} else {
+				$message = sprintf(
+					/* translators: %s: units still held */
+					__( 'Solo quedan %s unidades de ese producto en poder del revendedor.', 'mj-erp' ),
+					$available
+				);
+			}
+
 			return new WP_Error(
 				'mjerp_qty_exceeds',
-				/* translators: %s: units still held */
-				sprintf( __( 'Solo quedan %s unidades de ese producto en poder del revendedor.', 'mj-erp' ), rtrim( rtrim( number_format( (float) $item['qty_on_hand'], 4, '.', '' ), '0' ), '.' ) ),
-				array( 'status' => 400, 'field' => 'qty', 'qty_on_hand' => $item['qty_on_hand'] )
+				$message,
+				array(
+					'status'      => 400,
+					'field'       => 'qty',
+					'qty_on_hand' => $item['qty_on_hand'],
+					'qty_pending' => $pending,
+				)
 			);
 		}
 
@@ -542,6 +569,34 @@ class MJERP_Consignment_Sales_Repo {
 
 		MJERP_Consignments_Repo::sync_item_quantities( (int) $sale['consignment_item_id'] );
 
+		if ( class_exists( 'MJERP_Consignment_Log' ) && isset( $row['amount_base'] ) ) {
+			$before = round( (float) $sale['amount_base'], 4 );
+			$after  = round( (float) $row['amount_base'], 4 );
+			if ( abs( $after - $before ) > 0.0001 ) {
+				MJERP_Consignment_Log::add(
+					array(
+						'consignee_id' => (int) $sale['consignee_id'],
+						'kind'         => MJERP_Consignment_Log::KIND_SALE,
+						'action'       => MJERP_Consignment_Log::ACTION_UPDATED,
+						'object_id'    => (int) $sale['id'],
+						'amount_base'  => $after,
+						'reason'       => isset( $data['reason'] ) ? (string) $data['reason'] : '',
+						'summary'      => sprintf(
+							/* translators: 1: product, 2: old amount, 3: new amount */
+							__( 'Se corrigió la venta de %1$s: de %2$s a %3$s.', 'mj-erp' ),
+							(string) $sale['name'],
+							MJERP_Helpers::money_base( $before ),
+							MJERP_Helpers::money_base( $after )
+						),
+						'detail'       => array(
+							'from' => $before,
+							'to'   => $after,
+						),
+					)
+				);
+			}
+		}
+
 		return true;
 	}
 
@@ -681,6 +736,27 @@ class MJERP_Consignment_Sales_Repo {
 		}
 
 		MJERP_Consignments_Repo::sync_item_quantities( (int) $sale['consignment_item_id'] );
+
+		if ( class_exists( 'MJERP_Consignment_Log' ) ) {
+			MJERP_Consignment_Log::add(
+				array(
+					'consignee_id' => (int) $sale['consignee_id'],
+					'kind'         => MJERP_Consignment_Log::KIND_SALE,
+					'action'       => MJERP_Consignment_Log::ACTION_DELETED,
+					'object_id'    => (int) $sale['id'],
+					'amount_base'  => (float) $sale['amount_base'],
+					'reason'       => isset( $context['reason'] ) ? (string) $context['reason'] : '',
+					'source'       => isset( $context['source'] ) ? (string) $context['source'] : 'admin',
+					'summary'      => sprintf(
+						/* translators: 1: quantity, 2: product, 3: amount */
+						__( 'Se borró la venta de %1$s de %2$s por %3$s.', 'mj-erp' ),
+						MJERP_Helpers::trim_number( (float) $sale['qty'] ),
+						(string) $sale['name'],
+						MJERP_Helpers::money_base( (float) $sale['amount_base'] )
+					),
+				)
+			);
+		}
 
 		return true;
 	}

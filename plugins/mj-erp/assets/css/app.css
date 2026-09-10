@@ -4394,3 +4394,162 @@ th.mj-truncate {
 .mj-receipt-link:hover .mj-badge {
 	filter: brightness(1.15);
 }
+
+/* -------------------------------------------------------------------------
+ * Importes en dos monedas
+ *
+ * La deuda se lleva en moneda base; los pesos son la lectura del día. Por eso
+ * van siempre debajo y más chicos: mismo dato, no un segundo número.
+ * ---------------------------------------------------------------------- */
+.mj-money-pair {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: flex-end;
+	line-height: 1.25;
+}
+
+.mj-table td:not(.is-num) .mj-money-pair,
+.mj-money-pair--start {
+	align-items: flex-start;
+}
+
+.mj-money-pair__local {
+	font-size: var(--mj-fs-sm);
+	color: var(--mj-text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.mj-kpi__local {
+	margin-top: -2px;
+	font-size: var(--mj-fs-sm);
+	font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------------------
+ * Importe que se puede escribir en cualquiera de las dos monedas
+ * ---------------------------------------------------------------------- */
+.mj-dual-amount {
+	display: flex;
+	align-items: center;
+	gap: var(--mj-sp-2);
+	flex-wrap: wrap;
+}
+
+.mj-dual-amount__side {
+	display: flex;
+	align-items: center;
+	gap: var(--mj-sp-1);
+	flex: 1 1 140px;
+	min-width: 0;
+}
+
+.mj-dual-amount__cur {
+	flex: 0 0 auto;
+	font-size: var(--mj-fs-sm);
+	font-weight: 600;
+	color: var(--mj-text-muted);
+}
+
+.mj-dual-amount__eq {
+	flex: 0 0 auto;
+	color: var(--mj-text-muted);
+}
+
+.mj-dual-amount input {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------------------
+ * Visor de comprobantes dentro del ERP
+ * ---------------------------------------------------------------------- */
+.mj-receipts {
+	display: grid;
+	gap: var(--mj-sp-3);
+}
+
+.mj-receipts__item {
+	display: flex;
+	gap: var(--mj-sp-3);
+	padding: var(--mj-sp-3);
+	border: 1px solid var(--mj-border);
+	border-radius: var(--mj-r);
+	background: var(--mj-surface);
+	flex-wrap: wrap;
+}
+
+.mj-receipts__thumb {
+	flex: 0 0 auto;
+	display: block;
+	width: 160px;
+	border-radius: var(--mj-r-sm);
+	overflow: hidden;
+	border: 1px solid var(--mj-border);
+	background: var(--mj-bg);
+}
+
+.mj-receipts__thumb img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.mj-receipts__file,
+.mj-receipts__missing {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--mj-sp-2);
+	padding: var(--mj-sp-3);
+	border-radius: var(--mj-r-sm);
+	border: 1px dashed var(--mj-border);
+	color: var(--mj-text);
+	text-decoration: none;
+}
+
+.mj-receipts__missing {
+	color: var(--mj-text-muted);
+}
+
+.mj-receipts__meta {
+	flex: 1 1 220px;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--mj-sp-1);
+}
+
+/* -------------------------------------------------------------------------
+ * Portal: equivalente en pesos y bitácora
+ * ---------------------------------------------------------------------- */
+.mj-portal__hero-local {
+	margin-bottom: 4px;
+	font-size: var(--mj-fs-lg);
+	font-variant-numeric: tabular-nums;
+	color: var(--mj-text-muted);
+}
+
+.mj-portal__card--log {
+	align-items: flex-start;
+}
+
+.mj-portal__log-when {
+	margin-bottom: 2px;
+}
+
+.mj-portal__log-text {
+	font-size: var(--mj-fs-md);
+	line-height: 1.45;
+}
+
+.mj-portal__log-text.is-danger {
+	color: var(--mj-danger);
+}
+
+.mj-portal__log-text.is-warning {
+	color: var(--mj-warning);
+}
+
+.mj-portal__log-text.is-success {
+	color: var(--mj-success);
+}

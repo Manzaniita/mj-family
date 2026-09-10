@@ -31,6 +31,40 @@ class MJERP_Portal {
 		// A reseller has no business in wp-admin; send them to their own screen instead.
 		add_action( 'admin_init', array( __CLASS__, 'block_admin' ) );
 		add_filter( 'show_admin_bar', array( __CLASS__, 'hide_admin_bar' ) );
+
+		// Un acceso al portal desde «Mi cuenta» de la tienda (temas de la familia MJ).
+		add_filter( 'mj_account_links', array( __CLASS__, 'account_link' ) );
+	}
+
+	/**
+	 * Adds the portal to the store's account menu, for resellers only.
+	 *
+	 * Without this the reseller has a screen of their own and no way of reaching it: they log
+	 * into the shop, see the same account page as any customer, and have to be handed the URL
+	 * by hand every time.
+	 *
+	 * @param array $links Links declared so far.
+	 * @return array
+	 */
+	public static function account_link( $links ) {
+		if ( ! is_array( $links ) ) {
+			$links = array();
+		}
+		if ( ! self::is_enabled() || ! MJERP_Capabilities::current_user_can_portal() ) {
+			return $links;
+		}
+		if ( null === MJERP_Consignees::current() ) {
+			return $links;
+		}
+
+		$links[] = array(
+			'key'         => 'mjerp-portal',
+			'label'       => (string) MJERP_Settings::get( 'portal_title', 'Mi cuenta' ),
+			'href'        => self::url(),
+			'description' => __( 'Lo que tenés en consignación, lo que vendiste y tu saldo.', 'mj-erp' ),
+		);
+
+		return $links;
 	}
 
 	/**

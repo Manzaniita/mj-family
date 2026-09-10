@@ -200,9 +200,6 @@
 
 	function paymentHtml(state) {
 		const collectable = state.preview && state.preview.totals ? (num(state.preview.totals.collectable) || 0) : 0;
-		const cashboxes = (MJ.state.cashboxes || []).map(function (c) {
-			return { value: c.id, label: c.name + (c.currency ? ' (' + c.currency + ')' : '') };
-		});
 
 		return '<div class="mj-card mj-mt"><div class="mj-card__body">' +
 			'<label class="mj-checkbox mj-mb"><input type="checkbox" data-field="charge"' + (state.charge ? ' checked' : '') + '> <span class="mj-strong">Cobrado</span></label>' +
@@ -264,6 +261,7 @@
 				paymentAmount: '',
 				paymentMethod: defaults().payment_method || '',
 				cashboxId: defaults().cashbox_id || 0,
+				cashboxTouched: false,
 				createOrder: defaults().create_order !== false,
 				preview: null,
 				seq: 0,
@@ -323,10 +321,7 @@
 				if (!el) return;
 				el.innerHTML = paymentHtml(state);
 				MJ.ui.fillSelect(qs('#mj-sale-pay-method', el), MJ.components.saleHelpers.methodOptions(), state.paymentMethod);
-				const cashboxes = (MJ.state.cashboxes || []).map(function (c) {
-					return { value: c.id, label: c.name + (c.currency ? ' (' + c.currency + ')' : '') };
-				});
-				MJ.ui.fillSelect(qs('#mj-sale-cashbox', el), cashboxes, state.cashboxId, 'Sin caja');
+				MJ.ui.fillSelect(qs('#mj-sale-cashbox', el), MJ.components.saleHelpers.cashboxOptions(), state.cashboxId, 'Sin caja');
 			}
 
 			function paintActions() {
@@ -533,8 +528,21 @@
 			}));
 			offs.push(MJ.ui.on(container, 'input', '[data-field="note"]', function (e, el) { state.note = el.value; }));
 			offs.push(MJ.ui.on(container, 'input', '[data-field="payment_amount"]', function (e, el) { state.paymentAmount = el.value; }));
-			offs.push(MJ.ui.on(container, 'change', '[data-field="payment_method"]', function (e, el) { state.paymentMethod = el.value; }));
-			offs.push(MJ.ui.on(container, 'change', '[data-field="cashbox_id"]', function (e, el) { state.cashboxId = el.value; }));
+			/*
+			 * La caja sigue al medio de pago (transferencia → caja de transferencias, dólares →
+			 * caja de dólares), salvo que la elijas a mano: ahí manda tu elección.
+			 */
+			offs.push(MJ.ui.on(container, 'change', '[data-field="payment_method"]', function (e, el) {
+				state.paymentMethod = el.value;
+				if (state.cashboxTouched) return;
+				state.cashboxId = MJ.components.saleHelpers.cashboxForMethod(el.value);
+				const select = qs('#mj-sale-cashbox', container);
+				if (select) MJ.ui.fillSelect(select, MJ.components.saleHelpers.cashboxOptions(), state.cashboxId, 'Sin caja');
+			}));
+			offs.push(MJ.ui.on(container, 'change', '[data-field="cashbox_id"]', function (e, el) {
+				state.cashboxId = el.value;
+				state.cashboxTouched = true;
+			}));
 
 			offs.push(MJ.ui.on(container, 'change', '[data-field="charge"]', function (e, el) {
 				state.charge = !!el.checked;

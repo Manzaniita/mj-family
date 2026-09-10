@@ -209,7 +209,7 @@
 		emptyTitle: 'Todavía no hay cajas',
 		emptyText: 'Creá una caja por cada origen de fondos (pesos, dólares, cuenta bancaria) para imputar los gastos.',
 		emptySearchText: 'Ninguna caja coincide con la búsqueda.',
-		note: 'Las cajas son la base del módulo «Caja» que llega más adelante: por ahora se usan para indicar de dónde sale cada gasto de una importación. Cuando el módulo esté listo, estos mismos registros van a llevar saldos y movimientos.',
+		note: 'Cada caja es una bolsa de plata distinta: pesos en el cajón, la cuenta bancaria, los dólares. Se usan para dos cosas: de dónde sale cada gasto de una importación, y dónde entra lo que cobrás — eso último se asigna en Configuración → Ventas, sobre cada medio de pago. Son la base del módulo «Caja»: cuando esté listo, estos mismos registros van a llevar saldos y movimientos.',
 		count(n) { return n === 1 ? '1 caja' : MJ.fmt.int(n) + ' cajas'; },
 		foundWord: 'encontradas',
 		inactiveHint: 'incluye inactivas',

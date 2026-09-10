@@ -149,6 +149,17 @@ class MJERP_Frontend {
 		}
 
 		if ( ! MJERP_Capabilities::current_user_can() ) {
+			/*
+			 * Un revendedor no tiene nada que hacer en el ERP, pero sí tiene su propia pantalla.
+			 * Mandarlo ahí es la respuesta correcta: el 403 lo dejaba en una puerta cerrada sin
+			 * decirle a dónde ir, y es exactamente lo que pasa cuando le pasás el link del ERP
+			 * en vez del suyo.
+			 */
+			$portal = self::portal_url_for_current_user();
+			if ( '' !== $portal ) {
+				wp_safe_redirect( $portal );
+				exit;
+			}
 			self::render_403();
 			exit;
 		}
@@ -265,6 +276,26 @@ class MJERP_Frontend {
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * Portal URL when the logged-in user is an active reseller, '' otherwise.
+	 *
+	 * @return string
+	 */
+	public static function portal_url_for_current_user() {
+		if ( ! class_exists( 'MJERP_Portal' ) || ! MJERP_Portal::is_enabled() ) {
+			return '';
+		}
+		/*
+		 * Alcanza con que tenga el rol de reventa: si además su ficha está desactivada, el propio
+		 * portal se lo explica con todas las letras ("tu cuenta de revendedor está desactivada"),
+		 * que es mucho más útil que un 403 hablándole de una capacidad de WordPress.
+		 */
+		if ( ! MJERP_Capabilities::current_user_can_portal() ) {
+			return '';
+		}
+		return MJERP_Portal::url();
 	}
 
 	/**

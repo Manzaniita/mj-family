@@ -111,6 +111,8 @@ class MJERP_Cashboxes_Repo {
 			return new WP_Error( 'mjerp_db_error', __( 'No se pudo guardar la caja.', 'mj-erp' ), array( 'status' => 500 ) );
 		}
 
+		self::flush();
+
 		return (int) $wpdb->insert_id;
 	}
 
@@ -141,6 +143,8 @@ class MJERP_Cashboxes_Repo {
 		if ( false === $result ) {
 			return new WP_Error( 'mjerp_db_error', __( 'No se pudo actualizar la caja.', 'mj-erp' ), array( 'status' => 500 ) );
 		}
+
+		self::flush();
 
 		return true;
 	}
@@ -177,7 +181,23 @@ class MJERP_Cashboxes_Repo {
 			return new WP_Error( 'mjerp_db_error', __( 'No se pudo eliminar la caja.', 'mj-erp' ), array( 'status' => 500 ) );
 		}
 
+		self::flush();
+
 		return true;
+	}
+
+	/**
+	 * Invalidates the cashbox list cached by the settings.
+	 *
+	 * A payment method points at a cashbox by id, so a box that was just created has to become
+	 * selectable, and one that was deleted has to stop resolving, within the same request.
+	 *
+	 * @return void
+	 */
+	public static function flush() : void {
+		if ( class_exists( 'MJERP_Settings' ) && is_callable( array( 'MJERP_Settings', 'flush_cashboxes' ) ) ) {
+			MJERP_Settings::flush_cashboxes();
+		}
 	}
 
 	/**

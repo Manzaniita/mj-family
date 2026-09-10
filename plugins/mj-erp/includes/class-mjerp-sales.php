@@ -109,7 +109,10 @@ class MJERP_Sales {
 				'shipping_total'   => MJERP_Helpers::array_get( $data, 'shipping_total', 0 ),
 				'note'             => MJERP_Helpers::array_get( $data, 'note', '' ),
 				'payment_method'   => MJERP_Helpers::array_get( $data, 'payment_method', '' ),
-				'cashbox_id'       => MJERP_Helpers::array_get( $data, 'cashbox_id', MJERP_Settings::get( 'sales_default_cashbox', 0 ) ),
+				'cashbox_id'       => MJERP_Sale_Payments_Repo::resolve_cashbox(
+					MJERP_Helpers::array_get( $data, 'cashbox_id', 0 ),
+					MJERP_Helpers::array_get( $data, 'payment_method', '' )
+				),
 				'items'            => $prepared,
 			)
 		);
@@ -345,6 +348,9 @@ class MJERP_Sales {
 			$name = MJERP_Helpers::user_display_name( $customer_id );
 		}
 
+		// El medio de pago del pedido decide, además, en qué caja entra esa plata.
+		$order_method = self::method_from_order( $order );
+
 		$sale_id = MJERP_Sales_Repo::create(
 			array(
 				'order_id'         => $order_id,
@@ -362,8 +368,8 @@ class MJERP_Sales {
 				'currency'         => $currency,
 				'rate'             => $rate,
 				'shipping_total'   => round( MJERP_Helpers::to_float( $order->get_shipping_total() ) + MJERP_Helpers::to_float( $order->get_shipping_tax() ), 4 ),
-				'payment_method'   => self::method_from_order( $order ),
-				'cashbox_id'       => MJERP_Settings::get( 'sales_default_cashbox', 0 ),
+				'payment_method'   => $order_method,
+				'cashbox_id'       => MJERP_Sale_Payments_Repo::resolve_cashbox( 0, $order_method ),
 				'stock_applied'    => 1,
 				'items'            => $lines,
 			)
@@ -1138,7 +1144,7 @@ class MJERP_Sales {
 				'currency'     => $sale['currency'],
 				'rate'         => $sale['rate'],
 				'method'       => self::method_from_order( $order ),
-				'cashbox_id'   => MJERP_Settings::get( 'sales_default_cashbox', 0 ),
+				// cashbox_id omitted on purpose: the repo puts it in the box its method points at.
 				'reference'    => (string) $order->get_transaction_id(),
 				'payment_date' => $sale['sale_date'],
 				'status'       => MJERP_Sale_Payments_Repo::STATUS_CONFIRMED,
@@ -1176,14 +1182,26 @@ class MJERP_Sales {
 			return;
 		}
 
+		$method = (string) MJERP_Helpers::array_get( $payment, 'method', $sale['payment_method'] );
+
+		/*
+		 * The collection inherits the box chosen on the sale only while it is the same method. Pay
+		 * a sale marked "transferencia" in physical dollars and the money belongs to the dollar
+		 * box, not to the one the sale header happened to carry.
+		 */
+		$cashbox = MJERP_Helpers::array_get( $payment, 'cashbox_id', 0 );
+		if ( ! absint( $cashbox ) && sanitize_key( $method ) === sanitize_key( (string) $sale['payment_method'] ) ) {
+			$cashbox = (int) $sale['cashbox_id'];
+		}
+
 		MJERP_Sale_Payments_Repo::create(
 			array(
 				'sale_id'      => $sale_id,
 				'amount'       => $amount,
 				'currency'     => MJERP_Helpers::array_get( $payment, 'currency', $sale['currency'] ),
 				'rate'         => MJERP_Helpers::array_get( $payment, 'rate', $sale['rate'] ),
-				'method'       => MJERP_Helpers::array_get( $payment, 'method', $sale['payment_method'] ),
-				'cashbox_id'   => MJERP_Helpers::array_get( $payment, 'cashbox_id', $sale['cashbox_id'] ),
+				'method'       => $method,
+				'cashbox_id'   => $cashbox,
 				'reference'    => MJERP_Helpers::array_get( $payment, 'reference', '' ),
 				'note'         => MJERP_Helpers::array_get( $payment, 'note', '' ),
 				'payment_date' => MJERP_Helpers::array_get( $payment, 'payment_date', $sale['sale_date'] ),

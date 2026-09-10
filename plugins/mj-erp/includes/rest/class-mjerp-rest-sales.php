@@ -507,7 +507,13 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 				'currency'     => $this->currency( $params, 'currency', $sale['currency'] ),
 				'rate'         => $this->float( $params, 'rate', (float) $sale['rate'] ),
 				'method'       => $this->str( $params, 'method' ),
-				'cashbox_id'   => $this->int( $params, 'cashbox_id', (int) $sale['cashbox_id'] ),
+				// 0 = decidila por el medio de pago. Solo se hereda la caja de la venta cuando el
+				// cobro entra por el mismo medio con el que se cargó.
+				'cashbox_id'   => $this->int(
+					$params,
+					'cashbox_id',
+					sanitize_key( $this->str( $params, 'method' ) ) === sanitize_key( (string) $sale['payment_method'] ) ? (int) $sale['cashbox_id'] : 0
+				),
 				'payment_date' => $this->date( $params, 'payment_date' ),
 				'reference'    => $this->str( $params, 'reference', '', 190 ),
 				'note'         => $this->str( $params, 'note', '', 255 ),

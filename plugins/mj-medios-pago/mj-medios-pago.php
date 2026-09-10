@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Medios de Pago
  * Description: Descuentos y recargos por medio de pago con precio distinto en tarjetas, ficha, carrito y checkout, y comprobantes de pago: elegís en qué medios se pide, el cliente sube la foto o el PDF y vos aprobás o rechazás cada compra. Funciona con cualquier método de pago de la tienda, te deja crear métodos propios (por ejemplo "Pago en dólares en el local") como medios de pago reales de WooCommerce, y comparte los comprobantes con MJ ERP (reventas) y MJ Turnos Online (señas).
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: MJ Importaciones
  * Requires Plugins: woocommerce
  * Requires at least: 6.2
@@ -65,7 +65,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJPM_VERSION', '1.1.0');
+define('MJPM_VERSION', '1.2.0');
 define('MJPM_FILE', __FILE__);
 define('MJPM_DIR', plugin_dir_path(__FILE__));
 define('MJPM_URL', plugin_dir_url(__FILE__));

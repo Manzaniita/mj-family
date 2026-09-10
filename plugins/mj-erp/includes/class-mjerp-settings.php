@@ -25,6 +25,13 @@ class MJERP_Settings {
 	private static $cache = null;
 
 	/**
+	 * Known cashbox ids, or null when not resolved yet (request-level cache).
+	 *
+	 * @var int[]|null
+	 */
+	private static $cashbox_ids = null;
+
+	/**
 	 * Route slugs that must never be used for the app.
 	 *
 	 * @var string[]
@@ -113,25 +120,40 @@ class MJERP_Settings {
 			'consignment_code_seq_digits' => 4,
 			'consignment_price_list'    => 'mayorista',
 			'consignment_stock_on_sale' => 'decrease',
-			'consignment_approval'      => 'portal',
+			/*
+			 * Una venta avisada por el revendedor vale desde el momento en que la carga: la
+			 * mercadería ya salió y la deuda ya existe. Lo que espera confirmación es el PAGO, que
+			 * es lo único que el dueño puede verificar de verdad (que la plata entró). Se puede
+			 * cambiar, pero éste es el circuito real de una consignación.
+			 */
+			'consignment_approval'      => 'never',
 			'consignment_allow_oversell' => false,
 			'consignment_allocation'    => 'fifo',
+			/*
+			 * `cashbox_id` = la caja donde entra esa plata (0 = la caja por defecto). Se elige en
+			 * Configuración; acá arranca en 0 para que una tienda que nunca tocó el tema siga
+			 * funcionando exactamente igual que antes.
+			 */
 			'consignment_payment_methods' => array(
 				array(
-					'key'   => 'efectivo',
-					'label' => 'Efectivo',
+					'key'        => 'efectivo',
+					'label'      => 'Efectivo',
+					'cashbox_id' => 0,
 				),
 				array(
-					'key'   => 'transferencia',
-					'label' => 'Transferencia',
+					'key'        => 'transferencia',
+					'label'      => 'Transferencia',
+					'cashbox_id' => 0,
 				),
 				array(
-					'key'   => 'dolares',
-					'label' => 'Dólares',
+					'key'        => 'dolares',
+					'label'      => 'Dólares',
+					'cashbox_id' => 0,
 				),
 				array(
-					'key'   => 'otro',
-					'label' => 'Otro',
+					'key'        => 'otro',
+					'label'      => 'Otro',
+					'cashbox_id' => 0,
 				),
 			),
 			'portal_enabled'            => true,
@@ -139,6 +161,12 @@ class MJERP_Settings {
 			'portal_title'              => 'Mi cuenta',
 			'portal_allow_sales'        => true,
 			'portal_allow_returns'      => false,
+			/*
+			 * Minutos que tiene el revendedor para deshacer una venta que cargó él mismo. Como la
+			 * venta ya no espera confirmación, sin esto un botón mal apretado le queda como deuda
+			 * hasta que el dueño la corrija a mano. 0 = no puede deshacer nada.
+			 */
+			'portal_undo_minutes'       => 1440,
 
 			/* --- Ventas -------------------------------------------------------------------- */
 			'sales_enabled'              => true,
@@ -171,28 +199,34 @@ class MJERP_Settings {
 			'sales_shop_channel'         => 'tienda',
 			'sales_payment_methods'      => array(
 				array(
-					'key'   => 'efectivo',
-					'label' => 'Efectivo',
+					'key'        => 'efectivo',
+					'label'      => 'Efectivo',
+					'cashbox_id' => 0,
 				),
 				array(
-					'key'   => 'transferencia',
-					'label' => 'Transferencia',
+					'key'        => 'transferencia',
+					'label'      => 'Transferencia',
+					'cashbox_id' => 0,
 				),
 				array(
-					'key'   => 'tarjeta',
-					'label' => 'Tarjeta',
+					'key'        => 'tarjeta',
+					'label'      => 'Tarjeta',
+					'cashbox_id' => 0,
 				),
 				array(
-					'key'   => 'dolares',
-					'label' => 'Dólares',
+					'key'        => 'dolares',
+					'label'      => 'Dólares',
+					'cashbox_id' => 0,
 				),
 				array(
-					'key'   => 'cuenta_corriente',
-					'label' => 'Cuenta corriente',
+					'key'        => 'cuenta_corriente',
+					'label'      => 'Cuenta corriente',
+					'cashbox_id' => 0,
 				),
 				array(
-					'key'   => 'otro',
-					'label' => 'Otro',
+					'key'        => 'otro',
+					'label'      => 'Otro',
+					'cashbox_id' => 0,
 				),
 			),
 			'sales_default_payment_method' => 'efectivo',
@@ -647,6 +681,133 @@ class MJERP_Settings {
 		return self::label_from( self::sale_payment_methods(), $key );
 	}
 
+	/* ------------------------------------------------------------------
+	 * Payment method → cashbox
+	 *
+	 * Every peso that comes in has to land somewhere: a transfer in the transfer box, physical
+	 * dollars in the dollar box. Which box is decided once, on the method itself, and every path
+	 * that records a collection (ERP sale, reseller payment, WooCommerce order) reads it from here.
+	 * Nothing is hardcoded: the method list and the cashbox list are both configuration.
+	 * ---------------------------------------------------------------- */
+
+	/**
+	 * Looks a `{key,label,...}` row up in a list.
+	 *
+	 * @param array  $rows Rows.
+	 * @param string $key  Key.
+	 * @return array|null
+	 */
+	private static function row_from( array $rows, $key ) {
+		$key = sanitize_key( (string) $key );
+		if ( '' === $key ) {
+			return null;
+		}
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) && isset( $row['key'] ) && (string) $row['key'] === $key ) {
+				return $row;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * One sale payment method row, or null.
+	 *
+	 * @param string $key Method key.
+	 * @return array|null
+	 */
+	public static function sale_payment_method( $key ) {
+		return self::row_from( self::sale_payment_methods(), $key );
+	}
+
+	/**
+	 * One consignment payment method row, or null.
+	 *
+	 * @param string $key Method key.
+	 * @return array|null
+	 */
+	public static function payment_method( $key ) {
+		return self::row_from( self::payment_methods(), $key );
+	}
+
+	/**
+	 * Cashbox the money of a payment method lands in.
+	 *
+	 * Looks in the catalogue of the scope asked for first and in the other one after, because both
+	 * lists share their keys ("transferencia" is the same money whether it came from a customer or
+	 * from a reseller): configuring the box once is enough. Falls back to the general default
+	 * (`sales_default_cashbox`), and to 0 ("sin caja") when not even that one is set — so the whole
+	 * feature is opt-in and nothing changes for a shop that never configures it.
+	 *
+	 * @param string $key   Method key.
+	 * @param string $scope 'sales' | 'consignment'.
+	 * @return int Cashbox id (0 = none).
+	 */
+	public static function cashbox_for_method( $key, $scope = 'sales' ) {
+		$rows = ( 'consignment' === $scope )
+			? array( self::payment_method( $key ), self::sale_payment_method( $key ) )
+			: array( self::sale_payment_method( $key ), self::payment_method( $key ) );
+
+		$cashbox = 0;
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) && ! empty( $row['cashbox_id'] ) && self::cashbox_exists( $row['cashbox_id'] ) ) {
+				$cashbox = absint( $row['cashbox_id'] );
+				break;
+			}
+		}
+
+		if ( $cashbox <= 0 ) {
+			$fallback = absint( self::get( 'sales_default_cashbox', 0 ) );
+			$cashbox  = self::cashbox_exists( $fallback ) ? $fallback : 0;
+		}
+
+		/**
+		 * Filters the cashbox resolved for a payment method.
+		 *
+		 * @param int    $cashbox Cashbox id (0 = none).
+		 * @param string $key     Method key.
+		 * @param string $scope   Scope asked for.
+		 */
+		return absint( apply_filters( 'mjerp_cashbox_for_method', $cashbox, sanitize_key( (string) $key ), (string) $scope ) );
+	}
+
+	/**
+	 * Whether a cashbox id exists (request-level cache: the settings are read on every request).
+	 *
+	 * @param int $id Cashbox id.
+	 * @return bool
+	 */
+	public static function cashbox_exists( $id ) {
+		$id = absint( $id );
+		if ( $id <= 0 ) {
+			return false;
+		}
+		if ( ! class_exists( 'MJERP_Cashboxes_Repo' ) || ! class_exists( 'MJERP_Install' ) ) {
+			// Too early to check (or the table is not there yet): keep what was configured.
+			return true;
+		}
+		if ( null === self::$cashbox_ids ) {
+			self::$cashbox_ids = array();
+			foreach ( (array) MJERP_Cashboxes_Repo::all( true ) as $box ) {
+				if ( isset( $box['id'] ) ) {
+					self::$cashbox_ids[] = (int) $box['id'];
+				}
+			}
+		}
+		return in_array( $id, self::$cashbox_ids, true );
+	}
+
+	/**
+	 * Clears the cashbox id cache (after creating or deleting one).
+	 *
+	 * @return void
+	 */
+	public static function flush_cashboxes() {
+		self::$cashbox_ids = null;
+		self::flush_cache();
+	}
+
+
 	/**
 	 * Label lookup over a `[ {key,label} ]` list, humanising unknown keys.
 	 *
@@ -981,15 +1142,20 @@ class MJERP_Settings {
 				return self::enum( $value, array( 'fifo', 'manual' ), $default );
 
 			case 'consignment_payment_methods':
-				$rows = self::keyed_rows( $value, false );
+				$rows = self::keyed_rows( $value, false, true );
 				$keys = wp_list_pluck( $rows, 'key' );
 				if ( ! in_array( 'otro', $keys, true ) ) {
 					$rows[] = array(
-						'key'   => 'otro',
-						'label' => 'Otro',
+						'key'        => 'otro',
+						'label'      => 'Otro',
+						'cashbox_id' => 0,
 					);
 				}
 				return $rows;
+
+			case 'portal_undo_minutes':
+				// Hasta una semana: más que eso ya no es "me equivoqué", es rehacer la historia.
+				return max( 0, min( 10080, self::int( $value, $default ) ) );
 
 			case 'consignment_allow_oversell':
 			case 'portal_enabled':
@@ -1038,12 +1204,22 @@ class MJERP_Settings {
 				return max( 1, min( 10, self::int( $value, $default ) ) );
 
 			case 'sales_channels':
-			case 'sales_payment_methods':
 				$rows = self::keyed_rows( $value, false );
 				if ( ! in_array( 'otro', wp_list_pluck( $rows, 'key' ), true ) ) {
 					$rows[] = array(
 						'key'   => 'otro',
 						'label' => 'Otro',
+					);
+				}
+				return $rows;
+
+			case 'sales_payment_methods':
+				$rows = self::keyed_rows( $value, false, true );
+				if ( ! in_array( 'otro', wp_list_pluck( $rows, 'key' ), true ) ) {
+					$rows[] = array(
+						'key'        => 'otro',
+						'label'      => 'Otro',
+						'cashbox_id' => 0,
 					);
 				}
 				return $rows;
@@ -1490,13 +1666,14 @@ class MJERP_Settings {
 	}
 
 	/**
-	 * Sanitizes rows of `{key,label[,markup]}`.
+	 * Sanitizes rows of `{key,label[,markup][,cashbox_id]}`.
 	 *
-	 * @param mixed $value       Raw value.
-	 * @param bool  $with_markup Whether rows carry a markup percentage.
+	 * @param mixed $value        Raw value.
+	 * @param bool  $with_markup  Whether rows carry a markup percentage.
+	 * @param bool  $with_cashbox Whether rows carry the cashbox the money lands in.
 	 * @return array
 	 */
-	private static function keyed_rows( $value, $with_markup ) {
+	private static function keyed_rows( $value, $with_markup, $with_cashbox = false ) {
 		$rows = array();
 		$seen = array();
 		if ( ! is_array( $value ) ) {
@@ -1532,6 +1709,12 @@ class MJERP_Settings {
 			if ( $with_markup ) {
 				$markup = isset( $row['markup'] ) ? MJERP_Helpers::to_float( $row['markup'], 0 ) : 0.0;
 				$clean['markup'] = round( max( -100, $markup ), 4 );
+			}
+			if ( $with_cashbox ) {
+				// 0 = "la caja por defecto". A cashbox that no longer exists is dropped here
+				// instead of being kept as a dangling id nobody can see in the form.
+				$cashbox = isset( $row['cashbox_id'] ) ? absint( $row['cashbox_id'] ) : 0;
+				$clean['cashbox_id'] = self::cashbox_exists( $cashbox ) ? $cashbox : 0;
 			}
 			$rows[] = $clean;
 		}

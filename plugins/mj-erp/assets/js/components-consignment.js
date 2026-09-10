@@ -242,6 +242,34 @@
 		return out;
 	}
 
+	/**
+	 * Aviso de acceso al panel: dice si el revendedor puede entrar y con qué dirección.
+	 *
+	 * Es la pregunta que aparece siempre después de crear uno («¿y ahora cómo entra?») y la
+	 * causa más común de que «no ande»: se le pasa el link del ERP, que no es el suyo.
+	 *
+	 * @param {Object} row Revendedor.
+	 * @returns {string} html
+	 */
+	function accessNoteHtml(row) {
+		const url = String(row.portal_url || '');
+
+		if (row.is_active === false) {
+			return MJ.ui.alert('Está desactivado: hoy no puede entrar a su panel. Activalo abajo para devolverle el acceso.', 'warning');
+		}
+		if (!url) {
+			return MJ.ui.alert('El panel de revendedores está apagado en Configuración → Consignaciones, así que nadie puede entrar.', 'warning');
+		}
+		if (row.has_portal === false) {
+			return MJ.ui.alert('Su cuenta perdió el rol de reventa y no puede entrar al panel. Guardá esta ficha y se lo devolvemos.', 'warning');
+		}
+
+		return '<div class="mj-note mj-small mj-muted">' + MJ.icon('link') +
+			'<span>Su panel: <a class="mj-link mj-mono" href="' + h(url) + '" target="_blank" rel="noopener">' + h(url) + '</a>' +
+			' · <button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-copy-portal="' + h(url) + '">Copiar</button>' +
+			'<br>Esta es la dirección que hay que pasarle. El ERP no es para él.</span></div>';
+	}
+
 	C.consigneeModal = function (opts) {
 		opts = opts || {};
 		const editing = opts.consignee && opts.consignee.id ? opts.consignee : null;
@@ -261,7 +289,8 @@
 			? '<div class="mj-note mj-small mj-muted">' + MJ.icon('user') +
 				'<span>Cuenta de WordPress: <span class="mj-mono">' + h(editing.user_login || editing.user_email || ('#' + editing.user_id)) + '</span>' +
 				(editing.edit_user_link ? ' · <a class="mj-link" href="' + h(editing.edit_user_link) + '" target="_blank" rel="noopener">Editarla en WordPress</a>' : '') +
-				'</span></div>'
+				'</span></div>' +
+				accessNoteHtml(editing)
 			: '<div class="mj-field">' +
 					'<span class="mj-field__label">Cuenta de WordPress</span>' +
 					'<div class="mj-row mj-row--wrap" role="group">' +
@@ -315,7 +344,14 @@
 					'<div class="mj-field__hint">Privadas: el revendedor no las ve.</div>' +
 				'</div>' +
 				(editing
-					? '<label class="mj-checkbox"><input type="checkbox" name="is_active"' + (editing.is_active !== false ? ' checked' : '') + '> <span>Activo</span></label>'
+					? '<div class="mj-field">' +
+						'<label class="mj-switch">' +
+							'<input type="checkbox" name="is_active"' + (editing.is_active !== false ? ' checked' : '') + '>' +
+							'<span class="mj-switch__slider"></span>' +
+							'<span class="mj-switch__label">Activo</span>' +
+						'</label>' +
+						'<div class="mj-field__hint">Desactivado deja de entrar a su panel y no se le pueden cargar entregas. El historial se conserva.</div>' +
+					'</div>'
 					: '<label class="mj-checkbox"><input type="checkbox" name="send_invite" checked data-invite> <span>Mandarle un email para que elija su contraseña</span></label>') +
 				permissionsFieldsHtml(fid, editing) +
 			'</form>';
@@ -335,6 +371,15 @@
 				const submitBtn = qs('[data-submit]', root);
 				let submitting = false;
 				let mode = 'new';
+
+				MJ.ui.on(root, 'click', '[data-copy-portal]', function (e, btn) {
+					e.preventDefault();
+					MJ.ui.copyText(btn.getAttribute('data-copy-portal')).then(function () {
+						MJ.ui.toast('Link del panel copiado. Mandáselo por WhatsApp.', 'success');
+					}).catch(function () {
+						MJ.ui.toast('No se pudo copiar. Copialo a mano.', 'error');
+					});
+				});
 
 				const linkRegion = qs('[data-region="link-user"]', form);
 				const userSelect = qs('[name="user_id"]', form);
@@ -418,34 +463,59 @@
 					payload.permissions = readPermissions(form);
 
 					if (editing) {
-						payload.is_active = !!data.is_active;
+						/*
+						 * Solo se manda si cambió. El PUT es parcial, así que no mandarlo deja el
+						 * estado como está: nadie desactiva un revendedor sin querer por un
+						 * interruptor que se pintó mal, y desactivarlo lo dejaría afuera del panel.
+						 */
+						const wasActive = editing.is_active !== false;
+						const nowActive = !!data.is_active;
+						if (wasActive !== nowActive) payload.is_active = nowActive;
 					} else if (mode === 'link') {
 						payload.user_id = parseInt(data.user_id, 10) || 0;
 					} else {
 						payload.send_invite = !!data.send_invite;
 					}
 
-					submitting = true;
-					MJ.ui.setLoading(submitBtn, true);
+					const deactivating = editing && payload.is_active === false;
+					const confirmed = deactivating
+						? MJ.ui.confirm({
+							title: 'Desactivar revendedor',
+							message: 'Va a dejar de poder entrar a su panel y no vas a poder cargarle entregas nuevas. Su historial y su saldo se conservan.',
+							okLabel: 'Desactivar',
+							cancelLabel: 'Dejarlo activo',
+							danger: true,
+						})
+						: Promise.resolve(true);
 
-					const request = editing
-						? MJ.api.put('consignees/' + editing.id, payload)
-						: MJ.api.post('consignees', payload);
-
-					request.then(function (res) {
-						submitting = false;
-						MJ.ui.setLoading(submitBtn, false);
-						MJ.ui.toast(editing ? 'Revendedor actualizado.' : 'Revendedor creado.', 'success');
-						modal.close();
-						const password = res && res.generated_password ? String(res.generated_password) : '';
-						if (password) showPassword(res.consignee, password);
-						if (typeof opts.onSaved === 'function') opts.onSaved(res && res.consignee ? res.consignee : null);
-					}).catch(function (err) {
-						submitting = false;
-						MJ.ui.setLoading(submitBtn, false);
-						if (err && (err.handled || err.status === 401)) return;
-						showFormError(form, err);
+					confirmed.then(function (ok) {
+						if (!ok) return;
+						send();
 					});
+
+					function send() {
+						submitting = true;
+						MJ.ui.setLoading(submitBtn, true);
+
+						const request = editing
+							? MJ.api.put('consignees/' + editing.id, payload)
+							: MJ.api.post('consignees', payload);
+
+						request.then(function (res) {
+							submitting = false;
+							MJ.ui.setLoading(submitBtn, false);
+							MJ.ui.toast(editing ? 'Revendedor actualizado.' : 'Revendedor creado.', 'success');
+							modal.close();
+							const password = res && res.generated_password ? String(res.generated_password) : '';
+							if (password) showPassword(res.consignee, password);
+							if (typeof opts.onSaved === 'function') opts.onSaved(res && res.consignee ? res.consignee : null);
+						}).catch(function (err) {
+							submitting = false;
+							MJ.ui.setLoading(submitBtn, false);
+							if (err && (err.handled || err.status === 401)) return;
+							showFormError(form, err);
+						});
+					}
 				});
 
 				setMode('new');

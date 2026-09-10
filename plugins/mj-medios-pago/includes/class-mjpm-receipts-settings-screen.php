@@ -379,9 +379,10 @@ class MJPM_Receipts_Settings_Screen {
 		if (!MJPM_Mapping::erp_available()) {
 			return;
 		}
-		$gateways = MJPM_Methods::gateways();
-		$methods  = MJPM_Mapping::erp_methods();
-		$map      = MJPM_Mapping::all();
+		$gateways  = MJPM_Methods::gateways();
+		$methods   = MJPM_Mapping::erp_methods();
+		$map       = MJPM_Mapping::all();
+		$has_boxes = MJPM_Mapping::cashboxes_available();
 		?>
 		<form method="post" action="<?php echo esc_url(self::post_url()); ?>" class="mjpm-rc-card">
 			<input type="hidden" name="action" value="mjpm_save_mapping">
@@ -394,12 +395,21 @@ class MJPM_Receipts_Settings_Screen {
 				la misma regla vale para las ventas y para los pagos de las reventas.
 				De paso, una venta que entra de la tienda deja de caer en el método “Otro”.
 			</p>
+			<?php if ($has_boxes) : ?>
+				<p class="mjpm-rc-bajada">
+					La equivalencia también decide <strong>en qué caja entra la plata</strong> de cada
+					pedido de la tienda. La caja se elige una sola vez, en
+					<em>MJ ERP → Configuración → Ventas → Medios de pago</em>, y desde acá se ve el
+					resultado: no hay nada que cargar dos veces.
+				</p>
+			<?php endif; ?>
 
 			<table class="widefat striped mjpm-rc-mapping">
 				<thead>
 					<tr>
 						<th>Medio de pago de la tienda</th>
 						<th>Método en el ERP</th>
+						<?php if ($has_boxes) : ?><th>Caja de ingreso</th><?php endif; ?>
 					</tr>
 				</thead>
 				<tbody>
@@ -425,6 +435,20 @@ class MJPM_Receipts_Settings_Screen {
 									<br><span class="description">Sugerencia automática: guardá para confirmarla.</span>
 								<?php endif; ?>
 							</td>
+							<?php if ($has_boxes) :
+								$cashbox = '' !== $current ? MJPM_Mapping::cashbox_for_gateway($id) : 0;
+								$box_name = MJPM_Mapping::cashbox_label($cashbox);
+								?>
+								<td>
+									<?php if ('' === $current) : ?>
+										<span class="description">Elegí primero el método del ERP.</span>
+									<?php elseif ('' !== $box_name) : ?>
+										<strong><?php echo esc_html($box_name); ?></strong>
+									<?php else : ?>
+										<span class="description">Sin caja asignada todavía.</span>
+									<?php endif; ?>
+								</td>
+							<?php endif; ?>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>

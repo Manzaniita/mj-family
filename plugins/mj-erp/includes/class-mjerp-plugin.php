@@ -75,6 +75,7 @@ final class MJERP_Plugin {
 			'includes/repositories/class-mjerp-consignments-repo.php',
 			'includes/repositories/class-mjerp-consignment-sales-repo.php',
 			'includes/repositories/class-mjerp-consignment-payments-repo.php',
+			'includes/repositories/class-mjerp-consignment-log-repo.php',
 			'includes/class-mjerp-consignment-account.php',
 			'includes/repositories/class-mjerp-sales-repo.php',
 			'includes/repositories/class-mjerp-sale-payments-repo.php',

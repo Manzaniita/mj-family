@@ -12,10 +12,13 @@ defined( 'ABSPATH' ) || exit;
  * (MJERP_Consignment_Sales), which is what the shop owner asked for. What the ERP tracks instead is
  * where each unit physically is:
  *
- *     en poder del revendedor = qty - qty_sold - qty_returned
+ *     en poder del revendedor = qty - qty_sold - qty_pending - qty_returned
  *
- * `qty_sold` and `qty_returned` are caches recomputed from the sales / returns tables, never
- * incremented blindly, so they cannot drift away from the rows that back them.
+ * `qty_pending` are sales already reported but not yet confirmed: the goods are gone, only the
+ * paperwork is missing, so those units must not be sellable a second time.
+ *
+ * The three are caches recomputed from the sales / returns tables, never incremented blindly, so
+ * they cannot drift away from the rows that back them.
  *
  * @package MJ_ERP
  */
@@ -53,6 +56,7 @@ class MJERP_Consignments_Repo {
 		'unit_price_base' => '%f',
 		'price_list_key'  => '%s',
 		'qty_sold'        => '%f',
+		'qty_pending'     => '%f',
 		'qty_returned'    => '%f',
 		'sort_order'      => '%d',
 		'created_at'      => '%s',
@@ -708,8 +712,27 @@ class MJERP_Consignments_Repo {
 		if ( ! $consignment ) {
 			return new WP_Error( 'mjerp_not_found', __( 'La entrega no existe.', 'mj-erp' ), array( 'status' => 404 ) );
 		}
-		if ( ! self::is_editable( $consignment ) ) {
-			return new WP_Error( 'mjerp_locked', __( 'La entrega ya salió: no se pueden cambiar los productos.', 'mj-erp' ), array( 'status' => 409 ) );
+
+		/*
+		 * Una entrega que ya salió no cambia de contenido: las cantidades y los productos son lo
+		 * que la persona tiene en la mano. Pero el PRECIO ACORDADO sí se corrige — es un número
+		 * que se habla, se escribe mal y hay que poder arreglar sin dar de baja la entrega.
+		 * Sobre lo ya vendido no se toca nada: cada venta se quedó con el precio del día.
+		 */
+		$editable = self::is_editable( $consignment );
+		if ( ! $editable ) {
+			$price_only = array_intersect_key( $data, array_flip( array( 'unit_price_base', 'price_list_key' ) ) );
+			if ( count( $price_only ) !== count( array_intersect_key( $data, array_flip( array( 'unit_price_base', 'price_list_key', 'qty', 'name', 'sku', 'sort_order' ) ) ) ) ) {
+				return new WP_Error(
+					'mjerp_locked',
+					__( 'La entrega ya salió: de acá en más solo se puede corregir el precio acordado.', 'mj-erp' ),
+					array( 'status' => 409 )
+				);
+			}
+			$data = $price_only;
+			if ( empty( $data ) ) {
+				return true;
+			}
 		}
 
 		$row = self::prepare_item( $data, $item, $consignment );
@@ -728,6 +751,37 @@ class MJERP_Consignments_Repo {
 		}
 
 		self::recalculate( (int) $consignment['id'] );
+
+		// El revendedor tiene que enterarse de que le cambió el precio de algo que ya tiene.
+		if ( array_key_exists( 'unit_price_base', $row ) && class_exists( 'MJERP_Consignment_Log' ) ) {
+			$before = round( (float) $item['unit_price_base'], 4 );
+			$after  = round( (float) $row['unit_price_base'], 4 );
+			if ( abs( $after - $before ) > 0.0001 ) {
+				MJERP_Consignment_Log::add(
+					array(
+						'consignee_id' => (int) $item['consignee_id'],
+						'kind'         => MJERP_Consignment_Log::KIND_PRICE,
+						'action'       => MJERP_Consignment_Log::ACTION_UPDATED,
+						'object_id'    => (int) $item['id'],
+						'amount_base'  => $after,
+						'reason'       => isset( $data['reason'] ) ? $data['reason'] : '',
+						'summary'      => sprintf(
+							/* translators: 1: product, 2: old price, 3: new price */
+							__( 'Cambió el precio acordado de %1$s: de %2$s a %3$s por unidad.', 'mj-erp' ),
+							(string) $item['name'],
+							MJERP_Helpers::money_base( $before ),
+							MJERP_Helpers::money_base( $after )
+						),
+						'detail'       => array(
+							'from' => $before,
+							'to'   => $after,
+							'name' => (string) $item['name'],
+							'sku'  => (string) $item['sku'],
+						),
+					)
+				);
+			}
+		}
 
 		return true;
 	}
@@ -941,6 +995,20 @@ class MJERP_Consignments_Repo {
 			)
 		);
 
+		/*
+		 * Una venta cargada y todavía sin confirmar también se lleva la unidad: la mercadería ya
+		 * salió, lo único que falta es el visto bueno. Si no se descontara acá, el revendedor podría
+		 * anunciar diez veces la venta de la única unidad que tiene, que es exactamente lo que
+		 * pasaba: el aviso no reservaba nada.
+		 */
+		$pending = (float) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COALESCE(SUM(qty), 0) FROM {$sales} WHERE consignment_item_id = %d AND status = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$item_id,
+				'pendiente'
+			)
+		);
+
 		$returned = (float) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COALESCE(SUM(qty), 0) FROM {$returns} WHERE consignment_item_id = %d", $item_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		);
@@ -949,11 +1017,12 @@ class MJERP_Consignments_Repo {
 			self::items_table(),
 			array(
 				'qty_sold'     => round( $sold, 4 ),
+				'qty_pending'  => round( $pending, 4 ),
 				'qty_returned' => round( $returned, 4 ),
 				'updated_at'   => current_time( 'mysql' ),
 			),
 			array( 'id' => $item_id ),
-			array( '%f', '%f', '%s' ),
+			array( '%f', '%f', '%f', '%s' ),
 			array( '%d' )
 		);
 
@@ -1239,6 +1308,7 @@ class MJERP_Consignments_Repo {
 	private static function cast_item( array $row ) : array {
 		$qty      = round( (float) self::v( $row, 'qty', 0 ), 4 );
 		$sold     = round( (float) self::v( $row, 'qty_sold', 0 ), 4 );
+		$pending  = round( (float) self::v( $row, 'qty_pending', 0 ), 4 );
 		$returned = round( (float) self::v( $row, 'qty_returned', 0 ), 4 );
 		$price    = round( (float) self::v( $row, 'unit_price_base', 0 ), 6 );
 
@@ -1254,8 +1324,11 @@ class MJERP_Consignments_Repo {
 			'unit_price_base' => $price,
 			'price_list_key'  => (string) self::v( $row, 'price_list_key' ),
 			'qty_sold'        => $sold,
+			'qty_pending'     => $pending,
 			'qty_returned'    => $returned,
-			'qty_on_hand'     => round( $qty - $sold - $returned, 4 ),
+			// Lo que todavía puede vender: lo entregado menos lo vendido, lo anunciado sin
+			// confirmar y lo devuelto.
+			'qty_on_hand'     => round( $qty - $sold - $pending - $returned, 4 ),
 			'value_base'      => round( $qty * $price, 4 ),
 			'sort_order'      => (int) self::v( $row, 'sort_order', 0 ),
 			'created_at'      => self::datetime_or_null( self::v( $row, 'created_at' ) ),

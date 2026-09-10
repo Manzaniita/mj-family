@@ -36,11 +36,44 @@
 
 	function baseCur() { return String(setting('base_currency', 'USD')).toUpperCase(); }
 
+	/** Medios de cobro configurados, con el comodín como último recurso. */
+	function paymentMethods() {
+		const boot = MJ.state.bootstrap && MJ.state.bootstrap.consignment;
+		const list = boot && Array.isArray(boot.payment_methods) ? boot.payment_methods : setting('consignment_payment_methods', []);
+		return Array.isArray(list) && list.length ? list : [{ key: 'otro', label: 'Otro' }];
+	}
+
 	function moneyBase(value) {
 		const n = num(value);
 		if (n === null) return '—';
 		const decimals = Math.abs(n - Math.round(n)) < 0.005 ? 0 : 2;
 		return MJ.fmt.money(n, baseCur(), decimals);
+	}
+
+	/**
+	 * El mismo importe en pesos, al TC de hoy. '' cuando no hay TC cargado.
+	 *
+	 * La deuda se lleva en dólares: esto es la lectura del día, no un segundo número guardado.
+	 * Por eso se muestra siempre debajo y más chico que el importe real.
+	 */
+	function moneyLocal(value) {
+		const local = MJ.fmt.toLocal(value);
+		return local === null ? '' : MJ.fmt.moneyLocal(local, 0);
+	}
+
+	/** Importe en USD con su equivalente en pesos debajo. */
+	function moneyPairHtml(value, extraClass) {
+		const local = moneyLocal(value);
+		return '<span class="mj-money-pair' + (extraClass ? ' ' + extraClass : '') + '">' +
+			'<span class="mj-money-pair__base">' + h(moneyBase(value)) + '</span>' +
+			(local ? '<span class="mj-money-pair__local">' + h(local) + '</span>' : '') +
+		'</span>';
+	}
+
+	/** Idem, en una sola línea: "US$ 14 · $ 21.996". */
+	function moneyPairInline(value) {
+		const local = moneyLocal(value);
+		return moneyBase(value) + (local ? ' · ' + local : '');
 	}
 
 	function dash() { return '<span class="mj-muted">—</span>'; }
@@ -109,6 +142,7 @@
 				icon: 'cash',
 				label: owes ? 'Te debe' : (credit ? 'Tiene a favor' : 'Saldo'),
 				value: moneyBase(Math.abs(balance)),
+				local: moneyLocal(Math.abs(balance)),
 				className: owes ? (account.over_limit ? 'mj-kpi--danger' : 'mj-kpi--transit') : (credit ? 'mj-kpi--received' : ''),
 				sub: account.credit_limit_base > 0
 					? 'Límite ' + moneyBase(account.credit_limit_base) + (account.over_limit ? ' · pasado' : '')
@@ -118,18 +152,20 @@
 				icon: 'package',
 				label: 'En su poder',
 				value: MJ.fmt.qty(account.on_hand_units) + ' u.',
-				sub: moneyBase(account.on_hand_value_base) + ' en ' + account.on_hand_lines + ' producto' + (account.on_hand_lines === 1 ? '' : 's'),
+				sub: moneyPairInline(account.on_hand_value_base) + ' en ' + account.on_hand_lines + ' producto' + (account.on_hand_lines === 1 ? '' : 's'),
 			},
 			{
 				icon: 'cart',
 				label: 'Vendió',
 				value: moneyBase(account.charges_base),
+				local: moneyLocal(account.charges_base),
 				sub: account.sales_count + ' venta' + (account.sales_count === 1 ? '' : 's') + ' confirmada' + (account.sales_count === 1 ? '' : 's'),
 			},
 			{
 				icon: 'check-circle',
 				label: 'Me pagó',
 				value: moneyBase(account.credits_base),
+				local: moneyLocal(account.credits_base),
 				sub: account.last_payment_date ? 'Último ' + MJ.fmt.date(account.last_payment_date) : 'Sin pagos',
 			},
 		];
@@ -142,6 +178,9 @@
 		return '<div class="mj-card mj-kpi' + (c.className ? ' ' + c.className : '') + '">' +
 			'<div class="mj-kpi__label">' + (c.icon ? MJ.icon(c.icon) : '') + '<span>' + h(c.label) + '</span></div>' +
 			'<div class="mj-kpi__value mj-money">' + h(c.value) + '</div>' +
+			// El equivalente en pesos va pegado al importe, no en el subtítulo: es el mismo dato
+			// leído de otra manera, no información aparte.
+			(c.local ? '<div class="mj-kpi__local mj-muted mj-money">' + h(c.local) + '</div>' : '') +
 			'<div class="mj-kpi__sub mj-muted">' + h(c.sub || '') + '</div>' +
 		'</div>';
 	}
@@ -222,11 +261,12 @@
 				'<td class="is-num">' + h(MJ.fmt.qty(row.qty_sold)) + '</td>' +
 				'<td class="is-num">' + (f(row.qty_returned) > 0 ? h(MJ.fmt.qty(row.qty_returned)) : dash()) + '</td>' +
 				'<td class="is-num"><span class="mj-strong">' + h(MJ.fmt.qty(row.qty_on_hand)) + '</span></td>' +
-				'<td class="is-num">' + h(moneyBase(row.unit_price_base)) + '</td>' +
-				'<td class="is-num"><span class="mj-money">' + h(moneyBase(row.value_on_hand_base)) + '</span></td>' +
+				'<td class="is-num">' + moneyPairHtml(row.unit_price_base) + '</td>' +
+				'<td class="is-num">' + moneyPairHtml(row.value_on_hand_base, 'mj-money') + '</td>' +
 				'<td class="is-actions">' +
 					'<div class="mj-btn-group">' +
 						'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="sell-item" title="Registrar venta de este producto">' + MJ.icon('cart') + '<span>Vendió</span></button>' +
+						'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="edit-price" title="Cambiar el precio acordado" aria-label="Cambiar el precio acordado">' + MJ.icon('tag') + '</button>' +
 						'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="return-item" title="Registrar devolución" aria-label="Registrar devolución">' + MJ.icon('undo') + '</button>' +
 					'</div>' +
 				'</td>' +
@@ -264,7 +304,7 @@
 			if (sale.status === 'aprobada') {
 				balanceCell = balance <= 0.005
 					? '<span class="mj-success-text">Cobrada</span>'
-					: '<span class="mj-strong">' + h(moneyBase(balance)) + '</span>';
+					: moneyPairHtml(balance, 'mj-strong');
 			}
 
 			return '<tr data-sale="' + h(sale.id) + '">' +
@@ -275,8 +315,8 @@
 					(sale.sku ? '<div class="mj-small mj-muted">SKU ' + h(sale.sku) + '</div>' : '') +
 				'</td>' +
 				'<td class="is-num">' + h(MJ.fmt.qty(sale.qty)) + '</td>' +
-				'<td class="is-num">' + h(moneyBase(sale.unit_price_base)) + '</td>' +
-				'<td class="is-num"><span class="mj-money">' + h(moneyBase(sale.amount_base)) + '</span></td>' +
+				'<td class="is-num">' + moneyPairHtml(sale.unit_price_base) + '</td>' +
+				'<td class="is-num">' + moneyPairHtml(sale.amount_base, 'mj-money') + '</td>' +
 				'<td class="is-num">' + balanceCell + '</td>' +
 				'<td>' + MJ.ui.badgeRaw(info.label, info.color) + '</td>' +
 				'<td class="is-actions">' +
@@ -285,6 +325,8 @@
 							? '<button type="button" class="mj-btn mj-btn--sm mj-btn--primary" data-action="approve-sale">' + MJ.icon('check') + '<span>Confirmar</span></button>' +
 							  '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon mj-danger-text" data-action="reject-sale" title="Rechazar" aria-label="Rechazar venta">' + MJ.icon('x') + '</button>'
 							: '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="sale-detail" title="Ver detalle" aria-label="Ver detalle de la venta">' + MJ.icon('eye') + '</button>') +
+						'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="edit-sale" title="Editar la venta" aria-label="Editar la venta">' + MJ.icon('edit') + '</button>' +
+						'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon mj-danger-text" data-action="delete-sale" title="Eliminar la venta" aria-label="Eliminar la venta">' + MJ.icon('trash') + '</button>' +
 					'</div>' +
 				'</td>' +
 			'</tr>';
@@ -350,12 +392,12 @@
 				applied = '<span class="mj-small mj-warning-text">Sin imputar · queda a favor</span>';
 			} else {
 				applied = '<div class="mj-small">' + allocations.map(function (a) {
-					return '<div>' + h(moneyBase(a.amount_base)) + ' → ' +
+					return '<div>' + h(moneyPairInline(a.amount_base)) + ' → ' +
 						h(a.sale_name || ('venta #' + a.sale_id)) +
 						(a.sale_date ? ' <span class="mj-muted">' + h(MJ.fmt.date(a.sale_date)) + '</span>' : '') +
 					'</div>';
 				}).join('') +
-				(unallocated >= 0.005 ? '<div class="mj-muted">' + h(moneyBase(unallocated)) + ' quedaron a favor</div>' : '') +
+				(unallocated >= 0.005 ? '<div class="mj-muted">' + h(moneyPairInline(unallocated)) + ' quedaron a favor</div>' : '') +
 				'</div>';
 			}
 
@@ -374,12 +416,16 @@
 				'</td>' +
 				'<td class="is-num">' + h(MJ.fmt.money(amount, payment.currency)) +
 					(sameCurrency ? '' : '<div class="mj-small mj-muted">TC ' + h(MJ.fmt.rate(payment.rate)) + '</div>') + '</td>' +
-				'<td class="is-num"><span class="mj-money mj-strong">' + h(moneyBase(payment.amount_base)) + '</span></td>' +
+				'<td class="is-num">' + moneyPairHtml(payment.amount_base, 'mj-money mj-strong') + '</td>' +
 				'<td>' + applied + '</td>' +
 				'<td class="is-actions"><div class="mj-btn-group">' +
 					(payment.is_declared
 						? '<button type="button" class="mj-btn mj-btn--sm mj-btn--primary" data-action="confirm-payment" title="Confirmar el pago">' + MJ.icon('check') + '<span>Confirmar</span></button>'
 						: '') +
+					(payment.receipt && payment.receipt.count
+						? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="view-receipt" title="Ver el comprobante" aria-label="Ver el comprobante">' + MJ.icon('file') + '</button>'
+						: '') +
+					'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="edit-payment" title="Editar el pago" aria-label="Editar el pago">' + MJ.icon('edit') + '</button>' +
 					'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon mj-danger-text" data-action="delete-payment" title="Eliminar" aria-label="Eliminar pago">' + MJ.icon('trash') + '</button>' +
 				'</div></td>' +
 			'</tr>';
@@ -637,6 +683,91 @@
 				}).catch(function (err) {
 					MJ.ui.setLoading(el, false);
 					toastError(err, 'No se pudo confirmar el pago.');
+				});
+			}));
+
+			/* ---------------- correcciones ---------------- */
+
+			/** La fila de stock que corresponde a un botón. */
+			function itemFromRow(el) {
+				const tr = el.closest('tr');
+				const id = tr ? parseInt(tr.getAttribute('data-item'), 10) : 0;
+				return (state.data.stock || []).find(function (r) { return parseInt(r.id, 10) === id; }) || null;
+			}
+
+			function saleFromRow(el) {
+				const tr = el.closest('tr');
+				const id = tr ? parseInt(tr.getAttribute('data-sale'), 10) : 0;
+				const rows = (state.data.sales && state.data.sales.items) || [];
+				return rows.find(function (r) { return parseInt(r.id, 10) === id; }) || null;
+			}
+
+			function paymentFromRow(el) {
+				const tr = el.closest('tr');
+				const id = tr ? parseInt(tr.getAttribute('data-payment'), 10) : 0;
+				const rows = (state.data.payments && state.data.payments.items) || [];
+				return rows.find(function (r) { return parseInt(r.id, 10) === id; }) || null;
+			}
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="edit-price"]', function (e, el) {
+				const item = itemFromRow(el);
+				if (!item) return;
+				MJ.components.consignmentPriceModal({
+					item: item,
+					onSaved() { state.statement = null; load(); },
+				});
+			}));
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="edit-sale"]', function (e, el) {
+				const sale = saleFromRow(el);
+				if (!sale) return;
+				MJ.components.saleEditModal({
+					sale: sale,
+					onSaved() { state.statement = null; load(); },
+				});
+			}));
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="delete-sale"]', function (e, el) {
+				const sale = saleFromRow(el);
+				if (!sale) return;
+				const paid = f(sale.allocated_base) > 0.0001;
+				MJ.ui.confirm({
+					title: 'Eliminar la venta',
+					message: paid
+						? 'Esta venta tiene pagos aplicados. Quitá o reasigná el pago antes de borrarla.'
+						: 'Se borra la venta, las unidades vuelven a quedar en poder del revendedor y la deuda desaparece. Queda anotado en su historial.',
+					okLabel: paid ? 'Entendido' : 'Eliminar',
+					cancelLabel: 'Cancelar',
+					danger: !paid,
+				}).then(function (ok) {
+					if (!ok || paid || state.disposed) return;
+					MJ.api.del('consignment-sales/' + sale.id).then(function () {
+						if (state.disposed) return;
+						MJ.ui.toast('Venta eliminada.', 'success');
+						state.statement = null;
+						load();
+					}).catch(function (err) {
+						toastError(err, 'No se pudo eliminar la venta.');
+					});
+				});
+			}));
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="edit-payment"]', function (e, el) {
+				const payment = paymentFromRow(el);
+				if (!payment) return;
+				MJ.components.paymentEditModal({
+					payment: payment,
+					methods: paymentMethods(),
+					onSaved() { state.statement = null; load(); },
+				});
+			}));
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="view-receipt"]', function (e, el) {
+				const payment = paymentFromRow(el);
+				if (!payment) return;
+				MJ.components.receiptModal({
+					payment: payment,
+					onChanged() { state.statement = null; load(); },
 				});
 			}));
 

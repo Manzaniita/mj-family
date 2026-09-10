@@ -42,6 +42,7 @@ class MJERP_Install {
 			'consignment_returns',
 			'consignment_payments',
 			'consignment_allocations',
+			'consignment_log',
 			'sales',
 			'sale_items',
 			'sale_payments',
@@ -174,6 +175,11 @@ class MJERP_Install {
 
 		self::install();
 
+		// Solo para instalaciones que ya existían: una recién creada nace con los valores nuevos.
+		if ( '' !== $installed ) {
+			self::migrate( $installed );
+		}
+
 		/**
 		 * Fires after a schema upgrade.
 		 *
@@ -181,6 +187,80 @@ class MJERP_Install {
 		 * @param string $to   New version.
 		 */
 		do_action( 'mjerp_upgraded', $installed, MJERP_DB_VERSION );
+	}
+
+	/**
+	 * Data migrations for stores that were already running an older version.
+	 *
+	 * Cada bloque se ejecuta una sola vez, comparando contra la versión que estaba instalada.
+	 *
+	 * @param string $from Version that was installed before this upgrade.
+	 * @return void
+	 */
+	protected static function migrate( $from ) {
+		if ( version_compare( $from, '1.3.0', '<' ) ) {
+			self::migrate_130_pending_quantities();
+			self::migrate_130_sales_need_no_approval();
+		}
+
+		/**
+		 * Fires so other code can run its own migrations.
+		 *
+		 * @param string $from Previous version.
+		 */
+		do_action( 'mjerp_migrate', $from );
+	}
+
+	/**
+	 * 1.3.0 — rellena `qty_pending` en las entregas que ya existían.
+	 *
+	 * La columna nace en cero, así que una venta avisada y sin confirmar de antes no estaría
+	 * reservando su unidad hasta que algo tocara esa línea.
+	 *
+	 * @return void
+	 */
+	protected static function migrate_130_pending_quantities() {
+		global $wpdb;
+
+		$items = self::table( 'consignment_items' );
+		$sales = self::table( 'consignment_sales' );
+
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->prepare(
+				"UPDATE {$items} i SET i.qty_pending = COALESCE((
+					SELECT SUM(s.qty) FROM {$sales} s
+					WHERE s.consignment_item_id = i.id AND s.status = %s
+				), 0)",
+				'pendiente'
+			)
+		);
+	}
+
+	/**
+	 * 1.3.0 — deja de pedir confirmación para las ventas del portal.
+	 *
+	 * El circuito real de una consignación es: el revendedor avisa lo que vendió (y eso ya baja
+	 * stock y genera la deuda) y el dueño confirma **el pago**, que es lo único que puede verificar.
+	 * Pedir confirmación de la venta además duplicaba el trabajo y dejaba la deuda en el aire.
+	 *
+	 * Solo se toca el valor que era el default anterior: quien eligió `always` a propósito lo
+	 * conserva.
+	 *
+	 * @return void
+	 */
+	protected static function migrate_130_sales_need_no_approval() {
+		$settings = get_option( MJERP_Settings::OPTION, array() );
+		if ( ! is_array( $settings ) ) {
+			return;
+		}
+		$current = isset( $settings['consignment_approval'] ) ? (string) $settings['consignment_approval'] : '';
+		if ( 'portal' !== $current ) {
+			return;
+		}
+
+		$settings['consignment_approval'] = 'never';
+		update_option( MJERP_Settings::OPTION, $settings, true );
+		MJERP_Settings::flush_cache();
 	}
 
 	/**
@@ -207,6 +287,7 @@ class MJERP_Install {
 		$cons_items   = self::table( 'consignment_items' );
 		$cons_sales   = self::table( 'consignment_sales' );
 		$cons_returns = self::table( 'consignment_returns' );
+		$cons_log     = self::table( 'consignment_log' );
 		$cons_pays    = self::table( 'consignment_payments' );
 		$cons_allocs  = self::table( 'consignment_allocations' );
 
@@ -394,6 +475,7 @@ class MJERP_Install {
 	unit_price_base DECIMAL(18,6) NOT NULL DEFAULT 0,
 	price_list_key VARCHAR(60) NULL,
 	qty_sold DECIMAL(18,4) NOT NULL DEFAULT 0,
+	qty_pending DECIMAL(18,4) NOT NULL DEFAULT 0,
 	qty_returned DECIMAL(18,4) NOT NULL DEFAULT 0,
 	sort_order INT NOT NULL DEFAULT 0,
 	created_at DATETIME NULL,
@@ -439,6 +521,32 @@ class MJERP_Install {
 	KEY sale_date (sale_date),
 	KEY order_id (order_id),
 	KEY sale_id (sale_id)
+) {$charset_collate};";
+
+		/*
+		 * Bitácora de la cuenta de un revendedor. Existe para que las correcciones sean visibles:
+		 * si le cambiás el precio acordado de algo que ya tiene, o borrás una venta suya, se tiene
+		 * que enterar sin tener que preguntarte. `visible_to_consignee` deja anotar movimientos
+		 * internos sin mostrárselos.
+		 */
+		$sql[] = "CREATE TABLE {$cons_log} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	consignee_id BIGINT UNSIGNED NOT NULL,
+	kind VARCHAR(30) NOT NULL DEFAULT '',
+	action VARCHAR(30) NOT NULL DEFAULT '',
+	object_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	summary VARCHAR(255) NOT NULL DEFAULT '',
+	detail TEXT NULL,
+	amount_base DECIMAL(18,4) NULL,
+	reason VARCHAR(255) NULL,
+	visible_to_consignee TINYINT(1) NOT NULL DEFAULT 1,
+	actor_id BIGINT UNSIGNED NULL,
+	actor_name VARCHAR(190) NULL,
+	source VARCHAR(20) NOT NULL DEFAULT 'admin',
+	created_at DATETIME NULL,
+	PRIMARY KEY  (id),
+	KEY consignee_id (consignee_id),
+	KEY created_at (created_at)
 ) {$charset_collate};";
 
 		$sql[] = "CREATE TABLE {$cons_returns} (
