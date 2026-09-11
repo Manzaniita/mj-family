@@ -100,7 +100,7 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 | MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos, qué pasa al aprobar, quién puede revisarlos, mails y WhatsApp, cuánto se guardan, y las equivalencias con los métodos de MJ ERP. |
 | MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. |
-| MJ ERP | MJ ERP → Ajustes | Ventas, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, y permisos del revendedor (por rol y por usuario). |
+| MJ ERP | MJ ERP → Ajustes | Ventas, clientes, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, y permisos del revendedor (por rol y por usuario). |
 
 ---
 
@@ -137,6 +137,91 @@ Elegir la caja a mano en la pantalla de venta sigue mandando sobre todo lo
 anterior. Y una caja borrada nunca queda pegada: se cae al default sola.
 
 Un plugin puede cambiar la resolución con el filtro `mjerp_cashbox_for_method`.
+
+---
+
+## 3.1.1. La libreta de clientes
+
+Un cliente del ERP es **a quién le vendiste**, no una cuenta de la tienda. Se
+carga en el mostrador con un nombre y listo: no crea un usuario de WordPress, no
+manda ningún mail, y no hace falta que esa persona sepa que existe.
+
+**Dónde:** MJ ERP → Clientes. La ficha también se puede crear sin salir de la
+pantalla de venta: si escribís un nombre que no está, el buscador ofrece
+«Crear cliente…» al final de la lista.
+
+**Qué se configura** (MJ ERP → Configuración → **Clientes**):
+
+| Opción | Para qué |
+| --- | --- |
+| Llevar una libreta de clientes | Apagada, las ventas guardan el nombre que escribas pero sin ficha ni historial por persona. |
+| Crear clientes desde la pantalla de venta | El «Crear cliente…» del buscador. |
+| Pedir siempre un cliente | Obliga a elegir a quién antes de registrar la venta. Apagado por defecto: al mostrador no siempre se le pregunta el nombre. |
+| Campos que se muestran | Qué pide la ficha además del nombre: teléfono, email, documento, empresa, dirección, notas, lista de precios propia. |
+| Tipos de documento | DNI, CUIT, CUIL… la lista es tuya. |
+| Qué hace el ERP | Cuando alguien se crea una cuenta en la tienda: avisarte, vincularlos solo, o no buscar nada. |
+| Por qué datos reconocerlos | Email, teléfono y/o documento. |
+| Marcar también las ventas anteriores | Al vincular, las ventas viejas del mostrador pasan a figurar como de esa cuenta. |
+
+### Cuando el cliente se crea una cuenta en la tienda
+
+Este es el caso que el módulo existe para resolver. Alguien te viene comprando
+en el mostrador desde hace meses; un día entra a la tienda y se registra. Para
+el sistema son dos cosas distintas —una ficha y una cuenta— hasta que alguien
+diga que son la misma persona.
+
+El default es **avisarte**: la sugerencia aparece arriba de todo en MJ ERP →
+Clientes («fulano se creó una cuenta y coincide con tu cliente mengano»), con
+dos botones: *Es la misma persona* y *No*. No se unen solas a propósito: dos
+personas de la misma casa comparten teléfono, y unir dos historiales por error
+es de lo poco acá que cuesta deshacer. Si tu caso no tiene esa ambigüedad,
+poné **Vincularlos solo**.
+
+Al vincular:
+
+- La ficha pasa a llevar la cuenta consigo, y desde ahí lo que compre online y
+  lo que compre en el mostrador es el mismo historial.
+- Los datos que falten en la ficha se completan con los de la cuenta, sin pisar
+  lo que hayas cargado a mano.
+- Las ventas anteriores se remarcan con esa cuenta, si dejaste esa opción
+  activada.
+
+Se puede **desvincular** cuando quieras: la ficha y todas sus ventas quedan
+intactas, solo se suelta la cuenta. Una cuenta no puede pertenecer a dos fichas
+a la vez — si intentás, el ERP te dice de quién es.
+
+Los pedidos que entran por la tienda ya no quedan sueltos: si la cuenta tiene
+ficha se usa esa, y si no, se le abre una. Un pedido de invitado abre ficha solo
+cuando trae nombre y (email o teléfono); si no, no se ensucia la libreta con una
+ficha vacía por cada compra anónima.
+
+Al actualizar el plugin, la libreta **estrena con el historial que ya tenías**:
+se arma una ficha por cada persona que aparecía en las ventas, agrupando por
+cuenta cuando la hay y por email cuando no.
+
+### Borrar un cliente
+
+Si ya tiene ventas no se borra: queda **archivado** (deja de aparecer al cargar
+una venta, el historial sigue completo). Si no tiene ninguna, se borra de verdad.
+
+---
+
+## 3.1.2. El precio que sugiere una venta
+
+**Dónde:** MJ ERP → Configuración → Ventas → *Redondeo del precio sugerido*.
+
+El default es **«Como la tienda»**: el precio que el ERP te propone pasa por la
+misma escalera con la que MJ Dólar publica el precio en la vidriera —el
+redondeo en dólares primero, el redondeo en pesos después—. Así lo que ves
+escrito en el mostrador es exactamente lo que paga quien compra online, sin
+diferencias de centavos que después hay que explicar.
+
+Las otras opciones: **Como el ERP** usa el paso de *Recepción y stock →
+Redondeo*; **Paso propio** usa el número que pongas al lado (100 redondea a los
+$100 más cercanos); **Sin redondear** deja los centavos.
+
+Solo afecta al precio que el ERP **sugiere**. Un precio escrito a mano en la
+línea de la venta se respeta tal cual, siempre.
 
 ---
 

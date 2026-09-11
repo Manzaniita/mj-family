@@ -2,7 +2,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * /mjerp/v1/products and /mjerp/v1/customers.
+ * /mjerp/v1/products. La libreta de clientes vive en MJERP_REST_Customers.
  *
  * Delegates to MJERP_Products / MJERP_Customers when they expose the expected
  * static methods, with self-contained WooCommerce fallbacks otherwise.
@@ -88,21 +88,6 @@ class MJERP_REST_Products extends MJERP_REST_Controller {
 					WP_REST_Server::READABLE,
 					'get_movements',
 					array(
-						'limit' => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
-					)
-				),
-			)
-		);
-
-		register_rest_route(
-			$ns,
-			'/customers/search',
-			array(
-				$this->endpoint(
-					WP_REST_Server::READABLE,
-					'search_customers',
-					array(
-						'q'     => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'limit' => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 					)
 				),
@@ -427,35 +412,6 @@ class MJERP_REST_Products extends MJERP_REST_Controller {
 		}
 
 		return $this->ok( $out );
-	}
-
-	/**
-	 * GET /customers/search?q=&limit=
-	 *
-	 * @param WP_REST_Request $request Request.
-	 * @return WP_REST_Response|WP_Error
-	 */
-	public function search_customers( $request ) {
-		$p     = $this->params( $request );
-		$term  = trim( $this->str( $p, 'q', '', 190 ) );
-		$limit = $this->int( $p, 'limit', 20 );
-		$limit = max( 1, min( 50, $limit ? $limit : 20 ) );
-
-		if ( '' === $term ) {
-			return $this->ok( array() );
-		}
-
-		$delegated = $this->delegate( 'MJERP_Customers', array( 'search' ), array( $term, $limit ) );
-		if ( null !== $delegated ) {
-			$results = $delegated['result'];
-		} else {
-			$results = $this->local_customers( $term, $limit );
-		}
-		if ( is_wp_error( $results ) ) {
-			return $results;
-		}
-
-		return $this->ok( is_array( $results ) ? array_slice( array_values( $results ), 0, $limit ) : array() );
 	}
 
 	/* ---------------------------------------------------------------------
@@ -900,93 +856,6 @@ class MJERP_REST_Products extends MJERP_REST_Controller {
 		);
 
 		return is_array( $rows ) ? $rows : array();
-	}
-
-	/**
-	 * Customer search (WP users by login/email/name + WooCommerce totals).
-	 *
-	 * @param string $term  Term.
-	 * @param int    $limit Limit.
-	 * @return array
-	 */
-	protected function local_customers( $term, $limit ) {
-		$ids = array();
-
-		$by_columns = new WP_User_Query(
-			array(
-				'search'         => '*' . $term . '*',
-				'search_columns' => array( 'user_login', 'user_email', 'user_nicename', 'display_name' ),
-				'number'         => $limit,
-				'fields'         => 'ID',
-			)
-		);
-		foreach ( (array) $by_columns->get_results() as $id ) {
-			$ids[] = absint( $id );
-		}
-
-		if ( count( $ids ) < $limit ) {
-			$by_meta = new WP_User_Query(
-				array(
-					'number'     => $limit,
-					'fields'     => 'ID',
-					'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-						'relation' => 'OR',
-						array(
-							'key'     => 'first_name',
-							'value'   => $term,
-							'compare' => 'LIKE',
-						),
-						array(
-							'key'     => 'last_name',
-							'value'   => $term,
-							'compare' => 'LIKE',
-						),
-						array(
-							'key'     => 'billing_company',
-							'value'   => $term,
-							'compare' => 'LIKE',
-						),
-					),
-				)
-			);
-			foreach ( (array) $by_meta->get_results() as $id ) {
-				$ids[] = absint( $id );
-			}
-		}
-
-		$ids = array_slice( array_values( array_unique( array_filter( $ids ) ) ), 0, $limit );
-		$out = array();
-
-		foreach ( $ids as $id ) {
-			$user = get_userdata( $id );
-			if ( ! $user ) {
-				continue;
-			}
-			$row = array(
-				'id'           => (int) $id,
-				'name'         => (string) $user->display_name,
-				'email'        => (string) $user->user_email,
-				'orders_count' => 0,
-				'total_spent'  => 0.0,
-			);
-			if ( class_exists( 'WC_Customer' ) ) {
-				try {
-					$customer = new WC_Customer( $id );
-					$full     = trim( $customer->get_first_name() . ' ' . $customer->get_last_name() );
-					if ( '' !== $full ) {
-						$row['name'] = $full;
-					}
-					$row['orders_count'] = (int) $customer->get_order_count();
-					$row['total_spent']  = (float) $customer->get_total_spent();
-				} catch ( Exception $e ) {
-					// Keep the WP user data.
-					unset( $e );
-				}
-			}
-			$out[] = $row;
-		}
-
-		return $out;
 	}
 
 	/**

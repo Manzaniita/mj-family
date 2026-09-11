@@ -80,7 +80,13 @@
 
 	function customerHtml(sale) {
 		const rows = [];
-		if (sale.customer_name) rows.push(['Cliente', h(sale.customer_name)]);
+		// Con ficha, el nombre lleva a su historial: es la pregunta que sigue a «¿quién compró esto?».
+		if (sale.customer_name || sale.customer_id) {
+			const label = h(sale.customer_name || ('Cliente #' + sale.customer_id));
+			rows.push(['Cliente', sale.customer_id
+				? '<a class="mj-link" href="' + h(MJ.router.link('/clientes?q=' + encodeURIComponent(sale.customer_name || ''))) + '">' + label + '</a>'
+				: label]);
+		}
 		if (sale.customer_email) rows.push(['Email', h(sale.customer_email)]);
 		if (sale.customer_phone) rows.push(['Teléfono', h(sale.customer_phone)]);
 		if (sale.consignee_name) {

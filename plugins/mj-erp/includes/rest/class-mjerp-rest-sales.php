@@ -35,6 +35,7 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 						'channel'          => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
 						'payment_status'   => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
 						'consignee_id'     => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
+						'customer_id'      => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 						'customer_user_id' => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 						'only_consignment' => array( 'sanitize_callback' => array( $this, 'arg_bool' ) ),
 						'date_from'        => array( 'sanitize_callback' => array( $this, 'arg_date' ) ),
@@ -50,6 +51,7 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 					'create_sale',
 					array(
 						'items'            => array( 'sanitize_callback' => array( $this, 'arg_array' ) ),
+						'customer_id'      => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 						'customer_user_id' => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 						'customer_name'    => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'customer_email'   => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
@@ -79,6 +81,7 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 					'preview_sale',
 					array(
 						'items'            => array( 'sanitize_callback' => array( $this, 'arg_array' ) ),
+						'customer_id'      => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 						'customer_user_id' => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 						'consignee_id'     => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 						'price_list_key'   => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
@@ -119,6 +122,7 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 						'channel'        => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
 						'sale_date'      => array( 'sanitize_callback' => array( $this, 'arg_date' ) ),
 						'note'           => array( 'sanitize_callback' => array( $this, 'arg_textarea' ) ),
+						'customer_id'    => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 						'customer_name'  => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'customer_email' => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'customer_phone' => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
@@ -229,6 +233,7 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 				'channel'          => $this->str( $params, 'channel' ),
 				'payment_status'   => $this->str( $params, 'payment_status' ),
 				'consignee_id'     => $this->int( $params, 'consignee_id' ),
+				'customer_id'      => $this->int( $params, 'customer_id' ),
 				'customer_user_id' => $this->int( $params, 'customer_user_id' ),
 				'only_consignment' => $this->bool( $params, 'only_consignment' ),
 				'date_from'        => (string) $this->date( $params, 'date_from' ),
@@ -254,6 +259,7 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 
 		$data = array(
 			'items'            => $this->sale_items( $params ),
+			'customer_id'      => $this->int( $params, 'customer_id' ),
 			'customer_user_id' => $this->int( $params, 'customer_user_id' ),
 			'customer_name'    => $this->str( $params, 'customer_name', '', 190 ),
 			'customer_email'   => $this->str( $params, 'customer_email', '', 190 ),
@@ -296,6 +302,7 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 		$preview = MJERP_Sales::preview(
 			array(
 				'items'            => $this->sale_items( $params ),
+				'customer_id'      => $this->int( $params, 'customer_id' ),
 				'customer_user_id' => $this->int( $params, 'customer_user_id' ),
 				'consignee_id'     => $this->int( $params, 'consignee_id' ),
 				'price_list_key'   => $this->str( $params, 'price_list_key' ),
@@ -332,7 +339,7 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 		$params = $this->params( $request );
 
 		$data = array();
-		foreach ( array( 'channel', 'sale_date', 'note', 'customer_name', 'customer_email', 'customer_phone', 'payment_method', 'cashbox_id' ) as $key ) {
+		foreach ( array( 'channel', 'sale_date', 'note', 'customer_id', 'customer_name', 'customer_email', 'customer_phone', 'payment_method', 'cashbox_id' ) as $key ) {
 			if ( $this->has( $params, $key ) ) {
 				$data[ $key ] = $params[ $key ];
 			}

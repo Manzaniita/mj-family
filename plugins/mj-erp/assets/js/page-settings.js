@@ -31,6 +31,7 @@
 	const TABS = [
 		{ key: 'general', label: 'General', icon: 'settings' },
 		{ key: 'ventas', label: 'Ventas', icon: 'cash' },
+		{ key: 'clientes', label: 'Clientes', icon: 'user' },
 		{ key: 'compras', label: 'Compras', icon: 'cart' },
 		{ key: 'precios', label: 'Listas de precio', icon: 'tag' },
 		{ key: 'stock', label: 'Recepción y stock', icon: 'box' },
@@ -62,6 +63,10 @@
 		sales_consignment_enabled: 'ventas', sales_consignment_allocation: 'ventas', sales_consignment_approval: 'ventas',
 		sales_consignment_partial_lines: 'ventas', sales_consignment_payment_method: 'ventas',
 		shop_price_mode: 'ventas', shop_price_list: 'ventas', shop_price_notice: 'ventas',
+		sales_price_rounding_mode: 'ventas', sales_price_rounding: 'ventas',
+		customers_enabled: 'clientes', customers_doc_types: 'clientes', customers_default_doc_type: 'clientes',
+		customers_link_mode: 'clientes', customers_link_match: 'clientes', customers_link_backfill: 'clientes',
+		customers_quick_create: 'clientes', customers_require_on_sale: 'clientes', customers_fields: 'clientes',
 		portal_permissions: 'consignaciones',
 		consignee_role: 'consignaciones', consignee_role_label: 'consignaciones',
 		consignment_code_prefix: 'consignaciones', consignment_code_format: 'consignaciones',
@@ -180,6 +185,23 @@
 		sales_default_payment_method: 'efectivo',
 		sales_default_cashbox: 0,
 		sales_price_list: 'publico',
+		sales_price_rounding_mode: 'tienda',
+		sales_price_rounding: 0,
+		customers_enabled: true,
+		customers_doc_types: [
+			{ key: 'dni', label: 'DNI' },
+			{ key: 'cuit', label: 'CUIT' },
+			{ key: 'cuil', label: 'CUIL' },
+			{ key: 'pasaporte', label: 'Pasaporte' },
+			{ key: 'otro', label: 'Otro' },
+		],
+		customers_default_doc_type: 'dni',
+		customers_link_mode: 'sugerir',
+		customers_link_match: ['email'],
+		customers_link_backfill: true,
+		customers_quick_create: true,
+		customers_require_on_sale: false,
+		customers_fields: ['phone', 'email', 'doc', 'address', 'notes'],
 		sales_track_cost: true,
 		sales_allow_discount: true,
 		sales_allow_oversell: false,
@@ -589,6 +611,21 @@
 		const salesList = str(src.sales_price_list !== undefined ? src.sales_price_list : m.sales_price_list);
 		m.sales_price_list = listKeys.indexOf(salesList) >= 0 ? salesList : '';
 
+		m.sales_price_rounding_mode = pickEnum(src.sales_price_rounding_mode, ['tienda', 'erp', 'personalizado', 'ninguno'], DEFAULTS.sales_price_rounding_mode);
+		m.sales_price_rounding = Math.max(0, toInt(src.sales_price_rounding, DEFAULTS.sales_price_rounding));
+
+		/* --- Clientes -------------------------------------------------------- */
+		m.customers_enabled = toBool(src.customers_enabled, DEFAULTS.customers_enabled);
+		m.customers_doc_types = normalizePairs(src.customers_doc_types, DEFAULTS.customers_doc_types, false);
+		const docKeys = m.customers_doc_types.map(function (x) { return x.key; });
+		m.customers_default_doc_type = pickKey(src.customers_default_doc_type, docKeys, docKeys.length ? docKeys[0] : '');
+		m.customers_link_mode = pickEnum(src.customers_link_mode, ['sugerir', 'automatico', 'nunca'], DEFAULTS.customers_link_mode);
+		m.customers_link_match = keyList(src.customers_link_match, ['email', 'phone', 'doc_number'], DEFAULTS.customers_link_match);
+		m.customers_link_backfill = toBool(src.customers_link_backfill, DEFAULTS.customers_link_backfill);
+		m.customers_quick_create = toBool(src.customers_quick_create, DEFAULTS.customers_quick_create);
+		m.customers_require_on_sale = toBool(src.customers_require_on_sale, DEFAULTS.customers_require_on_sale);
+		m.customers_fields = keyList(src.customers_fields, ['phone', 'email', 'doc', 'company', 'address', 'notes', 'price_list'], DEFAULTS.customers_fields);
+
 		m.sales_track_cost = toBool(src.sales_track_cost, DEFAULTS.sales_track_cost);
 		m.sales_allow_discount = toBool(src.sales_allow_discount, DEFAULTS.sales_allow_discount);
 		m.sales_allow_oversell = toBool(src.sales_allow_oversell, DEFAULTS.sales_allow_oversell);
@@ -640,6 +677,22 @@
 	function pickEnum(value, allowed, def) {
 		const wanted = str(value).toLowerCase();
 		return allowed.indexOf(wanted) >= 0 ? wanted : def;
+	}
+
+	/**
+	 * Lista de claves filtrada contra las permitidas, sin repetidos.
+	 *
+	 * Una lista vacía es una respuesta válida (por ejemplo, «no compares por ningún campo»), así que
+	 * solo se cae al default cuando lo que llegó no era una lista.
+	 */
+	function keyList(raw, allowed, def) {
+		if (!Array.isArray(raw)) return (def || []).slice();
+		const out = [];
+		raw.forEach(function (item) {
+			const key = slugify(item && item.key !== undefined ? item.key : item).replace(/-/g, '_');
+			if (allowed.indexOf(key) >= 0 && out.indexOf(key) === -1) out.push(key);
+		});
+		return out;
 	}
 
 	/** Estado de pedido en su forma corta ('processing', no 'wc-processing'). */
@@ -866,6 +919,19 @@
 			sales_default_payment_method: inList(m.sales_default_payment_method, methodKeys, DEFAULTS.sales_default_payment_method),
 			sales_default_cashbox: Math.max(0, toInt(m.sales_default_cashbox, 0)),
 			sales_price_list: seenList[str(m.sales_price_list)] ? str(m.sales_price_list) : '',
+			sales_price_rounding_mode: pickEnum(m.sales_price_rounding_mode, ['tienda', 'erp', 'personalizado', 'ninguno'], DEFAULTS.sales_price_rounding_mode),
+			sales_price_rounding: Math.max(0, toInt(m.sales_price_rounding, 0)),
+
+			customers_enabled: !!m.customers_enabled,
+			customers_doc_types: normalizePairs(m.customers_doc_types, DEFAULTS.customers_doc_types, false),
+			customers_default_doc_type: str(m.customers_default_doc_type),
+			customers_link_mode: pickEnum(m.customers_link_mode, ['sugerir', 'automatico', 'nunca'], DEFAULTS.customers_link_mode),
+			customers_link_match: keyList(m.customers_link_match, ['email', 'phone', 'doc_number'], DEFAULTS.customers_link_match),
+			customers_link_backfill: !!m.customers_link_backfill,
+			customers_quick_create: !!m.customers_quick_create,
+			customers_require_on_sale: !!m.customers_require_on_sale,
+			customers_fields: keyList(m.customers_fields, ['phone', 'email', 'doc', 'company', 'address', 'notes', 'price_list'], DEFAULTS.customers_fields),
+
 			sales_track_cost: !!m.sales_track_cost,
 			sales_allow_discount: !!m.sales_allow_discount,
 			sales_allow_oversell: !!m.sales_allow_oversell,
@@ -1262,6 +1328,16 @@
 			],
 			addLabel: 'Agregar lista de precios',
 			emptyText: 'No hay listas de precio: no vas a poder sugerir precios de venta.',
+		},
+		customers_doc_types: {
+			name: 'customers_doc_types',
+			showHead: true,
+			fields: [
+				{ key: 'label', label: 'Nombre', placeholder: 'DNI', maxlength: 80, width: '1 1 200px' },
+				{ key: 'key', label: 'Clave', placeholder: 'se genera del nombre', maxlength: 40, mono: true, width: '1 1 160px' },
+			],
+			addLabel: 'Agregar tipo de documento',
+			emptyText: 'Sin tipos de documento: la ficha del cliente no va a pedir documento.',
 		},
 		sales_channels: {
 			name: 'sales_channels',
@@ -1844,6 +1920,90 @@
 		'</div>';
 	}
 
+	/**
+	 * Grupo de casillas cuyo valor es una lista de claves.
+	 *
+	 * Reusa el mismo marcado que los estados de pedido (`data-status-key` + `data-status-group`),
+	 * así el handler que ya recolecta esos grupos sirve tal cual.
+	 */
+	function keyChecklistHtml(key, label, options, selected, hint) {
+		const current = Array.isArray(selected) ? selected.map(String) : [];
+		return '<div class="mj-field">' +
+			'<span class="mj-field__label">' + h(label) + '</span>' +
+			'<div class="mj-row mj-row--wrap mj-checkbox-grid" data-status-group="' + h(key) + '">' +
+				options.map(function (o) {
+					const on = current.indexOf(String(o.value)) >= 0;
+					return '<label class="mj-checkbox"><input type="checkbox" data-status-key="' + h(key) + '" value="' + h(o.value) + '"' + (on ? ' checked' : '') + '> <span>' + h(o.label) + '</span></label>';
+				}).join('') +
+			'</div>' +
+			hintHtml(hint) +
+		'</div>';
+	}
+
+	function docTypeOptionsFrom(m) {
+		return (Array.isArray(m.customers_doc_types) ? m.customers_doc_types : []).map(function (t) {
+			return { value: slugify(t.key) || slugify(t.label), label: t.label || t.key };
+		});
+	}
+
+	function panelClientesHtml(m) {
+		return sectionHtml('La libreta', 'Quiénes te compran. Un cliente de acá es tu registro de ventas: no es una cuenta de la tienda, no se le crea usuario y no recibe ningún mail.',
+			checkboxFieldHtml({
+				key: 'customers_enabled', label: 'Llevar una libreta de clientes', checked: !!m.customers_enabled,
+				hint: 'Apagado, las ventas siguen guardando el nombre que escribas, pero sin ficha ni historial por persona.',
+			}) +
+			checkboxFieldHtml({
+				key: 'customers_quick_create', label: 'Crear clientes desde la pantalla de venta', checked: !!m.customers_quick_create,
+				hint: 'Agrega un «Crear cliente…» al final del buscador, para no cortar la venta cuando llega alguien nuevo.',
+			}) +
+			checkboxFieldHtml({
+				key: 'customers_require_on_sale', label: 'Pedir siempre un cliente', checked: !!m.customers_require_on_sale,
+				hint: 'Activado, no se puede registrar una venta sin elegir a quién. Dejalo apagado si vendés mucho al mostrador sin preguntar el nombre.',
+			})
+		) +
+		sectionHtml('La ficha', 'Qué datos pide el formulario, además del nombre.',
+			keyChecklistHtml('customers_fields', 'Campos que se muestran', [
+				{ value: 'phone', label: 'Teléfono' },
+				{ value: 'email', label: 'Email' },
+				{ value: 'doc', label: 'Documento' },
+				{ value: 'company', label: 'Empresa' },
+				{ value: 'address', label: 'Dirección' },
+				{ value: 'notes', label: 'Notas' },
+				{ value: 'price_list', label: 'Lista de precios propia' },
+			], m.customers_fields, 'El nombre siempre se pide: es lo único obligatorio.') +
+			'<div class="mj-field">' +
+				'<span class="mj-field__label">Tipos de documento</span>' +
+				'<div data-region="editor-customers_doc_types">' + listEditorHtml(EDITORS.customers_doc_types, m.customers_doc_types) + '</div>' +
+				'<div class="mj-field__hint">Si dejás la clave vacía se genera del nombre.</div>' +
+			'</div>' +
+			selectFieldHtml({
+				key: 'customers_default_doc_type', label: 'Tipo por defecto', value: str(m.customers_default_doc_type), options: docTypeOptionsFrom(m),
+				hint: 'Con el que arranca una ficha nueva.',
+			})
+		) +
+		sectionHtml('Cuando se crean una cuenta en la tienda',
+			'El caso que esto resuelve: alguien que venís atendiendo en el mostrador un día se registra en la tienda. Son la misma persona, pero para el sistema son dos cosas distintas hasta que las unís.',
+			selectFieldHtml({
+				key: 'customers_link_mode', label: 'Qué hace el ERP', value: str(m.customers_link_mode),
+				options: [
+					{ value: 'sugerir', label: 'Avisarme y que yo decida' },
+					{ value: 'automatico', label: 'Vincularlos solo' },
+					{ value: 'nunca', label: 'No buscar coincidencias' },
+				],
+				hint: 'Avisar es lo más seguro: dos personas de la misma casa comparten teléfono, y unir dos historiales por error es de lo poco difícil de deshacer acá. La sugerencia aparece arriba de la lista de clientes.',
+			}) +
+			keyChecklistHtml('customers_link_match', 'Por qué datos reconocerlos', [
+				{ value: 'email', label: 'Email' },
+				{ value: 'phone', label: 'Teléfono' },
+				{ value: 'doc_number', label: 'Documento' },
+			], m.customers_link_match, 'El teléfono se compara por los últimos dígitos, así «+54 9 11 5555-1234» y «1155551234» son el mismo número. Sin ningún campo marcado, el ERP no propone nada.') +
+			checkboxFieldHtml({
+				key: 'customers_link_backfill', label: 'Al vincular, marcar también las ventas anteriores', checked: !!m.customers_link_backfill,
+				hint: 'Las ventas que ya le habías cargado en el mostrador pasan a figurar como de esa cuenta. Es lo que hace que el historial quede completo de un solo lado.',
+			})
+		);
+	}
+
 	function panelVentasHtml(m) {
 		return sectionHtml('El módulo', 'Las ventas se registran acá vengan de donde vengan: del mostrador, de la tienda o de un revendedor.',
 			checkboxFieldHtml({
@@ -1897,6 +2057,22 @@
 				key: 'sales_price_list', label: 'Lista de precios sugerida', value: str(m.sales_price_list), options: priceListOptions(m),
 				hint: 'Con esta lista se propone el precio de cada producto. Dejala vacía para usar el precio que tiene el producto en la tienda.',
 			}) +
+			'<div class="mj-form-row">' +
+				selectFieldHtml({
+					key: 'sales_price_rounding_mode', label: 'Redondeo del precio sugerido', value: str(m.sales_price_rounding_mode),
+					options: [
+						{ value: 'tienda', label: 'Como la tienda' },
+						{ value: 'erp', label: 'Como el ERP (Recepción y stock)' },
+						{ value: 'personalizado', label: 'Paso propio' },
+						{ value: 'ninguno', label: 'Sin redondear' },
+					],
+					hint: '«Como la tienda» usa la misma escalera con la que MJ Dólar publica el precio en la vidriera: lo que ves en el mostrador es lo que paga quien compra online. Solo afecta al precio que el ERP <span class="mj-strong">sugiere</span>; un precio escrito a mano se respeta tal cual.',
+				}) +
+				textFieldHtml({
+					key: 'sales_price_rounding', label: 'Paso propio', value: numText(m.sales_price_rounding), kind: 'number', inputmode: 'numeric', maxlength: 9,
+					hint: 'Solo se usa con «Paso propio». 100 redondea a los $100 más cercanos; 0, a los centavos.',
+				}) +
+			'</div>' +
 			'<div class="mj-field">' +
 				'<span class="mj-field__label">Medios de pago</span>' +
 				'<div data-region="editor-sales_payment_methods">' + listEditorHtml(EDITORS.sales_payment_methods, m.sales_payment_methods) + '</div>' +
@@ -2296,6 +2472,7 @@
 		const bodies = {
 			general: panelGeneralHtml(m),
 			ventas: panelVentasHtml(m),
+			clientes: panelClientesHtml(m),
 			compras: panelComprasHtml(m),
 			precios: panelPreciosHtml(m),
 			stock: panelStockHtml(m),
@@ -2463,6 +2640,18 @@
 				});
 			}
 
+			/** El «tipo por defecto» tiene que seguir a la lista de tipos que se está editando. */
+			function refreshDocTypeSelect() {
+				const m = state.model;
+				if (!m) return;
+				const select = qs('[data-setting="' + MJ.ui.cssEscape('customers_default_doc_type') + '"]', container);
+				if (!select) return;
+				const options = docTypeOptionsFrom(m);
+				const exists = options.some(function (o) { return String(o.value) === String(m.customers_default_doc_type); });
+				if (!exists) m.customers_default_doc_type = options.length ? options[0].value : '';
+				MJ.ui.fillSelect(select, options, m.customers_default_doc_type);
+			}
+
 			function refreshPriceListNotes() {
 				const editor = qs('[data-editor="price_lists"]', container);
 				if (!editor) return;
@@ -2611,6 +2800,8 @@
 					const note = qs('[data-row-note="' + index + '"]', editorEl);
 					if (note) note.innerHTML = priceListNoteHtml(state.model, rows[index]);
 					if (structural) refreshPriceListSelects();
+				} else if (name === 'customers_doc_types') {
+					if (structural) refreshDocTypeSelect();
 				}
 				paintDirty();
 			}
@@ -2653,6 +2844,7 @@
 				if (name === 'currencies') refreshCurrencyRegions();
 				if (name === 'price_lists') refreshPriceListSelects();
 				if (name === 'sales_channels' || name === 'sales_payment_methods') refreshSalesSelects();
+				if (name === 'customers_doc_types') refreshDocTypeSelect();
 				paintDirty();
 
 				const editorAfter = region('editor-' + name);

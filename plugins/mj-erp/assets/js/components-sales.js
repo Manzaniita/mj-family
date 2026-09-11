@@ -91,7 +91,14 @@
 
 	/**
 	 * Autocompletado sobre GET /customers/search.
-	 * @param {Object} opts { input, onSelect(customer), onClear(), minChars=2, limit=15 }
+	 *
+	 * Trae dos cosas distintas y lo dice: las **fichas** del ERP (`type: 'customer'`), que existen
+	 * aunque la persona nunca haya entrado a la tienda, y las **cuentas** de WooCommerce
+	 * (`type: 'account'`) que todavía no tienen ficha. Cuando no aparece ninguna, ofrece crear la
+	 * ficha ahí mismo con lo que se venía tipeando.
+	 *
+	 * @param {Object} opts { input, onSelect(customer), onClear(), onCreate(customer), minChars=2,
+	 *                        limit=15, allowCreate=true }
 	 */
 	C.customerSearch = function (opts) {
 		opts = opts || {};
@@ -131,19 +138,44 @@
 			if (!v) active = -1;
 		}
 
+		function metaOf(c) {
+			const meta = [];
+			if (c.email) meta.push(c.email);
+			if (c.phone) meta.push(c.phone);
+			if (c.company) meta.push(c.company);
+			if (c.stats && c.stats.sales_count) meta.push(MJ.fmt.int(c.stats.sales_count) + (c.stats.sales_count === 1 ? ' venta' : ' ventas'));
+			else if (c.orders_count) meta.push(MJ.fmt.int(c.orders_count) + (c.orders_count === 1 ? ' pedido' : ' pedidos'));
+			return meta;
+		}
+
+		function tagOf(c) {
+			// Una cuenta sin ficha se marca: al elegirla, el ERP le va a abrir una.
+			if (c.type === 'account') return '<span class="mj-badge mj-badge--neutral mj-small">Cuenta de la tienda</span>';
+			if (c.is_linked) return '<span class="mj-badge mj-badge--info mj-small">Con cuenta</span>';
+			return '';
+		}
+
 		function render() {
 			list.innerHTML = items.map(function (c, idx) {
 				if (c.type === 'message') {
 					return '<div class="mj-autocomplete__item is-disabled" aria-disabled="true">' + h(c.text) + '</div>';
 				}
-				const meta = [];
-				if (c.email) meta.push(c.email);
-				if (c.orders_count) meta.push(MJ.fmt.int(c.orders_count) + ' pedidos');
+				if (c.type === 'create') {
+					return '<div class="mj-autocomplete__item is-create' + (idx === active ? ' is-active' : '') + '" role="option" ' +
+						'aria-selected="' + (idx === active ? 'true' : 'false') + '" data-index="' + idx + '">' +
+						'<div class="mj-autocomplete__text">' +
+							'<div class="mj-autocomplete__name">' + MJ.icon('plus') + ' Crear cliente «' + h(c.term) + '»' + '</div>' +
+							'<div class="mj-autocomplete__meta mj-small mj-muted">Queda en tu libreta. No crea una cuenta en la tienda.</div>' +
+						'</div>' +
+					'</div>';
+				}
+				const meta = metaOf(c);
+				const tag = tagOf(c);
 				return '<div class="mj-autocomplete__item' + (idx === active ? ' is-active' : '') + '" role="option" ' +
 					'aria-selected="' + (idx === active ? 'true' : 'false') + '" data-index="' + idx + '">' +
 					(c.avatar ? '<img class="mj-autocomplete__thumb" src="' + h(c.avatar) + '" alt="" loading="lazy">' : '') +
 					'<div class="mj-autocomplete__text">' +
-						'<div class="mj-autocomplete__name">' + h(c.name || c.login || ('#' + c.id)) + '</div>' +
+						'<div class="mj-autocomplete__name">' + h(c.name || c.login || ('#' + c.id)) + (tag ? ' ' + tag : '') + '</div>' +
 						(meta.length ? '<div class="mj-autocomplete__meta mj-small mj-muted">' + h(meta.join(' · ')) + '</div>' : '') +
 					'</div>' +
 				'</div>';
@@ -156,7 +188,9 @@
 			MJ.api.get('customers/search', { q: term, limit: limit }).then(function (res) {
 				if (destroyed || mine !== seq) return;
 				const rows = Array.isArray(res) ? res : (res && res.items) || [];
-				items = rows.length ? rows : [{ type: 'message', text: 'Sin clientes con ese nombre' }];
+				items = rows.slice();
+				if (canCreate()) items.push({ type: 'create', term: term });
+				if (!items.length) items = [{ type: 'message', text: 'Sin clientes con ese nombre' }];
 				active = -1;
 				render();
 			}).catch(function () {
@@ -179,11 +213,31 @@
 
 		input.addEventListener('input', onInput);
 
+		function canCreate() {
+			return opts.allowCreate !== false &&
+				MJ.setting('customers_enabled', true) !== false &&
+				MJ.setting('customers_quick_create', true) !== false &&
+				!!(MJ.components && MJ.components.customerModal);
+		}
+
 		function choose(idx) {
 			const c = items[idx];
 			if (!c || c.type === 'message') return;
-			input.value = c.name || c.login || '';
 			setOpen(false);
+
+			if (c.type === 'create') {
+				MJ.components.customerModal({
+					customer: { name: c.term },
+					onSaved(saved) {
+						input.value = saved.name || '';
+						if (typeof opts.onCreate === 'function') opts.onCreate(saved);
+						if (typeof opts.onSelect === 'function') opts.onSelect(Object.assign({ type: 'customer', customer_id: saved.id }, saved));
+					},
+				});
+				return;
+			}
+
+			input.value = c.name || c.login || '';
 			if (typeof opts.onSelect === 'function') opts.onSelect(c);
 		}
 

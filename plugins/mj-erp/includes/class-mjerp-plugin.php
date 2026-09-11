@@ -69,6 +69,7 @@ final class MJERP_Plugin {
 			'includes/repositories/class-mjerp-cashboxes-repo.php',
 			'includes/repositories/class-mjerp-movements-repo.php',
 			'includes/class-mjerp-products.php',
+			'includes/repositories/class-mjerp-customers-repo.php',
 			'includes/class-mjerp-customers.php',
 			'includes/class-mjerp-stock.php',
 			'includes/class-mjerp-consignees.php',
@@ -90,6 +91,7 @@ final class MJERP_Plugin {
 			'includes/rest/class-mjerp-rest-purchases.php',
 			'includes/rest/class-mjerp-rest-suppliers.php',
 			'includes/rest/class-mjerp-rest-products.php',
+			'includes/rest/class-mjerp-rest-customers.php',
 			'includes/rest/class-mjerp-rest-settings.php',
 			'includes/rest/class-mjerp-rest-consignments.php',
 			'includes/rest/class-mjerp-rest-sales.php',
@@ -146,6 +148,7 @@ final class MJERP_Plugin {
 		MJERP_Dolar::init();
 
 		MJERP_Install::maybe_upgrade();
+		MJERP_Customers::init();
 		MJERP_Consignees::init();
 		MJERP_Consignment_Account::init();
 		MJERP_Orders::init();

@@ -232,6 +232,18 @@ class MJERP_Settings {
 			'sales_default_payment_method' => 'efectivo',
 			'sales_default_cashbox'      => 0,
 			'sales_price_list'           => 'publico',
+
+			/*
+			 * Redondeo del precio que el ERP sugiere al cargar una venta.
+			 *
+			 * `tienda` es el default y el único que cierra: usa la misma escalera con la que MJ
+			 * Dólar publica el precio en la vidriera, así lo que ve el mostrador es lo que paga
+			 * quien compra online. Los otros modos existen para quien quiera otra cosa: `erp` usa el
+			 * paso de `price_rounding`, `personalizado` el de `sales_price_rounding`, y `ninguno`
+			 * deja los centavos crudos.
+			 */
+			'sales_price_rounding_mode'  => 'tienda',
+			'sales_price_rounding'       => 0,
 			'sales_track_cost'           => true,
 			'sales_allow_discount'       => true,
 			'sales_allow_oversell'       => false,
@@ -258,6 +270,56 @@ class MJERP_Settings {
 			'sales_consignment_approval' => 'auto',
 			'sales_consignment_partial_lines' => true,
 			'sales_consignment_payment_method' => 'cuenta_corriente',
+
+			/* --- Clientes ------------------------------------------------------------------ */
+
+			/*
+			 * La libreta de clientes del ERP. Un cliente de acá no es una cuenta de WooCommerce: es
+			 * el registro de a quién se le vendió. Se crea desde el mostrador con un nombre y nada
+			 * más, y no genera usuarios ni manda mails.
+			 */
+			'customers_enabled'          => true,
+			'customers_doc_types'        => array(
+				array(
+					'key'   => 'dni',
+					'label' => 'DNI',
+				),
+				array(
+					'key'   => 'cuit',
+					'label' => 'CUIT',
+				),
+				array(
+					'key'   => 'cuil',
+					'label' => 'CUIL',
+				),
+				array(
+					'key'   => 'pasaporte',
+					'label' => 'Pasaporte',
+				),
+				array(
+					'key'   => 'otro',
+					'label' => 'Otro',
+				),
+			),
+			'customers_default_doc_type' => 'dni',
+
+			/*
+			 * Qué pasa cuando alguien que ya compró en el mostrador se crea una cuenta en la tienda.
+			 *
+			 * `sugerir` (default) avisa y deja que vos decidas: dos personas pueden compartir un
+			 * teléfono, y fusionar historiales sin mirar es lo único difícil de deshacer acá.
+			 * `automatico` las une solo; `nunca` no busca coincidencias.
+			 */
+			'customers_link_mode'        => 'sugerir',
+			'customers_link_match'       => array( 'email' ),
+			'customers_link_backfill'    => true,
+
+			/* Crear un cliente sin salir de la pantalla de venta. */
+			'customers_quick_create'     => true,
+			'customers_require_on_sale'  => false,
+
+			/* Campos que la ficha pide además del nombre. */
+			'customers_fields'           => array( 'phone', 'email', 'doc', 'address', 'notes' ),
 
 			/* Precio que ve un revendedor logueado en la tienda. */
 			'shop_price_mode'            => 'publico',
@@ -679,6 +741,59 @@ class MJERP_Settings {
 	 */
 	public static function sale_payment_method_label( $key ) {
 		return self::label_from( self::sale_payment_methods(), $key );
+	}
+
+	/* ------------------------------------------------------------------
+	 * Clientes
+	 * ---------------------------------------------------------------- */
+
+	/**
+	 * Whether the customers book is on.
+	 *
+	 * @return bool
+	 */
+	public static function customers_enabled() {
+		return MJERP_Helpers::bool( self::get( 'customers_enabled', true ) );
+	}
+
+	/**
+	 * Document types a customer card accepts `[ {key,label}, ... ]`.
+	 *
+	 * @return array
+	 */
+	public static function customer_doc_types() {
+		$list = self::get( 'customers_doc_types', array() );
+		return is_array( $list ) ? array_values( $list ) : array();
+	}
+
+	/**
+	 * Label of a document type key.
+	 *
+	 * @param string $key Doc type key.
+	 * @return string
+	 */
+	public static function customer_doc_type_label( $key ) {
+		return self::label_from( self::customer_doc_types(), $key );
+	}
+
+	/**
+	 * Optional fields the customer card shows.
+	 *
+	 * @return string[]
+	 */
+	public static function customer_fields() {
+		$list = self::get( 'customers_fields', array() );
+		return is_array( $list ) ? array_values( array_map( 'strval', $list ) ) : array();
+	}
+
+	/**
+	 * Whether an optional customer field is enabled.
+	 *
+	 * @param string $key Field key (phone, email, doc, company, address, notes, price_list).
+	 * @return bool
+	 */
+	public static function customer_field_enabled( $key ) {
+		return in_array( sanitize_key( (string) $key ), self::customer_fields(), true );
 	}
 
 	/* ------------------------------------------------------------------
@@ -1234,6 +1349,57 @@ class MJERP_Settings {
 
 			case 'sales_default_cashbox':
 				return max( 0, self::int( $value, 0 ) );
+
+			case 'sales_price_rounding_mode':
+				$mode = is_scalar( $value ) ? sanitize_key( (string) $value ) : '';
+				return in_array( $mode, array( 'tienda', 'erp', 'personalizado', 'ninguno' ), true ) ? $mode : $default;
+
+			case 'sales_price_rounding':
+				return max( 0, self::int( $value, $default ) );
+
+			/* --- Clientes ------------------------------------------------------------------ */
+
+			case 'customers_enabled':
+			case 'customers_link_backfill':
+			case 'customers_quick_create':
+			case 'customers_require_on_sale':
+				return MJERP_Helpers::bool( $value );
+
+			case 'customers_doc_types':
+				return self::keyed_rows( $value, false );
+
+			case 'customers_default_doc_type':
+				return is_scalar( $value ) ? sanitize_key( (string) $value ) : $default;
+
+			case 'customers_link_mode':
+				$mode = is_scalar( $value ) ? sanitize_key( (string) $value ) : '';
+				return in_array( $mode, array( 'sugerir', 'automatico', 'nunca' ), true ) ? $mode : $default;
+
+			case 'customers_link_match':
+				$fields = array();
+				foreach ( self::to_list( $value ) as $item ) {
+					if ( is_array( $item ) ) {
+						$item = isset( $item['key'] ) ? $item['key'] : '';
+					}
+					$item = sanitize_key( (string) $item );
+					if ( in_array( $item, array( 'email', 'phone', 'doc_number' ), true ) && ! in_array( $item, $fields, true ) ) {
+						$fields[] = $item;
+					}
+				}
+				return $fields;
+
+			case 'customers_fields':
+				$fields = array();
+				foreach ( self::to_list( $value ) as $item ) {
+					if ( is_array( $item ) ) {
+						$item = isset( $item['key'] ) ? $item['key'] : '';
+					}
+					$item = sanitize_key( (string) $item );
+					if ( in_array( $item, array( 'phone', 'email', 'doc', 'company', 'address', 'notes', 'price_list' ), true ) && ! in_array( $item, $fields, true ) ) {
+						$fields[] = $item;
+					}
+				}
+				return $fields;
 
 			case 'sales_order_status_paid':
 			case 'sales_order_status_unpaid':

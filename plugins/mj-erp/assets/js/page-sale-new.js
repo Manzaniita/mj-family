@@ -63,6 +63,27 @@
 		'</div></div>';
 	}
 
+	/**
+	 * El id de la ficha del ERP, que puede no existir todavía.
+	 *
+	 * El buscador devuelve dos cosas distintas: una ficha de la libreta (`type: 'customer'`) o una
+	 * cuenta de la tienda sin ficha (`type: 'account'`). En el segundo caso el id de ficha es 0 y el
+	 * servidor le abre una al registrar la venta.
+	 */
+	function customerCardId(state) {
+		const c = state.customer;
+		if (!c) return 0;
+		if (c.type === 'account') return 0;
+		return num(c.customer_id !== undefined ? c.customer_id : c.id) || 0;
+	}
+
+	/** La cuenta de WooCommerce detrás del cliente elegido (0 = no tiene). */
+	function customerUserId(state) {
+		const c = state.customer;
+		if (!c) return 0;
+		return num(c.user_id) || 0;
+	}
+
 	function customerHtml(state) {
 		const chosen = state.customer;
 		return '<div class="mj-card mj-mb"><div class="mj-card__body">' +
@@ -244,7 +265,7 @@
 	MJ.pages.saleNew = {
 		title() { return 'Nueva venta'; },
 
-		render(container) {
+		render(container, params, query) {
 			const offs = [];
 			const state = {
 				lines: [],
@@ -358,7 +379,8 @@
 						}
 						return item;
 					}),
-					customer_user_id: state.customer ? state.customer.id : 0,
+					customer_id: customerCardId(state),
+					customer_user_id: customerUserId(state),
 					price_list_key: state.priceList || undefined,
 					discount_total: num(state.discount) || 0,
 					shipping_total: num(state.shipping) || 0,
@@ -466,7 +488,15 @@
 					state.context = null;
 					paintCustomerNote();
 
-					MJ.api.get('sales/customer/' + customer.id).then(function (context) {
+					// Ser revendedor es una propiedad de la *cuenta*, no de la ficha: sin cuenta no hay
+					// consignación que consultar, y la venta es una venta común.
+					const userId = customerUserId(state);
+					if (!userId) {
+						refreshPreview();
+						return;
+					}
+
+					MJ.api.get('sales/customer/' + userId).then(function (context) {
 						if (state.disposed) return;
 						state.context = context;
 						paintCustomerNote();
@@ -571,6 +601,8 @@
 				if (btn) MJ.ui.setLoading(btn, true);
 
 				const body = payload();
+				// Un nombre suelto (sin ficha ni cuenta) igual queda escrito en la venta: es mejor que
+				// «cliente sin nombre», y el día que esa persona vuelva se le puede abrir la ficha.
 				body.customer_name = state.customer ? '' : String(qs('#mj-sale-customer', container).value || '').trim();
 				body.channel = state.channel || undefined;
 				body.sale_date = state.date || undefined;
@@ -599,6 +631,26 @@
 					if (btn) MJ.ui.setLoading(btn, false);
 					toastError(err, 'No se pudo registrar la venta.');
 				});
+			}
+
+			// Entrada desde la lista de clientes (`/ventas/nueva?cliente=12`): la ficha ya está
+			// elegida, así que la pantalla arranca con el cliente puesto y el foco en el producto.
+			const preselected = query && query.cliente ? parseInt(query.cliente, 10) : 0;
+			if (preselected > 0) {
+				MJ.api.get('customers/' + encodeURIComponent(preselected)).then(function (customer) {
+					if (state.disposed || !customer || !customer.id) return;
+					state.customer = Object.assign({ type: 'customer', customer_id: customer.id }, customer);
+					state.customerName = customer.name || '';
+					const input = qs('#mj-sale-customer', container);
+					if (input) input.value = state.customerName;
+					if (customer.price_list_key) {
+						state.priceList = customer.price_list_key;
+						const listSelect = qs('#mj-sale-list', container);
+						if (listSelect) listSelect.value = state.priceList;
+					}
+					paintCustomerNote();
+					refreshPreview();
+				}).catch(function () { /* si no se puede, la venta se carga igual a mano */ });
 			}
 
 			// El foco arranca en el buscador: es lo primero que se usa siempre.

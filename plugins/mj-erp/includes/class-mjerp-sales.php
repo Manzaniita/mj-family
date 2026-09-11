@@ -73,10 +73,18 @@ class MJERP_Sales {
 		$currency = MJERP_Sales_Repo::shop_currency();
 		$rate     = MJERP_Sales_Repo::default_rate( $currency );
 
-		$customer_id = absint( MJERP_Helpers::array_get( $data, 'customer_user_id', 0 ) );
-		$consignee   = self::resolve_consignee( $customer_id, MJERP_Helpers::array_get( $data, 'consignee_id', 0 ) );
+		$customer = self::resolve_customer( $data );
+		if ( is_wp_error( $customer ) ) {
+			return $customer;
+		}
+
+		$consignee = self::resolve_consignee( $customer['user_id'], MJERP_Helpers::array_get( $data, 'consignee_id', 0 ) );
 
 		$price_list = sanitize_key( (string) MJERP_Helpers::array_get( $data, 'price_list_key', '' ) );
+		if ( '' === $price_list ) {
+			// La lista propia del cliente manda sobre la general: es el precio que se le prometió.
+			$price_list = (string) $customer['price_list_key'];
+		}
 		if ( '' === $price_list ) {
 			$price_list = (string) MJERP_Settings::get( 'sales_price_list', '' );
 		}
@@ -89,15 +97,14 @@ class MJERP_Sales {
 			return new WP_Error( 'mjerp_no_items', __( 'Ninguno de los productos elegidos es válido.', 'mj-erp' ), array( 'status' => 400, 'field' => 'items' ) );
 		}
 
-		$customer = self::customer_fields( $customer_id, $data );
-
 		$sale_id = MJERP_Sales_Repo::create(
 			array(
 				'source'           => MJERP_Sales_Repo::SOURCE_ERP,
 				'status'           => MJERP_Sales_Repo::sanitize_status( MJERP_Helpers::array_get( $data, 'status', MJERP_Sales_Repo::STATUS_CONFIRMED ) ),
 				'channel'          => MJERP_Helpers::array_get( $data, 'channel', '' ),
 				'sale_date'        => MJERP_Helpers::array_get( $data, 'sale_date', null ),
-				'customer_user_id' => $customer_id,
+				'customer_id'      => $customer['id'],
+				'customer_user_id' => $customer['user_id'],
 				'customer_name'    => $customer['name'],
 				'customer_email'   => $customer['email'],
 				'customer_phone'   => $customer['phone'],
@@ -180,10 +187,17 @@ class MJERP_Sales {
 		$currency = MJERP_Sales_Repo::shop_currency();
 		$rate     = MJERP_Sales_Repo::default_rate( $currency );
 
-		$customer_id = absint( MJERP_Helpers::array_get( $data, 'customer_user_id', 0 ) );
-		$consignee   = self::resolve_consignee( $customer_id, MJERP_Helpers::array_get( $data, 'consignee_id', 0 ) );
+		$customer = self::resolve_customer( $data, false );
+		if ( is_wp_error( $customer ) ) {
+			return $customer;
+		}
+
+		$consignee = self::resolve_consignee( $customer['user_id'], MJERP_Helpers::array_get( $data, 'consignee_id', 0 ) );
 
 		$price_list = sanitize_key( (string) MJERP_Helpers::array_get( $data, 'price_list_key', '' ) );
+		if ( '' === $price_list ) {
+			$price_list = (string) $customer['price_list_key'];
+		}
 		if ( '' === $price_list ) {
 			$price_list = (string) MJERP_Settings::get( 'sales_price_list', '' );
 		}
@@ -348,6 +362,10 @@ class MJERP_Sales {
 			$name = MJERP_Helpers::user_display_name( $customer_id );
 		}
 
+		// La ficha del cliente: si la cuenta ya tiene una, se reusa; si no, se abre con lo que trae
+		// el pedido, para que la venta de la tienda quede en el mismo historial que la del mostrador.
+		$card = self::customer_card_for_order( $order, $customer_id, $name );
+
 		// El medio de pago del pedido decide, además, en qué caja entra esa plata.
 		$order_method = self::method_from_order( $order );
 
@@ -360,6 +378,7 @@ class MJERP_Sales {
 				'channel'          => MJERP_Settings::get( 'sales_shop_channel', 'tienda' ),
 				'status'           => MJERP_Sales_Repo::STATUS_CONFIRMED,
 				'sale_date'        => self::order_date( $order ),
+				'customer_id'      => $card ? (int) $card['id'] : 0,
 				'customer_user_id' => $customer_id,
 				'customer_name'    => $name,
 				'customer_email'   => (string) $order->get_billing_email(),
@@ -838,17 +857,117 @@ class MJERP_Sales {
 			$suggested = MJERP_Consignees::suggested_price( $target, null, $price_list );
 			$base      = (float) $suggested['unit_price_base'];
 			if ( $base > 0 ) {
-				$local_currency = strtoupper( (string) MJERP_Settings::get( 'base_currency', 'USD' ) );
-				$sale_currency  = MJERP_Sales_Repo::shop_currency();
-				return $sale_currency === $local_currency ? round( $base, 6 ) : round( $base * ( $rate > 0 ? $rate : 1 ), 6 );
+				return self::round_sale_price( self::base_to_sale_currency( $base, $rate ) );
 			}
 		}
 
 		if ( $product instanceof WC_Product ) {
-			return round( MJERP_Helpers::to_float( $product->get_price() ), 6 );
+			return self::round_sale_price( MJERP_Helpers::to_float( $product->get_price() ) );
 		}
 
 		return 0.0;
+	}
+
+	/**
+	 * Converts a base-currency price into the sale currency the way the shop converts it.
+	 *
+	 * La cotización que manda es la de MJ Dólar, que es la que la tienda usó para publicar; el tipo
+	 * de cambio de la venta queda como red de contención para cuando MJ Dólar no está.
+	 *
+	 * @param float $base Price in base currency.
+	 * @param float $rate Sale exchange rate (local units per base unit).
+	 * @return float
+	 */
+	public static function base_to_sale_currency( float $base, float $rate ) : float {
+		$base_currency = strtoupper( (string) MJERP_Settings::get( 'base_currency', 'USD' ) );
+		$sale_currency = MJERP_Sales_Repo::shop_currency();
+
+		if ( $sale_currency === $base_currency ) {
+			return round( $base, 6 );
+		}
+
+		$cfg        = self::store_price_config();
+		$store_rate = $cfg['store_rate'] > 0 ? $cfg['store_rate'] : ( $rate > 0 ? $rate : 1.0 );
+
+		return round( $base * $store_rate, 6 );
+	}
+
+	/**
+	 * Rounds a suggested price the way `sales_price_rounding_mode` says.
+	 *
+	 * El default (`tienda`) usa la misma escalera con la que MJ Dólar publica en la vidriera, así
+	 * lo que el mostrador ve escrito es lo que paga quien compra online. Cambiarlo es configuración,
+	 * no código: `erp` usa el paso de `price_rounding`, `personalizado` el de
+	 * `sales_price_rounding`, y `ninguno` deja los centavos.
+	 *
+	 * Solo toca el precio que el ERP *sugiere*: un precio escrito a mano se respeta tal cual.
+	 *
+	 * @param float $value Price in the sale currency.
+	 * @return float
+	 */
+	public static function round_sale_price( float $value ) : float {
+		if ( $value <= 0 ) {
+			return 0.0;
+		}
+
+		$decimals = function_exists( 'wc_get_price_decimals' ) ? (int) wc_get_price_decimals() : 2;
+		$mode     = sanitize_key( (string) MJERP_Settings::get( 'sales_price_rounding_mode', 'tienda' ) );
+
+		switch ( $mode ) {
+			case 'ninguno':
+				$rounded = round( $value, $decimals );
+				break;
+
+			case 'erp':
+				$rounded = MJERP_Costing::round_price( $value, (int) MJERP_Settings::get( 'price_rounding', 0 ) );
+				break;
+
+			case 'personalizado':
+				$rounded = MJERP_Costing::round_price( $value, (int) MJERP_Settings::get( 'sales_price_rounding', 0 ) );
+				break;
+
+			case 'tienda':
+			default:
+				$cfg           = self::store_price_config();
+				$base_currency = strtoupper( (string) MJERP_Settings::get( 'base_currency', 'USD' ) );
+				$rounded       = MJERP_Sales_Repo::shop_currency() === $base_currency
+					? MJERP_Costing::round_usd( $value, $cfg['rounding'], $cfg['mode'] )
+					: MJERP_Costing::round_ars( $value, $cfg['store_rounding'], $cfg['store_mode'] );
+				break;
+		}
+
+		/**
+		 * Filters the rounded price the ERP suggests for a sale line.
+		 *
+		 * @param float  $rounded Rounded price.
+		 * @param float  $value   Price before rounding.
+		 * @param string $mode    Rounding mode.
+		 */
+		$rounded = (float) apply_filters( 'mjerp_sale_price_rounded', $rounded, $value, $mode );
+
+		return round( $rounded, $decimals );
+	}
+
+	/**
+	 * The rounding ladder the storefront publishes with.
+	 *
+	 * @return array { rounding, mode, store_rate, store_rounding, store_mode }
+	 */
+	public static function store_price_config() : array {
+		if ( class_exists( 'MJERP_Dolar' ) ) {
+			return MJERP_Costing::usd_config( MJERP_Dolar::usd_config() );
+		}
+
+		// Sin MJ Dólar la escalera es la que el propio ERP tiene configurada.
+		return MJERP_Costing::usd_config(
+			array(
+				'rounding'       => MJERP_Settings::get( 'usd_rounding', 0 ),
+				'mode'           => MJERP_Settings::get( 'usd_rounding_mode', 'nearest' ),
+				'store_rate'     => MJERP_Settings::get( 'sale_rate', 0 ),
+				'store_rounding' => MJERP_Settings::get( 'price_rounding', 0 ),
+				'store_mode'     => 'nearest',
+			)
+		);
 	}
 
 	/**
@@ -1232,6 +1351,120 @@ class MJERP_Sales {
 		}
 		$product = wc_get_product( $target );
 		return $product instanceof WC_Product ? $product : false;
+	}
+
+	/**
+	 * Resolves who the sale is for.
+	 *
+	 * Hay dos identidades y no son la misma cosa: la **ficha** (`customer_id`), que es la libreta
+	 * del ERP y existe aunque la persona nunca haya entrado a la tienda, y la **cuenta**
+	 * (`customer_user_id`), que es el usuario de WooCommerce. Una venta de mostrador tiene ficha y
+	 * no tiene cuenta; el día que esa persona se registra y alguien las vincula, la ficha empieza a
+	 * traer la cuenta consigo y el historial pasa a ser uno solo.
+	 *
+	 * Cuando llega una cuenta sin ficha se le abre una (si la libreta está activa), así ninguna
+	 * venta queda sin dueño y el revendedor sigue resolviéndose por la cuenta, como siempre.
+	 *
+	 * @param array $data   Request data (customer_id, customer_user_id, customer_name…).
+	 * @param bool  $create Whether a missing card may be created (false en la vista previa, que no
+	 *                      tiene que escribir nada).
+	 * @return array|WP_Error { id, user_id, name, email, phone, price_list_key, card }
+	 */
+	public static function resolve_customer( array $data, bool $create = true ) {
+		$card_id = absint( MJERP_Helpers::array_get( $data, 'customer_id', 0 ) );
+		$user_id = absint( MJERP_Helpers::array_get( $data, 'customer_user_id', 0 ) );
+		$enabled = MJERP_Settings::customers_enabled() && class_exists( 'MJERP_Customers_Repo' );
+
+		$card = null;
+
+		if ( $enabled && $card_id ) {
+			$card = MJERP_Customers_Repo::find( $card_id, false );
+			if ( ! $card ) {
+				return new WP_Error( 'mjerp_invalid_customer', __( 'El cliente elegido no existe.', 'mj-erp' ), array( 'status' => 400, 'field' => 'customer_id' ) );
+			}
+			// La cuenta sale de la ficha: es la vinculación la que decide, no lo que mande la pantalla.
+			if ( ! empty( $card['user_id'] ) ) {
+				$user_id = (int) $card['user_id'];
+			}
+		} elseif ( $enabled && $user_id ) {
+			$card = MJERP_Customers_Repo::find_by_user( $user_id, false );
+			if ( ! $card && $create ) {
+				$card = MJERP_Customers_Repo::ensure_for_user( $user_id, self::customer_fields( $user_id, $data ) );
+			}
+		}
+
+		if ( $enabled && ! $card && ! $user_id && $create && MJERP_Helpers::bool( MJERP_Settings::get( 'customers_require_on_sale', false ) ) ) {
+			return new WP_Error( 'mjerp_customer_required', __( 'Elegí un cliente para la venta.', 'mj-erp' ), array( 'status' => 400, 'field' => 'customer_id' ) );
+		}
+
+		$fields = self::customer_fields( $user_id, $data );
+
+		// Lo que se escribió en la venta gana; lo que falte lo completa la ficha.
+		if ( $card ) {
+			foreach ( array( 'name', 'email', 'phone' ) as $key ) {
+				if ( '' === (string) $fields[ $key ] ) {
+					$fields[ $key ] = (string) MJERP_Helpers::array_get( $card, $key, '' );
+				}
+			}
+		}
+
+		return array(
+			'id'             => $card ? (int) $card['id'] : 0,
+			'user_id'        => $user_id,
+			'name'           => $fields['name'],
+			'email'          => $fields['email'],
+			'phone'          => $fields['phone'],
+			'price_list_key' => $card ? sanitize_key( (string) MJERP_Helpers::array_get( $card, 'price_list_key', '' ) ) : '',
+			'card'           => $card,
+		);
+	}
+
+	/**
+	 * The customer card behind a WooCommerce order.
+	 *
+	 * Un pedido de invitado no tiene cuenta, así que tampoco tiene con qué reconocer a nadie: se
+	 * abre una ficha con los datos de facturación solo si la libreta puede reconocer a esa persona
+	 * (`customers_link_match`) o, si no la reconoce, una nueva. Un pedido sin nombre ni contacto no
+	 * genera ficha: sería una ficha vacía por cada compra anónima.
+	 *
+	 * @param WC_Order $order    Order.
+	 * @param int      $user_id  Customer account id (0 = invitado).
+	 * @param string   $name     Billing name already resolved by the caller.
+	 * @return array|null
+	 */
+	protected static function customer_card_for_order( WC_Order $order, int $user_id, string $name ) : ?array {
+		if ( ! MJERP_Settings::customers_enabled() || ! class_exists( 'MJERP_Customers_Repo' ) ) {
+			return null;
+		}
+
+		$fields = array(
+			'name'     => MJERP_Helpers::text( $name, 190 ),
+			'company'  => MJERP_Helpers::text( $order->get_billing_company(), 190 ),
+			'email'    => sanitize_email( (string) $order->get_billing_email() ),
+			'phone'    => MJERP_Helpers::text( $order->get_billing_phone(), 60 ),
+			'address'  => MJERP_Helpers::text( $order->get_billing_address_1(), 255 ),
+			'city'     => MJERP_Helpers::text( $order->get_billing_city(), 120 ),
+			'province' => MJERP_Helpers::text( $order->get_billing_state(), 120 ),
+			'postcode' => MJERP_Helpers::text( $order->get_billing_postcode(), 30 ),
+			'channel'  => sanitize_key( (string) MJERP_Settings::get( 'sales_shop_channel', 'tienda' ) ),
+		);
+
+		if ( $user_id ) {
+			return MJERP_Customers_Repo::ensure_for_user( $user_id, $fields );
+		}
+
+		if ( '' === $fields['name'] || ( '' === $fields['email'] && '' === $fields['phone'] ) ) {
+			return null;
+		}
+
+		$candidates = MJERP_Customers_Repo::find_candidates( $fields, 1 );
+		if ( ! empty( $candidates ) ) {
+			return $candidates[0];
+		}
+
+		$id = MJERP_Customers_Repo::create( $fields );
+
+		return is_wp_error( $id ) ? null : MJERP_Customers_Repo::find( $id, false );
 	}
 
 	/**

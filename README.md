@@ -36,7 +36,7 @@ como paletas que se aplican con un botón y después se editan campo por campo.
 | **MJ Colegas** | 1.0.0 | Productos de terceros en la tienda: cada uno lleva quién lo hizo, y se liquida descontando la comisión. |
 | **MJ Dólar** | 1.0.0 | Precios cargados en dólares y convertidos con el tipo de cambio que decido yo. Campos USD en productos, variaciones, edición en lote y CSV. |
 | **MJ Medios de Pago** | 1.2.0 | Descuento o recargo según el medio de pago, con el precio reflejado en ficha, carrito y checkout. Cada medio de la tienda se declara equivalente a uno del ERP, y con eso hereda su caja de ingreso. |
-| **MJ ERP** | 1.8.0 | Ventas (propias y de la tienda), costeo, compras, proveedores, stock y consignación, con portal para consignatarios. Cada medio de pago tiene su caja de ingreso. |
+| **MJ ERP** | 1.9.0 | Ventas (propias y de la tienda), clientes, costeo, compras, proveedores, stock y consignación, con portal para consignatarios. Cada medio de pago tiene su caja de ingreso, y el precio sugerido se redondea como lo publica la tienda. |
 | **MJ Optimizador de Imágenes** | 1.1.0 | Achica y convierte las imágenes en mi propio servidor, sin límites ni créditos. |
 | **MJ Fotos Rápidas** | 1.2.0 | Cargar las fotos de un producto desde el celular en dos toques y publicarlo ahí mismo. |
 

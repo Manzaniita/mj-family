@@ -31,6 +31,7 @@ class MJERP_Install {
 		return array(
 			'suppliers',
 			'cashboxes',
+			'customers',
 			'purchases',
 			'purchase_items',
 			'purchase_expenses',
@@ -203,6 +204,10 @@ class MJERP_Install {
 			self::migrate_130_sales_need_no_approval();
 		}
 
+		if ( version_compare( $from, '1.5.0', '<' ) ) {
+			self::migrate_150_customer_cards();
+		}
+
 		/**
 		 * Fires so other code can run its own migrations.
 		 *
@@ -264,6 +269,129 @@ class MJERP_Install {
 	}
 
 	/**
+	 * 1.5.0 — la libreta de clientes estrena con el historial que ya había.
+	 *
+	 * Antes de esto una venta guardaba a quién se le vendió como texto suelto (`customer_name`) y,
+	 * si la persona tenía cuenta, el id del usuario. Ninguna de las dos cosas es una ficha: no se
+	 * podía abrir un cliente y ver qué compró. Esta migración arma una ficha por cada persona que ya
+	 * aparecía en las ventas y las reapunta.
+	 *
+	 * Se agrupa por cuenta cuando la hay y por email cuando no, que es lo único que identifica a un
+	 * comprador de mostrador sin repetir a la misma persona en dos fichas. Una venta con un nombre y
+	 * nada más se queda como está: inventarle una ficha por venta llenaría la libreta de duplicados
+	 * que después hay que limpiar a mano.
+	 *
+	 * @return void
+	 */
+	protected static function migrate_150_customer_cards() {
+		global $wpdb;
+
+		if ( ! class_exists( 'MJERP_Customers_Repo' ) ) {
+			return;
+		}
+
+		$sales     = self::table( 'sales' );
+		$customers = self::table( 'customers' );
+
+		// Una tienda con muchísimo historial no puede pagar esto dentro de un request. El tope es
+		// filtrable, y lo que quede afuera se puede vincular a mano desde la pantalla de clientes.
+		$limit = (int) apply_filters( 'mjerp_migrate_customer_cards_limit', 2000 );
+		if ( $limit <= 0 ) {
+			return;
+		}
+
+		// 1) Las que tienen cuenta: la cuenta es la identidad, el nombre es solo lo que se escribió.
+		$accounts = $wpdb->get_col( // phpcs:ignore WordPress.DB
+			$wpdb->prepare(
+				"SELECT DISTINCT customer_user_id FROM {$sales}
+				WHERE customer_user_id > 0 AND customer_id = 0 LIMIT %d",
+				$limit
+			)
+		);
+
+		$done = 0;
+		foreach ( (array) $accounts as $user_id ) {
+			$user_id = absint( $user_id );
+			if ( ! $user_id || ! get_userdata( $user_id ) ) {
+				continue;
+			}
+
+			$card = MJERP_Customers_Repo::find_by_user( $user_id, false );
+			if ( ! $card ) {
+				$fields = MJERP_Customers_Repo::fields_from_user( get_userdata( $user_id ) );
+				$fields['user_id'] = $user_id;
+				$id                = MJERP_Customers_Repo::create( $fields );
+				if ( is_wp_error( $id ) ) {
+					continue;
+				}
+				$card = array( 'id' => (int) $id );
+			}
+
+			$wpdb->query( // phpcs:ignore WordPress.DB
+				$wpdb->prepare(
+					"UPDATE {$sales} SET customer_id = %d WHERE customer_user_id = %d AND customer_id = 0",
+					(int) $card['id'],
+					$user_id
+				)
+			);
+			$done++;
+		}
+
+		$remaining = max( 0, $limit - $done );
+		if ( $remaining <= 0 ) {
+			return;
+		}
+
+		// 2) Las de mostrador con email: el email agrupa a la misma persona en una sola ficha.
+		$guests = $wpdb->get_results( // phpcs:ignore WordPress.DB
+			$wpdb->prepare(
+				"SELECT customer_email, MAX(customer_name) AS customer_name, MAX(customer_phone) AS customer_phone
+				FROM {$sales}
+				WHERE customer_user_id = 0 AND customer_id = 0 AND customer_email <> ''
+				GROUP BY customer_email LIMIT %d",
+				$remaining
+			),
+			ARRAY_A
+		);
+
+		foreach ( (array) $guests as $guest ) {
+			$email = sanitize_email( (string) $guest['customer_email'] );
+			if ( '' === $email ) {
+				continue;
+			}
+
+			$existing = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$customers} WHERE email = %s LIMIT 1", $email ) ); // phpcs:ignore WordPress.DB
+
+			if ( $existing ) {
+				$card_id = (int) $existing;
+			} else {
+				$name = MJERP_Helpers::text( $guest['customer_name'], 190 );
+				if ( '' === $name ) {
+					$name = $email;
+				}
+				$card_id = MJERP_Customers_Repo::create(
+					array(
+						'name'  => $name,
+						'email' => $email,
+						'phone' => MJERP_Helpers::text( $guest['customer_phone'], 60 ),
+					)
+				);
+				if ( is_wp_error( $card_id ) ) {
+					continue;
+				}
+			}
+
+			$wpdb->query( // phpcs:ignore WordPress.DB
+				$wpdb->prepare(
+					"UPDATE {$sales} SET customer_id = %d WHERE customer_user_id = 0 AND customer_id = 0 AND customer_email = %s",
+					(int) $card_id,
+					$email
+				)
+			);
+		}
+	}
+
+	/**
 	 * Creates/updates all tables with dbDelta.
 	 *
 	 * @return array dbDelta report.
@@ -277,6 +405,7 @@ class MJERP_Install {
 
 		$suppliers = self::table( 'suppliers' );
 		$cashboxes = self::table( 'cashboxes' );
+		$customers = self::table( 'customers' );
 		$purchases = self::table( 'purchases' );
 		$items     = self::table( 'purchase_items' );
 		$expenses  = self::table( 'purchase_expenses' );
@@ -321,6 +450,48 @@ class MJERP_Install {
 	created_at DATETIME NULL,
 	updated_at DATETIME NULL,
 	PRIMARY KEY  (id)
+) {$charset_collate};";
+
+		/*
+		 * Libreta de clientes del ERP.
+		 *
+		 * Un cliente de acá NO es una cuenta de WooCommerce: es el registro de a quién se le vendió,
+		 * y nace del mostrador, donde la persona da un nombre y un teléfono y nada más. `user_id`
+		 * queda en 0 hasta que esa misma persona se crea una cuenta en la tienda y alguien las
+		 * vincula; recién ahí el historial del mostrador y el de la tienda son el mismo.
+		 *
+		 * Por eso `user_id` lleva un índice común y no uno único: muchísimas fichas conviven con
+		 * user_id = 0. La unicidad de una cuenta ya vinculada la cuida el repositorio.
+		 */
+		$sql[] = "CREATE TABLE {$customers} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	name VARCHAR(190) NOT NULL,
+	company VARCHAR(190) NULL,
+	doc_type VARCHAR(30) NULL,
+	doc_number VARCHAR(60) NULL,
+	email VARCHAR(190) NULL,
+	phone VARCHAR(60) NULL,
+	address VARCHAR(255) NULL,
+	city VARCHAR(120) NULL,
+	province VARCHAR(120) NULL,
+	postcode VARCHAR(30) NULL,
+	price_list_key VARCHAR(60) NULL,
+	channel VARCHAR(60) NULL,
+	notes TEXT NULL,
+	is_active TINYINT(1) NOT NULL DEFAULT 1,
+	linked_at DATETIME NULL,
+	linked_by BIGINT UNSIGNED NULL,
+	created_by BIGINT UNSIGNED NULL,
+	created_at DATETIME NULL,
+	updated_at DATETIME NULL,
+	PRIMARY KEY  (id),
+	KEY user_id (user_id),
+	KEY name (name),
+	KEY email (email),
+	KEY phone (phone),
+	KEY doc_number (doc_number),
+	KEY is_active (is_active)
 ) {$charset_collate};";
 
 		$sql[] = "CREATE TABLE {$purchases} (
@@ -635,6 +806,7 @@ class MJERP_Install {
 	channel VARCHAR(60) NULL,
 	status VARCHAR(20) NOT NULL DEFAULT 'confirmada',
 	sale_date DATE NULL,
+	customer_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 	customer_user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 	customer_name VARCHAR(190) NULL,
 	customer_email VARCHAR(190) NULL,
@@ -675,6 +847,7 @@ class MJERP_Install {
 	KEY status (status),
 	KEY sale_date (sale_date),
 	KEY consignee_id (consignee_id),
+	KEY customer_id (customer_id),
 	KEY customer_user_id (customer_user_id),
 	KEY payment_status (payment_status)
 ) {$charset_collate};";

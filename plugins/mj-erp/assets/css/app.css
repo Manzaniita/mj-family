@@ -4553,3 +4553,69 @@ th.mj-truncate {
 .mj-portal__log-text.is-success {
 	color: var(--mj-success);
 }
+
+/* ------------------------------------------------------------------ */
+/* Clientes: lista de sugerencias de vinculación y ficha rápida         */
+/* ------------------------------------------------------------------ */
+
+.mj-card__subtitle {
+	margin-top: 2px;
+}
+
+.mj-row--tight {
+	gap: 6px;
+	align-items: center;
+}
+
+.mj-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.mj-list__item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid transparent;
+	border-radius: var(--mj-radius, 8px);
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.mj-list__item:hover:not(.is-disabled),
+.mj-list__item:focus-visible {
+	background: var(--mj-surface-2, rgba(127, 127, 127, .08));
+	border-color: var(--mj-border, rgba(127, 127, 127, .25));
+}
+
+.mj-list__item.is-disabled,
+.mj-list__item[disabled] {
+	opacity: .55;
+	cursor: not-allowed;
+}
+
+.mj-list__text {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+/* El renglón "crear cliente" del buscador: se distingue del resto porque no elige nada, abre algo. */
+.mj-autocomplete__item.is-create {
+	border-top: 1px solid var(--mj-border, rgba(127, 127, 127, .25));
+	color: var(--mj-primary, #2563eb);
+}
+
+.mj-autocomplete__item.is-create .mj-icon {
+	width: 14px;
+	height: 14px;
+	vertical-align: -2px;
+}

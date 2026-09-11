@@ -47,6 +47,7 @@ class MJERP_Sales_Repo {
 		'channel'          => '%s',
 		'status'           => '%s',
 		'sale_date'        => '%s',
+		'customer_id'      => '%d',
 		'customer_user_id' => '%d',
 		'customer_name'    => '%s',
 		'customer_email'   => '%s',
@@ -143,7 +144,7 @@ class MJERP_Sales_Repo {
 	/**
 	 * Paginated listing.
 	 *
-	 * @param array $args search, status, source, channel, consignee_id, customer_user_id,
+	 * @param array $args search, status, source, channel, consignee_id, customer_id, customer_user_id,
 	 *                    payment_status, date_from, date_to, only_consignment, page, per_page,
 	 *                    orderby, order.
 	 * @return array { items, total, page, per_page, pages, totals }
@@ -157,6 +158,7 @@ class MJERP_Sales_Repo {
 			'source'           => '',
 			'channel'          => '',
 			'consignee_id'     => 0,
+			'customer_id'      => 0,
 			'customer_user_id' => 0,
 			'payment_status'   => '',
 			'date_from'        => '',
@@ -188,7 +190,7 @@ class MJERP_Sales_Repo {
 			}
 		}
 
-		foreach ( array( 'consignee_id', 'customer_user_id' ) as $key ) {
+		foreach ( array( 'consignee_id', 'customer_id', 'customer_user_id' ) as $key ) {
 			$value = absint( $args[ $key ] );
 			if ( $value > 0 ) {
 				$where[] = "{$key} = %d";
@@ -419,6 +421,7 @@ class MJERP_Sales_Repo {
 			'channel'          => self::sanitize_channel( isset( $data['channel'] ) ? $data['channel'] : '' ),
 			'status'           => $status,
 			'sale_date'        => $date,
+			'customer_id'      => isset( $data['customer_id'] ) ? absint( $data['customer_id'] ) : 0,
 			'customer_user_id' => isset( $data['customer_user_id'] ) ? absint( $data['customer_user_id'] ) : 0,
 			'customer_name'    => isset( $data['customer_name'] ) ? MJERP_Helpers::text( $data['customer_name'], 190 ) : '',
 			'customer_email'   => isset( $data['customer_email'] ) ? sanitize_email( (string) $data['customer_email'] ) : '',
@@ -604,6 +607,12 @@ class MJERP_Sales_Repo {
 		}
 		if ( array_key_exists( 'note', $data ) ) {
 			$row['note'] = sanitize_textarea_field( (string) $data['note'] );
+		}
+		if ( array_key_exists( 'customer_id', $data ) ) {
+			$row['customer_id'] = absint( $data['customer_id'] );
+		}
+		if ( array_key_exists( 'customer_user_id', $data ) ) {
+			$row['customer_user_id'] = absint( $data['customer_user_id'] );
 		}
 		if ( array_key_exists( 'customer_name', $data ) ) {
 			$row['customer_name'] = MJERP_Helpers::text( $data['customer_name'], 190 );
@@ -1134,6 +1143,7 @@ class MJERP_Sales_Repo {
 			'status_label'       => isset( $statuses[ $status ]['label'] ) ? (string) $statuses[ $status ]['label'] : $status,
 			'status_color'       => isset( $statuses[ $status ]['color'] ) ? (string) $statuses[ $status ]['color'] : 'neutral',
 			'sale_date'          => self::date_or_null( self::v( $row, 'sale_date', null ) ),
+			'customer_id'        => (int) self::v( $row, 'customer_id', 0 ),
 			'customer_user_id'   => (int) self::v( $row, 'customer_user_id', 0 ),
 			'customer_name'      => (string) self::v( $row, 'customer_name' ),
 			'customer_email'     => (string) self::v( $row, 'customer_email' ),
