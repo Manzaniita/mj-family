@@ -17,13 +17,17 @@ export function FreeShippingBar({ compact = false }) {
   const done = remaining === 0;
 
   return (
-    <div className={compact ? '' : 'hairline-b bg-bg-soft/60'}>
-      <div className={compact ? '' : 'mx-auto max-w-7xl px-4 py-2 md:px-8'}>
+    /*
+     * Fondo sólido: la barra vive fuera del bloque con desenfoque del header, así que el suyo tiene
+     * que tapar por sí solo o se le vería el contenido de la página por detrás al scrollear.
+     */
+    <div className={compact ? '' : 'mj-shipbar hairline-b bg-bg-soft'}>
+      <div className={compact ? '' : 'mx-auto max-w-7xl px-4 py-1.5 md:px-8 md:py-2'}>
         <div className="flex items-center gap-3">
           <span className={`grid size-6 shrink-0 place-items-center rounded-full ${done ? 'bg-success/15 text-success' : 'bg-accent-soft text-accent'}`}>
             {done ? <PartyPopper size={12} /> : <Truck size={12} />}
           </span>
-          <p className="text-xs text-ink-soft whitespace-nowrap overflow-hidden text-ellipsis">
+          <p className="min-w-0 truncate text-xs text-ink-soft">
             {done ? (
               <span className="font-semibold text-success">¡Tenés envío GRATIS! 🎉</span>
             ) : (
@@ -37,7 +41,8 @@ export function FreeShippingBar({ compact = false }) {
               transition={{ duration: 0.8, ease: EASE }}
             />
           </div>
-          <span className="text-[11px] font-medium tabular-nums text-ink-faint whitespace-nowrap">
+          {/* El contador exacto solo donde entra: en el celular ya lo dice la frase y la barra. */}
+          <span className="hidden shrink-0 text-[11px] font-medium tabular-nums text-ink-faint whitespace-nowrap sm:inline">
             {formatPrice(subtotal)} / {formatPrice(FREE_SHIPPING_THRESHOLD)}
           </span>
         </div>

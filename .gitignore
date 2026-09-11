@@ -15,8 +15,6 @@ vendor/
 # subió a cada tienda, aunque el .zip ya no esté en la carpeta.
 # ---------------------------------------------------------------------------
 releases/*.zip
-releases/latest/
-releases/bundles/
 
 # ---------------------------------------------------------------------------
 # Credenciales y configuración local

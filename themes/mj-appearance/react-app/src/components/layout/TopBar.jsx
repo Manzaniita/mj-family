@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 import { WP, IS_WP } from '@/lib/config';
 import { announcements as demoAnnouncements } from '@/data/catalog';
 import { iconByName } from '@/components/ui/DynamicIcon';
-import { EASE } from '@/lib/format';
+import { EASE, cn } from '@/lib/format';
 
 // Anuncios configurables desde PHP con shape { text, color } (color null → default).
 // En WordPress solo se muestran los reales (vacío → sin barra);
@@ -38,11 +38,11 @@ export function TopBar() {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: -40, opacity: 0 }}
           transition={{ duration: 0.5, ease: EASE }}
-          className="mj-topbar__text flex h-8 items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft"
+          className="mj-topbar__text flex h-8 items-center justify-center gap-2 px-4 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft"
           style={current.color ? { color: current.color } : undefined}
         >
-          <AnnounceIcon size={12} className={current.color ? undefined : 'text-accent'} />
-          {current.text}
+          <AnnounceIcon size={12} className={cn('shrink-0', current.color ? undefined : 'text-accent')} />
+          <span className="truncate">{current.text}</span>
         </motion.p>
       </AnimatePresence>
     </div>

@@ -487,6 +487,7 @@ class MJERP_Products {
 				'order'          => 'ASC',
 				'only_with_cost' => false,
 				'category'       => '',
+				'only_in_stock'  => false,
 			)
 		);
 
@@ -553,6 +554,14 @@ class MJERP_Products {
 
 		if ( null !== $include ) {
 			$query_args['include'] = $include;
+		}
+
+		/*
+		 * "Solo lo que hay": en el mostrador no sirve ver lo agotado. Filtra por el estado de stock
+		 * del producto, así que un variable entra si alguna de sus variaciones está disponible.
+		 */
+		if ( self::to_bool( $args['only_in_stock'] ) ) {
+			$query_args['stock_status'] = 'instock';
 		}
 
 		$category = $args['category'];

@@ -164,12 +164,44 @@ html.mj-theme-fade .mj-header__glass {
 }
 
 /* La admin bar de WP (fixed, 32px — 46px entre 601–782px, absolute ≤600px)
- * tapa la franja superior del header sticky: compensar el offset. */
+ * tapa la franja superior del header sticky: compensar el offset.
+ */
 @media (min-width: 783px) {
   body.admin-bar .mj-header { top: 32px; }
 }
 @media (min-width: 601px) and (max-width: 782px) {
   body.admin-bar .mj-header { top: 46px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Contención del header
+
+   Un hijo de flex no se achica por debajo de su contenido salvo que se le diga
+   (min-width: auto es el default). En el header eso se paga caro: un nombre de
+   tienda largo, un ícono de más o un tipo de cambio ancho empujan la fila, el
+   contenido se sale del fondo del header y la página entera empieza a scrollear
+   de costado en el celular. Pasó con el acceso al ERP.
+
+   Estas reglas son la red: el logo cede ancho y el nombre se corta, sin importar
+   qué agregue después una skin o una versión nueva. Las utilidades equivalentes
+   están también en el markup; esto las sostiene si alguien las pisa.
+--------------------------------------------------------------------------- */
+.mj-header__bar > * {
+  min-width: 0;
+}
+
+.mj-logo {
+  min-width: 0;
+}
+
+.mj-logo__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mj-header__actions {
+  flex-shrink: 0;
 }
 
 /* Ambient background gradients — very subtle, brand feel */

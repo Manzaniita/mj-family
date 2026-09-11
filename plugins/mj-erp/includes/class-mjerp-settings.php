@@ -47,6 +47,10 @@ class MJERP_Settings {
 		$defaults = array(
 			'route_slug'                => 'mjerp',
 			'app_title'                 => 'MJ ERP',
+			// Acceso rápido a la tienda desde la barra superior del ERP (el camino de vuelta).
+			'shop_link'                 => true,
+			'shop_link_label'           => '',
+			'shop_link_url'             => '',
 			'theme'                     => 'dark',
 			'locale'                    => 'es-AR',
 			'decimals'                  => 2,
@@ -196,6 +200,39 @@ class MJERP_Settings {
 				),
 			),
 			'sales_default_channel'      => 'mostrador',
+
+			/*
+			 * Entrega: qué hay que hacer para que lo vendido llegue a manos del cliente.
+			 *
+			 * Cada método dice si la venta ya queda entregada al elegirlo (`delivered`): un
+			 * mostrador se entrega en el acto, un envío queda pendiente hasta que se despacha.
+			 * Esa marca es lo que evita que el mostrador ensucie la lista de entregas pendientes.
+			 */
+			'sales_delivery_enabled'     => true,
+			'sales_delivery_methods'     => array(
+				array(
+					'key'       => 'mostrador',
+					'label'     => 'Entregado en el momento',
+					'delivered' => 1,
+				),
+				array(
+					'key'       => 'punto_encuentro',
+					'label'     => 'Punto de encuentro',
+					'delivered' => 0,
+				),
+				array(
+					'key'       => 'envio',
+					'label'     => 'Envío',
+					'delivered' => 0,
+				),
+				array(
+					'key'       => 'retira_local',
+					'label'     => 'Retira en el local',
+					'delivered' => 0,
+				),
+			),
+			'sales_default_delivery_method' => 'mostrador',
+			'sales_shop_delivery_method'    => 'envio',
 			'sales_shop_channel'         => 'tienda',
 			'sales_payment_methods'      => array(
 				array(
@@ -232,6 +269,11 @@ class MJERP_Settings {
 			'sales_default_payment_method' => 'efectivo',
 			'sales_default_cashbox'      => 0,
 			'sales_price_list'           => 'publico',
+			// Catálogo de la pantalla de venta (mostrador): cuántos productos por página y si van con foto.
+			'sales_pos_per_page'         => 24,
+			'sales_pos_images'           => true,
+			// Debajo de este ancho de pantalla la venta se carga en pasos (celular).
+			'sales_pos_steps_width'      => 900,
 
 			/*
 			 * Redondeo del precio que el ERP sugiere al cargar una venta.
@@ -250,6 +292,14 @@ class MJERP_Settings {
 
 			/* Emisión de la orden de WooCommerce (la que dispara la notificación de la app). */
 			'sales_create_order'         => true,
+			/*
+			 * Cuándo una venta se vuelve firme: cuándo se emite el pedido en WooCommerce y cuándo
+			 * baja el stock. Anotar una venta no reserva nada; lo que compromete la mercadería es
+			 * que el cliente la pague o que se la lleve.
+			 *
+			 * registrar | pago_o_entrega | pago | entrega | manual
+			 */
+			'sales_commit_when'          => 'pago_o_entrega',
 			'sales_order_status_paid'    => 'completed',
 			'sales_order_status_unpaid'  => 'on-hold',
 			'sales_order_created_via'    => 'mj-erp',
@@ -743,6 +793,103 @@ class MJERP_Settings {
 		return self::label_from( self::sale_payment_methods(), $key );
 	}
 
+	/**
+	 * Whether the delivery step is on.
+	 *
+	 * @return bool
+	 */
+	public static function delivery_enabled() {
+		return MJERP_Helpers::bool( self::get( 'sales_delivery_enabled', true ) );
+	}
+
+	/**
+	 * Delivery methods `[ {key,label,delivered}, ... ]`.
+	 *
+	 * @return array
+	 */
+	public static function sale_delivery_methods() {
+		$list = self::get( 'sales_delivery_methods', array() );
+		return is_array( $list ) ? array_values( $list ) : array();
+	}
+
+	/**
+	 * One delivery method row, or null.
+	 *
+	 * @param string $key Method key.
+	 * @return array|null
+	 */
+	public static function sale_delivery_method( $key ) {
+		$key = sanitize_key( (string) $key );
+		if ( '' === $key ) {
+			return null;
+		}
+		return self::row_from( self::sale_delivery_methods(), $key );
+	}
+
+	/**
+	 * Label of a delivery method key.
+	 *
+	 * @param string $key Method key.
+	 * @return string
+	 */
+	public static function sale_delivery_method_label( $key ) {
+		/*
+		 * Sin método no hay etiqueta: label_from() trata la clave vacía como el comodín «Otro», y
+		 * acá eso sería mentira — las ventas de antes de este paso no tienen forma de entrega, y
+		 * decir «Otro» en toda la lista no informa nada.
+		 */
+		$key = sanitize_key( (string) $key );
+		if ( '' === $key ) {
+			return '';
+		}
+		return self::label_from( self::sale_delivery_methods(), $key );
+	}
+
+	/**
+	 * Whether choosing this method already means the sale left with the customer.
+	 *
+	 * Es la diferencia entre vender en el mostrador y tener que llevar algo: sin esta marca, cada
+	 * venta de mano en mano habría que marcarla entregada a mano, y la lista de pendientes dejaría
+	 * de servir para lo único que sirve — ver qué falta entregar.
+	 *
+	 * @param string $key Method key.
+	 * @return bool
+	 */
+	public static function delivery_method_is_instant( $key ) {
+		$row = self::sale_delivery_method( $key );
+		return $row ? ! empty( $row['delivered'] ) : false;
+	}
+
+	/**
+	 * Delivery status catalogue of a sale (labels/colors only; keys are fixed).
+	 *
+	 * @return array
+	 */
+	public static function sale_delivery_statuses() {
+		$statuses = array(
+			'pendiente'  => array(
+				'label' => __( 'A entregar', 'mj-erp' ),
+				'color' => 'warning',
+			),
+			'en_camino'  => array(
+				'label' => __( 'En camino', 'mj-erp' ),
+				'color' => 'info',
+			),
+			'entregado'  => array(
+				'label' => __( 'Entregado', 'mj-erp' ),
+				'color' => 'success',
+			),
+		);
+
+		/**
+		 * Filters the delivery status catalogue.
+		 *
+		 * @param array $statuses Statuses.
+		 */
+		$filtered = apply_filters( 'mjerp_sale_delivery_statuses', $statuses );
+		return is_array( $filtered ) ? array_merge( $statuses, array_intersect_key( $filtered, $statuses ) ) : $statuses;
+	}
+
 	/* ------------------------------------------------------------------
 	 * Clientes
 	 * ---------------------------------------------------------------- */
@@ -1054,6 +1201,16 @@ class MJERP_Settings {
 				$title = self::text( $value, 100 );
 				return '' === $title ? $default : $title;
 
+			case 'shop_link':
+				return MJERP_Helpers::bool( $value );
+
+			case 'shop_link_label':
+				return self::text( $value, 60 );
+
+			case 'shop_link_url':
+				$url = is_scalar( $value ) ? esc_url_raw( trim( (string) $value ) ) : '';
+				return $url;
+
 			case 'theme':
 				return self::enum( $value, array( 'dark', 'light' ), $default );
 
@@ -1298,8 +1455,21 @@ class MJERP_Settings {
 			case 'sales_capture_payment':
 			case 'sales_consignment_enabled':
 			case 'sales_consignment_partial_lines':
+			case 'sales_pos_images':
+			case 'sales_delivery_enabled':
 			case 'shop_price_notice':
 				return MJERP_Helpers::bool( $value );
+
+			case 'sales_delivery_methods':
+				// El cuarto argumento trae la marca "ya queda entregada" de cada método.
+				return self::keyed_rows( $value, false, false, 'delivered' );
+
+			case 'sales_pos_per_page':
+				return max( 6, min( 96, self::int( $value, $default ) ) );
+
+			case 'sales_pos_steps_width':
+				// 0 = nunca; el tope evita dejar el paso a paso activo en un monitor.
+				return max( 0, min( 1600, self::int( $value, $default ) ) );
 
 			case 'sales_code_prefix':
 				$prefix = self::text( $value, 20 );
@@ -1341,6 +1511,8 @@ class MJERP_Settings {
 
 			case 'sales_default_channel':
 			case 'sales_shop_channel':
+			case 'sales_default_delivery_method':
+			case 'sales_shop_delivery_method':
 			case 'sales_default_payment_method':
 			case 'sales_consignment_payment_method':
 			case 'sales_price_list':
@@ -1427,6 +1599,9 @@ class MJERP_Settings {
 
 			case 'sales_order_note':
 				return self::text( $value, 190 );
+
+			case 'sales_commit_when':
+				return self::enum( $value, array( 'registrar', 'pago_o_entrega', 'pago', 'entrega', 'manual' ), $default );
 
 			case 'sales_reduce_stock':
 				return self::enum( $value, array( 'auto', 'siempre', 'nunca' ), $default );
@@ -1692,6 +1867,20 @@ class MJERP_Settings {
 			}
 		}
 
+		/*
+		 * Entrega: sin métodos no hay paso que dar, así que la lista vacía vuelve a los de fábrica,
+		 * y un método por defecto que ya no existe se reemplaza en vez de quedar colgado.
+		 */
+		if ( ! is_array( $s['sales_delivery_methods'] ) || empty( $s['sales_delivery_methods'] ) ) {
+			$s['sales_delivery_methods'] = $defaults['sales_delivery_methods'];
+		}
+		$delivery_keys = wp_list_pluck( $s['sales_delivery_methods'], 'key' );
+		foreach ( array( 'sales_default_delivery_method', 'sales_shop_delivery_method' ) as $dk ) {
+			if ( ! in_array( (string) $s[ $dk ], $delivery_keys, true ) ) {
+				$s[ $dk ] = in_array( $defaults[ $dk ], $delivery_keys, true ) ? $defaults[ $dk ] : (string) reset( $delivery_keys );
+			}
+		}
+
 		$method_keys = wp_list_pluck( $s['sales_payment_methods'], 'key' );
 		foreach ( array( 'sales_default_payment_method', 'sales_consignment_payment_method' ) as $mk ) {
 			if ( ! in_array( (string) $s[ $mk ], $method_keys, true ) ) {
@@ -1839,7 +2028,7 @@ class MJERP_Settings {
 	 * @param bool  $with_cashbox Whether rows carry the cashbox the money lands in.
 	 * @return array
 	 */
-	private static function keyed_rows( $value, $with_markup, $with_cashbox = false ) {
+	private static function keyed_rows( $value, $with_markup, $with_cashbox = false, $bool_field = '' ) {
 		$rows = array();
 		$seen = array();
 		if ( ! is_array( $value ) ) {
@@ -1881,6 +2070,9 @@ class MJERP_Settings {
 				// instead of being kept as a dangling id nobody can see in the form.
 				$cashbox = isset( $row['cashbox_id'] ) ? absint( $row['cashbox_id'] ) : 0;
 				$clean['cashbox_id'] = self::cashbox_exists( $cashbox ) ? $cashbox : 0;
+			}
+			if ( '' !== $bool_field ) {
+				$clean[ $bool_field ] = ! empty( $row[ $bool_field ] ) && MJERP_Helpers::bool( $row[ $bool_field ] ) ? 1 : 0;
 			}
 			$rows[] = $clean;
 		}

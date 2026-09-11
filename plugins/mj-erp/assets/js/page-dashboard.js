@@ -91,9 +91,15 @@
 
 		const unpaid = parseInt(info.unpaid_count, 10) || 0;
 		const declared = parseInt(info.declared_count, 10) || 0;
+		/*
+		 * Con el paso de entrega encendido son cuatro tarjetas: lo que falta entregar es trabajo
+		 * pendiente igual que lo que falta cobrar, y es lo primero que se mira a la mañana.
+		 */
+		const deliveryOn = info.delivery_enabled !== false;
+		const pendingDelivery = parseInt(info.pending_delivery, 10) || 0;
 		const todayCount = parseInt(today.count, 10) || 0;
 
-		return '<div class="mj-grid mj-grid--3 mj-mb">' +
+		return '<div class="mj-grid mj-grid--' + (deliveryOn ? '4' : '3') + ' mj-mb">' +
 			kpi({
 				icon: 'cash', label: 'Vendido este mes', money: true, className: 'mj-kpi--month',
 				href: MJ.router.link('/ventas'),
@@ -116,6 +122,17 @@
 					? (declared === 1 ? '1 pago a confirmar' : declared + ' pagos a confirmar')
 					: (unpaid ? 'Ventas con saldo pendiente' : 'Todo cobrado'),
 			}) +
+			(deliveryOn
+				? kpi({
+					icon: 'truck', label: 'A entregar',
+					className: pendingDelivery ? 'mj-kpi--transit' : 'mj-kpi--received',
+					href: MJ.router.link('/ventas', { entrega: 'pendiente' }),
+					value: MJ.fmt.int(pendingDelivery),
+					sub: pendingDelivery
+						? (pendingDelivery === 1 ? '1 venta esperando salir' : 'Ventas esperando salir')
+						: 'Todo entregado',
+				})
+				: '') +
 		'</div>';
 	}
 

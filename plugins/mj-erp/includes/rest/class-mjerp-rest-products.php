@@ -59,6 +59,8 @@ class MJERP_REST_Products extends MJERP_REST_Controller {
 						'orderby'        => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
 						'order'          => array( 'sanitize_callback' => array( $this, 'arg_order' ) ),
 						'only_with_cost' => array( 'sanitize_callback' => array( $this, 'arg_bool' ) ),
+						'category'       => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+						'only_in_stock'  => array( 'sanitize_callback' => array( $this, 'arg_bool' ) ),
 					)
 				),
 				$this->endpoint(
@@ -170,6 +172,9 @@ class MJERP_REST_Products extends MJERP_REST_Controller {
 			'orderby'        => $orderby,
 			'order'          => $order,
 			'only_with_cost' => $this->bool( $p, 'only_with_cost', false ),
+			// Catálogo de la pantalla de venta: filtra por categoría y esconde lo que no hay.
+			'category'       => trim( $this->str( $p, 'category', '', 190 ) ),
+			'only_in_stock'  => $this->bool( $p, 'only_in_stock', false ),
 		);
 
 		$delegated = $this->delegate( 'MJERP_Products', array( 'query', 'list_products', 'get_list', 'paginate', 'list' ), array( $args ) );

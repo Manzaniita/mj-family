@@ -152,6 +152,8 @@ final class MJERP_Plugin {
 		MJERP_Consignees::init();
 		MJERP_Consignment_Account::init();
 		MJERP_Orders::init();
+		// Escucha los cobros y las entregas: son los dos momentos que pueden comprometer una venta.
+		MJERP_Sales::init();
 		MJERP_Pricing::init();
 		MJERP_Frontend::init();
 		MJERP_Portal::init();

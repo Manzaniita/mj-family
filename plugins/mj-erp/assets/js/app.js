@@ -36,9 +36,9 @@
 
 	const NAV = [
 		{ key: 'dashboard', path: '/', label: 'Inicio', icon: 'home' },
-		{ key: 'sales', path: '/ventas', label: 'Ventas', icon: 'cash', badge: 'salesUnpaid' },
+		{ key: 'sales', path: '/ventas', label: 'Ventas', icon: 'cash', badge: 'salesUnpaid', badgeTitle: 'Ventas con saldo, cobros a confirmar y entregas pendientes' },
 		{ key: 'purchases', path: '/compras', label: 'Compras', icon: 'cart' },
-		{ key: 'consignaciones', path: '/consignaciones', label: 'Consignaciones', icon: 'layers', badge: 'consignmentPending' },
+		{ key: 'consignaciones', path: '/consignaciones', label: 'Consignaciones', icon: 'layers', badge: 'consignmentPending', badgeTitle: 'Ventas y pagos de revendedores esperando confirmación' },
 		{ key: 'customers', path: '/clientes', label: 'Clientes', icon: 'user' },
 		{ key: 'suppliers', path: '/proveedores', label: 'Proveedores', icon: 'users' },
 		{ key: 'products', path: '/productos', label: 'Productos', icon: 'box' },
@@ -70,7 +70,11 @@
 		if (key === 'salesUnpaid') {
 			const info = MJ.state.bootstrap && MJ.state.bootstrap.sales;
 			if (!info) return 0;
-			return (parseInt(info.unpaid_count, 10) || 0) + (parseInt(info.declared_count, 10) || 0);
+			// Ventas con saldo, cobros declarados sin confirmar y lo que falta entregar: las tres
+			// cosas del módulo que esperan una decisión tuya.
+			return (parseInt(info.unpaid_count, 10) || 0) +
+				(parseInt(info.declared_count, 10) || 0) +
+				(info.delivery_enabled === false ? 0 : parseInt(info.pending_delivery, 10) || 0);
 		}
 		return 0;
 	}
@@ -97,7 +101,7 @@
 			return '<a class="mj-nav__item' + (item.soon ? ' is-soon' : '') + '" href="' + h(MJ.router.link(item.path)) + '" data-nav="' + h(item.key) + '">' +
 				MJ.icon(item.icon) + '<span class="mj-nav__label">' + h(item.label) + '</span>' +
 				(item.soon ? '<span class="mj-nav__soon">Pronto</span>' : '') +
-				(count > 0 ? '<span class="mj-nav__badge" title="Ventas esperando confirmación">' + h(count > 99 ? '99+' : count) + '</span>' : '') +
+				(count > 0 ? '<span class="mj-nav__badge" title="' + h(item.badgeTitle || 'Pendientes') + '">' + h(count > 99 ? '99+' : count) + '</span>' : '') +
 			'</a>';
 		}).join('');
 	}
@@ -118,6 +122,36 @@
 			'</div>';
 	}
 
+	/**
+	 * Acceso rápido a la tienda, arriba a la derecha.
+	 *
+	 * El ERP y la tienda son dos aplicaciones distintas en el mismo sitio y todo el día se salta de
+	 * una a la otra: cargás una venta y querés ver cómo quedó el producto publicado. El enlace del
+	 * menú lateral obliga a abrir el menú; este está siempre a la vista. Texto, destino y si se
+	 * muestra salen de Configuración → General → Acceso a la tienda.
+	 */
+	function shopLinkHtml() {
+		const cfg = MJ.config || {};
+		if (MJ.setting('shop_link', true) === false) return '';
+
+		const url = MJ.setting('shop_link_url', '') || cfg.homeUrl || '';
+		if (!url) return '';
+
+		const label = MJ.setting('shop_link_label', '') || 'Ir a la tienda';
+		return '<a class="mj-btn mj-btn--ghost mj-btn--sm mj-topbar__shop" href="' + h(url) + '" target="_blank" rel="noopener" title="' + h(label) + '">' +
+			MJ.icon('store') + '<span class="mj-topbar__shop-label">' + h(label) + '</span></a>';
+	}
+
+	/* Vuelve a dibujar el acceso a la tienda cuando se guardan los ajustes. */
+	function refreshShopLink() {
+		const bar = qs('.mj-topbar', root || document);
+		if (!bar) return;
+		const current = qs('.mj-topbar__shop', bar);
+		if (current) current.parentNode.removeChild(current);
+		const html = shopLinkHtml();
+		if (html) bar.insertAdjacentHTML('beforeend', html);
+	}
+
 	function renderLayout() {
 		root.innerHTML =
 			'<div class="mj-app" id="mj-app">' +
@@ -133,6 +167,7 @@
 						'<button type="button" class="mj-menu-toggle mj-btn mj-btn--ghost mj-btn--icon" data-nav-toggle aria-label="Abrir menú" aria-expanded="false" aria-controls="mj-sidebar">' + MJ.icon('menu') + '</button>' +
 						'<h1 class="mj-topbar__title" id="mj-topbar-title"></h1>' +
 						'<div class="mj-topbar__actions" id="mj-topbar-actions"></div>' +
+						shopLinkHtml() +
 					'</header>' +
 					'<main class="mj-content" id="mj-content" tabindex="-1"></main>' +
 				'</div>' +
@@ -200,6 +235,7 @@
 				if (!el) {
 					el = document.createElement('span');
 					el.className = 'mj-nav__badge';
+					el.title = item.badgeTitle || 'Pendientes';
 					link.appendChild(el);
 				}
 				el.textContent = count > 99 ? '99+' : String(count);
@@ -363,11 +399,12 @@
 		});
 	}
 
-	/* React to settings changes (title, theme) */
+	/* React to settings changes (title, theme, acceso a la tienda) */
 	MJ.events.on('settings:changed', function () {
 		const brand = qs('[data-brand]', root || document);
 		if (brand) brand.textContent = appTitle();
 		setTitle(refs.title ? refs.title.textContent : '');
+		refreshShopLink();
 	});
 	MJ.events.on('bootstrap:loaded', function () {
 		if (refs.footer) refs.footer.innerHTML = footerHtml();

@@ -5,6 +5,7 @@ import { IS_WP, WP } from '@/lib/config';
 import { BRAND_LABEL, t } from '@/lib/copy';
 import { COLEGAS, projectPath } from '@/lib/colegas';
 import { TURNOS, bookingPath, servicesPath } from '@/lib/turnos';
+import { NAV_MENU } from '@/lib/nav';
 
 /**
  * Fuente única de catálogo para toda la app.
@@ -58,12 +59,20 @@ export function whenCatalogReady() {
 }
 
 /**
- * Menú principal derivado del catálogo real.
- * Cada item es type:'link' o type:'category' — misma forma declarativa.
- * Los textos salen del copy (Apariencia → MJ Appearance → Textos → Menú);
- * los enlaces de Servicios y Turnos los aporta el plugin MJ Turnos Online.
+ * Menú principal.
+ *
+ * Dentro de WordPress lo arma PHP con lo que el admin configuró en Apariencia →
+ * MJ Appearance → Barra de navegación (window.MJ.nav): qué ítems, en qué orden,
+ * con qué nombre y a dónde llevan. Acá solo se usa esa lista.
+ *
+ * El armado automático de abajo es el respaldo para `npm run dev` (sin
+ * WordPress) y para una instalación cuyo PHP todavía no manda `nav`: junta los
+ * enlaces del tema, las categorías elegidas y lo que aporte cada plugin, que es
+ * exactamente lo que PHP propone como configuración por defecto.
  */
 export function buildMenu({ categories, brands }) {
+  if (NAV_MENU) return NAV_MENU;
+
   // Categorías elegidas en Apariencia → MJ Appearance (máx. 4, en el orden guardado).
   // Sin selección → automático: las 4 con más productos.
   const chosen = Array.isArray(WP?.menuCategories) ? WP.menuCategories : [];

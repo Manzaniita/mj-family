@@ -208,6 +208,14 @@ class MJERP_Install {
 			self::migrate_150_customer_cards();
 		}
 
+		if ( version_compare( $from, '1.6.0', '<' ) ) {
+			self::migrate_160_deliveries();
+		}
+
+		if ( version_compare( $from, '1.7.0', '<' ) ) {
+			self::migrate_170_committed_sales();
+		}
+
 		/**
 		 * Fires so other code can run its own migrations.
 		 *
@@ -266,6 +274,59 @@ class MJERP_Install {
 		$settings['consignment_approval'] = 'never';
 		update_option( MJERP_Settings::OPTION, $settings, true );
 		MJERP_Settings::flush_cache();
+	}
+
+	/**
+	 * 1.6.0 — las ventas que ya existían nacen entregadas.
+	 *
+	 * La columna arranca en «pendiente», así que sin esto el día que se actualiza el plugin
+	 * aparecerían años de ventas reclamando una entrega que ya pasó. Lo que se vendió antes de
+	 * existir este paso está cerrado: se marca entregado y sin método (no hay forma de saber cuál
+	 * fue), y lo que realmente quedó a medias se corrige a mano desde la lista de ventas.
+	 *
+	 * Las anuladas se dejan como están: no se entregó nada.
+	 *
+	 * @return void
+	 */
+	protected static function migrate_160_deliveries() {
+		global $wpdb;
+
+		$sales = self::table( 'sales' );
+
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->prepare(
+				"UPDATE {$sales}
+				SET delivery_status = %s, delivered_at = COALESCE(delivered_at, created_at)
+				WHERE delivery_status = %s AND status <> %s",
+				'entregado',
+				'pendiente',
+				'anulada'
+			)
+		);
+	}
+
+	/**
+	 * 1.7.0 — las ventas que ya existían quedan como "ya comprometidas".
+	 *
+	 * Desde esta versión el pedido y el descuento de stock esperan a que la venta esté cobrada o
+	 * entregada. Lo de antes ya pasó por los dos caminos viejos (pedido emitido o stock descontado
+	 * a mano), así que `wants_order` arranca en 1 —que es el default de la columna— y no hay nada
+	 * que recalcular: `maybe_commit()` se corta solo en cuanto ve el pedido o el stock aplicado.
+	 *
+	 * Lo único que hay que arreglar es la venta sin pedido y sin stock aplicado: son las que se
+	 * cargaron con "no emitir pedido" y con el stock apagado. Se marcan para que no se les emita un
+	 * pedido de la nada la próxima vez que se cobren.
+	 *
+	 * @return void
+	 */
+	protected static function migrate_170_committed_sales() {
+		global $wpdb;
+
+		$sales = self::table( 'sales' );
+
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			"UPDATE {$sales} SET wants_order = 0 WHERE order_id = 0 AND stock_applied = 0"
+		);
 	}
 
 	/**
@@ -833,6 +894,12 @@ class MJERP_Install {
 	payment_status VARCHAR(20) NOT NULL DEFAULT 'impaga',
 	payment_method VARCHAR(60) NULL,
 	cashbox_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	wants_order TINYINT(1) NOT NULL DEFAULT 1,
+	delivery_method VARCHAR(60) NULL,
+	delivery_status VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+	delivery_note VARCHAR(190) NULL,
+	delivered_at DATETIME NULL,
+	delivered_by BIGINT UNSIGNED NULL,
 	stock_applied TINYINT(1) NOT NULL DEFAULT 0,
 	note TEXT NULL,
 	created_by BIGINT UNSIGNED NULL,
@@ -849,7 +916,8 @@ class MJERP_Install {
 	KEY consignee_id (consignee_id),
 	KEY customer_id (customer_id),
 	KEY customer_user_id (customer_user_id),
-	KEY payment_status (payment_status)
+	KEY payment_status (payment_status),
+	KEY delivery_status (delivery_status)
 ) {$charset_collate};";
 
 		$sql[] = "CREATE TABLE {$sale_items} (

@@ -2,8 +2,8 @@
 
 Entregado el 8 de septiembre de 2026. **Actualizado el 9 de septiembre de 2026.**
 
-Los zip están en `releases/bundles/glossyhair/` (se generan con
-`.\tools\build-releases.ps1`; ver `PUBLICAR.md`):
+Los zip están en `releases/` (se generan con `.\tools\build-releases.ps1`, que
+al terminar lista los de esta tienda; ver `PUBLICAR.md`):
 
 | Archivo | Qué es | Dónde se sube |
 |---|---|---|

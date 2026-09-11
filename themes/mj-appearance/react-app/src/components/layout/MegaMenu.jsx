@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useCatalog, buildMenu } from '@/store/catalog';
+import { isExternalHref } from '@/lib/nav';
 import { ProductImage } from '@/components/ui/ProductImage';
 import { Price } from '@/components/ui/Price';
 import { EASE } from '@/lib/format';
@@ -15,6 +16,7 @@ const linkBase = 'mj-nav__link rounded-(--mj-radius-chip) px-4 py-3 text-[13px] 
  * con ese filtro, y "Tienda" solo sin filtro (antes se marcaban los tres).
  */
 function isItemActive(item, pathname, search) {
+  if (!item.href || isExternalHref(item.href)) return false;
   const [path, query] = item.href.split('?');
   const current = new URLSearchParams(search).get('filtro');
   if (query) return pathname === path && current === new URLSearchParams(query).get('filtro');
@@ -48,30 +50,58 @@ export function MegaMenu() {
     >
       <div className="mx-auto flex max-w-7xl items-center justify-center gap-1 px-8">
         {menu.map((item) => {
-          if (item.type === 'link') {
-            const active = isItemActive(item, pathname, search);
+          /*
+           * Una categoría que ya no está en el catálogo (se borró, o quedó sin
+           * productos publicados) no tiene panel que abrir: se dibuja como un
+           * enlace común a su página en vez de un botón que no hace nada.
+           */
+          const hasPanel = item.type === 'category' && categories.some((c) => c.slug === item.slug);
+
+          if (!hasPanel) {
+            const href = item.href || `/categoria/${item.slug}`;
+            const active = isItemActive({ ...item, href }, pathname, search);
+            const className = `${linkBase} ${
+              item.highlight
+                ? 'mj-nav__link--highlight text-accent hover:bg-accent-soft'
+                : active
+                  ? 'mj-nav__link--active text-ink'
+                  : 'text-ink-soft hover:text-ink'
+            }`;
+
+            /* Un destino fuera de la tienda no puede ir por el router. */
+            if (isExternalHref(href)) {
+              return (
+                <a
+                  key={item.key || item.label}
+                  href={href}
+                  target={item.target === '_blank' ? '_blank' : undefined}
+                  rel={item.target === '_blank' ? 'noreferrer' : undefined}
+                  onMouseEnter={() => setOpenSlug(null)}
+                  className={className}
+                >
+                  {item.label}
+                </a>
+              );
+            }
+
             return (
               <Link
-                key={item.label}
-                to={item.href}
+                key={item.key || item.label}
+                to={href}
+                target={item.target === '_blank' ? '_blank' : undefined}
                 onMouseEnter={() => setOpenSlug(null)}
                 aria-current={active ? 'page' : undefined}
-                className={`${linkBase} ${
-                  item.highlight
-                    ? 'mj-nav__link--highlight text-accent hover:bg-accent-soft'
-                    : active
-                      ? 'mj-nav__link--active text-ink'
-                      : 'text-ink-soft hover:text-ink'
-                }`}
+                className={className}
               >
                 {item.label}
               </Link>
             );
           }
+
           const categoryActive = pathname === `/categoria/${item.slug}`;
           return (
             <button
-              key={item.label}
+              key={item.key || item.label}
               onMouseEnter={() => setOpenSlug(item.slug)}
               onClick={() => setOpenSlug(openSlug === item.slug ? null : item.slug)}
               aria-expanded={openSlug === item.slug}

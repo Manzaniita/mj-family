@@ -153,10 +153,16 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 			'payment_statuses' => array(),
 			'channels'         => array(),
 			'payment_methods'  => array(),
+			'delivery_enabled' => false,
+			'delivery_methods' => array(),
+			'delivery_statuses' => array(),
+			'commit_when'      => 'pago_o_entrega',
+			'create_order'     => true,
 			'order_statuses'   => array(),
 			'stats'            => array(),
 			'unpaid_count'     => 0,
 			'declared_count'   => 0,
+			'pending_delivery' => 0,
 			'currency'         => '',
 			'defaults'         => array(),
 			'permissions'      => array(),
@@ -173,6 +179,15 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 		$info['payment_statuses'] = MJERP_Settings::sale_payment_statuses();
 		$info['channels']         = MJERP_Settings::sale_channels();
 		$info['payment_methods']  = MJERP_Settings::sale_payment_methods();
+		$info['delivery_enabled'] = MJERP_Settings::delivery_enabled();
+		$info['delivery_methods'] = MJERP_Settings::sale_delivery_methods();
+		$info['delivery_statuses'] = MJERP_Settings::sale_delivery_statuses();
+		/*
+		 * Cuándo una venta se vuelve firme. La pantalla de carga lo usa para decir, antes de
+		 * confirmar, si esto va a emitir el pedido y bajar el stock o si queda anotado nomás.
+		 */
+		$info['commit_when']      = (string) MJERP_Helpers::array_get( $settings, 'sales_commit_when', 'pago_o_entrega' );
+		$info['create_order']     = MJERP_Helpers::bool( MJERP_Helpers::array_get( $settings, 'sales_create_order', true ) );
 		$info['order_statuses']   = class_exists( 'MJERP_Orders' ) ? MJERP_Orders::statuses() : array();
 		$info['currency']         = MJERP_Sales_Repo::shop_currency();
 		$info['permissions']      = class_exists( 'MJERP_Permissions' ) ? MJERP_Permissions::keys() : array();
@@ -181,6 +196,8 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 			$info['stats']          = MJERP_Sales_Repo::stats();
 			$info['unpaid_count']   = MJERP_Sales_Repo::unpaid_count();
 			$info['declared_count'] = class_exists( 'MJERP_Sale_Payments_Repo' ) ? MJERP_Sale_Payments_Repo::declared_count() : 0;
+			// Lo que falta entregar: es el otro «esto espera algo tuyo» del menú, junto al saldo.
+			$info['pending_delivery'] = $info['delivery_enabled'] ? MJERP_Sales_Repo::pending_delivery_count() : 0;
 		}
 
 		$default_method = (string) MJERP_Helpers::array_get( $settings, 'sales_default_payment_method', 'efectivo' );
@@ -196,6 +213,7 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 			'create_order'   => MJERP_Helpers::bool( MJERP_Helpers::array_get( $settings, 'sales_create_order', true ) ),
 			'rate'           => MJERP_Sales_Repo::default_rate( MJERP_Sales_Repo::shop_currency() ),
 			'allow_discount' => MJERP_Helpers::bool( MJERP_Helpers::array_get( $settings, 'sales_allow_discount', true ) ),
+			'delivery_method' => (string) MJERP_Helpers::array_get( $settings, 'sales_default_delivery_method', '' ),
 		);
 
 		return $info;

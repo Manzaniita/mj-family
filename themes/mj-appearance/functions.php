@@ -14,7 +14,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_VERSION', '3.9.0');
+define('MJ_VERSION', '3.12.0');
 
 /*
  * Versión de la librería de íconos que usa el panel de ajustes. Se puede fijar
@@ -28,6 +28,7 @@ if (!defined('MJ_ICONS_VERSION')) {
  * Módulos del tema
  * ---------------------------------------------------------------------- */
 require_once get_template_directory() . '/inc/settings.php'; // Opciones + página de ajustes (wp-admin).
+require_once get_template_directory() . '/inc/nav.php';      // Barra de navegación configurable.
 require_once get_template_directory() . '/inc/session.php';  // Sesión, nonces y barra de administración.
 require_once get_template_directory() . '/inc/skins.php';    // API de temas hijo (skins) y sus presets.
 require_once get_template_directory() . '/inc/config.php';   // window.MJ (mj_app_config).

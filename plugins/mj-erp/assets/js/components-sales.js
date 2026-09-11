@@ -1,7 +1,8 @@
 /**
  * MJ ERP — components-sales.js
- * Piezas compartidas del módulo de ventas: buscador de clientes, modal de cobro y el aviso de
- * imputación a consignación.
+ * Piezas compartidas del módulo de ventas: buscador de clientes, modal de cobro, entrega (qué hay
+ * que hacer para que lo vendido llegue a manos del cliente) y el aviso de imputación a
+ * consignación.
  */
 (function () {
 	'use strict';
@@ -74,6 +75,104 @@
 		});
 	}
 
+	/* ------------------------------------------------------------------ */
+	/* Entrega                                                             */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * ¿La tienda usa el paso de entrega? (Configuración → Ventas → Entrega).
+	 *
+	 * Quien vende solo por mostrador lo apaga y no ve nada de esto en ninguna pantalla.
+	 */
+	function deliveryEnabled() {
+		return salesInfo().delivery_enabled !== false && MJ.setting('sales_delivery_enabled', true) !== false;
+	}
+
+	/** Métodos de entrega configurados: [{ key, label, delivered }]. */
+	function deliveryMethods() {
+		return salesInfo().delivery_methods || [];
+	}
+
+	function deliveryMethodOptions() {
+		return deliveryMethods().map(function (m) {
+			return { value: m.key, label: m.label };
+		});
+	}
+
+	/** ¿Este método entrega en el acto? Es lo que decide con qué estado nace la venta. */
+	function deliveryIsInstant(key) {
+		const row = deliveryMethods().find(function (m) { return String(m.key) === String(key || ''); });
+		return !!(row && MJ.fmt.toNumber(row.delivered));
+	}
+
+	/** Catálogo de estados: { pendiente: {label,color}, … }. */
+	function deliveryStatuses() {
+		return salesInfo().delivery_statuses || {};
+	}
+
+	function deliveryStatusLabel(key) {
+		const row = deliveryStatuses()[String(key || '')];
+		return row && row.label ? row.label : String(key || '');
+	}
+
+	/** El globo de estado de una venta, listo para pegar en una tabla. */
+	function deliveryBadge(sale) {
+		if (!sale) return '';
+		const status = String(sale.delivery_status || 'pendiente');
+		const label = sale.delivery_status_label || deliveryStatusLabel(status);
+		const color = sale.delivery_status_color || (status === 'entregado' ? 'success' : 'warning');
+		return MJ.ui.badgeRaw(label, color);
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Cuándo la venta se vuelve firme                                     */
+	/* ------------------------------------------------------------------ */
+
+	/** La regla configurada (Configuración → Ventas → Pedido en WooCommerce). */
+	function commitWhen() {
+		return String(salesInfo().commit_when || MJ.setting('sales_commit_when', 'pago_o_entrega'));
+	}
+
+	/**
+	 * ¿Una venta así de cobrada y así de entregada ya compromete la mercadería?
+	 *
+	 * Espejo de MJERP_Sales::is_committed() en PHP. Acá solo sirve para adelantar el aviso: quien
+	 * decide de verdad, y quien emite el pedido, es el servidor.
+	 *
+	 * @param {Object} state { paid, delivered }
+	 */
+	function commitsNow(state) {
+		const paid = !!(state && state.paid);
+		const delivered = !!(state && state.delivered);
+		switch (commitWhen()) {
+			case 'registrar': return true;
+			case 'pago': return paid;
+			case 'entrega': return delivered;
+			case 'manual': return false;
+			default: return paid || delivered;
+		}
+	}
+
+	/** ¿Esta venta ya guardada está firme? */
+	function saleIsCommitted(sale) {
+		if (!sale) return false;
+		return commitsNow({
+			paid: String(sale.payment_status || '') === 'pagada',
+			delivered: !!sale.delivered,
+		});
+	}
+
+	/** Qué falta para que se emita el pedido, en una frase. */
+	function commitPendingText() {
+		switch (commitWhen()) {
+			case 'pago': return 'cuando la cobres';
+			case 'entrega': return 'cuando la entregues';
+			case 'manual': return 'cuando emitas el pedido a mano';
+			case 'registrar': return '';
+			default: return 'cuando la cobres o la entregues';
+		}
+	}
+
 	C.saleHelpers = {
 		info: salesInfo,
 		currency: saleCurrency,
@@ -83,6 +182,92 @@
 		defaults: defaults,
 		cashboxForMethod: cashboxForMethod,
 		cashboxOptions: cashboxOptions,
+		deliveryEnabled: deliveryEnabled,
+		deliveryMethods: deliveryMethods,
+		deliveryMethodOptions: deliveryMethodOptions,
+		deliveryIsInstant: deliveryIsInstant,
+		deliveryStatuses: deliveryStatuses,
+		deliveryStatusLabel: deliveryStatusLabel,
+		deliveryBadge: deliveryBadge,
+		commitWhen: commitWhen,
+		commitsNow: commitsNow,
+		saleIsCommitted: saleIsCommitted,
+		commitPendingText: commitPendingText,
+	};
+
+	/* ------------------------------------------------------------------ */
+	/* saleDeliveryModal                                                   */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * Registrar la entrega de una venta: cómo se entrega, dónde y en qué estado quedó.
+	 *
+	 * El camino rápido no pasa por acá —desde la lista se marca entregado de un toque—; este modal
+	 * es para cuando hay algo que decir: cambiar el método, anotar el punto de encuentro o el
+	 * seguimiento, o volver atrás una entrega que se marcó de más.
+	 *
+	 * @param {Object} opts { sale, onSaved(sale) }
+	 */
+	C.saleDeliveryModal = function (opts) {
+		opts = opts || {};
+		const sale = opts.sale || {};
+		const statuses = deliveryStatuses();
+
+		const body =
+			'<form class="mj-form" data-form novalidate autocomplete="off">' +
+				'<div class="mj-grid mj-grid--2">' +
+					'<div class="mj-field">' +
+						'<label class="mj-field__label" for="mj-sd-method">Cómo se entrega</label>' +
+						'<select class="mj-select" id="mj-sd-method" name="method"></select>' +
+					'</div>' +
+					'<div class="mj-field">' +
+						'<label class="mj-field__label" for="mj-sd-status">Estado</label>' +
+						'<select class="mj-select" id="mj-sd-status" name="status">' +
+							Object.keys(statuses).map(function (key) {
+								return '<option value="' + h(key) + '"' + (String(sale.delivery_status || 'pendiente') === key ? ' selected' : '') + '>' + h(statuses[key].label) + '</option>';
+							}).join('') +
+						'</select>' +
+					'</div>' +
+					'<div class="mj-field mj-grid__full">' +
+						'<label class="mj-field__label" for="mj-sd-note">Dónde / referencia</label>' +
+						'<input class="mj-input" id="mj-sd-note" name="note" type="text" maxlength="190" value="' + h(sale.delivery_note || '') + '" placeholder="Punto de encuentro, dirección, seguimiento…">' +
+						'<div class="mj-field__hint mj-small mj-muted">Lo que necesites para acordarte al momento de salir.</div>' +
+					'</div>' +
+				'</div>' +
+				'<div class="mj-form__errors mj-hidden" data-errors></div>' +
+			'</form>';
+
+		const modal = MJ.ui.modal({
+			title: 'Entrega',
+			size: 'md',
+			body: body,
+			footer:
+				'<button type="button" class="mj-btn mj-btn--ghost" data-modal-close>Cancelar</button>' +
+				'<button type="button" class="mj-btn mj-btn--primary" data-action="save">' + MJ.icon('check') + '<span>Guardar</span></button>',
+		});
+
+		const methodSelect = qs('#mj-sd-method', modal.el);
+		MJ.ui.fillSelect(methodSelect, deliveryMethodOptions(), sale.delivery_method || '', 'Sin definir');
+
+		MJ.ui.on(modal.el, 'click', '[data-action="save"]', function (e, btn) {
+			const form = qs('[data-form]', modal.el);
+			const data = MJ.ui.formData(form);
+			MJ.ui.setLoading(btn, true);
+			MJ.ui.clearErrors(form);
+
+			MJ.api.post('sales/' + sale.id + '/delivery', data).then(function (updated) {
+				MJ.ui.toast('Entrega actualizada.', 'success');
+				modal.close();
+				MJ.events.emit('sales:changed', {});
+				if (typeof opts.onSaved === 'function') opts.onSaved(updated);
+			}).catch(function (err) {
+				MJ.ui.setLoading(btn, false);
+				MJ.ui.showErrors(form, err);
+				MJ.ui.toastError(err, 'No se pudo registrar la entrega.');
+			});
+		});
+
+		return modal;
 	};
 
 	/* ------------------------------------------------------------------ */

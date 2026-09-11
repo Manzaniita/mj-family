@@ -28,6 +28,21 @@
 	const LOCKED_EXPENSE_TYPE = 'otro';
 	const RESERVED_SLUGS = ['wp-admin', 'wp-json', 'wp-login', 'wp-content', 'wp-includes', 'feed', 'shop', 'cart', 'checkout', 'my-account'];
 
+	/**
+	 * Cuándo una venta se vuelve firme: cuándo se emite el pedido y cuándo baja el stock.
+	 *
+	 * Anotar una venta no reserva nada. Lo que compromete la mercadería es que el cliente la pague
+	 * o que se la lleve; cuál de las dos vale lo elige el dueño de la tienda.
+	 */
+	const COMMIT_WHEN_OPTIONS = [
+		{ value: 'pago_o_entrega', label: 'Cuando se cobra o se entrega' },
+		{ value: 'pago', label: 'Solo cuando se cobra' },
+		{ value: 'entrega', label: 'Solo cuando se entrega' },
+		{ value: 'registrar', label: 'Al registrar la venta' },
+		{ value: 'manual', label: 'Nunca sola (a mano desde la venta)' },
+	];
+	const COMMIT_WHEN_VALUES = COMMIT_WHEN_OPTIONS.map(function (o) { return o.value; });
+
 	const TABS = [
 		{ key: 'general', label: 'General', icon: 'settings' },
 		{ key: 'ventas', label: 'Ventas', icon: 'cash' },
@@ -43,6 +58,7 @@
 	/** Setting key → tab that contains it (used to jump to the first invalid field). */
 	const KEY_TAB = {
 		app_title: 'general', route_slug: 'general', theme: 'general', locale: 'general', decimals: 'general',
+		shop_link: 'general', shop_link_label: 'general', shop_link_url: 'general',
 		base_currency: 'general', local_currency: 'general', currencies: 'general', currency_symbols: 'general',
 		default_rate: 'general', sale_rate: 'general', sale_rate_source: 'general', proration_method: 'general',
 		code_prefix: 'compras', code_format: 'compras', code_seq_digits: 'compras',
@@ -56,7 +72,7 @@
 		sales_channels: 'ventas', sales_default_channel: 'ventas', sales_shop_channel: 'ventas',
 		sales_payment_methods: 'ventas', sales_default_payment_method: 'ventas', sales_default_cashbox: 'ventas',
 		sales_price_list: 'ventas', sales_track_cost: 'ventas', sales_allow_discount: 'ventas', sales_allow_oversell: 'ventas',
-		sales_create_order: 'ventas', sales_order_status_paid: 'ventas', sales_order_status_unpaid: 'ventas',
+		sales_create_order: 'ventas', sales_commit_when: 'ventas', sales_order_status_paid: 'ventas', sales_order_status_unpaid: 'ventas',
 		sales_order_created_via: 'ventas', sales_order_note: 'ventas', sales_reduce_stock: 'ventas',
 		sales_capture_shop_orders: 'ventas', sales_capture_manual_orders: 'ventas', sales_capture_payment: 'ventas',
 		sales_capture_on: 'ventas', sales_capture_statuses: 'ventas', sales_void_statuses: 'ventas',
@@ -64,6 +80,9 @@
 		sales_consignment_partial_lines: 'ventas', sales_consignment_payment_method: 'ventas',
 		shop_price_mode: 'ventas', shop_price_list: 'ventas', shop_price_notice: 'ventas',
 		sales_price_rounding_mode: 'ventas', sales_price_rounding: 'ventas',
+		sales_pos_per_page: 'ventas', sales_pos_images: 'ventas', sales_pos_steps_width: 'ventas',
+		sales_delivery_enabled: 'ventas', sales_delivery_methods: 'ventas',
+		sales_default_delivery_method: 'ventas', sales_shop_delivery_method: 'ventas',
 		customers_enabled: 'clientes', customers_doc_types: 'clientes', customers_default_doc_type: 'clientes',
 		customers_link_mode: 'clientes', customers_link_match: 'clientes', customers_link_backfill: 'clientes',
 		customers_quick_create: 'clientes', customers_require_on_sale: 'clientes', customers_fields: 'clientes',
@@ -84,6 +103,9 @@
 	const DEFAULTS = {
 		route_slug: 'mjerp',
 		app_title: 'MJ ERP',
+		shop_link: true,
+		shop_link_label: '',
+		shop_link_url: '',
 		theme: 'dark',
 		locale: 'es-AR',
 		decimals: 2,
@@ -187,6 +209,18 @@
 		sales_price_list: 'publico',
 		sales_price_rounding_mode: 'tienda',
 		sales_price_rounding: 0,
+		sales_pos_per_page: 24,
+		sales_pos_images: true,
+		sales_pos_steps_width: 900,
+		sales_delivery_enabled: true,
+		sales_delivery_methods: [
+			{ key: 'mostrador', label: 'Entregado en el momento', delivered: 1 },
+			{ key: 'punto_encuentro', label: 'Punto de encuentro', delivered: 0 },
+			{ key: 'envio', label: 'Envío', delivered: 0 },
+			{ key: 'retira_local', label: 'Retira en el local', delivered: 0 },
+		],
+		sales_default_delivery_method: 'mostrador',
+		sales_shop_delivery_method: 'envio',
 		customers_enabled: true,
 		customers_doc_types: [
 			{ key: 'dni', label: 'DNI' },
@@ -206,6 +240,7 @@
 		sales_allow_discount: true,
 		sales_allow_oversell: false,
 		sales_create_order: true,
+		sales_commit_when: 'pago_o_entrega',
 		sales_order_status_paid: 'completed',
 		sales_order_status_unpaid: 'on-hold',
 		sales_order_created_via: 'mj-erp',
@@ -485,6 +520,9 @@
 
 		m.route_slug = slugify(src.route_slug !== undefined ? src.route_slug : m.route_slug) || 'mjerp';
 		m.app_title = str(src.app_title !== undefined ? src.app_title : m.app_title).trim() || DEFAULTS.app_title;
+		m.shop_link = toBool(src.shop_link, DEFAULTS.shop_link);
+		m.shop_link_label = str(src.shop_link_label !== undefined ? src.shop_link_label : m.shop_link_label).trim();
+		m.shop_link_url = str(src.shop_link_url !== undefined ? src.shop_link_url : m.shop_link_url).trim();
 		m.theme = str(src.theme).toLowerCase() === 'light' ? 'light' : 'dark';
 		m.locale = str(src.locale !== undefined ? src.locale : m.locale).trim() || DEFAULTS.locale;
 		m.decimals = clampInt(toInt(src.decimals, DEFAULTS.decimals), 0, 6);
@@ -613,6 +651,16 @@
 
 		m.sales_price_rounding_mode = pickEnum(src.sales_price_rounding_mode, ['tienda', 'erp', 'personalizado', 'ninguno'], DEFAULTS.sales_price_rounding_mode);
 		m.sales_price_rounding = Math.max(0, toInt(src.sales_price_rounding, DEFAULTS.sales_price_rounding));
+		m.sales_pos_per_page = clampInt(toInt(src.sales_pos_per_page, DEFAULTS.sales_pos_per_page), 6, 96);
+		m.sales_pos_images = toBool(src.sales_pos_images, DEFAULTS.sales_pos_images);
+		m.sales_pos_steps_width = clampInt(toInt(src.sales_pos_steps_width, DEFAULTS.sales_pos_steps_width), 0, 1600);
+
+		/* Entrega: sin métodos no hay paso que dar, así que la lista vacía vuelve a la de fábrica. */
+		m.sales_delivery_enabled = toBool(src.sales_delivery_enabled, DEFAULTS.sales_delivery_enabled);
+		m.sales_delivery_methods = normalizeDeliveryMethods(src.sales_delivery_methods, m.sales_delivery_methods);
+		const deliveryKeys = m.sales_delivery_methods.map(function (d) { return d.key; });
+		m.sales_default_delivery_method = pickKey(src.sales_default_delivery_method, deliveryKeys, DEFAULTS.sales_default_delivery_method);
+		m.sales_shop_delivery_method = pickKey(src.sales_shop_delivery_method, deliveryKeys, DEFAULTS.sales_shop_delivery_method);
 
 		/* --- Clientes -------------------------------------------------------- */
 		m.customers_enabled = toBool(src.customers_enabled, DEFAULTS.customers_enabled);
@@ -631,6 +679,7 @@
 		m.sales_allow_oversell = toBool(src.sales_allow_oversell, DEFAULTS.sales_allow_oversell);
 
 		m.sales_create_order = toBool(src.sales_create_order, DEFAULTS.sales_create_order);
+		m.sales_commit_when = pickEnum(src.sales_commit_when, COMMIT_WHEN_VALUES, DEFAULTS.sales_commit_when);
 		m.sales_order_status_paid = orderStatus(src.sales_order_status_paid, m.sales_order_status_paid);
 		m.sales_order_status_unpaid = orderStatus(src.sales_order_status_unpaid, m.sales_order_status_unpaid);
 		m.sales_order_created_via = str(src.sales_order_created_via !== undefined ? src.sales_order_created_via : m.sales_order_created_via).trim() || DEFAULTS.sales_order_created_via;
@@ -849,6 +898,8 @@
 		const paymentMethods = payloadPairs(m.consignment_payment_methods, { cashbox: true, locked: 'otro' });
 		const salesChannels = payloadPairs(m.sales_channels, { locked: 'otro' });
 		const salesMethods = payloadPairs(m.sales_payment_methods, { cashbox: true, locked: 'otro' });
+		const deliveryMethods = normalizeDeliveryMethods(m.sales_delivery_methods, DEFAULTS.sales_delivery_methods);
+		const deliveryKeys = deliveryMethods.map(function (d) { return d.key; });
 		const channelKeys = salesChannels.map(function (c) { return c.key; });
 		const methodKeys = salesMethods.map(function (c) { return c.key; });
 		const inList = function (key, keys, def) {
@@ -877,6 +928,9 @@
 		return {
 			route_slug: slugify(m.route_slug) || 'mjerp',
 			app_title: str(m.app_title).trim() || DEFAULTS.app_title,
+			shop_link: !!m.shop_link,
+			shop_link_label: str(m.shop_link_label).trim(),
+			shop_link_url: str(m.shop_link_url).trim(),
 			theme: m.theme === 'light' ? 'light' : 'dark',
 			locale: str(m.locale).trim() || DEFAULTS.locale,
 			decimals: clampInt(toInt(m.decimals, DEFAULTS.decimals), 0, 6),
@@ -921,6 +975,13 @@
 			sales_price_list: seenList[str(m.sales_price_list)] ? str(m.sales_price_list) : '',
 			sales_price_rounding_mode: pickEnum(m.sales_price_rounding_mode, ['tienda', 'erp', 'personalizado', 'ninguno'], DEFAULTS.sales_price_rounding_mode),
 			sales_price_rounding: Math.max(0, toInt(m.sales_price_rounding, 0)),
+			sales_pos_per_page: clampInt(toInt(m.sales_pos_per_page, DEFAULTS.sales_pos_per_page), 6, 96),
+			sales_pos_images: !!m.sales_pos_images,
+			sales_pos_steps_width: clampInt(toInt(m.sales_pos_steps_width, DEFAULTS.sales_pos_steps_width), 0, 1600),
+			sales_delivery_enabled: !!m.sales_delivery_enabled,
+			sales_delivery_methods: deliveryMethods,
+			sales_default_delivery_method: inList(m.sales_default_delivery_method, deliveryKeys, DEFAULTS.sales_default_delivery_method),
+			sales_shop_delivery_method: inList(m.sales_shop_delivery_method, deliveryKeys, DEFAULTS.sales_shop_delivery_method),
 
 			customers_enabled: !!m.customers_enabled,
 			customers_doc_types: normalizePairs(m.customers_doc_types, DEFAULTS.customers_doc_types, false),
@@ -936,6 +997,7 @@
 			sales_allow_discount: !!m.sales_allow_discount,
 			sales_allow_oversell: !!m.sales_allow_oversell,
 			sales_create_order: !!m.sales_create_order,
+			sales_commit_when: pickEnum(m.sales_commit_when, COMMIT_WHEN_VALUES, DEFAULTS.sales_commit_when),
 			sales_order_status_paid: orderStatus(m.sales_order_status_paid, DEFAULTS.sales_order_status_paid),
 			sales_order_status_unpaid: orderStatus(m.sales_order_status_unpaid, DEFAULTS.sales_order_status_unpaid),
 			sales_order_created_via: str(m.sales_order_created_via).trim() || DEFAULTS.sales_order_created_via,
@@ -1292,6 +1354,26 @@
 		return html;
 	}
 
+	/**
+	 * Métodos de entrega: [{ key, label, delivered }].
+	 *
+	 * `delivered` es la marca que dice «con este método la venta ya queda entregada». Es lo que
+	 * hace que una venta de mostrador no aparezca después en la lista de lo que falta entregar.
+	 */
+	function normalizeDeliveryMethods(value, fallback) {
+		const rows = [];
+		const seen = {};
+		(Array.isArray(value) ? value : (Array.isArray(fallback) ? fallback : [])).forEach(function (row) {
+			if (!row || typeof row !== 'object') return;
+			const label = str(row.label).trim();
+			const key = slugify(str(row.key).trim() || label);
+			if (!key || !label || seen[key]) return;
+			seen[key] = true;
+			rows.push({ key: key, label: label, delivered: toBool(row.delivered, false) ? 1 : 0 });
+		});
+		return rows.length ? rows : DEFAULTS.sales_delivery_methods.slice();
+	}
+
 	const EDITORS = {
 		currencies: {
 			name: 'currencies',
@@ -1365,6 +1447,23 @@
 			locked: function (row) { return slugify(row && row.key) === 'otro'; },
 			lockedField: function (row, field) { return field === 'key'; },
 			lockedTitle: 'El medio «Otro» no se puede eliminar: es el comodín.',
+		},
+		sales_delivery_methods: {
+			name: 'sales_delivery_methods',
+			showHead: true,
+			fields: [
+				{ key: 'label', label: 'Nombre', placeholder: 'Envío', maxlength: 80, width: '1 1 200px' },
+				{ key: 'key', label: 'Clave', placeholder: 'se genera del nombre', maxlength: 40, mono: true, width: '1 1 150px' },
+				{
+					key: 'delivered', label: '¿Ya queda entregada?', type: 'select', number: true, width: '1 1 200px',
+					options: [
+						{ value: '0', label: 'No: queda a entregar' },
+						{ value: '1', label: 'Sí: se entrega en el acto' },
+					],
+				},
+			],
+			addLabel: 'Agregar forma de entrega',
+			emptyText: 'Sin formas de entrega no se puede cargar el paso en la venta.',
 		},
 		consignment_payment_methods: {
 			name: 'consignment_payment_methods',
@@ -1640,6 +1739,22 @@
 				}) +
 			'</div>'
 		) +
+		sectionHtml('Acceso a la tienda', 'El camino de vuelta: un botón arriba a la derecha para pasar del ERP a la tienda sin escribir la dirección.',
+			checkboxFieldHtml({
+				key: 'shop_link', label: 'Mostrar el acceso a la tienda', checked: !!m.shop_link,
+				hint: 'Aparece en la barra superior de todas las pantallas. El enlace del menú lateral no se toca.',
+			}) +
+			'<div class="mj-form-row">' +
+				textFieldHtml({
+					key: 'shop_link_label', label: 'Texto del botón', value: str(m.shop_link_label), maxlength: 60, placeholder: 'Ir a la tienda',
+					hint: 'Vacío = «Ir a la tienda».',
+				}) +
+				textFieldHtml({
+					key: 'shop_link_url', label: 'A dónde lleva', value: str(m.shop_link_url), mono: true, maxlength: 190, placeholder: MJ.config.homeUrl || '',
+					hint: 'Vacío = la portada de la tienda. Poné una dirección propia si preferís entrar por otra página.',
+				}) +
+			'</div>'
+		) +
 		sectionHtml('Dirección de la aplicación', '',
 			textFieldHtml({
 				key: 'route_slug', label: 'Slug de la ruta', value: str(m.route_slug), mono: true, maxlength: 60, placeholder: 'mjerp',
@@ -1886,6 +2001,12 @@
 		return boxes;
 	}
 
+	function deliveryOptionsFrom(m) {
+		return (m.sales_delivery_methods || []).map(function (d) {
+			return { value: d.key, label: d.label + (MJ.fmt.toNumber(d.delivered) ? ' · entrega en el acto' : '') };
+		});
+	}
+
 	function channelOptionsFrom(m) {
 		return (Array.isArray(m.sales_channels) ? m.sales_channels : []).map(function (c) {
 			return { value: slugify(c.key) || slugify(c.label), label: c.label || c.key };
@@ -2086,12 +2207,54 @@
 					key: 'sales_default_cashbox', label: 'Caja por defecto', value: String(m.sales_default_cashbox || 0), options: cashboxOptions(), kind: 'intval',
 					hint: 'La que se usa cuando el medio de pago no tiene una caja propia.',
 				}) +
+			'</div>' +
+			'<div class="mj-form-row">' +
+				textFieldHtml({
+					key: 'sales_pos_per_page', label: 'Productos por página en el catálogo', value: numText(m.sales_pos_per_page), kind: 'number', inputmode: 'numeric', maxlength: 2,
+					hint: 'Cuántos productos trae de una el catálogo de la pantalla de venta (entre 6 y 96).',
+				}) +
+				checkboxFieldHtml({
+					key: 'sales_pos_images', label: 'Mostrar las fotos de los productos', checked: !!m.sales_pos_images,
+					hint: 'Con foto se elige más rápido de memoria; sin foto entran más productos en pantalla.',
+				}) +
+			'</div>' +
+			textFieldHtml({
+				key: 'sales_pos_steps_width', label: 'Ancho para el paso a paso', value: numText(m.sales_pos_steps_width), kind: 'number', inputmode: 'numeric', maxlength: 4,
+				hint: 'En pantallas más angostas que esto (en píxeles) la venta se carga <span class="mj-strong">en pasos</span>: productos, cantidades, cliente, pago y entrega, con los botones fijos abajo. ' +
+					'Más anchas usan el mostrador de dos columnas. 900 deja el paso a paso en celulares y tablets verticales; 0 lo apaga.',
+			})
+		) +
+		sectionHtml('Entrega', 'Lo vendido todavía tiene que llegar a manos del cliente. Cada forma de entrega dice si la venta ya queda entregada al elegirla: así el mostrador no ensucia la lista de lo que falta entregar.',
+			checkboxFieldHtml({
+				key: 'sales_delivery_enabled', label: 'Usar el paso de entrega', checked: !!m.sales_delivery_enabled,
+				hint: 'Apagado, las ventas no piden ni muestran entrega en ninguna pantalla.',
+			}) +
+			'<div class="mj-field">' +
+				'<span class="mj-field__label">Formas de entrega</span>' +
+				'<div data-region="editor-sales_delivery_methods">' + listEditorHtml(EDITORS.sales_delivery_methods, m.sales_delivery_methods) + '</div>' +
+				'<div class="mj-field__hint">Envío, punto de encuentro, retira en el local, entrega en mano… las que uses. Si dejás la clave vacía se genera del nombre.</div>' +
+			'</div>' +
+			'<div class="mj-form-row">' +
+				selectFieldHtml({
+					key: 'sales_default_delivery_method', label: 'Forma por defecto', value: str(m.sales_default_delivery_method), options: deliveryOptionsFrom(m),
+					hint: 'Con la que arranca la pantalla de venta nueva.',
+				}) +
+				selectFieldHtml({
+					key: 'sales_shop_delivery_method', label: 'Forma de los pedidos de la tienda', value: str(m.sales_shop_delivery_method), options: deliveryOptionsFrom(m),
+					hint: 'Con esta nacen las ventas que entran solas por WooCommerce, que todavía no salieron de acá.',
+				}) +
 			'</div>'
 		) +
 		sectionHtml('Pedido en WooCommerce', 'Es lo que hace que la venta exista para la tienda: aparece en los informes de Woo y te llega la notificación en la app del celular.',
 			checkboxFieldHtml({
-				key: 'sales_create_order', label: 'Emitir el pedido al registrar una venta', checked: !!m.sales_create_order,
+				key: 'sales_create_order', label: 'Emitir el pedido en WooCommerce', checked: !!m.sales_create_order,
 				hint: 'Podés desmarcarlo venta por venta desde la pantalla de carga.',
+			}) +
+			selectFieldHtml({
+				key: 'sales_commit_when', label: 'Cuándo se emite y baja el stock', value: str(m.sales_commit_when), options: COMMIT_WHEN_OPTIONS,
+				hint: 'Anotar una venta no reserva nada: el producto se sigue pudiendo vender hasta que alguien lo pague o se lo lleve. ' +
+					'Con <span class="mj-strong">cobrada o entregada</span> el pedido se emite solo en cuanto pasa cualquiera de las dos, ' +
+					'y ahí baja el stock. Un pedido anotado que nadie pagó ni retiró no toca nada.',
 			}) +
 			'<div class="mj-form-row">' +
 				selectFieldHtml({
@@ -2627,6 +2790,7 @@
 				const pairs = [
 					{ keys: ['sales_default_channel', 'sales_shop_channel'], options: channelOptionsFrom(m) },
 					{ keys: ['sales_default_payment_method', 'sales_consignment_payment_method'], options: salesMethodOptionsFrom(m) },
+					{ keys: ['sales_default_delivery_method', 'sales_shop_delivery_method'], options: deliveryOptionsFrom(m) },
 				];
 
 				pairs.forEach(function (pair) {
@@ -2792,7 +2956,7 @@
 				setEditorRows(name, rows);
 				clearFieldError(name);
 
-				if (name === 'sales_channels' || name === 'sales_payment_methods') {
+				if (name === 'sales_channels' || name === 'sales_payment_methods' || name === 'sales_delivery_methods') {
 					if (structural) refreshSalesSelects();
 				} else if (name === 'currencies') {
 					if (structural) refreshCurrencyRegions();
@@ -2843,7 +3007,7 @@
 
 				if (name === 'currencies') refreshCurrencyRegions();
 				if (name === 'price_lists') refreshPriceListSelects();
-				if (name === 'sales_channels' || name === 'sales_payment_methods') refreshSalesSelects();
+				if (name === 'sales_channels' || name === 'sales_payment_methods' || name === 'sales_delivery_methods') refreshSalesSelects();
 				if (name === 'customers_doc_types') refreshDocTypeSelect();
 				paintDirty();
 

@@ -18,7 +18,7 @@ piel: paleta, tipografías y textos.
 
 | Tema | Versión | Qué es |
 | --- | --- | --- |
-| **MJ Appearance** | 3.9.0 | El motor. Tienda completa en React (una sola página) sobre la Store API de WooCommerce: catálogo, carrito, checkout con compra rápida, cuenta y turnos. Modo día/noche, niveles de animación y **todo** configurable desde Apariencia → MJ Appearance. |
+| **MJ Appearance** | 3.12.0 | El motor. Tienda completa en React (una sola página) sobre la Store API de WooCommerce: catálogo, carrito, checkout con compra rápida, cuenta y turnos. Modo día/noche, niveles de animación, barra de navegación armada ítem por ítem y **todo** configurable desde Apariencia → MJ Appearance. |
 | **GlossyHair** | 1.1.0 | Salón de alisados que además vende productos. Blanco y fucsia, Urbanist + Manrope. Portada pensada para turnos. |
 | **Yamana** | 1.1.0 | Tejidos artesanales y cursos. Lino y terracota, Fraunces + Nunito. Incluye el proyecto colectivo "Entre Hilos". |
 | **MJ Atelier** | 1.1.0 | Tienda editorial de lujo. Marfil y bronce, Fraunces + Manrope, movimiento cinematográfico. |
@@ -36,7 +36,7 @@ como paletas que se aplican con un botón y después se editan campo por campo.
 | **MJ Colegas** | 1.0.0 | Productos de terceros en la tienda: cada uno lleva quién lo hizo, y se liquida descontando la comisión. |
 | **MJ Dólar** | 1.0.0 | Precios cargados en dólares y convertidos con el tipo de cambio que decido yo. Campos USD en productos, variaciones, edición en lote y CSV. |
 | **MJ Medios de Pago** | 1.2.0 | Descuento o recargo según el medio de pago, con el precio reflejado en ficha, carrito y checkout. Cada medio de la tienda se declara equivalente a uno del ERP, y con eso hereda su caja de ingreso. |
-| **MJ ERP** | 1.9.0 | Ventas (propias y de la tienda), clientes, costeo, compras, proveedores, stock y consignación, con portal para consignatarios. Cada medio de pago tiene su caja de ingreso, y el precio sugerido se redondea como lo publica la tienda. |
+| **MJ ERP** | 1.13.1 | Ventas (propias y de la tienda), clientes, costeo, compras, proveedores, stock y consignación, con portal para consignatarios. La venta se carga como en un mostrador en la compu y en cinco pasos en el celular. Lleva la entrega —envío, punto de encuentro, en mano— y el pedido en WooCommerce se emite solo, con su descuento de stock, cuando la venta se cobra o se entrega. Cada medio de pago tiene su caja de ingreso, y el precio sugerido se redondea como lo publica la tienda. |
 | **MJ Optimizador de Imágenes** | 1.1.0 | Achica y convierte las imágenes en mi propio servidor, sin límites ni créditos. |
 | **MJ Fotos Rápidas** | 1.2.0 | Cargar las fotos de un producto desde el celular en dos toques y publicarlo ahí mismo. |
 
@@ -53,8 +53,8 @@ Cada plugin hace una cosa y se puede desactivar sin romper el resto.
 | MJ Importaciones | MJ Atelier | Dólar, Medios de Pago, ERP, Optimizador, Fotos Rápidas |
 
 Esas combinaciones están declaradas en
-[`tools/releases.config.json`](tools/releases.config.json) y el script arma una
-carpeta lista para subir por cada una.
+[`tools/releases.config.json`](tools/releases.config.json) y el script las
+imprime al final, para saber qué zip lleva cada tienda.
 
 ---
 
@@ -64,13 +64,15 @@ carpeta lista para subir por cada una.
 .\tools\build-releases.ps1
 ```
 
-Compila las apps de React, lee la versión de cada tema y plugin de su propia
-cabecera, y deja en `releases/`:
+Lee la versión de cada tema y plugin de su propia cabecera y **solo arma el zip
+de los que tienen una versión que todavía no está en `releases/`**. Si ninguno
+cambió, no compila ni escribe nada. Cuando aparece una versión nueva, el zip de
+la anterior se borra: en la carpeta queda un único zip por paquete.
 
-- `mj-glossyhair-1.1.0.zip` — el paquete de esa versión exacta.
-- `latest/mj-glossyhair.zip` — la última, con nombre fijo.
-- `bundles/glossyhair/` — todos los zip que necesita esa tienda, con su LEEME.
+- `mj-glossyhair-1.1.0.zip` — el paquete, listo para subir a la tienda.
 - `MANIFEST.md` — versión, tamaño y SHA-256 de cada uno.
+
+Si tocaste código sin subir el número de versión, `-Force` lo rehace igual.
 
 Los zip de cada versión publicada también quedan en las
 [Releases](../../releases) de este repositorio, para bajarlos sin tener el

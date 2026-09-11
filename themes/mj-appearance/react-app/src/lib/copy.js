@@ -34,6 +34,7 @@ export const COPY_DEFAULTS = {
   nav_new: 'Novedades',
   nav_contact: 'Contacto',
   nav_about: '', // vacío = la página Nosotros no va en el menú
+  nav_menu: 'Menú',
   nav_search: 'Buscador',
   nav_cart: 'Carrito',
   nav_account: 'Cuenta',

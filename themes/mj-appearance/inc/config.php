@@ -326,7 +326,19 @@ function mj_app_config() {
 	 * Otros plugins MJ agregan sus datos acá (p. ej. MJ Dólar → exchangeRate).
 	 * La SPA trata cada clave extra como opcional: sin plugin, no muestra nada.
 	 */
-	return apply_filters('mj_app_config', $config);
+	$config = apply_filters('mj_app_config', $config);
+
+	/*
+	 * Barra de navegación (inc/nav.php). Va DESPUÉS del filtro a propósito: las
+	 * fuentes del menú salen de lo que publica cada plugin (Turnos, Colegas), así
+	 * que hasta acá no se sabe qué hay para poner. Lo que llega a la SPA ya está
+	 * filtrado por audiencia: un acceso que es solo para el dueño no se le manda
+	 * al navegador del cliente.
+	 */
+	mj_nav_prime($config);
+	$config['nav'] = mj_nav_payload();
+
+	return $config;
 }
 
 /**

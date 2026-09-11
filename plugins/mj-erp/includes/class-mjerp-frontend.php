@@ -27,6 +27,60 @@ class MJERP_Frontend {
 		add_action( 'init', array( __CLASS__, 'maybe_flush_rewrite' ), 20 );
 		add_filter( 'query_vars', array( __CLASS__, 'add_query_vars' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 0 );
+
+		// Acceso rápido desde la tienda (temas de la familia MJ).
+		add_filter( 'mj_nav_audiences', array( __CLASS__, 'nav_audience' ) );
+		add_filter( 'mj_nav_sources', array( __CLASS__, 'nav_source' ) );
+	}
+
+	/**
+	 * Adds the "can use the ERP" audience to the store's navigation bar.
+	 *
+	 * The theme only knows whether somebody is logged in; who may open the ERP is the plugin's
+	 * business. Declaring it as an audience is what lets the shortcut be shown to the shop owner
+	 * and to nobody else: the theme drops the item server-side, so a customer's browser never
+	 * receives the link at all.
+	 *
+	 * @param array $audiences Audiences declared so far.
+	 * @return array
+	 */
+	public static function nav_audience( $audiences ) {
+		if ( ! is_array( $audiences ) ) {
+			$audiences = array();
+		}
+		$audiences['erp'] = array(
+			'label' => __( 'Solo quien puede entrar al ERP', 'mj-erp' ),
+			'can'   => array( 'MJERP_Capabilities', 'current_user_can' ),
+		);
+		return $audiences;
+	}
+
+	/**
+	 * Offers the ERP as an item of the store's navigation bar.
+	 *
+	 * It is a proposal, not a decision: the shop owner chooses in Apariencia → MJ Appearance →
+	 * Barra de navegación whether it shows, what it is called, where it sits and who sees it.
+	 *
+	 * @param array $sources Items declared so far.
+	 * @return array
+	 */
+	public static function nav_source( $sources ) {
+		if ( ! is_array( $sources ) ) {
+			$sources = array();
+		}
+
+		$sources['mjerp'] = array(
+			'label'     => class_exists( 'MJERP_Settings' ) ? (string) MJERP_Settings::get( 'app_title', 'MJ ERP' ) : 'MJ ERP',
+			'href'      => self::app_url(),
+			'icon'      => 'layout-dashboard',
+			'audience'  => 'erp',
+			'placement' => 'header',
+			'group'     => 'MJ ERP',
+			'default'   => true,
+			'note'      => __( 'Atajo al ERP desde la tienda. Solo lo ve quien tiene permiso para entrar.', 'mj-erp' ),
+		);
+
+		return $sources;
 	}
 
 	/**

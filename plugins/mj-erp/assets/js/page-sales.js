@@ -1,9 +1,9 @@
 /**
  * MJ ERP — page-sales.js
- * MJ.pages.sales: todas las ventas, vengan del mostrador o de la tienda, con lo que falta cobrar
- * y qué parte salió de la consignación de un revendedor.
+ * MJ.pages.sales: todas las ventas, vengan del mostrador o de la tienda, con lo que falta cobrar,
+ * lo que falta entregar y qué parte salió de la consignación de un revendedor.
  *
- * REST: GET /sales.
+ * REST: GET /sales, POST /sales/{id}/delivery.
  */
 (function () {
 	'use strict';
@@ -17,6 +17,8 @@
 
 	const PATH = '/ventas';
 	const SEARCH_DELAY = 350;
+	/* Cuántos productos se listan antes de resumir el resto en «+N más». */
+	const PREVIEW_LINES = 2;
 
 	function info() { return (MJ.state.bootstrap && MJ.state.bootstrap.sales) || {}; }
 	function currency() { return info().currency || MJ.config.wcCurrency || MJ.setting('local_currency', 'ARS'); }
@@ -27,6 +29,9 @@
 	function dash() { return '<span class="mj-muted">—</span>'; }
 
 	function saleLink(id) { return MJ.router.link(PATH + '/' + id); }
+
+	function delivery() { return MJ.components.saleHelpers; }
+	function deliveryOn() { return delivery().deliveryEnabled(); }
 
 	function loadingHtml(text) {
 		return '<div class="mj-loading">' + MJ.ui.spinner() + '<span>' + h(text || 'Cargando…') + '</span></div>';
@@ -68,6 +73,9 @@
 		if ((num(stats.month.profit) || 0) !== 0) parts.push('margen ' + moneyBase(stats.month.profit));
 		const unpaid = parseInt(stats.unpaid_count, 10) || 0;
 		if (unpaid) parts.push(unpaid === 1 ? '1 con saldo' : MJ.fmt.int(unpaid) + ' con saldo');
+		// Lo que falta entregar se dice acá arriba: es trabajo pendiente, igual que el saldo.
+		const pending = parseInt(info().pending_delivery, 10) || 0;
+		if (deliveryOn() && pending) parts.push(pending === 1 ? '1 a entregar' : MJ.fmt.int(pending) + ' a entregar');
 		return parts.join(' · ');
 	}
 
@@ -97,6 +105,11 @@
 				selectField('mj-sales-status', 'Estado', 'status', state.status, Object.keys(statuses).map(function (k) {
 					return { value: k, label: statuses[k].label };
 				}), 'Todos') +
+				(deliveryOn()
+					? selectField('mj-sales-delivery', 'Entrega', 'delivery_status', state.deliveryStatus, Object.keys(delivery().deliveryStatuses()).map(function (k) {
+						return { value: k, label: delivery().deliveryStatuses()[k].label };
+					}), 'Todas')
+					: '') +
 				'<div class="mj-field" style="flex:1 1 150px">' +
 					'<label class="mj-field__label" for="mj-sales-from">Desde</label>' +
 					'<input class="mj-input" id="mj-sales-from" type="date" value="' + h(state.dateFrom) + '" data-filter="date_from">' +
@@ -158,14 +171,43 @@
 			'<th>Venta</th>' +
 			'<th>Fecha</th>' +
 			'<th>Cliente</th>' +
-			'<th>Origen</th>' +
+			'<th>Productos</th>' +
 			'<th class="is-num">Total</th>' +
 			'<th class="is-num">Falta cobrar</th>' +
 			'<th>Cobro</th>' +
+			(deliveryOn() ? '<th>Entrega</th>' : '') +
 			'<th class="is-actions"><span class="mj-hidden">Acciones</span></th>' +
 		'</tr></thead><tbody>' +
 		rows.map(rowHtml).join('') +
 		'</tbody></table></div>';
+	}
+
+	/**
+	 * Qué se vendió, en dos renglones.
+	 *
+	 * Es la pregunta que se le hace a un listado de ventas —«¿esta cuál era?»— y hasta ahora había
+	 * que abrir la venta para contestarla. Se muestran las primeras líneas y el resto se cuenta;
+	 * el título del bloque lleva la lista entera para el que pase el mouse.
+	 */
+	function itemsPreviewHtml(sale) {
+		const items = Array.isArray(sale.items_preview) ? sale.items_preview : [];
+		if (!items.length) return dash();
+
+		const line = function (item) {
+			return MJ.fmt.qty(item.qty) + '× ' + item.name;
+		};
+		const shown = items.slice(0, PREVIEW_LINES);
+		const rest = items.length - shown.length;
+
+		return '<div class="mj-sales-items" title="' + h(items.map(line).join('\n')) + '">' +
+			shown.map(function (item) {
+				return '<div class="mj-sales-items__row mj-truncate">' +
+					'<span class="mj-strong">' + h(MJ.fmt.qty(item.qty)) + '×</span> ' + h(item.name) +
+					(item.origin === 'consignacion' ? ' ' + MJ.ui.badgeRaw('reventa', 'info') : '') +
+				'</div>';
+			}).join('') +
+			(rest > 0 ? '<div class="mj-small mj-muted">+' + h(MJ.fmt.int(rest)) + ' más</div>' : '') +
+		'</div>';
 	}
 
 	function rowHtml(sale) {
@@ -184,24 +226,46 @@
 				(sale.customer_name ? h(sale.customer_name) : dash()) +
 				(sale.consignee_name ? '<div class="mj-small mj-muted">' + MJ.icon('users') + ' ' + h(sale.consignee_name) + '</div>' : '') +
 			'</td>' +
-			'<td>' +
-				'<div>' + h(SOURCES[sale.source] || sale.source) + '</div>' +
-				(sale.channel_label ? '<div class="mj-small mj-muted">' + h(sale.channel_label) + '</div>' : '') +
-			'</td>' +
+			'<td>' + itemsPreviewHtml(sale) + '</td>' +
 			'<td class="is-num">' +
 				'<span class="mj-strong">' + h(money(sale.total)) + '</span>' +
 				(consignment > 0 ? '<div class="mj-table__sub mj-small mj-muted">' + h(MJ.fmt.qty(consignment)) + ' de consignación</div>' : '') +
 			'</td>' +
 			'<td class="is-num">' + (due > 0.004 ? '<span class="mj-danger-text mj-strong">' + h(money(due)) + '</span>' : dash()) + '</td>' +
 			'<td>' + MJ.ui.badgeRaw(sale.payment_status_label || '', sale.payment_status_color || 'neutral') + '</td>' +
+			(deliveryOn()
+				? '<td>' +
+					(voided ? dash() : delivery().deliveryBadge(sale)) +
+					(sale.delivery_method_label ? '<div class="mj-small mj-muted">' + h(sale.delivery_method_label) + '</div>' : '') +
+					(sale.delivery_note ? '<div class="mj-small mj-muted mj-truncate" title="' + h(sale.delivery_note) + '">' + h(sale.delivery_note) + '</div>' : '') +
+				'</td>'
+				: '') +
 			'<td class="is-actions">' +
 				'<div class="mj-btn-group">' +
 					'<a class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" href="' + h(saleLink(sale.id)) + '" title="Abrir" aria-label="Abrir la venta ' + h(sale.code) + '">' + MJ.icon('eye') + '</a>' +
 					(due > 0.004 && !voided
 						? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="charge" title="Registrar cobro" aria-label="Registrar cobro de ' + h(sale.code) + '">' + MJ.icon('cash') + '</button>'
 						: '') +
+					/*
+					 * Entregar es la acción de todos los días: un toque y listo, sin abrir la venta
+					 * ni elegir nada. Lo que ya se entregó muestra el mismo botón para corregir el
+					 * método o la referencia, que es lo único que queda por tocar.
+					 */
+					(deliveryOn() && !voided
+						? (sale.delivered
+							? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="delivery" title="Cambiar la entrega" aria-label="Cambiar la entrega de ' + h(sale.code) + '">' + MJ.icon('truck') + '</button>'
+							: '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon mj-success-text" data-action="deliver" title="Marcar entregada" aria-label="Marcar entregada la venta ' + h(sale.code) + '">' + MJ.icon('truck') + '</button>')
+						: '') +
 					(sale.order_edit_link
 						? '<a class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" href="' + h(sale.order_edit_link) + '" target="_blank" rel="noopener" title="Ver el pedido en WooCommerce" aria-label="Ver el pedido en WooCommerce">' + MJ.icon('external') + '</a>'
+						: '') +
+					/*
+					 * Borrar es solo para las anuladas: una venta anulada ya deshizo lo que tenía
+					 * que deshacer y a partir de ahí solo ensucia la lista. Una venta viva no se
+					 * borra de un botón —primero se anula, que es lo que devuelve stock y deuda.
+					 */
+					(voided
+						? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon mj-danger-text" data-action="delete" title="Borrar de la lista" aria-label="Borrar la venta anulada ' + h(sale.code) + '">' + MJ.icon('trash') + '</button>'
 						: '') +
 				'</div>' +
 			'</td>' +
@@ -223,6 +287,7 @@
 				channel: '',
 				status: '',
 				paymentStatus: query && query.cobro ? String(query.cobro) : '',
+				deliveryStatus: query && query.entrega ? String(query.entrega) : '',
 				dateFrom: '',
 				dateTo: '',
 				onlyConsignment: !!(query && query.consignacion),
@@ -278,6 +343,7 @@
 					channel: state.channel || undefined,
 					status: state.status || undefined,
 					payment_status: state.paymentStatus || undefined,
+					delivery_status: state.deliveryStatus || undefined,
 					date_from: state.dateFrom || undefined,
 					date_to: state.dateTo || undefined,
 					only_consignment: state.onlyConsignment ? 1 : undefined,
@@ -316,6 +382,7 @@
 				else if (key === 'channel') state.channel = el.value;
 				else if (key === 'status') state.status = el.value;
 				else if (key === 'payment_status') state.paymentStatus = el.value;
+				else if (key === 'delivery_status') state.deliveryStatus = el.value;
 				else if (key === 'date_from') state.dateFrom = el.value;
 				else if (key === 'date_to') state.dateTo = el.value;
 				state.page = 1;
@@ -329,9 +396,7 @@
 			}));
 
 			offs.push(MJ.ui.on(container, 'click', '[data-action="charge"]', function (e, el) {
-				const tr = el.closest('tr');
-				const id = tr ? parseInt(tr.getAttribute('data-id'), 10) : 0;
-				const sale = ((state.result && state.result.items) || []).find(function (s) { return parseInt(s.id, 10) === id; });
+				const sale = saleOf(el);
 				if (!sale) return;
 				MJ.components.salePaymentModal({
 					sale: sale,
@@ -339,6 +404,56 @@
 						MJ.events.emit('sales:changed', {});
 						load();
 					},
+				});
+			}));
+
+			function saleOf(el) {
+				const tr = el.closest('tr');
+				const id = tr ? parseInt(tr.getAttribute('data-id'), 10) : 0;
+				return ((state.result && state.result.items) || []).find(function (s) { return parseInt(s.id, 10) === id; }) || null;
+			}
+
+			/* Un toque = entregada. Sin modal, sin confirmación: es el gesto de todos los días. */
+			offs.push(MJ.ui.on(container, 'click', '[data-action="deliver"]', function (e, el) {
+				const sale = saleOf(el);
+				if (!sale) return;
+				MJ.ui.setLoading(el, true);
+				MJ.api.post('sales/' + sale.id + '/delivery', { status: 'entregado' }).then(function () {
+					if (state.disposed) return;
+					MJ.ui.toast('Entregada.', 'success');
+					MJ.events.emit('sales:changed', {});
+					load();
+				}).catch(function (err) {
+					MJ.ui.setLoading(el, false);
+					toastError(err, 'No se pudo registrar la entrega.');
+				});
+			}));
+
+			/* Lo entregado (o lo que hay que corregir) pasa por el modal: método, dónde y estado. */
+			offs.push(MJ.ui.on(container, 'click', '[data-action="delivery"]', function (e, el) {
+				const sale = saleOf(el);
+				if (!sale) return;
+				MJ.components.saleDeliveryModal({ sale: sale, onSaved() { load(); } });
+			}));
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="delete"]', function (e, el) {
+				const sale = saleOf(el);
+				if (!sale) return;
+				MJ.ui.confirm({
+					title: 'Borrar la venta anulada',
+					message: 'Se borra ' + sale.code + ' de la lista. Ya está anulada, así que no cambia el stock ni las cuentas: solo deja de aparecer. No se puede deshacer.',
+					okLabel: 'Borrar',
+					danger: true,
+				}).then(function (ok) {
+					if (!ok || state.disposed) return;
+					MJ.api.del('sales/' + sale.id).then(function () {
+						if (state.disposed) return;
+						MJ.ui.toast('Venta borrada.', 'success');
+						MJ.events.emit('sales:changed', {});
+						load();
+					}).catch(function (err) {
+						toastError(err, 'No se pudo borrar la venta.');
+					});
 				});
 			}));
 

@@ -2,7 +2,8 @@
 
 Entregado el 4 de septiembre de 2026. **Actualizado el 9 de septiembre de 2026.**
 
-Los zip están en `releases/bundles/yamana/` (ver `PUBLICAR.md`):
+Los zip están en `releases/` (el script los lista por tienda al terminar; ver
+`PUBLICAR.md`):
 
 | Archivo | Qué es | Dónde se sube |
 |---|---|---|

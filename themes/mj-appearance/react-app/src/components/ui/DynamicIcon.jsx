@@ -6,7 +6,8 @@ import {
   ShoppingBag, ShoppingCart, Store, Home, RefreshCcw, RotateCcw, Bell, Info,
   MessageCircle, Send, Download, FileText, Wrench, Lightbulb, BatteryCharging,
   Plug, Shirt, Watch, Glasses, Umbrella, Coffee, Medal, Rocket, Timer, Coins,
-  QrCode, Barcode, Ticket, Megaphone, PartyPopper,
+  QrCode, Barcode, Ticket, Megaphone, PartyPopper, LayoutDashboard, ExternalLink,
+  ArrowUpRight, Briefcase, Warehouse,
 } from 'lucide-react';
 
 /**
@@ -84,6 +85,12 @@ export const ICONS = {
   ticket: Ticket,
   megaphone: Megaphone,
   'party-popper': PartyPopper,
+  /* Accesos rápidos del header (barra de navegación): paneles y enlaces de salida. */
+  'layout-dashboard': LayoutDashboard,
+  'external-link': ExternalLink,
+  'arrow-up-right': ArrowUpRight,
+  briefcase: Briefcase,
+  warehouse: Warehouse,
 };
 
 /** Resuelve un nombre de ícono configurable; nombre desconocido → fallback. */

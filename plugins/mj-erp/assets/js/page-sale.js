@@ -4,7 +4,7 @@
  * un revendedor, qué se cobró y qué falta.
  *
  * REST: GET /sales/{id}, PUT /sales/{id}, POST /sales/{id}/void, POST /sales/{id}/order,
- *       POST /sales/{id}/payments, DELETE /sale-payments/{id}.
+ *       POST /sales/{id}/payments, POST /sales/{id}/delivery, DELETE /sale-payments/{id}.
  */
 (function () {
 	'use strict';
@@ -75,6 +75,26 @@
 			'Esta venta está anulada' + (sale.voided_at ? ' desde el ' + MJ.fmt.datetime(sale.voided_at) : '') +
 			'. Se deshizo la deuda del revendedor y, si no tenía pedido en WooCommerce, se repuso el stock.',
 			'danger'
+		);
+	}
+
+	/**
+	 * Aviso de la venta que todavía no compromete nada.
+	 *
+	 * Sin esto, una venta anotada y sin cobrar parece igual a una cerrada, y la diferencia —que el
+	 * stock sigue disponible para quien lo compre primero— recién se descubre mirando el producto.
+	 */
+	function commitNoticeHtml(sale) {
+		const helpers = MJ.components.saleHelpers;
+		if (sale.status === 'anulada' || sale.order_id || sale.stock_applied) return '';
+		if (helpers.saleIsCommitted(sale)) return '';
+
+		const falta = helpers.commitPendingText();
+		return MJ.ui.alert(
+			'Esta venta todavía no bajó stock' + (sale.wants_order === false ? '' : ' ni emitió el pedido en WooCommerce') +
+			'. El producto se sigue pudiendo vender hasta que alguien lo pague o se lo lleve' +
+			(falta ? ': pasa ' + falta + '.' : '.'),
+			'warning'
 		);
 	}
 
@@ -203,6 +223,44 @@
 		'</div>';
 	}
 
+	/**
+	 * Entrega: cómo se entrega, dónde, y el botón que cierra el circuito.
+	 *
+	 * La acción de un toque («Marcar entregada») está también en la lista de ventas; acá se repite
+	 * porque es donde se termina de mirar una venta antes de salir a llevarla.
+	 */
+	function deliveryHtml(sale) {
+		const helpers = MJ.components.saleHelpers;
+		if (!helpers.deliveryEnabled()) return '';
+
+		const voided = sale.status === 'anulada';
+		const rows = [];
+		rows.push(['Estado', voided ? dash() : helpers.deliveryBadge(sale)]);
+		rows.push(['Cómo', sale.delivery_method_label ? h(sale.delivery_method_label) : dash()]);
+		if (sale.delivery_note) rows.push(['Dónde', h(sale.delivery_note)]);
+		if (sale.delivered_at) {
+			rows.push(['Entregada', h(MJ.fmt.datetime(sale.delivered_at)) + (sale.delivered_by_name ? ' · ' + h(sale.delivered_by_name) : '')]);
+		}
+
+		return '<div class="mj-card"><div class="mj-card__header">' +
+				'<h3 class="mj-card__title">Entrega</h3>' +
+				(voided
+					? ''
+					: (sale.delivered
+						? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="delivery">' + MJ.icon('edit') + '<span>Cambiar</span></button>'
+						: '<button type="button" class="mj-btn mj-btn--sm mj-btn--primary" data-action="deliver">' + MJ.icon('truck') + '<span>Marcar entregada</span></button>')) +
+			'</div>' +
+			'<div class="mj-card__body"><dl class="mj-deflist">' +
+				rows.map(function (r) {
+					return '<div class="mj-deflist__row"><dt>' + h(r[0]) + '</dt><dd>' + r[1] + '</dd></div>';
+				}).join('') +
+			'</dl>' +
+			(voided || sale.delivered
+				? ''
+				: '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-mt" data-action="delivery">' + MJ.icon('edit') + '<span>Cambiar cómo o dónde</span></button>') +
+			'</div></div>';
+	}
+
 	function detailsHtml(sale) {
 		const channels = (info().channels || []).map(function (c) { return { value: c.key, label: c.label }; });
 		return '<div class="mj-card"><div class="mj-card__header"><h3 class="mj-card__title">Datos</h3></div>' +
@@ -252,6 +310,7 @@
 				container.innerHTML =
 					headerHtml(sale) +
 					voidedNoticeHtml(sale) +
+					commitNoticeHtml(sale) +
 					(MJ.components.consignmentNotice ? MJ.components.consignmentNotice(sale) : '') +
 					'<div class="mj-grid mj-grid--detail">' +
 						'<div class="mj-grid__main">' +
@@ -260,6 +319,7 @@
 						'</div>' +
 						'<div class="mj-grid__side">' +
 							totalsHtml(sale) +
+							(deliveryHtml(sale) ? '<div class="mj-mt">' + deliveryHtml(sale) + '</div>' : '') +
 							'<div class="mj-mt">' + customerHtml(sale) + '</div>' +
 							'<div class="mj-mt">' + detailsHtml(sale) + '</div>' +
 						'</div>' +
@@ -280,6 +340,34 @@
 			}
 
 			load();
+
+			/* Un toque = entregada, el mismo gesto que en la lista de ventas. */
+			offs.push(MJ.ui.on(container, 'click', '[data-action="deliver"]', function (e, btn) {
+				if (!state.sale) return;
+				MJ.ui.setLoading(btn, true);
+				MJ.api.post('sales/' + state.sale.id + '/delivery', { status: 'entregado' }).then(function (updated) {
+					if (state.disposed) return;
+					state.sale = updated;
+					MJ.ui.toast('Entregada.', 'success');
+					MJ.events.emit('sales:changed', {});
+					paint();
+				}).catch(function (err) {
+					MJ.ui.setLoading(btn, false);
+					toastError(err, 'No se pudo registrar la entrega.');
+				});
+			}));
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="delivery"]', function () {
+				if (!state.sale) return;
+				MJ.components.saleDeliveryModal({
+					sale: state.sale,
+					onSaved(updated) {
+						if (state.disposed) return;
+						state.sale = updated;
+						paint();
+					},
+				});
+			}));
 
 			offs.push(MJ.ui.on(container, 'click', '[data-action="charge"]', function () {
 				if (!state.sale) return;

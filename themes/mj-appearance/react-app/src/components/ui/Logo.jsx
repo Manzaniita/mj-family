@@ -23,10 +23,10 @@ export function Logo({ size = 'sm', className, linked = true, showName, nameClas
       <img
         src={src}
         alt={LOGO.alt || name}
-        className={cn('mj-logo__img w-auto object-contain', lg ? 'h-16 max-w-60' : 'h-9 max-w-44')}
+        className={cn('mj-logo__img w-auto shrink-0 object-contain', lg ? 'h-16 max-w-60' : 'h-8 max-w-32 sm:h-9 sm:max-w-44')}
       />
       {withName && (
-        <span className={cn('mj-logo__name font-display font-bold tracking-tight', lg ? 'text-2xl' : 'text-lg', nameClassName)}>
+        <span className={cn('mj-logo__name truncate font-display font-bold tracking-tight', lg ? 'text-2xl' : 'text-lg', nameClassName)}>
           {name}
         </span>
       )}
@@ -42,13 +42,18 @@ export function Logo({ size = 'sm', className, linked = true, showName, nameClas
       >
         {name.trim()[0] || 'M'}
       </span>
-      <span className={cn('mj-logo__name font-display font-bold tracking-tight', lg ? 'text-2xl' : 'text-lg', nameClassName)}>
+      <span className={cn('mj-logo__name truncate font-display font-bold tracking-tight', lg ? 'text-2xl' : 'text-lg', nameClassName)}>
         {name.toLowerCase()}
       </span>
     </>
   );
 
-  const cls = cn('mj-logo flex items-center', lg ? 'gap-4' : 'gap-2.5', className);
+  /*
+   * `min-w-0` no es decorativo: sin él, un hijo de flex nunca se achica por debajo de su contenido
+   * (min-width:auto) y un nombre largo empuja toda la fila hasta desbordar la pantalla. Con esto,
+   * el nombre se corta y el header sigue entrando.
+   */
+  const cls = cn('mj-logo flex min-w-0 items-center', lg ? 'gap-4' : 'gap-2.5', className);
   if (!linked) return <span className={cls}>{content}</span>;
   return (
     <Link to="/" className={cls} aria-label={`${name} — inicio`}>

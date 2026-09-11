@@ -36,6 +36,15 @@ class MJERP_Sales_Repo {
 	const PAY_PARTIAL = 'parcial';
 	const PAY_PAID    = 'pagada';
 
+	/*
+	 * Entrega: lo vendido todavía tiene que llegar a manos del cliente. Es un circuito aparte del
+	 * cobro — se puede haber cobrado un envío que no salió, y se puede haber entregado algo que se
+	 * paga después — así que lleva su propio estado.
+	 */
+	const DELIVERY_PENDING   = 'pendiente';
+	const DELIVERY_ON_ROUTE  = 'en_camino';
+	const DELIVERY_DELIVERED = 'entregado';
+
 	const EPSILON = 0.0001;
 
 	const FORMATS = array(
@@ -74,6 +83,12 @@ class MJERP_Sales_Repo {
 		'payment_status'   => '%s',
 		'payment_method'   => '%s',
 		'cashbox_id'       => '%d',
+		'wants_order'      => '%d',
+		'delivery_method'  => '%s',
+		'delivery_status'  => '%s',
+		'delivery_note'    => '%s',
+		'delivered_at'     => '%s',
+		'delivered_by'     => '%d',
 		'stock_applied'    => '%d',
 		'note'             => '%s',
 		'created_by'       => '%d',
@@ -121,6 +136,15 @@ class MJERP_Sales_Repo {
 	}
 
 	/**
+	 * Delivery statuses.
+	 *
+	 * @return string[]
+	 */
+	public static function delivery_statuses() : array {
+		return array( self::DELIVERY_PENDING, self::DELIVERY_ON_ROUTE, self::DELIVERY_DELIVERED );
+	}
+
+	/**
 	 * Sale sources.
 	 *
 	 * @return string[]
@@ -161,6 +185,8 @@ class MJERP_Sales_Repo {
 			'customer_id'      => 0,
 			'customer_user_id' => 0,
 			'payment_status'   => '',
+			'delivery_status'  => '',
+			'delivery_method'  => '',
 			'date_from'        => '',
 			'date_to'          => '',
 			'only_consignment' => false,
@@ -182,7 +208,7 @@ class MJERP_Sales_Repo {
 			array_push( $vals, $like, $like, $like, $like, $like );
 		}
 
-		foreach ( array( 'status', 'source', 'channel', 'payment_status' ) as $key ) {
+		foreach ( array( 'status', 'source', 'channel', 'payment_status', 'delivery_status', 'delivery_method' ) as $key ) {
 			$value = sanitize_key( (string) $args[ $key ] );
 			if ( '' !== $value ) {
 				$where[] = "{$key} = %s";
@@ -243,6 +269,7 @@ class MJERP_Sales_Repo {
 		foreach ( (array) $rows as $row ) {
 			$items[] = self::cast( $row );
 		}
+		$items = self::attach_items_preview( $items );
 
 		return array(
 			'items'    => $items,
@@ -337,6 +364,66 @@ class MJERP_Sales_Repo {
 	 * @param int $item_id Line id.
 	 * @return array|null
 	 */
+	/**
+	 * Adds a short list of what each sale carried, for the listing.
+	 *
+	 * Sin esto hay que abrir una venta para saber qué se vendió, y el listado no contesta la
+	 * pregunta más frecuente de todas. Va en UNA consulta para todas las ventas de la página: una
+	 * por fila convertiría cada listado en veinte consultas.
+	 *
+	 * @param array $sales Casted sales.
+	 * @return array
+	 */
+	private static function attach_items_preview( array $sales ) : array {
+		global $wpdb;
+
+		if ( empty( $sales ) ) {
+			return $sales;
+		}
+
+		$ids = array();
+		foreach ( $sales as $sale ) {
+			$ids[] = (int) $sale['id'];
+		}
+
+		/**
+		 * Cuántas líneas se traen por venta para el resumen.
+		 *
+		 * @param int $limit Lines per sale.
+		 */
+		$limit = max( 1, (int) apply_filters( 'mjerp_sale_items_preview_limit', 20 ) );
+
+		$table        = self::items_table();
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		$rows         = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
+			$wpdb->prepare(
+				"SELECT sale_id, name, sku, qty, origin FROM {$table} WHERE sale_id IN ({$placeholders}) ORDER BY sale_id ASC, sort_order ASC, id ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$ids
+			),
+			ARRAY_A
+		);
+
+		$by_sale = array();
+		foreach ( (array) $rows as $row ) {
+			$sale_id = (int) $row['sale_id'];
+			if ( isset( $by_sale[ $sale_id ] ) && count( $by_sale[ $sale_id ] ) >= $limit ) {
+				continue;
+			}
+			$by_sale[ $sale_id ][] = array(
+				'name'   => (string) $row['name'],
+				'sku'    => (string) $row['sku'],
+				'qty'    => round( (float) $row['qty'], 4 ),
+				'origin' => (string) $row['origin'],
+			);
+		}
+
+		foreach ( $sales as $index => $sale ) {
+			$sales[ $index ]['items_preview'] = isset( $by_sale[ (int) $sale['id'] ] ) ? $by_sale[ (int) $sale['id'] ] : array();
+		}
+
+		return $sales;
+	}
+
 	public static function find_item( $item_id ) : ?array {
 		global $wpdb;
 		$item_id = absint( $item_id );
@@ -412,6 +499,8 @@ class MJERP_Sales_Repo {
 			$date = current_time( 'Y-m-d' );
 		}
 
+		$delivery = self::initial_delivery( $data, $now );
+
 		$row = array(
 			'code'             => $code,
 			'order_id'         => isset( $data['order_id'] ) ? absint( $data['order_id'] ) : 0,
@@ -448,6 +537,17 @@ class MJERP_Sales_Repo {
 			'payment_status'   => self::PAY_UNPAID,
 			'payment_method'   => isset( $data['payment_method'] ) ? sanitize_key( (string) $data['payment_method'] ) : '',
 			'cashbox_id'       => isset( $data['cashbox_id'] ) ? absint( $data['cashbox_id'] ) : 0,
+			/*
+			 * ¿Esta venta tiene que terminar en un pedido de WooCommerce? Se decide al cargarla y
+			 * se guarda, porque el pedido puede emitirse mucho después —cuando se cobre o se
+			 * entregue— y para entonces ya nadie se acuerda de la casilla que se destildó.
+			 */
+			'wants_order'      => array_key_exists( 'wants_order', $data ) ? ( MJERP_Helpers::bool( $data['wants_order'] ) ? 1 : 0 ) : 1,
+			'delivery_method'  => $delivery['method'],
+			'delivery_status'  => $delivery['status'],
+			'delivery_note'    => $delivery['note'],
+			'delivered_at'     => $delivery['delivered_at'],
+			'delivered_by'     => $delivery['delivered_by'],
 			'stock_applied'    => ! empty( $data['stock_applied'] ) ? 1 : 0,
 			'note'             => isset( $data['note'] ) ? sanitize_textarea_field( (string) $data['note'] ) : '',
 			'created_by'       => isset( $data['created_by'] ) ? absint( $data['created_by'] ) : get_current_user_id(),
@@ -580,6 +680,123 @@ class MJERP_Sales_Repo {
 	}
 
 	/**
+	 * Delivery a sale is born with.
+	 *
+	 * El método elegido decide el estado inicial: lo que se entrega en el acto nace entregado y lo
+	 * que hay que llevar nace pendiente. Sin eso, cada venta de mostrador habría que marcarla a
+	 * mano y la lista de pendientes dejaría de significar «esto falta entregar».
+	 *
+	 * @param array  $data Input data.
+	 * @param string $now  Current mysql datetime.
+	 * @return array { method, status, note, delivered_at, delivered_by }
+	 */
+	private static function initial_delivery( array $data, string $now ) : array {
+		$method = self::sanitize_delivery_method( MJERP_Helpers::array_get( $data, 'delivery_method', '' ) );
+		$note   = MJERP_Helpers::text( MJERP_Helpers::array_get( $data, 'delivery_note', '' ), 190 );
+
+		/*
+		 * Con el paso apagado no hay nada que seguir: la venta nace entregada y sin método. Si
+		 * mañana se enciende, lo viejo no aparece como una montaña de entregas pendientes que
+		 * nunca existieron.
+		 */
+		if ( ! MJERP_Settings::delivery_enabled() ) {
+			return array(
+				'method'       => '',
+				'status'       => self::DELIVERY_DELIVERED,
+				'note'         => '',
+				'delivered_at' => $now,
+				'delivered_by' => get_current_user_id(),
+			);
+		}
+
+		if ( array_key_exists( 'delivery_status', $data ) && '' !== (string) $data['delivery_status'] ) {
+			$status = self::sanitize_delivery_status( $data['delivery_status'] );
+		} elseif ( array_key_exists( 'delivered', $data ) ) {
+			$status = MJERP_Helpers::bool( $data['delivered'] ) ? self::DELIVERY_DELIVERED : self::DELIVERY_PENDING;
+		} else {
+			$status = MJERP_Settings::delivery_method_is_instant( $method )
+				? self::DELIVERY_DELIVERED
+				: self::DELIVERY_PENDING;
+		}
+
+		$delivered = self::DELIVERY_DELIVERED === $status;
+
+		return array(
+			'method'       => $method,
+			'status'       => $status,
+			'note'         => $note,
+			'delivered_at' => $delivered ? $now : null,
+			'delivered_by' => $delivered ? get_current_user_id() : 0,
+		);
+	}
+
+	/**
+	 * Records what happened with the delivery of a sale.
+	 *
+	 * Es la operación de un toque: desde la lista de ventas se marca entregado sin abrir nada. La
+	 * fecha se escribe sola al pasar a «entregado» y se borra si se vuelve atrás, así el dato nunca
+	 * dice que algo se entregó un día en que todavía no había salido.
+	 *
+	 * @param int   $id   Sale id.
+	 * @param array $data { status, method, note }.
+	 * @return true|WP_Error
+	 */
+	public static function set_delivery( $id, array $data ) {
+		global $wpdb;
+
+		$sale = self::find( $id );
+		if ( ! $sale ) {
+			return new WP_Error( 'mjerp_not_found', __( 'La venta no existe.', 'mj-erp' ), array( 'status' => 404 ) );
+		}
+		if ( self::STATUS_VOID === $sale['status'] ) {
+			return new WP_Error( 'mjerp_sale_void', __( 'La venta está anulada: no hay nada que entregar.', 'mj-erp' ), array( 'status' => 409 ) );
+		}
+
+		$row = array();
+
+		if ( array_key_exists( 'method', $data ) ) {
+			$row['delivery_method'] = self::sanitize_delivery_method( $data['method'] );
+		}
+		if ( array_key_exists( 'note', $data ) ) {
+			$row['delivery_note'] = MJERP_Helpers::text( $data['note'], 190 );
+		}
+
+		if ( array_key_exists( 'status', $data ) ) {
+			$status                 = self::sanitize_delivery_status( $data['status'] );
+			$row['delivery_status'] = $status;
+
+			if ( self::DELIVERY_DELIVERED === $status ) {
+				$row['delivered_at'] = ! empty( $sale['delivered_at'] ) ? $sale['delivered_at'] : current_time( 'mysql' );
+				$row['delivered_by'] = ! empty( $sale['delivered_by'] ) ? (int) $sale['delivered_by'] : get_current_user_id();
+			} else {
+				$row['delivered_at'] = null;
+				$row['delivered_by'] = 0;
+			}
+		}
+
+		if ( empty( $row ) ) {
+			return true;
+		}
+
+		$row['updated_at'] = current_time( 'mysql' );
+
+		$result = $wpdb->update( self::table(), $row, array( 'id' => $sale['id'] ), self::formats( $row, self::FORMATS ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		if ( false === $result ) {
+			return new WP_Error( 'mjerp_db_error', __( 'No se pudo registrar la entrega.', 'mj-erp' ), array( 'status' => 500 ) );
+		}
+
+		/**
+		 * Fires after the delivery of a sale changed.
+		 *
+		 * @param int   $id  Sale id.
+		 * @param array $row Changed columns.
+		 */
+		do_action( 'mjerp_sale_delivery_changed', (int) $sale['id'], $row );
+
+		return true;
+	}
+
+	/**
 	 * Updates the editable fields of a sale (never the lines: those come from the order).
 	 *
 	 * @param int   $id   Sale id.
@@ -634,6 +851,15 @@ class MJERP_Sales_Repo {
 		}
 		if ( array_key_exists( 'status', $data ) ) {
 			$row['status'] = self::sanitize_status( $data['status'] );
+		}
+		if ( array_key_exists( 'wants_order', $data ) ) {
+			$row['wants_order'] = MJERP_Helpers::bool( $data['wants_order'] ) ? 1 : 0;
+		}
+		if ( array_key_exists( 'delivery_method', $data ) ) {
+			$row['delivery_method'] = self::sanitize_delivery_method( $data['delivery_method'] );
+		}
+		if ( array_key_exists( 'delivery_note', $data ) ) {
+			$row['delivery_note'] = MJERP_Helpers::text( $data['delivery_note'], 190 );
 		}
 
 		if ( empty( $row ) ) {
@@ -854,6 +1080,17 @@ class MJERP_Sales_Repo {
 		);
 
 		$wpdb->update( self::table(), $row, array( 'id' => $sale_id ), self::formats( $row, self::FORMATS ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+		/**
+		 * Fires after the collected totals of a sale were recalculated.
+		 *
+		 * Es lo que despierta al pedido: una venta que se termina de cobrar puede tener que emitirse
+		 * en WooCommerce y descontar stock, y eso pasa acá y no en cada lugar que registra un cobro.
+		 *
+		 * @param int    $sale_id Sale id.
+		 * @param string $status  New payment status.
+		 */
+		do_action( 'mjerp_sale_payments_synced', $sale_id, $status );
 	}
 
 	/**
@@ -947,6 +1184,26 @@ class MJERP_Sales_Repo {
 				"SELECT COUNT(*) FROM {$table} WHERE status <> %s AND payment_status <> %s",
 				self::STATUS_VOID,
 				self::PAY_PAID
+			)
+		); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	/**
+	 * Sales that are still waiting to be handed over.
+	 *
+	 * Es el número del globo del menú: lo que hay que hacer hoy. Una venta anulada no cuenta, y una
+	 * que se entregó en el mostrador nunca llegó a estar pendiente.
+	 *
+	 * @return int
+	 */
+	public static function pending_delivery_count() : int {
+		global $wpdb;
+		$table = self::table();
+		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE status <> %s AND delivery_status <> %s",
+				self::STATUS_VOID,
+				self::DELIVERY_DELIVERED
 			)
 		); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
@@ -1104,6 +1361,35 @@ class MJERP_Sales_Repo {
 	 * @param mixed $value Raw value.
 	 * @return string
 	 */
+	/**
+	 * Delivery status, restricted to the three known ones.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string
+	 */
+	public static function sanitize_delivery_status( $value ) : string {
+		$value = sanitize_key( (string) $value );
+		return in_array( $value, self::delivery_statuses(), true ) ? $value : self::DELIVERY_PENDING;
+	}
+
+	/**
+	 * Delivery method key.
+	 *
+	 * A method that is not in the settings any more is kept as an empty string: pretending it still
+	 * exists would print a label nobody configured.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string
+	 */
+	public static function sanitize_delivery_method( $value ) : string {
+		$key = sanitize_key( (string) $value );
+		if ( '' === $key || ! class_exists( 'MJERP_Settings' ) ) {
+			return $key;
+		}
+		$keys = wp_list_pluck( MJERP_Settings::sale_delivery_methods(), 'key' );
+		return in_array( $key, $keys, true ) ? $key : '';
+	}
+
 	public static function sanitize_channel( $value ) : string {
 		$value = sanitize_key( (string) $value );
 		$keys  = wp_list_pluck( MJERP_Settings::sale_channels(), 'key' );
@@ -1128,6 +1414,10 @@ class MJERP_Sales_Repo {
 		$pay_status = (string) self::v( $row, 'payment_status', self::PAY_UNPAID );
 		$pay_map    = MJERP_Settings::sale_payment_statuses();
 		$order_id   = (int) self::v( $row, 'order_id', 0 );
+
+		$delivery_status = (string) self::v( $row, 'delivery_status', self::DELIVERY_PENDING );
+		$delivery_map    = MJERP_Settings::sale_delivery_statuses();
+		$delivery_method = (string) self::v( $row, 'delivery_method' );
 
 		$out = array(
 			'id'                 => (int) $row['id'],
@@ -1174,6 +1464,17 @@ class MJERP_Sales_Repo {
 			'payment_method'     => (string) self::v( $row, 'payment_method' ),
 			'payment_method_label' => MJERP_Settings::sale_payment_method_label( self::v( $row, 'payment_method' ) ),
 			'cashbox_id'         => (int) self::v( $row, 'cashbox_id', 0 ),
+			'wants_order'        => (bool) (int) self::v( $row, 'wants_order', 1 ),
+			'delivery_method'    => $delivery_method,
+			'delivery_method_label' => MJERP_Settings::sale_delivery_method_label( $delivery_method ),
+			'delivery_status'    => $delivery_status,
+			'delivery_status_label' => isset( $delivery_map[ $delivery_status ]['label'] ) ? (string) $delivery_map[ $delivery_status ]['label'] : $delivery_status,
+			'delivery_status_color' => isset( $delivery_map[ $delivery_status ]['color'] ) ? (string) $delivery_map[ $delivery_status ]['color'] : 'neutral',
+			'delivery_note'      => (string) self::v( $row, 'delivery_note' ),
+			'delivered'          => self::DELIVERY_DELIVERED === $delivery_status,
+			'delivered_at'       => self::datetime_or_null( self::v( $row, 'delivered_at' ) ),
+			'delivered_by'       => (int) self::v( $row, 'delivered_by', 0 ),
+			'delivered_by_name'  => MJERP_Helpers::user_display_name( self::v( $row, 'delivered_by', 0 ) ),
 			'stock_applied'      => (bool) (int) self::v( $row, 'stock_applied', 0 ),
 			'note'               => (string) self::v( $row, 'note' ),
 			'created_by'         => (int) self::v( $row, 'created_by', 0 ),

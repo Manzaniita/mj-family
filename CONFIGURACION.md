@@ -24,7 +24,8 @@ administración, arriba del nombre del sitio.
 | **Diseño y marca** | Logo (y variante para modo noche), tema de arranque, nivel de animación, intro, paleta completa, tipografías. |
 | **Sesión y acceso** | Quién ve la barra de administración, si la tienda recarga al iniciar sesión, si "Recordarme" viene marcado, cuánto dura la sesión, ruta de "Mi cuenta". |
 | **Skin** | Qué propone el tema hijo activo, si se usan sus propuestas, y sus paletas alternativas (se aplican con un botón). |
-| **Categorías del menú** | Hasta 4 categorías en el header (vacío = automático). |
+| **Barra de navegación** | Qué ítems tiene el menú, en qué orden, cómo se llaman, a dónde llevan, quién los ve y si van en el menú o como botón del header. |
+| **Marcas** | Cómo llamar a las "marcas" (singular y plural). |
 | **Anuncios y avisos** | Barra superior y etiquetas de producto. |
 | **Portada (hero)** | Antetítulo, título, subtítulo, botones y fondos. |
 | **Banners promocionales** | Imágenes del carrusel. |
@@ -36,6 +37,49 @@ administración, arriba del nombre del sitio.
 | **Legales** | Términos y privacidad. |
 | **Envíos** | Umbral de envío gratis. |
 | **Avanzado** | Servicio de mapas e íconos del panel. |
+
+### La barra de navegación, en detalle
+
+Cada renglón del panel es un ítem del menú. Se arrastra para ordenar, se
+destilda para esconder y se escribe encima para renombrar; vacío = el nombre que
+se ve en gris, que sale de **Textos de la tienda → Menú**.
+
+| Columna | Qué hace |
+| --- | --- |
+| Tilde | Si el ítem se muestra. |
+| Nombre | Cómo se llama en el menú. Vacío = el nombre por defecto. |
+| Destino | A dónde lleva. Una ruta de la tienda (`/tienda?filtro=ofertas`) o una URL completa. Vacío = el destino propio del ítem. Las categorías no lo tienen: abren su panel de productos. |
+| Dónde | En el menú, como botón del header (al lado del carrito), o en los dos. |
+| Quién lo ve | Todo el mundo, solo con sesión iniciada, solo sin sesión, o —con MJ ERP activo— solo quien puede entrar al ERP. |
+| Ícono | Nombre de [lucide.dev/icons](https://lucide.dev/icons). Lo usan los botones del header. |
+| Destacado | Lo pinta con el color de acento (así viene "Ofertas"). |
+| Nueva pestaña | Abre el destino en otra pestaña. |
+
+La lista se arma sola con lo que hay: los enlaces del tema, **todas** las
+categorías de producto, y lo que aporte cada plugin (Servicios y Turnos de MJ
+Turnos Online, el proyecto de MJ Colegas, el acceso al ERP). Una categoría nueva
+o un plugin recién activado aparecen al final sin tocar nada. **Agregar enlace**
+suma uno propio, con el nombre y el destino que quieras.
+
+Quien nunca abra este panel ve el menú de siempre: mientras no se guarde nada,
+manda el orden por defecto.
+
+**En el celular** el menú se abre con el botón ☰ de la barra de arriba, y ahí
+adentro van los mismos ítems, los accesos rápidos (el ERP, por ejemplo) y
+Favoritos y Comparar, que en una pantalla angosta no entran arriba.
+
+La **barra de anuncios** y la de **envío gratis** también se ven en el celular:
+aparecen arriba de todo al entrar y se van con el scroll, para que la barra que
+queda pegada sea solo la del logo y los botones. En la computadora quedan
+pegadas junto al resto del header, como siempre.
+
+> **El acceso al ERP.** MJ ERP se ofrece como un ítem más, con audiencia "solo
+> quien puede entrar al ERP" y como botón del header. Quien no tiene permiso no
+> lo ve, y —más importante— no lo recibe: el filtro se aplica en el servidor, así
+> que el enlace ni siquiera llega al navegador del cliente. El camino de vuelta
+> está en el ERP: **Configuración → General → Acceso a la tienda**.
+
+---
 
 ### Sesión y acceso, en detalle
 
@@ -222,6 +266,199 @@ $100 más cercanos); **Sin redondear** deja los centavos.
 
 Solo afecta al precio que el ERP **sugiere**. Un precio escrito a mano en la
 línea de la venta se respeta tal cual, siempre.
+
+---
+
+## 3.1.3. La pantalla de venta: el mostrador
+
+**Dónde:** MJ ERP → Ventas → *Nueva venta*.
+
+Tiene dos formas, según el ancho de la pantalla:
+
+- **En la compu, un mostrador**: el catálogo a la izquierda, el carrito fijo a la
+  derecha y el buscador arriba. Se vende mirando los productos, que es lo que se
+  hace cuando hay alguien esperando del otro lado.
+- **En el celular, un paso a paso**: productos → cantidades → cliente → pago →
+  entrega, con **Atrás** y **Siguiente** fijos abajo y el total siempre a la
+  vista. Dos columnas no entran en una mano: lo que sirve es una decisión por
+  pantalla y el pulgar cerca del botón.
+
+Cambiar de forma no pierde nada: si girás la tablet a mitad de una venta, la
+venta sigue igual.
+
+El paso a paso salta los pasos que la tienda no usa: sin libreta de clientes no
+hay paso de cliente, sin entregas no hay paso de entrega.
+
+- **Tocar un producto lo agrega.** Si ya estaba, suma una unidad, y la tarjeta
+  muestra cuántas van.
+- **El buscador filtra el catálogo** mientras escribís. Con **Enter** agrega
+  directo: si lo que tipeaste es un SKU exacto gana ese, así que el lector de
+  códigos entra de una.
+- **Las categorías** son las de WooCommerce, y **Solo con stock** esconde lo
+  agotado.
+- **El carrito no se mueve** mientras recorrés el catálogo: el total y el botón
+  de confirmar están siempre a la vista. **F2** confirma, como antes.
+- **Todo lo que define la venta se decide en el carrito**: cliente, canal, lista
+  de precios, fecha, descuento, envío, cobro y nota. Son decisiones sobre la
+  venta, no sobre el producto que estás eligiendo.
+
+Lo que se configura, en **Configuración → Ventas → Cargar una venta**:
+
+| Ajuste | Default | Para qué |
+| --- | --- | --- |
+| Productos por página en el catálogo | 24 | Cuántos trae de una (entre 6 y 96). "Ver más productos" trae la página siguiente. |
+| Mostrar las fotos de los productos | Sí | Con foto se elige de memoria más rápido; sin foto entran más productos en pantalla. |
+| Ancho para el paso a paso | 900 px | Debajo de ese ancho la venta se carga en pasos; arriba, con el mostrador. 0 lo apaga y deja el mostrador siempre. |
+
+El resto de la pantalla sale de lo que ya estaba configurado: los canales, los
+medios de pago y su caja, la lista de precios sugerida, si se permiten
+descuentos y si se emite el pedido en WooCommerce.
+
+### La entrega
+
+**Dónde se configura:** MJ ERP → Configuración → Ventas → *Entrega*.
+
+Vender y entregar son dos cosas distintas: se puede haber cobrado un envío que
+todavía no salió, y haber entregado algo que se paga después. Por eso la entrega
+lleva su propio estado, al lado del cobro.
+
+**Las formas de entrega las ponés vos** —envío, punto de encuentro, retira en el
+local, en mano, lo que uses— y cada una dice **si la venta ya queda entregada al
+elegirla**:
+
+| Columna | Qué hace |
+| --- | --- |
+| Nombre | Cómo se llama en la pantalla de venta. |
+| Clave | Se genera del nombre si la dejás vacía. |
+| ¿Ya queda entregada? | *Sí, se entrega en el acto* (mostrador) o *No, queda a entregar* (envío, punto de encuentro). |
+
+Esa marca es lo único que hace falta para que la lista de pendientes signifique
+algo: lo que se entrega en el momento no aparece nunca ahí, y lo que hay que
+llevar aparece hasta que lo marques.
+
+| Ajuste | Default | Para qué |
+| --- | --- | --- |
+| Usar el paso de entrega | Sí | Apagado, las ventas no piden ni muestran entrega en ninguna pantalla. |
+| Forma por defecto | Entregado en el momento | Con la que arranca la pantalla de venta nueva. |
+| Forma de los pedidos de la tienda | Envío | Con esta nacen las ventas que entran solas por WooCommerce: todavía no salieron de acá. |
+
+**Cómo se usa:**
+
+1. **Al cargar la venta**, en el carrito: elegís la forma y, si hace falta,
+   anotás dónde (el punto de encuentro, la dirección, el seguimiento). Abajo
+   dice si queda entregada o pendiente.
+2. **Desde la lista de ventas**, cuando la entregaste: el botón del camión la
+   marca entregada de un toque, sin abrir nada. Si ya estaba entregada, el mismo
+   botón abre el detalle para corregir la forma o la referencia.
+3. **Desde el detalle de la venta**, en la tarjeta *Entrega*: el mismo botón, y
+   además queda registrado cuándo se entregó y quién la marcó.
+
+El filtro **Entrega** de la lista de ventas deja ver de una lo que falta
+entregar, y el número del menú **Ventas** suma —además de lo que falta cobrar—
+las entregas pendientes.
+
+### La lista de ventas
+
+Cada fila muestra **qué se vendió** (las primeras líneas y el resto contado; el
+detalle completo aparece al pasar el mouse), así no hay que abrir la venta para
+saber cuál era. Las **anuladas** se siguen viendo, y tienen un botón de tacho
+para borrarlas de la lista cuando ya no interesan: como están anuladas, borrarlas
+no cambia stock ni cuentas, solo limpia la vista. Una venta viva no se borra de
+un botón — primero se anula, que es lo que devuelve el stock y la deuda.
+
+> **Al actualizar**, todas las ventas que ya existían quedan marcadas como
+> entregadas: lo que se vendió antes de que existiera este paso está cerrado, y
+> arrancar con años de entregas "pendientes" no le serviría a nadie. Si alguna
+> quedó a medias de verdad, se corrige a mano desde la lista.
+
+---
+
+### No hay deuda sin cliente
+
+Una venta que no queda saldada deja plata a cobrar, y esa plata tiene que tener a
+quién reclamársela. **Si la venta va a quedar con saldo, hay que elegir (o crear)
+el cliente**: un nombre suelto no alcanza, porque no abre historial ni cuenta
+corriente — el saldo quedaría flotando en un listado sin aparecer en la cuenta de
+nadie.
+
+La pantalla lo dice mientras cargás —en el paso del pago, apenas el importe
+cobrado es menor al total— y te lleva al paso del cliente. El servidor aplica la
+misma regla venga de donde venga la venta, así que no hay forma de saltearla por
+accidente.
+
+Tres aclaraciones:
+
+- **Cobrada del todo, no hace falta cliente.** Una venta de mostrador que se paga
+  entera se puede cargar sin nombre, como siempre.
+- **Lo que sale de la consignación de un revendedor no cuenta**: esa plata se
+  salda en su cuenta corriente, no acá.
+- **Con la libreta de clientes apagada** (Configuración → Clientes) la regla no
+  aplica: la tienda eligió no llevar fichas.
+
+Si alguna vez necesitás permitir una deuda sin ficha, hay un filtro:
+`mjerp_sale_debt_check`.
+
+**Pagos parciales y diferidos**: cargás lo que te dieron (o nada) y la venta
+queda con saldo a nombre del cliente; el resto se lo registrás cuando pague,
+desde la venta o desde la lista. No hace falta nada más.
+
+---
+
+### Cuándo se emite el pedido y baja el stock
+
+**Dónde:** MJ ERP → Configuración → Ventas → *Pedido en WooCommerce* →
+**Cuándo se emite y baja el stock**.
+
+Anotar una venta no reserva nada. Mientras nadie la pagó ni se llevó el
+producto, esa unidad se sigue pudiendo vender: bajarle el stock ahí sería
+esconder mercadería que todavía está disponible. Lo que vuelve firme a una venta
+es una de dos cosas:
+
+- **Cobrada** — el cliente puso la plata, el producto ya es suyo aunque todavía
+  no lo tenga.
+- **Entregada** — se lo llevó, aunque todavía no haya pagado.
+
+En cualquiera de las dos el ERP **emite el pedido en WooCommerce y descuenta el
+stock, solo**. No hay que apretar nada: pasa cuando registrás el cobro o cuando
+marcás la entrega, venga de donde venga esa acción.
+
+| Opción | Cuándo se emite el pedido y baja el stock |
+| --- | --- |
+| **Cuando se cobra o se entrega** *(default)* | Apenas pasa cualquiera de las dos. |
+| Solo cuando se cobra | La entrega no alcanza: hasta que no esté paga, no se toca el stock. |
+| Solo cuando se entrega | El pago no alcanza: se descuenta cuando sale de tu mano. |
+| Al registrar la venta | Como era antes: todo se emite y descuenta al confirmar. |
+| Nunca sola | Queda siempre a mano, con el botón **Emitir pedido** del detalle. |
+
+**Un pago parcial no alcanza.** Una seña deja la venta en "Pago parcial", no en
+"Pagada". Si querés que una seña reserve la mercadería, marcá la entrega o emití
+el pedido a mano desde la venta. (Para cambiar esa regla hay un filtro,
+`mjerp_sale_is_committed`.)
+
+**La casilla "Emitir el pedido en WooCommerce"** de la pantalla de venta sigue
+decidiendo *si* esa venta lleva pedido; esto decide *cuándo*. Si la destildás, la
+venta igual descuenta el stock cuando se vuelve firme — solo que lo hace el ERP
+en vez de WooCommerce, y esa venta no aparece en los informes de Woo.
+
+Mientras una venta no es firme, la pantalla lo dice en dos lugares: en el
+carrito, antes de confirmar ("Queda anotada sin tocar el stock: el pedido se
+emite y el stock baja cuando la cobres o la entregues"), y arriba del detalle de
+la venta.
+
+> **Deshacer.** Emitir el pedido es un acto real, así que no se revierte solo: si
+> marcaste una entrega por error, la vuelta atrás de la mercadería es **anular la
+> venta**, que cancela el pedido y repone el stock.
+
+---
+
+### El camino de vuelta a la tienda
+
+**Dónde:** MJ ERP → Configuración → General → *Acceso a la tienda*.
+
+Un botón arriba a la derecha, en todas las pantallas del ERP, para pasar a la
+tienda sin escribir la dirección. Se puede apagar, cambiarle el texto y
+mandarlo a otra página. La ida —de la tienda al ERP— se configura en el tema:
+Apariencia → MJ Appearance → Barra de navegación.
 
 ---
 

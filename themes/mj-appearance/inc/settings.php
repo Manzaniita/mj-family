@@ -51,7 +51,8 @@ function mj_option_defaults() {
 		'about_text'              => '',
 		'faqs'                    => '',
 		'free_shipping_override'  => 0,
-		'menu_categories'         => '', // Slugs CSV (máx. 4). Vacío = automático.
+		'menu_categories'         => '', // Slugs CSV (máx. 4). Semilla del menú por defecto; lo que manda es nav_items.
+		'nav_items'               => [], // Barra de navegación: filas [{key,label,href,visible,…}] (ver inc/nav.php). Vacío = el menú automático.
 		'design_theme'            => 'dark', // dark | light | system
 		'motion_level'            => 'medium', // subtle | medium | cinematic
 		'intro_enabled'           => 0,
@@ -208,6 +209,7 @@ function mj_copy_fields() {
 		'nav_new'                   => ['Menú', 'Novedades', 'Novedades', 'text'],
 		'nav_contact'               => ['Menú', 'Contacto', 'Contacto', 'text'],
 		'nav_about'                 => ['Menú', 'Nosotros', '', 'text', 'Vacío = la página Nosotros no aparece en el menú. Con texto, se agrega el enlace a /nosotros.'],
+		'nav_menu'                  => ['Menú', 'Menú del celular (título accesible del botón)', 'Menú', 'text'],
 		'nav_search'                => ['Menú', 'Buscador (título accesible del botón)', 'Buscador', 'text'],
 		'nav_cart'                  => ['Menú', 'Carrito (título accesible del botón)', 'Carrito', 'text'],
 		'nav_account'               => ['Menú', 'Cuenta (título accesible del botón)', 'Cuenta', 'text'],
@@ -555,10 +557,20 @@ function mj_sanitize_options($input) {
 
 	$out['free_shipping_override'] = isset($input['free_shipping_override']) ? absint($input['free_shipping_override']) : 0;
 
-	// Categorías del menú: checkboxes → slugs CSV, máximo 4.
-	$slugs = isset($input['menu_categories']) ? (array) $input['menu_categories'] : [];
-	$slugs = array_values(array_filter(array_map('sanitize_title', $slugs)));
-	$out['menu_categories'] = implode(',', array_slice($slugs, 0, 4));
+	/*
+	 * Categorías del menú: quedó como semilla del menú por defecto (ver inc/nav.php).
+	 * Ya no tiene formulario propio, así que si no llega se conserva lo que había:
+	 * borrarla en cada guardado cambiaría el menú de quien nunca tocó el panel nuevo.
+	 */
+	if (isset($input['menu_categories'])) {
+		$slugs = array_values(array_filter(array_map('sanitize_title', (array) $input['menu_categories'])));
+		$out['menu_categories'] = implode(',', array_slice($slugs, 0, 4));
+	} else {
+		$out['menu_categories'] = (string) mj_get_options()['menu_categories'];
+	}
+
+	// Barra de navegación: orden, visibilidad, nombres y destinos (inc/nav.php).
+	$out['nav_items'] = mj_nav_sanitize($input);
 
 	// Diseño: tema por defecto, paleta y tipografías.
 	$theme               = isset($input['design_theme']) ? (string) $input['design_theme'] : 'dark';
@@ -755,6 +767,7 @@ function mj_icon_choices() {
 		'shirt', 'watch', 'glasses', 'umbrella', 'coffee', 'medal', 'rocket',
 		'timer', 'coins', 'qr-code', 'barcode', 'ticket', 'megaphone', 'party-popper',
 		'hand-heart', 'brush', 'pencil', 'book-open', 'graduation-cap', 'video',
+		'layout-dashboard', 'external-link', 'arrow-up-right', 'briefcase', 'warehouse',
 	];
 	/* Cualquier ícono de lucide.dev sirve: el filtro permite sumar los que falten. */
 	return array_values(array_unique(array_filter(array_map('sanitize_key', (array) apply_filters('mj_icon_choices', $icons)))));
@@ -1022,39 +1035,10 @@ function mj_render_settings_page() {
 
 			<?php mj_render_skin_section($o); ?>
 
-			<h2>Categorías del menú</h2>
+			<?php mj_render_nav_settings(); ?>
+
+			<h2>Marcas</h2>
 			<table class="form-table" role="presentation">
-				<tr>
-					<th scope="row">Categorías en el header</th>
-					<td>
-						<?php
-						$menu_terms = taxonomy_exists('product_cat')
-							? get_terms(['taxonomy' => 'product_cat', 'hide_empty' => false])
-							: [];
-						if (is_wp_error($menu_terms)) {
-							$menu_terms = [];
-						}
-						$menu_selected = array_filter(explode(',', (string) $o['menu_categories']));
-						?>
-						<?php if (!$menu_terms) : ?>
-							<p class="description">Todavía no hay categorías de producto (o WooCommerce está inactivo).</p>
-						<?php else : ?>
-							<fieldset style="display:flex; flex-wrap:wrap; gap:6px 18px; max-width:640px;">
-								<?php foreach ($menu_terms as $term) :
-									if (in_array($term->slug, ['uncategorized', 'sin-categorizar'], true)) {
-										continue;
-									}
-									?>
-									<label style="min-width:180px;">
-										<input type="checkbox" class="mj-menu-cat" name="mj_options[menu_categories][]" value="<?php echo esc_attr($term->slug); ?>" <?php checked(in_array($term->slug, $menu_selected, true)); ?> />
-										<?php echo esc_html($term->name); ?> <span style="color:#787c82;">(<?php echo (int) $term->count; ?>)</span>
-									</label>
-								<?php endforeach; ?>
-							</fieldset>
-							<p class="description">Elegí hasta <strong>4</strong> categorías para mostrar en el menú del header. Sin selección = automático: las 4 con más productos.</p>
-						<?php endif; ?>
-					</td>
-				</tr>
 				<tr>
 					<th scope="row">Cómo llamar a las "marcas"</th>
 					<td>
@@ -1468,14 +1452,53 @@ function mj_render_settings_page() {
 			textarea.setSelectionRange(pos, pos);
 		});
 
-		/* ------------- Categorías del menú: máximo 4 seleccionadas ------------- */
-		var $menuCats = $('.mj-menu-cat');
-		function mjSyncMenuCats() {
-			var full = $menuCats.filter(':checked').length >= 4;
-			$menuCats.not(':checked').prop('disabled', full);
+		/* ------------- Barra de navegación: orden, alta y baja de ítems ------------- */
+		var $nav = $('#mj-nav-items');
+
+		function mjSyncNavOrder() {
+			$('#mj_nav_order').val(
+				$nav.children('li').map(function () { return $(this).data('key'); }).get().join(',')
+			);
 		}
-		$menuCats.on('change', mjSyncMenuCats);
-		mjSyncMenuCats();
+
+		if ($nav.length && $.fn.sortable) {
+			$nav.sortable({
+				items: '> li',
+				handle: '.mj-nav-handle',
+				axis: 'y',
+				containment: 'parent',
+				tolerance: 'pointer',
+				placeholder: 'mj-nav-placeholder',
+				start: function (e, ui) {
+					ui.placeholder.height(ui.item.outerHeight()).css({ border: '1px dashed #2271b1', borderRadius: '6px', margin: '0 0 8px', background: '#f0f6fc' });
+				},
+				update: mjSyncNavOrder
+			});
+		}
+		mjSyncNavOrder();
+
+		/*
+		 * Enlace propio: se clona el molde cambiando __KEY__ por una clave nueva.
+		 * La clave identifica la fila en el formulario y en el orden, así que tiene
+		 * que ser única y no repetirse entre guardados.
+		 */
+		$('.mj-nav-add').on('click', function (e) {
+			e.preventDefault();
+			var tpl = $('#mj-nav-template').html();
+			if (!tpl || !$nav.length) {
+				return;
+			}
+			var key = 'custom:' + Date.now().toString(36) + Math.floor(Math.random() * 1000).toString(36);
+			$nav.append(tpl.split('__KEY__').join(key));
+			mjSyncNavOrder();
+			$nav.children('li').last().find('input[type="text"]').first().trigger('focus');
+		});
+
+		$(document).on('click', '.mj-nav-remove', function (e) {
+			e.preventDefault();
+			$(this).closest('li').remove();
+			mjSyncNavOrder();
+		});
 
 		/* --------------------- Reset de paleta de colores --------------------- */
 		$('.mj-color-reset').on('click', function () {

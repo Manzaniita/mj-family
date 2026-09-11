@@ -34,6 +34,8 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 						'source'           => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
 						'channel'          => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
 						'payment_status'   => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
+						'delivery_status'  => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
+						'delivery_method'  => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
 						'consignee_id'     => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 						'customer_id'      => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 						'customer_user_id' => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
@@ -65,6 +67,9 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 						'note'             => array( 'sanitize_callback' => array( $this, 'arg_textarea' ) ),
 						'payment_method'   => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
 						'cashbox_id'       => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
+						'delivery_method'  => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
+						'delivery_note'    => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+						'delivered'        => array( 'sanitize_callback' => array( $this, 'arg_bool' ) ),
 						'create_order'     => array( 'sanitize_callback' => array( $this, 'arg_bool' ) ),
 						'payment'          => array( 'sanitize_callback' => array( $this, 'arg_array' ) ),
 					)
@@ -143,6 +148,23 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 					WP_REST_Server::CREATABLE,
 					'void_sale',
 					array( 'reason' => array( 'sanitize_callback' => array( $this, 'arg_text' ) ) )
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/sales/(?P<id>\d+)/delivery',
+			array(
+				'args' => array( 'id' => $this->id_arg( __( 'ID de la venta.', 'mj-erp' ) ) ),
+				$this->endpoint(
+					WP_REST_Server::CREATABLE,
+					'set_delivery',
+					array(
+						'status' => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
+						'method' => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
+						'note'   => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+					)
 				),
 			)
 		);
@@ -232,6 +254,8 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 				'source'           => $this->str( $params, 'source' ),
 				'channel'          => $this->str( $params, 'channel' ),
 				'payment_status'   => $this->str( $params, 'payment_status' ),
+				'delivery_status'  => $this->str( $params, 'delivery_status' ),
+				'delivery_method'  => $this->str( $params, 'delivery_method' ),
 				'consignee_id'     => $this->int( $params, 'consignee_id' ),
 				'customer_id'      => $this->int( $params, 'customer_id' ),
 				'customer_user_id' => $this->int( $params, 'customer_user_id' ),
@@ -273,12 +297,19 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 			'note'             => $this->text( $params, 'note' ),
 			'payment_method'   => $this->str( $params, 'payment_method' ),
 			'cashbox_id'       => $this->int( $params, 'cashbox_id' ),
+			'delivery_note'    => $this->str( $params, 'delivery_note', '', 190 ),
 			'payment'          => $this->payment_input( $params ),
 		);
 
 		// Only pass the key when it was actually sent: absent means "lo que diga la configuración".
 		if ( $this->has( $params, 'create_order' ) ) {
 			$data['create_order'] = $this->bool( $params, 'create_order' );
+		}
+		if ( $this->has( $params, 'delivery_method' ) ) {
+			$data['delivery_method'] = $this->str( $params, 'delivery_method' );
+		}
+		if ( $this->has( $params, 'delivered' ) ) {
+			$data['delivered'] = $this->bool( $params, 'delivered' );
 		}
 
 		$sale = MJERP_Sales::create_from_erp( $data );
@@ -394,6 +425,42 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 		$params = $this->params( $request );
 
 		$result = MJERP_Sales::void_sale( $id, $this->str( $params, 'reason', '', 255 ) );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $this->ok( MJERP_Sales_Repo::get_full( $id ) );
+	}
+
+	/**
+	 * POST /sales/{id}/delivery — registra qué pasó con la entrega.
+	 *
+	 * Con `status` solo, es el botón de un toque de la lista de ventas. Con `method` o `note`
+	 * también se corrige cómo se entrega y dónde, sin tocar el resto de la venta.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function set_delivery( $request ) {
+		$id     = $this->route_id( $request );
+		$params = $this->params( $request );
+
+		$data = array();
+		if ( $this->has( $params, 'status' ) ) {
+			$data['status'] = $this->str( $params, 'status' );
+		}
+		if ( $this->has( $params, 'method' ) ) {
+			$data['method'] = $this->str( $params, 'method' );
+		}
+		if ( $this->has( $params, 'note' ) ) {
+			$data['note'] = $this->str( $params, 'note', '', 190 );
+		}
+
+		if ( empty( $data ) ) {
+			return $this->fail( 'mjerp_invalid', __( 'No hay nada que registrar: mandá el estado, el método o la nota.', 'mj-erp' ), 400 );
+		}
+
+		$result = MJERP_Sales_Repo::set_delivery( $id, $data );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}

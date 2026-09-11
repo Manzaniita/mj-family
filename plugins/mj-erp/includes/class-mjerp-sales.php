@@ -48,6 +48,137 @@ class MJERP_Sales {
 		return MJERP_Helpers::bool( MJERP_Settings::get( 'sales_enabled', true ) );
 	}
 
+	/**
+	 * Hooks the two moments that can commit a sale: cobrarla y entregarla.
+	 *
+	 * @return void
+	 */
+	public static function init() {
+		add_action( 'mjerp_sale_payments_synced', array( __CLASS__, 'maybe_commit' ), 10, 1 );
+		add_action( 'mjerp_sale_delivery_changed', array( __CLASS__, 'maybe_commit' ), 10, 1 );
+	}
+
+	/* ------------------------------------------------------------------
+	 * Cuándo una venta se vuelve firme
+	 * ---------------------------------------------------------------- */
+
+	/**
+	 * ¿La venta ya compromete la mercadería?
+	 *
+	 * Anotar una venta no es lo mismo que cerrarla. Mientras nadie pagó ni se llevó nada, el
+	 * producto sigue estando disponible para quien lo compre primero: bajarle el stock ahí sería
+	 * esconder mercadería que todavía se puede vender. Lo que la vuelve firme es una de dos cosas,
+	 * y cuál de ellas lo decide Configuración → Ventas:
+	 *
+	 *   - **Cobrada**: el cliente puso la plata, el producto es suyo aunque todavía no lo tenga.
+	 *   - **Entregada**: se lo llevó, aunque todavía no haya pagado.
+	 *
+	 * Por defecto vale cualquiera de las dos. Un pago parcial no alcanza: la venta figura «Pago
+	 * parcial», no «Pagada», y con una seña la mercadería se reserva marcando la entrega o
+	 * emitiendo el pedido a mano.
+	 *
+	 * @param array $sale Sale record.
+	 * @return bool
+	 */
+	public static function is_committed( array $sale ) : bool {
+		$when = (string) MJERP_Settings::get( 'sales_commit_when', 'pago_o_entrega' );
+
+		$paid      = MJERP_Sales_Repo::PAY_PAID === (string) MJERP_Helpers::array_get( $sale, 'payment_status', '' );
+		$delivered = MJERP_Sales_Repo::DELIVERY_DELIVERED === (string) MJERP_Helpers::array_get( $sale, 'delivery_status', '' );
+
+		switch ( $when ) {
+			case 'registrar':
+				$committed = true;
+				break;
+			case 'pago':
+				$committed = $paid;
+				break;
+			case 'entrega':
+				$committed = $delivered;
+				break;
+			case 'manual':
+				$committed = false;
+				break;
+			default:
+				$committed = $paid || $delivered;
+		}
+
+		/**
+		 * Filters whether a sale already commits the goods.
+		 *
+		 * Sirve, por ejemplo, para que una seña cuente como reserva.
+		 *
+		 * @param bool  $committed Whether the sale is firm.
+		 * @param array $sale      Sale record.
+		 * @param string $when     Configured rule.
+		 */
+		return (bool) apply_filters( 'mjerp_sale_is_committed', $committed, $sale, $when );
+	}
+
+	/**
+	 * Emite el pedido y descuenta el stock en cuanto la venta se vuelve firme.
+	 *
+	 * Se llama sola cuando se registra un cobro y cuando se marca la entrega, así que el circuito no
+	 * depende de que nadie se acuerde de apretar nada. Es idempotente por diseño: una venta que ya
+	 * tiene pedido —o que ya descontó su stock— sale por la primera puerta.
+	 *
+	 * @param int $sale_id Sale id.
+	 * @return void
+	 */
+	public static function maybe_commit( $sale_id ) : void {
+		$sale_id = absint( $sale_id );
+		if ( ! $sale_id ) {
+			return;
+		}
+
+		$sale = MJERP_Sales_Repo::find( $sale_id );
+		if ( ! $sale || MJERP_Sales_Repo::STATUS_VOID === $sale['status'] ) {
+			return;
+		}
+		// Ya pasó por acá: el pedido existe o el stock salió de la estantería.
+		if ( $sale['order_id'] || $sale['stock_applied'] ) {
+			return;
+		}
+		if ( ! self::is_committed( $sale ) ) {
+			return;
+		}
+
+		if ( ! empty( $sale['wants_order'] ) && MJERP_Helpers::bool( MJERP_Settings::get( 'sales_create_order', true ) ) ) {
+			$order = MJERP_Orders::create_for_sale( $sale_id );
+			if ( ! is_wp_error( $order ) ) {
+				return;
+			}
+			// Si el pedido falla, la mercadería igual salió: el stock lo baja el ERP.
+			self::note_order_error( $sale_id, $sale, $order );
+		}
+
+		// Sin pedido no hay nadie más que mueva el stock, así que lo mueve el ERP.
+		self::apply_stock( $sale_id );
+	}
+
+	/**
+	 * Deja escrito en la venta por qué no se pudo emitir el pedido.
+	 *
+	 * @param int      $sale_id Sale id.
+	 * @param array    $sale    Sale record.
+	 * @param WP_Error $error   Error.
+	 * @return void
+	 */
+	protected static function note_order_error( $sale_id, array $sale, $error ) : void {
+		MJERP_Sales_Repo::update(
+			$sale_id,
+			array(
+				'note' => trim(
+					(string) MJERP_Helpers::array_get( $sale, 'note', '' ) . "\n" . sprintf(
+						/* translators: %s: error message */
+						__( 'No se pudo crear el pedido en WooCommerce: %s', 'mj-erp' ),
+						$error->get_error_message()
+					)
+				),
+			)
+		);
+	}
+
 	/* ------------------------------------------------------------------
 	 * From the ERP screen
 	 * ---------------------------------------------------------------- */
@@ -97,32 +228,66 @@ class MJERP_Sales {
 			return new WP_Error( 'mjerp_no_items', __( 'Ninguno de los productos elegidos es válido.', 'mj-erp' ), array( 'status' => 400, 'field' => 'items' ) );
 		}
 
-		$sale_id = MJERP_Sales_Repo::create(
-			array(
-				'source'           => MJERP_Sales_Repo::SOURCE_ERP,
-				'status'           => MJERP_Sales_Repo::sanitize_status( MJERP_Helpers::array_get( $data, 'status', MJERP_Sales_Repo::STATUS_CONFIRMED ) ),
-				'channel'          => MJERP_Helpers::array_get( $data, 'channel', '' ),
-				'sale_date'        => MJERP_Helpers::array_get( $data, 'sale_date', null ),
-				'customer_id'      => $customer['id'],
-				'customer_user_id' => $customer['user_id'],
-				'customer_name'    => $customer['name'],
-				'customer_email'   => $customer['email'],
-				'customer_phone'   => $customer['phone'],
-				'consignee_id'     => $consignee ? (int) $consignee['id'] : 0,
-				'price_list_key'   => $price_list,
-				'currency'         => $currency,
-				'rate'             => $rate,
-				'discount_total'   => MJERP_Helpers::array_get( $data, 'discount_total', 0 ),
-				'shipping_total'   => MJERP_Helpers::array_get( $data, 'shipping_total', 0 ),
-				'note'             => MJERP_Helpers::array_get( $data, 'note', '' ),
-				'payment_method'   => MJERP_Helpers::array_get( $data, 'payment_method', '' ),
-				'cashbox_id'       => MJERP_Sale_Payments_Repo::resolve_cashbox(
-					MJERP_Helpers::array_get( $data, 'cashbox_id', 0 ),
-					MJERP_Helpers::array_get( $data, 'payment_method', '' )
-				),
-				'items'            => $prepared,
-			)
+		/*
+		 * No hay deuda sin cliente.
+		 *
+		 * Una venta que no queda saldada deja plata a cobrar, y esa plata tiene que tener a quién
+		 * reclamársela: sin ficha, el saldo queda flotando en un listado y no aparece en la cuenta
+		 * de nadie. Un nombre suelto no alcanza — no abre historial ni cuenta corriente.
+		 */
+		$debt = self::debt_check( $data, $prepared, $customer );
+		if ( is_wp_error( $debt ) ) {
+			return $debt;
+		}
+
+		$create = array(
+			'source'           => MJERP_Sales_Repo::SOURCE_ERP,
+			'status'           => MJERP_Sales_Repo::sanitize_status( MJERP_Helpers::array_get( $data, 'status', MJERP_Sales_Repo::STATUS_CONFIRMED ) ),
+			'channel'          => MJERP_Helpers::array_get( $data, 'channel', '' ),
+			'sale_date'        => MJERP_Helpers::array_get( $data, 'sale_date', null ),
+			'customer_id'      => $customer['id'],
+			'customer_user_id' => $customer['user_id'],
+			'customer_name'    => $customer['name'],
+			'customer_email'   => $customer['email'],
+			'customer_phone'   => $customer['phone'],
+			'consignee_id'     => $consignee ? (int) $consignee['id'] : 0,
+			'price_list_key'   => $price_list,
+			'currency'         => $currency,
+			'rate'             => $rate,
+			'discount_total'   => MJERP_Helpers::array_get( $data, 'discount_total', 0 ),
+			'shipping_total'   => MJERP_Helpers::array_get( $data, 'shipping_total', 0 ),
+			'note'             => MJERP_Helpers::array_get( $data, 'note', '' ),
+			/*
+			 * Entrega: si no llega ninguna, se usa la configurada por defecto. El estado
+			 * (entregado o pendiente) lo resuelve el repositorio mirando el método.
+			 */
+			'delivery_method'  => array_key_exists( 'delivery_method', $data )
+				? $data['delivery_method']
+				: MJERP_Settings::get( 'sales_default_delivery_method', '' ),
+			'delivery_note'    => MJERP_Helpers::array_get( $data, 'delivery_note', '' ),
+			'payment_method'   => MJERP_Helpers::array_get( $data, 'payment_method', '' ),
+			'cashbox_id'       => MJERP_Sale_Payments_Repo::resolve_cashbox(
+				MJERP_Helpers::array_get( $data, 'cashbox_id', 0 ),
+				MJERP_Helpers::array_get( $data, 'payment_method', '' )
+			),
+			'items'            => $prepared,
 		);
+
+		// Solo viaja si el formulario lo decidió: ausente = lo que diga el método de entrega.
+		if ( array_key_exists( 'delivered', $data ) ) {
+			$create['delivered'] = MJERP_Helpers::bool( $data['delivered'] );
+		}
+
+		/*
+		 * Si esta venta tiene que terminar en un pedido de WooCommerce se guarda en la venta, no se
+		 * decide acá: el pedido puede emitirse días después —cuando se cobre o se entregue— y para
+		 * entonces la casilla del formulario ya no existe.
+		 */
+		$create['wants_order'] = array_key_exists( 'create_order', $data )
+			? MJERP_Helpers::bool( $data['create_order'] )
+			: MJERP_Helpers::bool( MJERP_Settings::get( 'sales_create_order', true ) );
+
+		$sale_id = MJERP_Sales_Repo::create( $create );
 		if ( is_wp_error( $sale_id ) ) {
 			return $sale_id;
 		}
@@ -135,30 +300,12 @@ class MJERP_Sales {
 		// venta quedó saldada, y registrarlo después la dejaría marcada como impaga para siempre.
 		self::register_initial_payment( $sale_id, $data );
 
-		$create_order = array_key_exists( 'create_order', $data )
-			? MJERP_Helpers::bool( $data['create_order'] )
-			: MJERP_Helpers::bool( MJERP_Settings::get( 'sales_create_order', true ) );
-
-		if ( $create_order ) {
-			$order = MJERP_Orders::create_for_sale( $sale_id );
-			if ( is_wp_error( $order ) ) {
-				// The sale is real even when the order could not be emitted: say so instead of
-				// throwing the whole thing away.
-				MJERP_Sales_Repo::update(
-					$sale_id,
-					array(
-						'note' => trim( (string) MJERP_Helpers::array_get( $data, 'note', '' ) . "\n" . sprintf(
-							/* translators: %s: error message */
-							__( 'No se pudo crear el pedido en WooCommerce: %s', 'mj-erp' ),
-							$order->get_error_message()
-						) ),
-					)
-				);
-			}
-		} else {
-			// Without an order nobody else is going to move the stock, so the ERP does it.
-			self::apply_stock( $sale_id );
-		}
+		/*
+		 * Pedido y stock: solo si la venta ya es firme (cobrada o entregada, según lo configurado).
+		 * Un pedido anotado que nadie pagó ni se llevó no esconde mercadería que todavía se puede
+		 * vender; cuando se cobre o se entregue, esto mismo corre solo.
+		 */
+		self::maybe_commit( $sale_id );
 
 		$sale = MJERP_Sales_Repo::get_full( $sale_id );
 
@@ -171,6 +318,102 @@ class MJERP_Sales {
 		do_action( 'mjerp_sale_registered', $sale_id, $sale );
 
 		return $sale;
+	}
+
+	/**
+	 * Rechaza una venta que va a quedar con saldo y no tiene ficha de cliente.
+	 *
+	 * @param array $data     Request data.
+	 * @param array $lines    Prepared lines.
+	 * @param array $customer Resolved customer.
+	 * @return true|WP_Error
+	 */
+	protected static function debt_check( array $data, array $lines, array $customer ) {
+		if ( ! empty( $customer['id'] ) ) {
+			return true;
+		}
+		if ( ! MJERP_Settings::customers_enabled() ) {
+			// Sin libreta de clientes no hay ficha que pedir: la tienda eligió no llevarla.
+			return true;
+		}
+
+		$collectable = self::collectable_of( $data, $lines );
+		$paying      = self::initial_payment_amount( $data, $collectable );
+
+		if ( $collectable - $paying <= MJERP_Sales_Repo::EPSILON ) {
+			return true;
+		}
+
+		$error = new WP_Error(
+			'mjerp_debt_needs_customer',
+			__( 'La venta queda con saldo: elegí (o creá) el cliente que va a quedar debiendo.', 'mj-erp' ),
+			array(
+				'status'      => 400,
+				'field'       => 'customer_id',
+				'due'         => round( $collectable - $paying, 4 ),
+				'collectable' => $collectable,
+			)
+		);
+
+		/**
+		 * Filters the "no debt without a customer" rule.
+		 *
+		 * @param WP_Error|true $error    Error, or true to allow the sale.
+		 * @param array         $data     Request data.
+		 * @param array         $customer Resolved customer.
+		 */
+		return apply_filters( 'mjerp_sale_debt_check', $error, $data, $customer );
+	}
+
+	/**
+	 * Lo que hay que cobrar de una venta que todavía no existe.
+	 *
+	 * Misma cuenta que `preview()`: el total menos lo que sale de la consignación de un revendedor,
+	 * que no se cobra acá sino en su cuenta corriente.
+	 *
+	 * @param array $data  Request data.
+	 * @param array $lines Prepared lines.
+	 * @return float
+	 */
+	protected static function collectable_of( array $data, array $lines ) : float {
+		$subtotal    = 0.0;
+		$consignment = 0.0;
+
+		foreach ( $lines as $line ) {
+			$line_total = (float) MJERP_Helpers::array_get( $line, 'line_total', 0 );
+			$subtotal  += $line_total;
+			if ( MJERP_Sales_Repo::ORIGIN_CONSIGNMENT === MJERP_Helpers::array_get( $line, 'origin', '' ) ) {
+				$consignment += $line_total;
+			}
+		}
+
+		$discount = round( max( 0, MJERP_Helpers::to_float( MJERP_Helpers::array_get( $data, 'discount_total', 0 ) ) ), 4 );
+		$shipping = round( MJERP_Helpers::to_float( MJERP_Helpers::array_get( $data, 'shipping_total', 0 ) ), 4 );
+		$total    = round( $subtotal - $discount + $shipping, 4 );
+
+		return round( max( 0, $total - $consignment ), 4 );
+	}
+
+	/**
+	 * Cuánto se va a cobrar al registrar la venta.
+	 *
+	 * Espejo de `register_initial_payment()`: sin bloque de cobro no se cobra nada, y un cobro sin
+	 * importe es "todo lo que hay que cobrar".
+	 *
+	 * @param array $data        Request data.
+	 * @param float $collectable Collectable amount.
+	 * @return float
+	 */
+	protected static function initial_payment_amount( array $data, float $collectable ) : float {
+		$payment = MJERP_Helpers::array_get( $data, 'payment', null );
+		if ( ! is_array( $payment ) ) {
+			return 0.0;
+		}
+		$amount = MJERP_Helpers::array_get( $payment, 'amount', null );
+		if ( null === $amount || '' === $amount ) {
+			return $collectable;
+		}
+		return round( max( 0, MJERP_Helpers::to_float( $amount ) ), 4 );
 	}
 
 	/**
@@ -377,6 +620,9 @@ class MJERP_Sales {
 				'source'           => MJERP_Sales_Repo::SOURCE_SHOP,
 				'channel'          => MJERP_Settings::get( 'sales_shop_channel', 'tienda' ),
 				'status'           => MJERP_Sales_Repo::STATUS_CONFIRMED,
+				// Un pedido de la tienda todavía no salió de acá: nace con el método configurado
+				// para la tienda (normalmente Envío) y su estado de entrega.
+				'delivery_method'  => MJERP_Settings::get( 'sales_shop_delivery_method', '' ),
 				'sale_date'        => self::order_date( $order ),
 				'customer_id'      => $card ? (int) $card['id'] : 0,
 				'customer_user_id' => $customer_id,

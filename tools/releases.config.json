@@ -6,9 +6,11 @@
     "alcanza con crear su carpeta en plugins/ o themes/ — se detectan solos.",
     "",
     "  roots    — dónde buscar paquetes (cada subcarpeta = un paquete).",
-    "  builds   — apps que hay que compilar antes de empaquetar.",
+    "  builds   — apps que hay que compilar antes de empaquetar. Cada una se",
+    "             compila solo si el paquete que la contiene tiene versión nueva.",
     "  exclude  — patrones que NUNCA entran al zip (código fuente, dependencias).",
-    "  bundles  — conjuntos listos para una tienda concreta.",
+    "  bundles  — qué zip lleva cada tienda. Solo se listan al final de la",
+    "             corrida: no se copia ni se arma ninguna carpeta.",
     "  output   — carpeta de salida."
   ],
 

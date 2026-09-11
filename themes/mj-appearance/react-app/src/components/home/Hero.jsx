@@ -153,7 +153,7 @@ export function Hero() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1, delay: 0.55 }}
-            className={`mj-hero__stats mt-12 flex justify-center gap-10 ${hasImages ? 'text-white' : ''}`}
+            className={`mj-hero__stats mt-12 flex flex-wrap justify-center gap-x-10 gap-y-4 ${hasImages ? 'text-white' : ''}`}
           >
             {stats.map(([n, l]) => (
               <div key={l} className="mj-hero__stat">

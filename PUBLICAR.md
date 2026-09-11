@@ -14,38 +14,50 @@ va en cada uno.
 
 Eso hace, en orden:
 
-1. **Compila** la tienda (React) del tema y la app de reservas del plugin de
-   turnos. Si falta `node_modules`, lo instala solo.
-2. **Lee la versión** de cada tema y plugin de su propia cabecera
-   (`style.css` en los temas, el comentario `Version:` en los plugins).
-3. **Arma un zip por paquete**, sin código fuente ni dependencias: solo lo que
-   corre en el servidor.
-4. **Copia los conjuntos por tienda** a `releases/bundles/`.
-5. **Escribe el manifiesto** con la versión, el tamaño y el SHA-256 de cada zip.
+1. **Lee la versión** de cada tema y plugin de su propia cabecera
+   (`style.css` en los temas, el comentario `Version:` en los plugins) y la
+   compara con los zip que ya están en `releases/`.
+2. **Compila** la tienda (React) del tema o la app de reservas del plugin de
+   turnos **solo si ese paquete tiene una versión nueva**. Si falta
+   `node_modules`, lo instala solo.
+3. **Arma el zip** de los paquetes que cambiaron, sin código fuente ni
+   dependencias: solo lo que corre en el servidor.
+4. **Borra el zip de la versión anterior** de esos paquetes.
+5. **Escribe el manifiesto** con la versión, el tamaño y el SHA-256 de cada zip,
+   y lista qué zip necesita cada tienda.
+
+Si no hay ninguna versión nueva, no compila, no arma nada y lo dice.
 
 Variantes útiles:
 
 ```powershell
+.\tools\build-releases.ps1 -Force                        # rehace aunque la versión no haya cambiado
 .\tools\build-releases.ps1 -SkipBuild                    # no recompila React
 .\tools\build-releases.ps1 -Only mj-glossyhair           # un solo paquete
 ```
+
+`-Force` es para cuando tocaste el código sin subir el número de versión: el
+script mira la versión, no los archivos. Lo normal es subir la versión —
+WordPress necesita el número nuevo para ofrecer la actualización.
 
 ### Qué queda en `releases/`
 
 | Ruta | Qué es |
 | --- | --- |
-| `mj-glossyhair-1.1.0.zip` | El paquete de esa versión exacta. **Nunca se pisa.** |
-| `latest/mj-glossyhair.zip` | La última, con nombre fijo (cómodo para subir siempre igual). |
-| `bundles/glossyhair/` | Todos los zip que necesita esa tienda, con su `LEEME.md`. |
+| `mj-glossyhair-1.1.0.zip` | El paquete listo para subir. Uno solo por paquete: el de la última versión. |
 | `MANIFEST.md` | Tabla con versión y SHA-256 de cada zip. |
 | `manifest.json` | Lo mismo, para scripts. |
+
+Las versiones anteriores no quedan en la carpeta: están publicadas en las
+[Releases de GitHub](https://github.com/Manzaniita/mj-family/releases), colgadas
+de la etiqueta con la que se subieron.
 
 ---
 
 ## 2. Subir a una tienda
 
-En `releases/bundles/<tienda>/` está el `LEEME.md` con el orden exacto. La regla
-que no hay que saltearse:
+Al terminar, el script lista qué zip lleva cada tienda (salen de `bundles` en
+`tools/releases.config.json`). La regla que no hay que saltearse:
 
 > **MJ Appearance (el tema padre) va primero.** Un tema hijo sin su padre
 > aparece como "tema roto" en WordPress.
@@ -127,15 +139,19 @@ quedan publicados en las Releases), pero `releases/MANIFEST.md` **sí**: ahí
 queda registrado con qué SHA-256 se subió cada versión a producción, aunque el
 archivo ya no esté en la carpeta.
 
-Para volver a una versión de antes:
+Para volver a una versión de antes lo más simple es bajar el zip de su Release
+(más abajo). También se puede rearmar:
 
 ```bash
 git checkout v2026.09.09
 .\tools\build-releases.ps1
 ```
 
-Sale el mismo zip que se subió aquel día (los hashes se pueden comparar contra
-el `MANIFEST.md` de esa etiqueta).
+Sale el mismo contenido que se subió aquel día, y el zip de la versión actual se
+borra de la carpeta (vuelve al volver a `main` y correr el script). El SHA-256
+no tiene por qué coincidir con el del `MANIFEST.md`: el zip guarda la fecha de
+cada archivo, y el `git checkout` las cambia. Para comparar byte a byte, el que
+vale es el zip publicado en la Release.
 
 ### Bajar los zip sin tener el proyecto
 
@@ -154,8 +170,8 @@ O desde la web, en la pestaña **Releases** del repositorio.
 No hay que tocar el script. Alcanza con:
 
 1. Crear la carpeta en `plugins/` o en `themes/`, con su cabecera y su versión.
-2. Si es un tema nuevo, sumarlo a algún conjunto en
-   `tools/releases.config.json` → `bundles`.
+2. Sumarlo a la tienda que lo use, en `tools/releases.config.json` → `bundles`:
+   de ahí sale la lista que el script imprime al final.
 3. Si trae una app de React, agregarla a `builds` en ese mismo archivo.
 
 El resto lo detecta solo.
