@@ -142,6 +142,7 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 | MJ Dólar | WooCommerce → Dólar | Tipo de cambio, redondeo, cotización de referencia y su proveedor. |
 | MJ Medios de Pago | WooCommerce → Medios de pago | Recargos y descuentos por medio de pago. |
 | MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos, qué pasa al aprobar, quién puede revisarlos, mails y WhatsApp, cuánto se guardan, y las equivalencias con los métodos de MJ ERP. |
+| MJ Envíos | WooCommerce → Envíos | Los métodos de envío (crear, editar, ordenar, apagar, borrar), sus condiciones, qué datos pide cada uno, la tabla propia de códigos postales, las credenciales de cada correo, el origen del despacho, pesos, margen, redondeo, textos del checkout y los avisos de seguimiento. |
 | MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. |
 | MJ ERP | MJ ERP → Ajustes | Ventas, clientes, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, y permisos del revendedor (por rol y por usuario). |
@@ -526,6 +527,104 @@ tiene, se tiene que enterar sin preguntarte.
 Los comprobantes que sube el revendedor se ven **dentro del ERP**, en el botón
 de la fila del pago, con la imagen o el PDF y los botones de aprobar y rechazar.
 No hace falta entrar a wp-admin.
+
+---
+
+## 3.3. Los envíos, en detalle
+
+Todo está en **WooCommerce → 📦 Envíos**, en cinco pestañas. El paso a paso
+completo está en `plugins/mj-envios/LEEME.md`; acá va el mapa.
+
+| Pestaña | Qué se decide ahí |
+| --- | --- |
+| **Métodos** | Cada forma de recibir la compra. Se crean, se editan, se duplican, se ordenan, se apagan y se borran. |
+| **Datos del cliente** | Qué se le pide para poder enviar, y los campos propios que agregues vos. |
+| **Códigos postales** | La tabla propia: cuántos hay, importar un CSV, sumar uno a mano, vaciarla. |
+| **Correos** | Credenciales y URLs de Vía Cargo, Andreani y Correo Argentino, y sus sucursales. |
+| **Ajustes** | Origen del despacho, pesos, precio, envío gratis, cotización, código postal, textos y seguimiento. |
+
+### Lo que define un método
+
+Dos decisiones, y el resto es opcional:
+
+- **De dónde sale el precio:** tabla propia (por CP, provincia o localidad, y por
+  peso), precio fijo, cotización en vivo con un correo, gratis, retiro en el
+  local, o a coordinar (se ofrece sin precio).
+- **A dónde entrega:** a domicilio, a sucursal del correo, o se retira en el
+  local. Esto ya decide qué datos se piden: a domicilio pide calle y número, a
+  sucursal pide la sucursal, el retiro no pide dirección.
+
+### Cuándo aparece un método
+
+Todo lo que quede vacío o en 0 no filtra. Se combinan: provincias, localidades,
+códigos postales (sueltos, en rango `1000-1999` o con comodín `58*`), monto del
+carrito, peso, cantidad, productos y categorías puntuales, quién compra (con
+cuenta, sin cuenta, ciertos roles) y **medios de pago**.
+
+La regla de medios de pago vale **en los dos sentidos**: un envío "solo con
+efectivo" no aparece si el cliente eligió otra cosa, y si lo eligió, el checkout
+solo le ofrece los medios permitidos.
+
+### Los datos del cliente, y la regla de heredar
+
+El ajuste general está en la pestaña **Datos del cliente**; cada método puede
+pedir más o menos desde su ficha. Lo que queda en **Heredar** sigue al general,
+así subir una regla general alcanza a todos los métodos que nunca se tocaron a
+mano. Es la misma regla que usan los comprobantes de MJ Medios de Pago.
+
+### El código postal
+
+El cliente pone el CP y la tienda completa provincia y localidad sola. De dónde
+sale ese dato se elige en **Ajustes → Código postal**, y en qué orden se
+pregunta:
+
+- **La tabla propia** (instantánea, sin internet). Se importa por CSV y se va
+  llenando sola con todo lo que se resuelve y con lo que elige cada cliente.
+- **La API pública del Estado** (Georef). Gratis y sin credenciales; es la que
+  hace andar el autocompletado de localidad. No publica códigos postales: un CP
+  que todavía no esté en la tabla propia se completa eligiendo la localidad, y
+  ahí queda aprendido.
+- **El correo conectado**, si su API resuelve CP.
+
+Las provincias salen de WooCommerce (país base de la tienda), no de una lista
+escrita en el plugin.
+
+### Los correos
+
+Un correo sin credenciales queda apagado, y los métodos que lo usan cotizan con
+su tabla propia. Si la API no responde, pasa lo que diga **Ajustes → Si el correo
+no responde**: cotizar con la tabla (lo recomendado), ofrecerlo a coordinar, o no
+ofrecerlo.
+
+Las cotizaciones se guardan las horas que elijas y las sucursales quedan
+guardadas en la base, así el checkout no depende de que el correo esté
+funcionando.
+
+### El peso
+
+Se usa el peso cargado en cada producto. Para lo que no lo tenga, en este orden:
+el **peso por defecto del producto** (pestaña Envío del producto), el de su
+**categoría**, y el **general**. Encima de eso se puede sumar el embalaje, poner
+un piso, partir en bultos y usar peso volumétrico.
+
+### El envío gratis
+
+Se activa por monto en **Ajustes → Envío gratis**, y cada método decide si puede
+quedar gratis. Ese número es el que anuncia la barra de "te faltan $X para el
+envío gratis" de la tienda: MJ Envíos se lo informa al tema, así que no hay que
+cargarlo dos veces.
+
+### Con MJ ERP
+
+Cada método declara su **forma de entrega equivalente** del ERP. Así una venta
+capturada de la tienda queda como "retira en el local" o como "envío" según lo
+que eligió el cliente, y la lista de entregas pendientes no se ensucia con lo
+que ya se entregó. Si un método no declara equivalencia, el ERP sigue usando la
+forma configurada para la tienda.
+
+El pedido también guarda **cuánto cobró el correo**, aparte de lo que pagó el
+cliente: es la diferencia real entre lo que cobrás por el envío y lo que te
+cuesta.
 
 ---
 

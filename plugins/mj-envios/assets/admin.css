@@ -1,0 +1,147 @@
+/* Panel de MJ Envíos. Solo lo que wp-admin no trae. */
+
+.mje-wrap .mje-intro {
+	max-width: 760px;
+	font-size: 14px;
+	color: #50575e;
+}
+
+.mje-wrap h3 {
+	margin: 28px 0 4px;
+	padding-top: 16px;
+	border-top: 1px solid #dcdcde;
+	font-size: 15px;
+}
+
+.mje-wrap h4 {
+	margin: 20px 0 4px;
+	font-size: 14px;
+}
+
+/* Estado de un método o de un correo. */
+.mje-on,
+.mje-off {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 10px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+
+.mje-on {
+	background: #edfaef;
+	color: #007017;
+}
+
+.mje-off {
+	background: #f0f0f1;
+	color: #646970;
+}
+
+/* Lista de métodos. */
+.mje-methods td {
+	vertical-align: top;
+}
+
+.mje-methods .mje-actions {
+	white-space: nowrap;
+	text-align: right;
+}
+
+.mje-delete {
+	color: #b32d2e;
+}
+
+.mje-empty {
+	margin: 16px 0;
+	padding: 24px;
+	border: 1px dashed #c3c4c7;
+	border-radius: 6px;
+	background: #fff;
+	max-width: 620px;
+}
+
+/* Tablas repetibles: precios y campos propios. */
+.mje-table {
+	max-width: 1100px;
+	margin-bottom: 8px;
+}
+
+.mje-table td {
+	vertical-align: middle;
+}
+
+.mje-row-remove {
+	color: #b32d2e;
+	text-decoration: none;
+	font-size: 15px;
+	cursor: pointer;
+}
+
+/* Datos del cliente. */
+.mje-fields code {
+	font-size: 11px;
+	color: #646970;
+	background: transparent;
+	padding: 0;
+}
+
+.mje-fields .mje-subrow td {
+	padding-top: 0;
+	border-top: 0;
+}
+
+/* Casilleros en columnas (medios de pago, proveedores de CP). */
+.mje-checklist {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: 4px 16px;
+	max-width: 860px;
+}
+
+.mje-checklist label {
+	display: block;
+	padding: 2px 0;
+}
+
+/* Formularios de una línea (agregar CP, agregar sucursal). */
+.mje-inline {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin: 8px 0 16px;
+}
+
+.mje-inline .button {
+	margin: 0;
+}
+
+/* Tarjetas de resumen. */
+.mje-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 16px 0;
+}
+
+.mje-card {
+	min-width: 200px;
+	padding: 14px 18px;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	background: #fff;
+}
+
+.mje-card strong {
+	display: block;
+	font-size: 20px;
+	line-height: 1.2;
+}
+
+.mje-card span {
+	color: #646970;
+	font-size: 12px;
+}

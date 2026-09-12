@@ -18,7 +18,7 @@ piel: paleta, tipografías y textos.
 
 | Tema | Versión | Qué es |
 | --- | --- | --- |
-| **MJ Appearance** | 3.12.0 | El motor. Tienda completa en React (una sola página) sobre la Store API de WooCommerce: catálogo, carrito, checkout con compra rápida, cuenta y turnos. Modo día/noche, niveles de animación, barra de navegación armada ítem por ítem y **todo** configurable desde Apariencia → MJ Appearance. |
+| **MJ Appearance** | 3.13.0 | El motor. Tienda completa en React (una sola página) sobre la Store API de WooCommerce: catálogo, carrito, checkout con compra rápida, cuenta y turnos. Modo día/noche, niveles de animación, barra de navegación armada ítem por ítem, paso de envío con validación de código postal y **todo** configurable desde Apariencia → MJ Appearance. |
 | **GlossyHair** | 1.1.0 | Salón de alisados que además vende productos. Blanco y fucsia, Urbanist + Manrope. Portada pensada para turnos. |
 | **Yamana** | 1.1.0 | Tejidos artesanales y cursos. Lino y terracota, Fraunces + Nunito. Incluye el proyecto colectivo "Entre Hilos". |
 | **MJ Atelier** | 1.1.0 | Tienda editorial de lujo. Marfil y bronce, Fraunces + Manrope, movimiento cinematográfico. |
@@ -36,7 +36,8 @@ como paletas que se aplican con un botón y después se editan campo por campo.
 | **MJ Colegas** | 1.0.0 | Productos de terceros en la tienda: cada uno lleva quién lo hizo, y se liquida descontando la comisión. |
 | **MJ Dólar** | 1.0.0 | Precios cargados en dólares y convertidos con el tipo de cambio que decido yo. Campos USD en productos, variaciones, edición en lote y CSV. |
 | **MJ Medios de Pago** | 1.2.0 | Descuento o recargo según el medio de pago, con el precio reflejado en ficha, carrito y checkout. Cada medio de la tienda se declara equivalente a uno del ERP, y con eso hereda su caja de ingreso. |
-| **MJ ERP** | 1.13.1 | Ventas (propias y de la tienda), clientes, costeo, compras, proveedores, stock y consignación, con portal para consignatarios. La venta se carga como en un mostrador en la compu y en cinco pasos en el celular. Lleva la entrega —envío, punto de encuentro, en mano— y el pedido en WooCommerce se emite solo, con su descuento de stock, cuando la venta se cobra o se entrega. Cada medio de pago tiene su caja de ingreso, y el precio sugerido se redondea como lo publica la tienda. |
+| **MJ Envíos** | 1.0.0 | Los métodos de envío de la tienda, creados y editados por mí: a domicilio, a sucursal, retiro en el local, zona propia por código postal, gratis o a coordinar. Cada uno decide con qué condiciones aparece, con qué medios de pago se combina, qué datos pide y de dónde sale su precio: tabla propia, precio fijo o cotización en vivo con Vía Cargo, Andreani o Correo Argentino. |
+| **MJ ERP** | 1.14.0 | Ventas (propias y de la tienda), clientes, costeo, compras, proveedores, stock y consignación, con portal para consignatarios. La venta se carga como en un mostrador en la compu y en cinco pasos en el celular. Lleva la entrega —envío, punto de encuentro, en mano— y el pedido en WooCommerce se emite solo, con su descuento de stock, cuando la venta se cobra o se entrega. Cada medio de pago tiene su caja de ingreso, y el precio sugerido se redondea como lo publica la tienda. |
 | **MJ Optimizador de Imágenes** | 1.1.0 | Achica y convierte las imágenes en mi propio servidor, sin límites ni créditos. |
 | **MJ Fotos Rápidas** | 1.2.0 | Cargar las fotos de un producto desde el celular en dos toques y publicarlo ahí mismo. |
 
@@ -48,9 +49,9 @@ Cada plugin hace una cosa y se puede desactivar sin romper el resto.
 
 | Tienda | Tema | Plugins |
 | --- | --- | --- |
-| GlossyHair | GlossyHair | Turnos Online, Medios de Pago, Optimizador, Fotos Rápidas |
-| Yamana | Yamana | Colegas, Medios de Pago, Optimizador, Fotos Rápidas |
-| MJ Importaciones | MJ Atelier | Dólar, Medios de Pago, ERP, Optimizador, Fotos Rápidas |
+| GlossyHair | GlossyHair | Turnos Online, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
+| Yamana | Yamana | Colegas, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
+| MJ Importaciones | MJ Atelier | Dólar, Medios de Pago, Envíos, ERP, Optimizador, Fotos Rápidas |
 
 Esas combinaciones están declaradas en
 [`tools/releases.config.json`](tools/releases.config.json) y el script las

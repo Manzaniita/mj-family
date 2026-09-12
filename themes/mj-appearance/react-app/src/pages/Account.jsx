@@ -464,10 +464,45 @@ export function AccountOrderDetail() {
         <div className="mj-panel rounded-xl3 border border-line glass p-6">
           <h3 className="font-display text-lg font-semibold">Envío y pago</h3>
           <div className="mt-4 space-y-4 text-sm">
-            {order.shippingMethod && (
+            {(order.envio?.metodo || order.shippingMethod) && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Método de envío</p>
-                <p className="mt-1 text-ink-soft">{order.shippingMethod}</p>
+                <p className="mt-1 text-ink-soft">{order.envio?.metodo || order.shippingMethod}</p>
+                {/* Todo lo de abajo lo aporta el plugin MJ Envíos: sin plugin, no hay nada que mostrar. */}
+                {order.envio?.plazo && <p className="text-ink-faint">{order.envio.plazo}</p>}
+                {order.envio?.aCoordinar && <p className="text-ink-faint">El costo se acuerda con vos.</p>}
+                {order.envio?.sucursal && <p className="mt-1 text-ink-soft">{order.envio.sucursal}</p>}
+                {order.envio?.retiro?.address && (
+                  <p className="mt-1 text-ink-soft">
+                    Se retira en {[order.envio.retiro.address, order.envio.retiro.city].filter(Boolean).join(', ')}
+                  </p>
+                )}
+                {order.envio?.datos?.length > 0 && (
+                  <ul className="mt-1.5 space-y-0.5 text-ink-faint">
+                    {order.envio.datos.map((d) => (
+                      <li key={d.etiqueta}>{d.etiqueta}: {d.valor}</li>
+                    ))}
+                  </ul>
+                )}
+                {order.envio?.instrucciones && (
+                  <p className="mt-1.5 whitespace-pre-line text-ink-soft">{order.envio.instrucciones}</p>
+                )}
+              </div>
+            )}
+            {order.envio?.seguimiento?.codigo && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Seguimiento</p>
+                <p className="mt-1 font-medium text-ink">{order.envio.seguimiento.codigo}</p>
+                {order.envio.seguimiento.link && (
+                  <a
+                    href={order.envio.seguimiento.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    Ver dónde está mi paquete
+                  </a>
+                )}
               </div>
             )}
             {order.paymentMethod && (

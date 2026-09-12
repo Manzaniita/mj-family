@@ -38,6 +38,12 @@ function mapServerCart(cart) {
   }));
 }
 
+/** Un dato que el plugin de envíos dejó en la meta de la tarifa. */
+function rateMeta(rate, key) {
+  const found = (rate?.meta_data || []).find((m) => m?.key === key);
+  return found?.value != null ? String(found.value) : '';
+}
+
 /** Métodos de envío y costo derivados del carrito del servidor. */
 function mapServerShipping(cart) {
   if (!cart) return { rates: [], selected: null, cost: null };
@@ -48,6 +54,13 @@ function mapServerShipping(cart) {
       name: stripHtml(r.name),
       selected: !!r.selected,
       cost: toAmount(r.price, r.currency_minor_unit ?? u),
+      // Lo que agrega MJ Envíos a su tarifa: sin el plugin, todo esto viene vacío.
+      slug: rateMeta(r, '_mje_slug'),
+      destination: rateMeta(r, '_mje_destination'),
+      description: rateMeta(r, '_mje_description'),
+      eta: rateMeta(r, '_mje_eta'),
+      note: rateMeta(r, '_mje_note'),
+      coordinate: rateMeta(r, '_mje_coordinate') === '1',
     }))
   );
   return {
@@ -75,6 +88,19 @@ function mapServerExtras(cart) {
         total: toAmount(t.total_price, u),
       }
     : null;
+  // Envío: lo que el servidor sabe del paso de envío (plugin MJ Envíos → extensions.mje).
+  const mje = cart?.extensions?.mje;
+  const shipping = mje
+    ? {
+        method: mje.method || '',
+        destination: mje.destination || '',
+        branch: mje.branch || '',
+        city: mje.city || '',
+        fields: mje.fields || {},
+        problems: Array.isArray(mje.problems) ? mje.problems : [],
+        freeFrom: Number(mje.freeFrom) || 0,
+      }
+    : null;
   const mjpm = cart?.extensions?.mjpm;
   const payment = mjpm && mjpm.method
     ? {
@@ -88,7 +114,7 @@ function mapServerExtras(cart) {
         usdTotal: mjpm.usd_total != null ? Number(mjpm.usd_total) : null,
       }
     : null;
-  return { fees, totals, payment };
+  return { fees, totals, payment, shipping };
 }
 
 /** Estado parcial que se aplica con TODO response de cart de la Store API. */
@@ -132,8 +158,8 @@ export const useCart = create(
       return {
         items: [], // { product, qty, key?, qtyLimits }
         shipping: { rates: [], selected: null, cost: null },
-        // Lo que sabe el servidor y la SPA no calcula: fees, totales y ajuste por medio de pago.
-        server: { fees: [], totals: null, payment: null },
+        // Lo que sabe el servidor y la SPA no calcula: fees, totales, ajuste por medio de pago y envío.
+        server: { fees: [], totals: null, payment: null, shipping: null },
         error: null,
         syncing: false,
 
@@ -160,6 +186,62 @@ export const useCart = create(
           enqueue(() => wc.updateCartExtension('mjpm', { payment_method: id }))
             .then((cart) => set(serverCartState(cart)))
             .catch((e) => console.warn('[mj] No se pudo sincronizar el medio de pago.', e));
+        },
+
+        /**
+         * Guarda la dirección de envío en la sesión del carrito y adopta el
+         * carrito que vuelve: con eso llegan las tarifas del destino.
+         *
+         * Tiene que pasar por el store (y no llamarse suelto a la Store API):
+         * la respuesta trae las tarifas nuevas, y si no se aplican, el resumen
+         * sigue mostrando las del destino anterior.
+         */
+        syncAddress: (address) => {
+          if (!IS_WP || !address) return Promise.resolve(null);
+          return enqueue(() => wc.updateCustomerAddress(address))
+            .then((cart) => {
+              set(serverCartState(cart));
+              return cart;
+            })
+            .catch((e) => {
+              console.warn('[mj] No se pudo calcular el envío para esa dirección.', e);
+              return null;
+            });
+        },
+
+        /** Marca la tarifa de envío elegida y adopta los totales que vuelven. */
+        selectRate: (rateId) => {
+          if (!IS_WP || !rateId) return Promise.resolve(null);
+          return enqueue(() => wc.selectShippingRate(rateId))
+            .then((cart) => {
+              set(serverCartState(cart));
+              return cart;
+            })
+            .catch((e) => {
+              console.warn('[mj] No se pudo elegir ese método de envío.', e);
+              return null;
+            });
+        },
+
+        /**
+         * Avisa al servidor lo elegido en el paso de envío (plugin MJ Envíos):
+         * el método, la sucursal y los datos del formulario. El carrito vuelve
+         * recalculado, con las tarifas al día.
+         *
+         * Va por la misma cola que el resto: elegir método y escribir un dato
+         * al mismo tiempo no puede pisarse.
+         */
+        syncShipping: (data) => {
+          if (!IS_WP || !data) return Promise.resolve(null);
+          return enqueue(() => wc.updateCartExtension('mje', data))
+            .then((cart) => {
+              set(serverCartState(cart));
+              return cart;
+            })
+            .catch((e) => {
+              console.warn('[mj] No se pudo sincronizar el envío.', e);
+              return null;
+            });
         },
 
         /** Muestra un error del carrito; se auto-limpia a los 4.5s. */

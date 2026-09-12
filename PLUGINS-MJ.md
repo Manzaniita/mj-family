@@ -157,7 +157,14 @@ descuento especial autorizado por vos dentro del presupuesto.
 
 **Tamaño:** mediano a grande.
 
-### 3.5. MJ Envíos Argentina
+### 3.5. MJ Envíos Argentina — **entregado** (MJ Envíos 1.0.0)
+
+Se entregó como **MJ Envíos**, y bastante más grande de lo planeado: los métodos
+de envío no vienen dados, los creás vos. Ver `plugins/mj-envios/LEEME.md`.
+
+Lo que quedó pendiente de este punto: las etiquetas de despacho (hoy se carga el
+número de seguimiento a mano en el pedido) y probar las tres APIs contra cuentas
+reales, que todavía no existen.
 
 **Qué hace**
 

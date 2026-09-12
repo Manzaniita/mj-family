@@ -325,6 +325,30 @@ export const getProductStock = (id) => apiReq(`/product-stock/${id}`);
 /** Tipo de cambio vigente (plugin MJ Dólar, mjd/v1). Rechaza si el plugin está inactivo. */
 export const getExchangeRate = () => apiReq('/rate', {}, 'mjd/v1');
 
+/* ----------------------- Envíos (plugin MJ Envíos) ------------------------
+ * mje/v1. Todo público: el paso de envío del checkout se usa sin cuenta.
+ * Si el plugin está inactivo, estas llamadas rechazan con 404 y el checkout
+ * sigue funcionando con las tarifas que haya configurado WooCommerce.
+ * ------------------------------------------------------------------------- */
+
+/** Provincia y localidades de un código postal. */
+export const getPostcode = (cp) => apiReq(`/geo/cp?cp=${encodeURIComponent(cp)}`, {}, 'mje/v1');
+
+/** Localidades que coinciden con un texto (autocompletado). */
+export const searchCities = (query, state = '') =>
+  apiReq(`/geo/localidades?q=${encodeURIComponent(query)}&prov=${encodeURIComponent(state)}`, {}, 'mje/v1');
+
+/** Sucursales del correo de un método, para el CP cargado. */
+export const getBranches = (method, cp = '') =>
+  apiReq(`/sucursales?metodo=${encodeURIComponent(method)}&cp=${encodeURIComponent(cp)}`, {}, 'mje/v1');
+
+/** Cuánto sale enviar a un destino (sirve sin carrito armado). */
+export const quoteShipping = (data) => apiReq('/cotizar', { method: 'POST', body: data }, 'mje/v1');
+
+/** Seguimiento de un pedido (con sesión, o con la clave del pedido). */
+export const getTracking = (orderId, orderKey = '') =>
+  apiReq(`/seguimiento?pedido=${encodeURIComponent(orderId)}&clave=${encodeURIComponent(orderKey)}`, {}, 'mje/v1');
+
 export const getAccount = () => apiReq('/account');
 export const updateProfile = (data) => apiReq('/account/profile', { method: 'POST', body: data });
 export const updateAddresses = (billing, shipping) =>
@@ -356,7 +380,10 @@ export async function placeOrder({ billing, paymentMethod, additionalFields }) {
     first_name: billing.firstName,
     last_name: billing.lastName,
     address_1: billing.address,
+    // Piso/depto y provincia: los correos no pueden despachar sin esto.
+    address_2: billing.address2 || '',
     city: billing.city,
+    state: billing.state || '',
     postcode: billing.postcode,
     country: WP?.baseCountry || 'AR',
     email: billing.email,

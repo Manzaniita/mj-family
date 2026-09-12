@@ -8,12 +8,17 @@ import { Button } from '@/components/ui/Button';
 import { ProductImage } from '@/components/ui/ProductImage';
 import { ReceiptUploader } from '@/components/ui/ReceiptUploader';
 import { Reveal } from '@/components/motion/Reveal';
+import ShippingStep from '@/components/checkout/ShippingStep';
 import { useCart } from '@/store';
 import { effectivePrice } from '@/lib/api';
 import { IS_WP, WP, EXCHANGE_RATE, EXPRESS } from '@/lib/config';
 import * as wc from '@/lib/wc';
 import { formatPrice, formatUsd, FREE_SHIPPING_THRESHOLD, isValidCuit, cn } from '@/lib/format';
 import { usePaymentMethod, selectedMethodId, findMethod, resolveAdjustment, usdTotalFor } from '@/lib/payments';
+import { hasShipping, methodBySlug, missingFor, shippingTexts } from '@/lib/envios';
+
+/* Cómo se llama el paso de envío. Lo decide el plugin; sin plugin, "Envío". */
+const SHIPPING_TITLE = shippingTexts().stepTitle || 'Envío';
 
 // Medios de pago: dentro de WordPress SOLO los gateways reales activos en
 // WooCommerce (inyectados por PHP). En modo demo (standalone) se muestran
@@ -66,8 +71,10 @@ function ChoiceGroup({ options, value, onChange }) {
  * un botón que después va a fallar sería peor que pedir los datos de entrada.
  */
 function isComplete(form) {
-  return ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'postcode']
-    .every((key) => String(form[key] || '').trim() !== '');
+  const keys = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'postcode'];
+  /* Con envíos propios la provincia no es opcional: sin ella ningún correo cotiza. */
+  if (hasShipping()) keys.push('state');
+  return keys.every((key) => String(form[key] || '').trim() !== '');
 }
 
 /** Resumen compacto de a dónde va el pedido, con un botón para volver al formulario. */
@@ -78,7 +85,11 @@ function ExpressSummary({ form, onEdit }) {
         <div>
           <h2 className="font-display text-lg font-semibold tracking-tight">Tus datos</h2>
           <p className="mt-3 text-sm text-ink">{form.firstName} {form.lastName}</p>
-          <p className="text-sm text-ink-soft">{form.address}, {form.city} ({form.postcode})</p>
+          <p className="text-sm text-ink-soft">
+            {[form.address, form.address2].filter(Boolean).join(', ')}
+            {form.city ? `, ${form.city}` : ''}
+            {form.postcode ? ` (${form.postcode})` : ''}
+          </p>
           <p className="text-sm text-ink-soft">{form.email} · {form.phone}</p>
         </div>
         <button
@@ -116,8 +127,15 @@ export default function Checkout() {
   const [orderId, setOrderId] = useState(null);
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
-    address: '', city: '', postcode: '',
+    address: '', address2: '', city: '', state: '', postcode: '',
   });
+  /*
+   * Datos del envío que pide el método elegido (DNI de quien recibe, sucursal,
+   * horario, lo que sea que esté configurado). Viven acá porque el pedido se
+   * cierra desde este formulario, y se sincronizan con el servidor a medida que
+   * se escriben.
+   */
+  const [extra, setExtra] = useState({});
   // Paso 4 · Facturación. fiscalCfg = config del emisor según el plugin
   // (null = plugin inactivo o todavía no respondió → el paso no se muestra).
   const [fiscalCfg, setFiscalCfg] = useState(null);
@@ -162,14 +180,19 @@ export default function Checkout() {
     wc.getAccount()
       .then((acc) => {
         const b = acc?.addresses?.billing ?? {};
+        /* La dirección de envío manda si está cargada; si no, la de facturación. */
+        const s = acc?.addresses?.shipping ?? {};
+        const pick = (key) => s[key] || b[key] || '';
         const filled = {
-          firstName: b.first_name || '',
-          lastName: b.last_name || '',
+          firstName: pick('first_name'),
+          lastName: pick('last_name'),
           email: b.email || WP.user.email || '',
           phone: b.phone || '',
-          address: b.address_1 || '',
-          city: b.city || '',
-          postcode: b.postcode || '',
+          address: pick('address_1'),
+          address2: pick('address_2'),
+          city: pick('city'),
+          state: pick('state'),
+          postcode: pick('postcode'),
         };
 
         setForm((f) => {
@@ -202,6 +225,7 @@ export default function Checkout() {
   const total = subtotal + (shippingCost ?? 0) + (adjustment?.amount ?? 0) + otherFees.reduce((n, f) => n + f.amount, 0);
   const usdTotal = usdTotalFor(total, payMethod);
   const shippingRates = cartShipping?.rates ?? [];
+  const chosenRate = shippingRates.find((r) => r.selected) ?? null;
   const noGateways = IS_WP && paymentMethods.length === 0;
 
   // Tipo de comprobante resultante (misma lógica que el plugin): emisor RI
@@ -223,42 +247,31 @@ export default function Checkout() {
    * para la dirección cargada; si ninguna queda seleccionada, elegimos
    * la primera disponible.
    */
-  /** Pide las tarifas de envío con una dirección ya conocida (compra rápida). */
-  const prefetchShipping = async (data) => {
+  /**
+   * Pide las tarifas de envío para una dirección.
+   *
+   * Pasa por el store (y no suelto a la Store API) porque la respuesta trae las
+   * tarifas nuevas: sin adoptarlas, el resumen seguiría mostrando las del
+   * destino anterior. Si ninguna quedó elegida, se toma la primera.
+   */
+  const syncShippingRates = async (data = form) => {
     if (!IS_WP || String(data.postcode || '').trim().length < 4) return;
-    try {
-      await wc.updateCustomerAddress({
-        postcode: data.postcode,
-        city: data.city,
-        address_1: data.address,
-        country: WP?.baseCountry,
-      });
-      const rates = useCart.getState().shipping?.rates ?? [];
-      if (rates.length && !rates.some((r) => r.selected)) {
-        await wc.selectShippingRate(rates[0].rate_id);
-      }
-    } catch {
-      // El resumen queda con "Se calcula al finalizar" y el checkout sigue andando.
+    const { syncAddress, selectRate } = useCart.getState();
+    await syncAddress({
+      postcode: data.postcode,
+      state: data.state || '',
+      city: data.city || '',
+      address_1: data.address || '',
+      country: WP?.baseCountry,
+    });
+    const rates = useCart.getState().shipping?.rates ?? [];
+    if (rates.length && !rates.some((r) => r.selected)) {
+      await selectRate(rates[0].rate_id);
     }
   };
 
-  const syncShippingRates = async () => {
-    if (!IS_WP || form.postcode.trim().length < 4) return;
-    try {
-      await wc.updateCustomerAddress({
-        postcode: form.postcode,
-        city: form.city,
-        address_1: form.address,
-        country: WP?.baseCountry,
-      });
-      const rates = useCart.getState().shipping?.rates ?? [];
-      if (rates.length && !rates.some((r) => r.selected)) {
-        await wc.selectShippingRate(rates[0].rate_id);
-      }
-    } catch {
-      // Silencioso: el resumen sigue mostrando "Se calcula al finalizar".
-    }
-  };
+  /** Compra rápida: el envío se calcula ya, con los datos que ya teníamos. */
+  const prefetchShipping = (data) => syncShippingRates(data);
 
   if (placed) {
     return (
@@ -360,6 +373,36 @@ export default function Checkout() {
       };
     }
 
+    /*
+     * Envío: que esté elegido y con todos sus datos. El servidor lo valida de
+     * nuevo, pero avisar acá es mucho mejor que un error después de apretar.
+     */
+    if (hasShipping()) {
+      const rate = (cartShipping?.rates ?? []).find((r) => r.selected);
+      if (!rate) {
+        setError('Elegí cómo querés recibir tu compra.');
+        return;
+      }
+      const missing = missingFor(rate.slug ? methodBySlug(rate.slug) : null, {
+        ...extra,
+        postcode: form.postcode,
+        state: form.state,
+        city: form.city,
+        address_1: form.address,
+        address_2: form.address2,
+      });
+      if (missing.length) {
+        setError(`Para poder enviarte la compra falta: ${missing.join(', ')}.`);
+        return;
+      }
+      /* Lo último que escribió puede estar esperando su turno: se manda ahora. */
+      await useCart.getState().syncShipping({
+        fields: extra,
+        branch: extra.branch || '',
+        city: form.city || '',
+      });
+    }
+
     setPlacing(true);
     try {
       const order = await wc.placeOrder({ billing: form, paymentMethod: payment, additionalFields });
@@ -444,15 +487,44 @@ export default function Checkout() {
             </div>
           </Reveal>
 
-          <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
-            <h2 className="font-display text-lg font-semibold tracking-tight">2 · Envío</h2>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <Input label="Dirección" required placeholder="Calle y número" className="sm:col-span-2" autoComplete="street-address" {...field('address')} />
-              <Input label="Ciudad" required placeholder="Ciudad" autoComplete="address-level2" {...field('city')} />
-              <Input label="Código postal" required placeholder="CP" autoComplete="postal-code" {...field('postcode')} onBlur={syncShippingRates} />
-            </div>
-          </Reveal>
+          {hasShipping() ? (
+            <Reveal>
+              <ShippingStep
+                title={`2 · ${SHIPPING_TITLE}`}
+                form={form}
+                setForm={setForm}
+                extra={extra}
+                setExtra={setExtra}
+              />
+            </Reveal>
+          ) : (
+            <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
+              <h2 className="font-display text-lg font-semibold tracking-tight">2 · Envío</h2>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <Input label="Dirección" required placeholder="Calle y número" className="sm:col-span-2" autoComplete="street-address" {...field('address')} />
+                <Input label="Ciudad" required placeholder="Ciudad" autoComplete="address-level2" {...field('city')} />
+                <Input label="Código postal" required placeholder="CP" autoComplete="postal-code" {...field('postcode')} onBlur={() => syncShippingRates()} />
+              </div>
+            </Reveal>
+          )}
           </>
+          )}
+
+          {/*
+            * Compra rápida con envíos propios: los datos de contacto y la
+            * dirección quedan resumidos arriba, pero la forma de envío hay que
+            * elegirla igual — y puede pedir una sucursal o un DNI.
+            */}
+          {express && hasShipping() && (
+            <Reveal>
+              <ShippingStep
+                title={SHIPPING_TITLE}
+                form={form}
+                setForm={setForm}
+                extra={extra}
+                setExtra={setExtra}
+              />
+            </Reveal>
           )}
 
           <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
@@ -635,14 +707,15 @@ export default function Checkout() {
                 </li>
               ))}
             </ul>
-            {shippingRates.length > 0 && (
+            {/* Con MJ Envíos, la forma de envío se elige en su paso: acá no se repite. */}
+            {!hasShipping() && shippingRates.length > 0 && (
               <div className="mt-5 space-y-2 border-t border-line pt-5">
                 <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Método de envío</p>
                 {shippingRates.map((r) => (
                   <button
                     type="button"
                     key={r.rate_id}
-                    onClick={() => wc.selectShippingRate(r.rate_id).catch(() => {})}
+                    onClick={() => useCart.getState().selectRate(r.rate_id)}
                     className={cn(
                       'flex w-full items-center justify-between gap-3 rounded-xl2 border p-3 text-left text-sm transition-all duration-200',
                       r.selected ? 'border-accent bg-accent-soft' : 'border-line hover:border-line-strong'
@@ -664,14 +737,19 @@ export default function Checkout() {
             )}
             <dl className="mt-6 space-y-2.5 border-t border-line pt-5 text-sm">
               <div className="flex justify-between"><dt className="text-ink-soft">Subtotal</dt><dd>{formatPrice(subtotal)}</dd></div>
-              <div className="flex justify-between">
-                <dt className="text-ink-soft">Envío</dt>
-                <dd className={shippingCost === 0 ? 'font-semibold text-success' : ''}>
-                  {shippingCost == null
-                    ? 'Se calcula al finalizar'
-                    : shippingCost === 0
-                      ? 'GRATIS'
-                      : formatPrice(shippingCost)}
+              <div className="flex justify-between gap-3">
+                <dt className="text-ink-soft">
+                  Envío
+                  {chosenRate && <span className="block text-xs text-ink-faint">{chosenRate.name}</span>}
+                </dt>
+                <dd className={shippingCost === 0 && !chosenRate?.coordinate ? 'font-semibold text-success' : ''}>
+                  {chosenRate?.coordinate
+                    ? 'A coordinar'
+                    : shippingCost == null
+                      ? 'Se calcula al finalizar'
+                      : shippingCost === 0
+                        ? 'GRATIS'
+                        : formatPrice(shippingCost)}
                 </dd>
               </div>
               {adjustment && (

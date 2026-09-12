@@ -620,9 +620,10 @@ class MJERP_Sales {
 				'source'           => MJERP_Sales_Repo::SOURCE_SHOP,
 				'channel'          => MJERP_Settings::get( 'sales_shop_channel', 'tienda' ),
 				'status'           => MJERP_Sales_Repo::STATUS_CONFIRMED,
-				// Un pedido de la tienda todavía no salió de acá: nace con el método configurado
-				// para la tienda (normalmente Envío) y su estado de entrega.
-				'delivery_method'  => MJERP_Settings::get( 'sales_shop_delivery_method', '' ),
+				// Un pedido de la tienda todavía no salió de acá: nace con la forma de entrega que
+				// diga el método de envío elegido, y si nadie la resuelve, con la configurada
+				// para la tienda (normalmente Envío).
+				'delivery_method'  => self::delivery_from_order( $order ),
 				'sale_date'        => self::order_date( $order ),
 				'customer_id'      => $card ? (int) $card['id'] : 0,
 				'customer_user_id' => $customer_id,
@@ -1775,6 +1776,36 @@ class MJERP_Sales {
 		}
 
 		return MJERP_Sale_Payments_Repo::sanitize_method( '' );
+	}
+
+	/**
+	 * Delivery method of an order that came from the shop.
+	 *
+	 * A shop order is born with the form of delivery configured for the shop — normally "Envío" —
+	 * but the shipping method the customer actually chose knows better: a pickup at the counter is
+	 * not a shipment, and counting it as one leaves it forever in the list of what is still to be
+	 * delivered. MJ Envíos answers this filter with the ERP key each of its methods points at.
+	 *
+	 * @param WC_Order $order Order.
+	 * @return string
+	 */
+	private static function delivery_from_order( WC_Order $order ) : string {
+		$default = (string) MJERP_Settings::get( 'sales_shop_delivery_method', '' );
+		$keys    = wp_list_pluck( MJERP_Settings::sale_delivery_methods(), 'key' );
+
+		/**
+		 * Filters how the shipping method of a shop order maps to an ERP delivery method.
+		 *
+		 * @param string   $method  Delivery method key ('' = the one configured for the shop).
+		 * @param WC_Order $order   Order.
+		 * @param string   $default Key configured for shop orders.
+		 */
+		$mapped = sanitize_key( (string) apply_filters( 'mjerp_sale_delivery_from_order', '', $order, $default ) );
+		if ( '' !== $mapped && in_array( $mapped, $keys, true ) ) {
+			return $mapped;
+		}
+
+		return $default;
 	}
 
 	/**

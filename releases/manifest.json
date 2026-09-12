@@ -3,11 +3,11 @@
         "Slug":  "mj-appearance",
         "Name":  "MJ Appearance",
         "Type":  "theme",
-        "Version":  "3.12.0",
+        "Version":  "3.13.0",
         "Parent":  null,
-        "Zip":  "mj-appearance-3.12.0.zip",
-        "SizeKB":  469,
-        "Sha256":  "49d82924e60f76030333fc78cdfe5b589c1d3b7846b10b4cd36c41cedcf7bbfd"
+        "Zip":  "mj-appearance-3.13.0.zip",
+        "SizeKB":  473,
+        "Sha256":  "e75c48ec1787f96c4ecb1f6c7bb5747f11df67ffa06c224d2bd183e156d826c7"
     },
     {
         "Slug":  "mj-atelier",
@@ -17,7 +17,7 @@
         "Parent":  "mj-appearance",
         "Zip":  "mj-atelier-1.1.0.zip",
         "SizeKB":  607,
-        "Sha256":  "ff57de6b4c156a033f1636aee0cf2668c99ca62675227571b5fa184da07b5278"
+        "Sha256":  "b77032acb491f6686f0dfa45729d0d7f936a97bf808aefabdce35189ac676fba"
     },
     {
         "Slug":  "mj-colegas",
@@ -27,7 +27,7 @@
         "Parent":  null,
         "Zip":  "mj-colegas-1.0.0.zip",
         "SizeKB":  22,
-        "Sha256":  "cf42e2cadf8870b71aa0e4266c0937292ca33d160adcf3fea152f0eacd3c1297"
+        "Sha256":  "3cfbfb8a225f42ea7900b50d0b0500ccc65f55f1b19a6cd5d01821792e2a852e"
     },
     {
         "Slug":  "mj-dolar",
@@ -37,17 +37,27 @@
         "Parent":  null,
         "Zip":  "mj-dolar-1.0.0.zip",
         "SizeKB":  41,
-        "Sha256":  "041536260879142c2bf17e367efd53ff673a3db057c742b876db64a9dc338199"
+        "Sha256":  "ea34406723040091e9f0c4316e07c4afaa1addad06a5f9d0f8f8a13048016310"
+    },
+    {
+        "Slug":  "mj-envios",
+        "Name":  "MJ Envíos",
+        "Type":  "plugin",
+        "Version":  "1.0.0",
+        "Parent":  null,
+        "Zip":  "mj-envios-1.0.0.zip",
+        "SizeKB":  86,
+        "Sha256":  "2dd7070bda4cfd8d1abaebea3b8ed3e26287fbdad351e54893d9d6a725247eae"
     },
     {
         "Slug":  "mj-erp",
         "Name":  "MJ ERP",
         "Type":  "plugin",
-        "Version":  "1.13.1",
+        "Version":  "1.14.0",
         "Parent":  null,
-        "Zip":  "mj-erp-1.13.1.zip",
-        "SizeKB":  523,
-        "Sha256":  "f250867f5b6192441f7391021d1baf2f63a2160441e327ed5d5d81a43bb0406f"
+        "Zip":  "mj-erp-1.14.0.zip",
+        "SizeKB":  524,
+        "Sha256":  "8754262fa930cc25e91e42d1d035e674ec550356f7744c10b61d9fd3ab94cd66"
     },
     {
         "Slug":  "mj-fotos-rapidas",
@@ -57,7 +67,7 @@
         "Parent":  null,
         "Zip":  "mj-fotos-rapidas-1.2.0.zip",
         "SizeKB":  7,
-        "Sha256":  "94ed2e6903416f487156aab357d41bd55efc5cbee3fefe0030be598844259170"
+        "Sha256":  "93158e4ec54ee632388211e2a5b80f011ea60276e221464e1515664df114fc04"
     },
     {
         "Slug":  "mj-glossyhair",
@@ -67,7 +77,7 @@
         "Parent":  "mj-appearance",
         "Zip":  "mj-glossyhair-1.1.0.zip",
         "SizeKB":  90,
-        "Sha256":  "c9fab83b7e29e074165c1dd155f8b866a967ad0f73575a829c3f4a3cac7958ab"
+        "Sha256":  "6c83a7e97c463ce0783969242d84845197e8fa89ace0377aad90842ad1e1c974"
     },
     {
         "Slug":  "mj-medios-pago",
@@ -76,8 +86,8 @@
         "Version":  "1.2.0",
         "Parent":  null,
         "Zip":  "mj-medios-pago-1.2.0.zip",
-        "SizeKB":  87,
-        "Sha256":  "ab8df117627185e8a837824018ab32d92e797647d4eac5bd637e6ff7121806d7"
+        "SizeKB":  88,
+        "Sha256":  "1b01d71b1a3f78236d6b6aa89ae5b462c6d085b08a9494066499ed2657e6efd3"
     },
     {
         "Slug":  "mj-optimizador-imagenes",
@@ -87,7 +97,7 @@
         "Parent":  null,
         "Zip":  "mj-optimizador-imagenes-1.1.0.zip",
         "SizeKB":  46,
-        "Sha256":  "04532140a269d261f1632ae695b207f5a1e41d620e11a2972647046a35f55211"
+        "Sha256":  "61a04cc9182ea75619f88828daff8c65fd9d80a7cea0da419ea1c6ef9f4e6a98"
     },
     {
         "Slug":  "mj-turnos-online",
@@ -97,7 +107,7 @@
         "Parent":  null,
         "Zip":  "mj-turnos-online-1.2.0.zip",
         "SizeKB":  235,
-        "Sha256":  "8e7e882284bd0f44fe456b1c7875a71dba9972149e4b0f741b45434667651fca"
+        "Sha256":  "14f654f06243d2ec5bbe9b6a2a351b70c8cd03825c6891c216a174406d890b64"
     },
     {
         "Slug":  "mj-yamana",
@@ -107,6 +117,6 @@
         "Parent":  "mj-appearance",
         "Zip":  "mj-yamana-1.1.0.zip",
         "SizeKB":  328,
-        "Sha256":  "6348b4df7207834d5a5243ebb312663f057f897fae8a1ad8d57711d2991c1907"
+        "Sha256":  "09bab4b24151f5b3d2c5b13532ed383fb21a998a1e38dc0c958f6122ed42b904"
     }
 ]
