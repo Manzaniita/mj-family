@@ -44,6 +44,11 @@ define('MJD_FILE', __FILE__);
 define('MJD_DIR', plugin_dir_path(__FILE__));
 define('MJD_URL', plugin_dir_url(__FILE__));
 
+/* Cuaderno de errores compartido de la familia MJ. La copia maestra está en
+   shared/class-mj-log.php; esta es una copia. Ver tools/sincronizar-compartido.ps1. */
+require_once MJD_DIR . 'includes/compartido/class-mj-log.php';
+MJ_Log::init();
+
 require_once MJD_DIR . 'includes/class-mjd-settings.php';
 require_once MJD_DIR . 'includes/class-mjd-rate.php';
 require_once MJD_DIR . 'includes/class-mjd-product.php';

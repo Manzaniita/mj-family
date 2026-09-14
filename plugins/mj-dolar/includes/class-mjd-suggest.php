@@ -68,11 +68,19 @@ class MJD_Suggest {
 			'user-agent' => 'MJ-Dolar/' . MJD_VERSION . ' (' . home_url() . ')',
 		]);
 		if (is_wp_error($response)) {
+			MJ_Log::error('dolar', 'No se pudo consultar la cotización sugerida', [
+				'fuente' => self::provider($source),
+				'motivo' => $response->get_error_message(),
+			]);
 			return new WP_Error('mjd_suggest_http', 'No se pudo consultar ' . self::provider($source) . ': ' . $response->get_error_message());
 		}
 		$code = (int) wp_remote_retrieve_response_code($response);
 		$body = json_decode(wp_remote_retrieve_body($response), true);
 		if (200 !== $code || !is_array($body) || !isset($body['compra'], $body['venta']) || !is_numeric($body['compra']) || !is_numeric($body['venta'])) {
+			MJ_Log::error('dolar', 'La cotización sugerida llegó con un formato inesperado', [
+				'fuente' => self::provider($source),
+				'http'   => $code,
+			]);
 			return new WP_Error('mjd_suggest_bad', self::provider($source) . ' devolvió una respuesta inesperada (HTTP ' . $code . ').');
 		}
 

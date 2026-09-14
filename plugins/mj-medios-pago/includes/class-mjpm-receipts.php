@@ -463,6 +463,14 @@ class MJPM_Receipts {
 
 		$ok = $wpdb->insert(MJPM_Install::table(), $row); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		if (!$ok) {
+			/* El cliente ya subió el archivo y ve un error genérico. Sin esto,
+			   del lado de acá no queda nada para saber por qué. */
+			MJ_Log::error('medios-pago', 'No se pudo registrar un comprobante subido', [
+				'contexto' => isset($row['context']) ? $row['context'] : '',
+				'objeto'   => isset($row['object_id']) ? (int) $row['object_id'] : 0,
+				'archivo'  => isset($row['file_name']) ? $row['file_name'] : '',
+				'motivo'   => $wpdb->last_error,
+			]);
 			return new WP_Error('mjpm_db_error', 'No se pudo registrar el comprobante.');
 		}
 		$id = (int) $wpdb->insert_id;
@@ -638,6 +646,13 @@ class MJPM_Receipts {
 			['id' => (int) $row['id']]
 		);
 		if (false === $ok) {
+			/* Aprobaste o rechazaste y no se guardó: el pedido queda como
+			   estaba y es fácil creer que sí se guardó. */
+			MJ_Log::error('medios-pago', 'No se pudo guardar la decisión sobre un comprobante', [
+				'comprobante' => (int) $row['id'],
+				'decision'    => $decision,
+				'motivo'      => $wpdb->last_error,
+			]);
 			return new WP_Error('mjpm_db_error', 'No se pudo guardar la decisión.');
 		}
 

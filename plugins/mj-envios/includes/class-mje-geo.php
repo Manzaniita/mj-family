@@ -503,6 +503,13 @@ class MJE_Geo {
 	/* -------------------------------- Log -------------------------------- */
 
 	public static function log($scope, $message) {
+		/* Va al cuaderno compartido de MJ, que decide por su cuenta cuánto
+		   guardar (Ajustes → MJ · Registros). Así un problema de envíos se
+		   puede leer junto al del resto de los plugins y en la misma línea de
+		   tiempo. Abajo sigue la lista corta que se muestra en la pantalla de
+		   Envíos, con su propio ajuste. */
+		MJ_Log::error('envios', (string) $message, ['donde' => (string) $scope]);
+
 		if (!MJE_Settings::get('log_errors')) {
 			return;
 		}

@@ -345,6 +345,17 @@ class MJERP_Orders {
 			self::link_order( $sale_id, $order );
 		} catch ( Throwable $e ) {
 			self::$emitting = false;
+			// La venta quedó cobrada y el pedido no salió: el stock no bajó y
+			// la tienda sigue ofreciendo algo que ya no está.
+			MJ_Log::error(
+				'erp',
+				'No se pudo emitir el pedido de WooCommerce de una venta',
+				array(
+					'venta'   => $sale_id,
+					'motivo'  => $e->getMessage(),
+					'archivo' => $e->getFile() . ':' . $e->getLine(),
+				)
+			);
 			return new WP_Error( 'mjerp_order_failed', $e->getMessage(), array( 'status' => 500 ) );
 		}
 
@@ -629,6 +640,15 @@ class MJERP_Orders {
 	 * @return void
 	 */
 	protected static function log( $order_id, $error ) : void {
+		MJ_Log::error(
+			'erp',
+			'No se pudo registrar un pedido de la tienda como venta',
+			array(
+				'pedido' => (int) $order_id,
+				'motivo' => $error->get_error_message(),
+			)
+		);
+
 		$order = self::order( $order_id );
 		if ( ! $order ) {
 			return;

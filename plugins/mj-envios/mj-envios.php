@@ -84,6 +84,11 @@ define('MJE_FILE', __FILE__);
 define('MJE_DIR', plugin_dir_path(__FILE__));
 define('MJE_URL', plugin_dir_url(__FILE__));
 
+/* Cuaderno de errores compartido de la familia MJ. La copia maestra esta en
+   shared/class-mj-log.php; esta es una copia. Ver tools/sincronizar-compartido.ps1. */
+require_once MJE_DIR . 'includes/compartido/class-mj-log.php';
+MJ_Log::init();
+
 require_once MJE_DIR . 'includes/class-mje-install.php';
 require_once MJE_DIR . 'includes/class-mje-settings.php';
 require_once MJE_DIR . 'includes/class-mje-geo.php';

@@ -197,6 +197,17 @@ class MJD_Sync {
 				do_action('mjd_sync_finished', $state);
 			}
 			update_option(self::STATE, $state, false);
+		} catch (Throwable $e) {
+			/* Si el recálculo se corta por la mitad, parte del catálogo queda
+			   al tipo de cambio viejo y no se nota mirando la tienda. Queda
+			   anotado; el error sigue subiendo como antes. */
+			MJ_Log::error('dolar', 'Se cortó el recálculo de precios', [
+				'motivo'    => $e->getMessage(),
+				'archivo'   => $e->getFile() . ':' . $e->getLine(),
+				'hechos'    => (int) $state['done'],
+				'de'        => (int) $state['total'],
+			]);
+			throw $e;
 		} finally {
 			delete_transient(self::LOCK);
 		}

@@ -70,6 +70,11 @@ define('MJPM_FILE', __FILE__);
 define('MJPM_DIR', plugin_dir_path(__FILE__));
 define('MJPM_URL', plugin_dir_url(__FILE__));
 
+/* Cuaderno de errores compartido de la familia MJ. La copia maestra esta en
+   shared/class-mj-log.php; esta es una copia. Ver tools/sincronizar-compartido.ps1. */
+require_once MJPM_DIR . 'includes/compartido/class-mj-log.php';
+MJ_Log::init();
+
 require_once MJPM_DIR . 'includes/class-mjpm-settings.php';
 require_once MJPM_DIR . 'includes/class-mjpm-methods.php';
 require_once MJPM_DIR . 'includes/class-mjpm-cart.php';

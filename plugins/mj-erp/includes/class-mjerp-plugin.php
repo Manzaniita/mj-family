@@ -57,6 +57,9 @@ final class MJERP_Plugin {
 	 */
 	public static function files() {
 		return array(
+			// Shared across the MJ family. Master copy lives in shared/class-mj-log.php;
+			// this is a copy kept in sync by tools/sincronizar-compartido.ps1.
+			'includes/compartido/class-mj-log.php',
 			'includes/class-mjerp-capabilities.php',
 			'includes/class-mjerp-helpers.php',
 			'includes/class-mjerp-settings.php',
@@ -142,6 +145,9 @@ final class MJERP_Plugin {
 			add_action( 'admin_notices', array( $this, 'missing_files_notice' ) );
 			return;
 		}
+
+		// Shared MJ log. Safe to call from every MJ plugin: it hooks only once.
+		MJ_Log::init();
 
 		// Registered before anything reads the settings: the bridge injects the `dolar` block and
 		// the MJ Dólar exchange rate into them, and MJERP_Settings caches the merged result.
