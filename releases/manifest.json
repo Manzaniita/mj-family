@@ -33,31 +33,31 @@
         "Slug":  "mj-dolar",
         "Name":  "MJ Dólar",
         "Type":  "plugin",
-        "Version":  "1.0.0",
+        "Version":  "1.1.0",
         "Parent":  null,
-        "Zip":  "mj-dolar-1.0.0.zip",
-        "SizeKB":  41,
-        "Sha256":  "ea34406723040091e9f0c4316e07c4afaa1addad06a5f9d0f8f8a13048016310"
+        "Zip":  "mj-dolar-1.1.0.zip",
+        "SizeKB":  46,
+        "Sha256":  "60ffbd65438235e3235f33edf7c6a27eba366c8899e533b89ac6e34cf3aff510"
     },
     {
         "Slug":  "mj-envios",
         "Name":  "MJ Envíos",
         "Type":  "plugin",
-        "Version":  "1.0.0",
+        "Version":  "1.1.0",
         "Parent":  null,
-        "Zip":  "mj-envios-1.0.0.zip",
-        "SizeKB":  86,
-        "Sha256":  "2dd7070bda4cfd8d1abaebea3b8ed3e26287fbdad351e54893d9d6a725247eae"
+        "Zip":  "mj-envios-1.1.0.zip",
+        "SizeKB":  91,
+        "Sha256":  "d4ac21eea2a74fa0daa997d3ef8b0a340526a8834ca029aaf00fbfb1f6c65f69"
     },
     {
         "Slug":  "mj-erp",
         "Name":  "MJ ERP",
         "Type":  "plugin",
-        "Version":  "1.14.0",
+        "Version":  "1.15.0",
         "Parent":  null,
-        "Zip":  "mj-erp-1.14.0.zip",
-        "SizeKB":  524,
-        "Sha256":  "8754262fa930cc25e91e42d1d035e674ec550356f7744c10b61d9fd3ab94cd66"
+        "Zip":  "mj-erp-1.15.0.zip",
+        "SizeKB":  528,
+        "Sha256":  "a9e9027e2c086317ab30eb8c0fdd0f930d7ac4224793c3c3543ff2dae4b75d59"
     },
     {
         "Slug":  "mj-fotos-rapidas",
@@ -83,11 +83,11 @@
         "Slug":  "mj-medios-pago",
         "Name":  "MJ Medios de Pago",
         "Type":  "plugin",
-        "Version":  "1.2.0",
+        "Version":  "1.3.0",
         "Parent":  null,
-        "Zip":  "mj-medios-pago-1.2.0.zip",
-        "SizeKB":  88,
-        "Sha256":  "1b01d71b1a3f78236d6b6aa89ae5b462c6d085b08a9494066499ed2657e6efd3"
+        "Zip":  "mj-medios-pago-1.3.0.zip",
+        "SizeKB":  92,
+        "Sha256":  "e8b407b800797c45b070fa792b8e4fba5346830edba5cffa345f679be0857b19"
     },
     {
         "Slug":  "mj-optimizador-imagenes",

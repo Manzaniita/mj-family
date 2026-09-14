@@ -139,7 +139,7 @@ if ($arreglados) {
 	}
 	echo "\n";
 	echo "Si esto es correcto, actualizá la foto para que no vuelvan a colarse:\n";
-	echo "  composer verificar:foto\n\n";
+	echo "  .\\tools\\verificar.ps1 -Foto\n\n";
 }
 
 if (!$nuevos) {

@@ -32,7 +32,6 @@
     "plugins/mj-dolar/includes/class-mjd-rate.php|Generic.Files.LineEndings.InvalidEOLChar": 1,
     "plugins/mj-dolar/includes/class-mjd-rest.php|Generic.Files.LineEndings.InvalidEOLChar": 1,
     "plugins/mj-dolar/includes/class-mjd-sync.php|Generic.Files.LineEndings.InvalidEOLChar": 1,
-    "plugins/mj-dolar/mj-dolar.php|Generic.Files.LineEndings.InvalidEOLChar": 1,
     "plugins/mj-dolar/uninstall.php|Generic.Files.LineEndings.InvalidEOLChar": 1,
     "plugins/mj-envios/includes/carriers/class-mje-carrier-andreani.php|WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode": 1,
     "plugins/mj-envios/includes/carriers/class-mje-carrier-correo.php|WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode": 1,
