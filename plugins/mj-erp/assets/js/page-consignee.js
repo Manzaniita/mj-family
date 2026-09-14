@@ -325,6 +325,9 @@
 							? '<button type="button" class="mj-btn mj-btn--sm mj-btn--primary" data-action="approve-sale">' + MJ.icon('check') + '<span>Confirmar</span></button>' +
 							  '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon mj-danger-text" data-action="reject-sale" title="Rechazar" aria-label="Rechazar venta">' + MJ.icon('x') + '</button>'
 							: '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="sale-detail" title="Ver detalle" aria-label="Ver detalle de la venta">' + MJ.icon('eye') + '</button>') +
+						(sale.status === 'aprobada' && balance > 0.005
+							? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="charge-sale" title="Registrar el pago de esta venta">' + MJ.icon('cash') + '<span>Cobrar</span></button>'
+							: '') +
 						'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="edit-sale" title="Editar la venta" aria-label="Editar la venta">' + MJ.icon('edit') + '</button>' +
 						'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon mj-danger-text" data-action="delete-sale" title="Eliminar la venta" aria-label="Eliminar la venta">' + MJ.icon('trash') + '</button>' +
 					'</div>' +
@@ -456,7 +459,7 @@
 			const icon = row.type === 'venta' ? 'cart' : (row.type === 'ajuste' ? 'edit' : 'cash');
 			return '<tr>' +
 				'<td>' + h(MJ.fmt.date(row.date)) + '</td>' +
-				'<td><span class="mj-row mj-row--center">' + MJ.icon(icon) + '<span>' + h(row.description || '') + '</span></span></td>' +
+				'<td><span class="mj-row">' + MJ.icon(icon) + '<span>' + h(row.description || '') + '</span></span></td>' +
 				'<td class="is-num">' + (charge > 0.005 ? h(moneyBase(charge)) : dash()) + '</td>' +
 				'<td class="is-num">' + (credit > 0.005 ? '<span class="mj-success-text">' + h(moneyBase(credit)) + '</span>' : dash()) + '</td>' +
 				'<td class="is-num"><span class="' + (balance > 0.005 ? 'mj-strong' : 'mj-muted') + '">' + h(moneyBase(balance)) + '</span></td>' +
@@ -610,17 +613,34 @@
 				});
 			}));
 
-			offs.push(MJ.ui.on(container, 'click', '[data-action="new-payment"]', function () {
+			/**
+			 * Diálogo de pago. Con una venta, llega con lo que debe esa venta ya puesto e imputado
+			 * a ella: solo falta elegir cómo pagó.
+			 *
+			 * @param {number} [saleId]
+			 */
+			function openPayment(saleId) {
 				MJ.components.paymentModal({
 					consigneeId: state.id,
 					consigneeName: state.data && state.data.consignee ? state.data.consignee.name : '',
 					outstanding: outstanding(),
 					account: state.data ? state.data.account : null,
+					saleId: saleId || 0,
 					onSaved() {
 						state.statement = null;
 						load();
 					},
 				});
+			}
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="new-payment"]', function () {
+				openPayment(0);
+			}));
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="charge-sale"]', function (e, el) {
+				const tr = el.closest('tr');
+				const saleId = tr ? parseInt(tr.getAttribute('data-sale'), 10) : 0;
+				if (saleId) openPayment(saleId);
 			}));
 
 			offs.push(MJ.ui.on(container, 'click', '[data-action="approve-sale"]', function (e, el) {
@@ -799,22 +819,35 @@
 					if (state.disposed || !sale) return;
 					const allocations = Array.isArray(sale.allocations) ? sale.allocations : [];
 					const balance = f(sale.balance_base);
+					const canCharge = outstanding().some(function (s) { return parseInt(s.id, 10) === parseInt(sale.id, 10); });
+
+					/*
+					 * Los pesos de lo cobrado son los que entraron de verdad: un pago en pesos lleva su
+					 * propio TC. Solo un pago en dólares se lee con el dólar de hoy.
+					 */
+					const paidLocal = function (a) {
+						const cur = String(a.currency || '').toUpperCase();
+						if (cur && cur !== baseCur() && f(a.rate) > 0) return MJ.fmt.moneyLocal(f(a.amount_base) * f(a.rate), 0);
+						return moneyLocal(a.amount_base);
+					};
 
 					const paidRows = allocations.length
 						? '<div class="mj-table-wrap"><table class="mj-table mj-table--compact"><thead><tr>' +
 							'<th>Fecha</th><th>Medio</th><th class="is-num">Importe</th>' +
 						'</tr></thead><tbody>' +
 						allocations.map(function (a) {
+							const local = paidLocal(a);
 							return '<tr>' +
 								'<td>' + h(MJ.fmt.date(a.payment_date)) + '</td>' +
 								'<td>' + h(a.kind === 'ajuste' ? (a.reason || 'Ajuste manual') : a.method_label) +
 									(a.reference ? '<div class="mj-small mj-muted">' + h(a.reference) + '</div>' : '') + '</td>' +
-								'<td class="is-num">' + h(moneyBase(a.amount_base)) + '</td>' +
+								'<td class="is-num">' + h(moneyBase(a.amount_base)) +
+									(local ? '<div class="mj-small mj-muted">' + h(local) + '</div>' : '') + '</td>' +
 							'</tr>';
 						}).join('') + '</tbody></table></div>'
 						: '<div class="mj-note mj-small mj-muted">Todavía no se cobró nada de esta venta.</div>';
 
-					MJ.ui.modal({
+					const modal = MJ.ui.modal({
 						title: 'Venta #' + sale.id,
 						size: 'md',
 						body:
@@ -822,22 +855,32 @@
 								'<div class="mj-stat-list__row"><span>Producto</span><span class="mj-strong">' + h(sale.name || '') + '</span></div>' +
 								'<div class="mj-stat-list__row"><span>Fecha</span><span>' + h(MJ.fmt.date(sale.sale_date)) + '</span></div>' +
 								'<div class="mj-stat-list__row"><span>Cantidad</span><span class="mj-num">' + h(MJ.fmt.qty(sale.qty)) + '</span></div>' +
-								'<div class="mj-stat-list__row"><span>Precio acordado</span><span class="mj-num">' + h(moneyBase(sale.unit_price_base)) + '</span></div>' +
+								'<div class="mj-stat-list__row"><span>Precio acordado</span><span class="mj-num">' + h(moneyPairInline(sale.unit_price_base)) + '</span></div>' +
 								(sale.retail_amount !== null && sale.retail_amount !== undefined
 									? '<div class="mj-stat-list__row"><span>Lo vendió a</span><span class="mj-num">' + h(MJ.fmt.money(sale.retail_amount, sale.retail_currency)) + '</span></div>'
 									: '') +
 								'<div class="mj-stat-list__row mj-stat-list__row--total"><span>Total</span>' +
-									'<span class="mj-num mj-money mj-strong">' + h(moneyBase(sale.amount_base)) + '</span></div>' +
+									'<span class="mj-num mj-money mj-strong">' + h(moneyPairInline(sale.amount_base)) + '</span></div>' +
 								'<div class="mj-stat-list__row"><span>' + (balance <= 0.005 ? 'Estado' : 'Falta cobrar') + '</span>' +
 									'<span class="mj-num ' + (balance <= 0.005 ? 'mj-success-text' : 'mj-strong') + '">' +
-									h(balance <= 0.005 ? 'Cobrada' : moneyBase(balance)) + '</span></div>' +
+									h(balance <= 0.005 ? 'Cobrada' : moneyPairInline(balance)) + '</span></div>' +
 							'</div>' +
 							(sale.note ? '<div class="mj-note mj-small mj-muted mj-mt">' + h(sale.note) + '</div>' : '') +
 							'<div class="mj-divider"></div>' +
 							'<div class="mj-field__label">Pagos imputados a esta venta</div>' +
 							paidRows,
-						footer: '<button type="button" class="mj-btn mj-btn--primary" data-modal-close>Cerrar</button>',
+						footer: canCharge
+							? '<button type="button" class="mj-btn mj-btn--ghost" data-modal-close>Cerrar</button>' +
+							  '<button type="button" class="mj-btn mj-btn--primary" data-charge>' + MJ.icon('cash') + '<span>Cobrar ' + h(moneyBase(balance)) + '</span></button>'
+							: '<button type="button" class="mj-btn mj-btn--primary" data-modal-close>Cerrar</button>',
 					});
+
+					if (canCharge) {
+						MJ.ui.on(modal.el, 'click', '[data-charge]', function () {
+							modal.close();
+							openPayment(sale.id);
+						});
+					}
 				}).catch(function (err) {
 					toastError(err, 'No se pudo cargar la venta.');
 				});

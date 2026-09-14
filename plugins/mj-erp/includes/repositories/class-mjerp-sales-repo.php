@@ -1306,7 +1306,12 @@ class MJERP_Sales_Repo {
 		if ( strtoupper( $currency ) === $base ) {
 			return 1.0;
 		}
-		$rate = MJERP_Helpers::to_float( MJERP_Settings::get( 'sale_rate', 0 ) );
+		// MJ Dólar primero: es el dólar con el que la tienda publica hoy. El TC de venta de la
+		// configuración queda para las tiendas sin MJ Dólar.
+		$rate = class_exists( 'MJERP_Dolar' ) ? (float) MJERP_Dolar::rate() : 0.0;
+		if ( $rate <= 0 ) {
+			$rate = MJERP_Helpers::to_float( MJERP_Settings::get( 'sale_rate', 0 ) );
+		}
 		return $rate > 0 ? $rate : 1.0;
 	}
 

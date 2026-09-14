@@ -152,6 +152,160 @@
 	};
 
 	/* ------------------------------------------------------------------ */
+	/* Importe: dólares, pesos y el TC                                     */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * Tres campos atados —dólares, pesos y el TC en pesos por 1 dólar—: se escriben dos y el
+	 * tercero se calcula.
+	 *
+	 * Es lo que deja cobrar "los US$ 14 que me pagó con $ 22.000" sin que el dólar del día
+	 * redondee la plata: se escriben los dólares y los pesos que entraron y el TC queda en lo que
+	 * dé. Cuando los pesos están entre lo escrito, el pago se guarda en pesos, así la caja recibe
+	 * $ 22.000 y no los $ 21.980 que daría 14 × 1.570.
+	 *
+	 * @param {string} fid Prefijo de ids.
+	 * @param {Object} o   { label, required, base, local, rate }
+	 * @returns {string} HTML.
+	 */
+	MJ.consign.amountFieldsHtml = function (fid, o) {
+		o = o || {};
+		const side = function (key, name, label, value, decimals, extra) {
+			return '<div class="mj-dual-amount__side' + (extra ? ' ' + extra : '') + '">' +
+				'<label class="mj-dual-amount__cur" for="' + h(fid + '-' + key) + '">' + h(label) + '</label>' +
+				'<input class="mj-input" id="' + h(fid + '-' + key) + '" name="' + h(name) + '" type="text" inputmode="decimal" autocomplete="off" ' +
+					'data-amt="' + h(key) + '" value="' + h(inputNum(value, decimals)) + '">' +
+			'</div>';
+		};
+		return '<div class="mj-field" data-amounts>' +
+			'<span class="mj-field__label">' + h(o.label || 'Importe') + (o.required ? ' *' : '') + '</span>' +
+			'<div class="mj-dual-amount">' +
+				side('base', 'amount_base', baseCur(), o.base, 4) +
+				'<span class="mj-dual-amount__eq" aria-hidden="true">=</span>' +
+				side('local', 'amount', localCur(), o.local, 2) +
+				side('rate', 'rate', 'TC', o.rate, 2, 'mj-dual-amount__side--rate') +
+			'</div>' +
+			'<div class="mj-field__hint" data-amounts-hint></div>' +
+		'</div>';
+	};
+
+	/**
+	 * Engancha los campos de amountFieldsHtml.
+	 *
+	 * @param {Element} root Donde están los campos.
+	 * @param {Object}  o    { fixed: los dos campos que arrancan escritos, onChange() }
+	 * @returns {{values: Function, setBase: Function}}
+	 */
+	MJ.consign.bindAmountFields = function (root, o) {
+		o = o || {};
+		const wrap = qs('[data-amounts]', root);
+		const input = {
+			base: qs('[data-amt="base"]', wrap),
+			local: qs('[data-amt="local"]', wrap),
+			rate: qs('[data-amt="rate"]', wrap),
+		};
+		const hint = qs('[data-amounts-hint]', wrap);
+		/** Los dos últimos campos que se escribieron: esos mandan y el otro se calcula. */
+		let order = Array.isArray(o.fixed) && o.fixed.length === 2 ? o.fixed.slice() : ['rate', 'base'];
+
+		function read(key) { return num(input[key].value); }
+
+		function derived() {
+			return ['base', 'local', 'rate'].filter(function (k) { return order.indexOf(k) < 0; })[0];
+		}
+
+		function changed() {
+			if (typeof o.onChange === 'function') o.onChange();
+		}
+
+		function touch(key) {
+			order = order.filter(function (k) { return k !== key; });
+			order.push(key);
+			if (order.length <= 2) return;
+			// Deja de mandar el que está vacío antes que el más viejo: escribir pesos en un pago
+			// nuevo (dólares todavía vacíos) tiene que calcular los dólares, no perder el TC.
+			const empty = order.slice(0, -1).filter(function (k) { return read(k) === null; })[0];
+			order = empty
+				? order.filter(function (k) { return k !== empty; })
+				: order.slice(-2);
+		}
+
+		/**
+		 * @returns {{currency: string, amount: (number|null), rate: (number|null), base: number, local: (number|null)}}
+		 */
+		function values() {
+			let base = read('base');
+			let local = read('local');
+			let rate = read('rate');
+			const key = derived();
+			if (key === 'rate') rate = base && local !== null ? local / base : null;
+			else if (key === 'base') base = local !== null && rate ? local / rate : null;
+			else local = base !== null && rate ? base * rate : null;
+
+			// Si los pesos se escribieron, el pago es en pesos: se guarda la cifra exacta.
+			const inLocal = key !== 'local';
+			return {
+				currency: inLocal ? localCur() : baseCur(),
+				amount: inLocal ? local : base,
+				rate: rate,
+				base: base === null ? 0 : MJ.fmt.round(base, 4),
+				local: local,
+			};
+		}
+
+		function paint() {
+			const v = values();
+			const key = derived();
+			const out = key === 'rate' ? v.rate : (key === 'base' ? v.base : v.local);
+			input[key].value = out === null || !isFinite(out) ? '' : inputNum(out, key === 'base' ? 4 : 2);
+
+			let text;
+			if (key === 'rate') {
+				text = 'El TC sale de lo que escribiste' + (v.rate ? ': $ ' + MJ.fmt.rate(v.rate) + ' por ' + baseCur() + ' 1' : '') + '. Los pesos se guardan tal cual.';
+			} else if (key === 'local') {
+				text = 'Los pesos salen del TC. Si te pagó otra cifra, escribila: se ajusta el TC y los dólares quedan fijos.';
+			} else {
+				text = 'Los dólares salen del TC. Para fijar dólares y pesos, escribí los dos y se ajusta el TC.';
+			}
+			const today = MJ.fmt.tc();
+			const offToday = today > 0 && !(v.rate > 0 && Math.abs(v.rate - today) < 0.005);
+			hint.innerHTML = h(text) + (offToday
+				? ' <button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-amt-today>Usar el dólar de hoy ($ ' + h(MJ.fmt.rate(today)) + ')</button>'
+				: '');
+		}
+
+		Object.keys(input).forEach(function (key) {
+			input[key].addEventListener('input', function () {
+				touch(key);
+				paint();
+				changed();
+			});
+		});
+
+		wrap.addEventListener('click', function (e) {
+			const btn = e.target && e.target.closest ? e.target.closest('[data-amt-today]') : null;
+			if (!btn) return;
+			input.rate.value = inputNum(MJ.fmt.tc(), 2);
+			touch('rate');
+			paint();
+			changed();
+		});
+
+		paint();
+
+		return {
+			values: values,
+			/** Pone un importe en dólares y deja que los pesos salgan del TC. */
+			setBase(value) {
+				input.base.value = inputNum(value, 4);
+				order = ['rate', 'base'];
+				paint();
+				changed();
+			},
+		};
+	};
+
+	/* ------------------------------------------------------------------ */
 	/* consigneeModal                                                      */
 	/* ------------------------------------------------------------------ */
 
@@ -999,23 +1153,12 @@
 						'<label class="mj-checkbox"><input type="radio" name="kind" value="ajuste"> <span>Un ajuste manual</span></label>' +
 					'</div>' +
 				'</div>' +
-				'<div class="mj-form-row">' +
-					'<div class="mj-field">' +
-						'<label class="mj-field__label" for="' + fid + '-amount">Importe *</label>' +
-						'<div class="mj-input-group">' +
-							'<input class="mj-input" id="' + fid + '-amount" name="amount" type="text" inputmode="decimal" data-type="number" required placeholder="0,00">' +
-							'<select class="mj-select mj-select--sm" name="currency">' +
-								optionsHtml(currencies().map(function (c) { return { value: c, label: c }; }), localCur()) +
-							'</select>' +
-						'</div>' +
-						'<div class="mj-field__hint" data-region="adjust-hint"></div>' +
-					'</div>' +
-					'<div class="mj-field" data-region="rate-field">' +
-						'<label class="mj-field__label" for="' + fid + '-rate">Tipo de cambio</label>' +
-						'<input class="mj-input" id="' + fid + '-rate" name="rate" type="text" inputmode="decimal" data-type="number" value="' + h(inputNum(rate, 2)) + '">' +
-						'<div class="mj-field__hint">' + h(rateFromDolar ? 'Viene de MJ Dólar. La deuda está en ' + baseCur() + ', así que hace falta para pasar el pago.' : 'La deuda está en ' + baseCur() + ', así que hace falta para pasar el pago.') + '</div>' +
-					'</div>' +
-				'</div>' +
+				MJ.consign.amountFieldsHtml(fid, {
+					label: 'Importe',
+					required: true,
+					rate: rateFromDolar || f(setting('sale_rate', 0)) > 0 ? rate : null,
+				}) +
+				'<div class="mj-field__hint" data-region="adjust-hint"></div>' +
 				'<div class="mj-form-row">' +
 					'<div class="mj-field">' +
 						'<label class="mj-field__label" for="' + fid + '-date">Fecha</label>' +
@@ -1056,13 +1199,13 @@
 				let manual = {};
 				let kind = 'pago';
 
+				const amounts = MJ.consign.bindAmountFields(form, {
+					fixed: ['rate', 'base'],
+					onChange() { paintAllocation(); },
+				});
+
 				function amountBase() {
-					const data = MJ.ui.formData(form);
-					const amount = f(typeof data.amount === 'number' ? data.amount : MJ.fmt.parse(data.amount));
-					const currency = String(data.currency || localCur()).toUpperCase();
-					if (currency === baseCur()) return MJ.fmt.round(amount, 4);
-					const r = f(typeof data.rate === 'number' ? data.rate : MJ.fmt.parse(data.rate));
-					return r > 0 ? MJ.fmt.round(amount / r, 4) : 0;
+					return amounts.values().base;
 				}
 
 				function paintAllocation() {
@@ -1089,14 +1232,24 @@
 				}
 
 				MJ.ui.on(form, 'change', '[name="kind"]', function (e, el) { setKind(el.value); });
-				MJ.ui.on(form, 'input', '[name="amount"], [name="rate"]', paintAllocation);
-				MJ.ui.on(form, 'change', '[name="currency"]', function () {
-					const data = MJ.ui.formData(form);
-					const rateField = qs('[data-region="rate-field"]', form);
-					// Pagando en la misma moneda que la deuda, el TC no juega.
-					if (rateField) rateField.classList.toggle('mj-hidden', String(data.currency || '').toUpperCase() === baseCur());
-					paintAllocation();
+				/* Cobrar sin escribir el importe: todo lo que debe, o lo de una venta. */
+				MJ.ui.on(form, 'click', '[data-pay-all]', function () {
+					manual = {};
+					amounts.setBase(outstanding.reduce(function (sum, s) { return sum + f(s.balance_base); }, 0));
 				});
+
+				MJ.ui.on(form, 'click', '[data-pay-sale]', function (e, el) {
+					paySale(parseInt(el.getAttribute('data-pay-sale'), 10) || 0);
+				});
+
+				/** Llena el pago con lo que debe una venta y lo imputa entero a ella. */
+				function paySale(saleId) {
+					const sale = outstanding.find(function (s) { return parseInt(s.id, 10) === saleId; });
+					if (!sale) return;
+					manual = {};
+					manual[saleId] = MJ.fmt.round(f(sale.balance_base), 4);
+					amounts.setBase(manual[saleId]);
+				}
 
 				MJ.ui.on(form, 'input', '[data-alloc-amount]', function (e, el) {
 					const saleId = parseInt(el.getAttribute('data-alloc-amount'), 10) || 0;
@@ -1150,6 +1303,13 @@
 
 				setKind('pago');
 
+				// Se abrió desde "Cobrar" de una venta: el importe ya está, falta elegir el medio.
+				if (opts.saleId) {
+					paySale(parseInt(opts.saleId, 10) || 0);
+					const methodEl = qs('[name="method"]', form);
+					if (methodEl) methodEl.focus();
+				}
+
 				form.addEventListener('submit', function (e) {
 					e.preventDefault();
 					if (submitting) return;
@@ -1157,7 +1317,8 @@
 
 					const data = MJ.ui.formData(form);
 					const errors = {};
-					const amount = typeof data.amount === 'number' ? data.amount : MJ.fmt.parse(data.amount);
+					const money = amounts.values();
+					const amount = money.amount;
 
 					if (amount === null || isNaN(amount)) {
 						errors.amount = 'Poné un importe.';
@@ -1171,10 +1332,9 @@
 						errors.reason = 'Un ajuste manual necesita un motivo.';
 					}
 
-					const currency = String(data.currency || localCur()).toUpperCase();
-					if (currency !== baseCur()) {
-						const r = typeof data.rate === 'number' ? data.rate : MJ.fmt.parse(data.rate);
-						if (r === null || isNaN(r) || r <= 0) errors.rate = 'Poné el tipo de cambio.';
+					const currency = money.currency;
+					if (currency !== baseCur() && !(money.rate > 0)) {
+						errors.rate = 'Poné el tipo de cambio.';
 					}
 
 					const plan = currentPlan();
@@ -1187,9 +1347,9 @@
 					const payload = {
 						consignee_id: parseInt(opts.consigneeId, 10) || 0,
 						kind: kind,
-						amount: amount,
+						amount: MJ.fmt.round(amount, 4),
 						currency: currency,
-						rate: data.rate === null || data.rate === undefined ? '' : data.rate,
+						rate: money.rate > 0 ? MJ.fmt.round(money.rate, 6) : '',
 						payment_date: String(data.payment_date || ''),
 						note: '',
 					};
@@ -1274,16 +1434,25 @@
 						'value="' + h(isManual ? inputNum(manual[sale.id], 2) : (assigned ? inputNum(assigned, 2) : '')) + '" ' +
 						'placeholder="0" aria-label="' + h('Imputar a la venta ' + (sale.name || sale.id)) + '">' +
 				'</td>' +
+				'<td class="is-actions">' +
+					'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-pay-sale="' + h(sale.id) + '" title="Cobrar lo que debe de esta venta">Paga esta</button>' +
+				'</td>' +
 			'</tr>';
 		}).join('');
 
-		return '<div class="mj-row mj-row--between mj-row--center">' +
+		const owed = outstanding.reduce(function (sum, s) { return sum + f(s.balance_base); }, 0);
+
+		return '<div class="mj-row mj-row--between mj-row--wrap">' +
 				'<span class="mj-field__label">A qué ventas va este pago</span>' +
-				(keys.length ? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-alloc-reset>' + MJ.icon('refresh') + '<span>Volver al automático</span></button>' : '') +
+				'<div class="mj-btn-group">' +
+					(keys.length ? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-alloc-reset>' + MJ.icon('refresh') + '<span>Volver al automático</span></button>' : '') +
+					'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-pay-all>' + MJ.icon('cash') + '<span>Paga todo lo que debe · ' + h(moneyBase(owed)) + '</span></button>' +
+				'</div>' +
 			'</div>' +
 			'<div class="mj-field__hint mj-mb">Se propone de la venta más vieja a la más nueva. Podés cambiar los importes si el revendedor te dijo que está pagando algo puntual.</div>' +
 			'<div class="mj-table-wrap"><table class="mj-table mj-table--compact"><thead><tr>' +
 				'<th>Venta</th><th class="is-num">Total</th><th class="is-num">Debe</th><th class="is-num">Se imputa</th>' +
+				'<th class="is-actions"><span class="mj-hidden">Acciones</span></th>' +
 			'</tr></thead><tbody>' + rows + '</tbody></table></div>' +
 			'<div data-region="alloc-totals">' + allocationTotalsHtml(plan.lines ? { lines: plan.lines, allocated: plan.lines.reduce(function (a, l) { return a + f(l.amount_base); }, 0), unallocated: 0 } : plan, amountBase, kind) + '</div>';
 	}

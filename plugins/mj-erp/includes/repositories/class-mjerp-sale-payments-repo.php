@@ -189,6 +189,12 @@ class MJERP_Sale_Payments_Repo {
 
 		$currency = MJERP_Helpers::sanitize_currency( MJERP_Helpers::array_get( $data, 'currency', $sale['currency'] ) );
 		$rate     = MJERP_Helpers::to_float( MJERP_Helpers::array_get( $data, 'rate', 0 ) );
+		$sale_cur = isset( $sale['currency'] ) ? strtoupper( (string) $sale['currency'] ) : '';
+		if ( $rate <= 0 && $currency === $sale_cur && isset( $sale['rate'] ) && (float) $sale['rate'] > 0 ) {
+			// Cobrado en la moneda de la venta: vale el TC con el que se calculó su total. Sin esto,
+			// un cobro de la tienda sin TC caía en 1 y sumaba pesos como si fueran dólares.
+			$rate = (float) $sale['rate'];
+		}
 		if ( $rate <= 0 ) {
 			$rate = MJERP_Sales_Repo::default_rate( $currency );
 		}

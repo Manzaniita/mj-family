@@ -1,6 +1,6 @@
 ﻿# Versiones publicadas
 
-Generado por `tools/build-releases.ps1` el 2026-09-14 19:28.
+Generado por `tools/build-releases.ps1` el 2026-09-14 20:47.
 En `releases/` queda un solo zip por paquete: el de la versión que está
 hoy en el código. Los de versiones anteriores se borran — las que ya se
 publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
@@ -22,7 +22,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 | MJ Core | 1.0.0 | `mj-core-1.0.0.zip` | 19 KB | `084ede58060f7fc2…` |
 | MJ Dólar | 1.1.0 | `mj-dolar-1.1.0.zip` | 46 KB | `60ffbd65438235e3…` |
 | MJ Envíos | 1.1.0 | `mj-envios-1.1.0.zip` | 91 KB | `d4ac21eea2a74fa0…` |
-| MJ ERP | 1.15.0 | `mj-erp-1.15.0.zip` | 528 KB | `a9e9027e2c086317…` |
+| MJ ERP | 1.16.0 | `mj-erp-1.16.0.zip` | 532 KB | `029b6af0a1849619…` |
 | MJ Fotos Rápidas | 1.2.0 | `mj-fotos-rapidas-1.2.0.zip` | 7 KB | `93158e4ec54ee632…` |
 | MJ Medios de Pago | 1.3.0 | `mj-medios-pago-1.3.0.zip` | 92 KB | `e8b407b800797c45…` |
 | MJ Optimizador de Imágenes | 1.1.0 | `mj-optimizador-imagenes-1.1.0.zip` | 46 KB | `61a04cc9182ea756…` |
@@ -37,7 +37,7 @@ b77032acb491f6686f0dfa45729d0d7f936a97bf808aefabdce35189ac676fba  mj-atelier-1.1
 084ede58060f7fc2f68b768ab61c5b0da5ebc30eec4bb167f150cf1931ede7f8  mj-core-1.0.0.zip
 60ffbd65438235e3235f33edf7c6a27eba366c8899e533b89ac6e34cf3aff510  mj-dolar-1.1.0.zip
 d4ac21eea2a74fa0daa997d3ef8b0a340526a8834ca029aaf00fbfb1f6c65f69  mj-envios-1.1.0.zip
-a9e9027e2c086317ab30eb8c0fdd0f930d7ac4224793c3c3543ff2dae4b75d59  mj-erp-1.15.0.zip
+029b6af0a18496190d39be8815a9973441cc531c5f67ba292a230b8753002f32  mj-erp-1.16.0.zip
 93158e4ec54ee632388211e2a5b80f011ea60276e221464e1515664df114fc04  mj-fotos-rapidas-1.2.0.zip
 6c83a7e97c463ce0783969242d84845197e8fa89ace0377aad90842ad1e1c974  mj-glossyhair-1.1.0.zip
 e8b407b800797c45b070fa792b8e4fba5346830edba5cffa345f679be0857b19  mj-medios-pago-1.3.0.zip

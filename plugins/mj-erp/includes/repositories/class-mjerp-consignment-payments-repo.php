@@ -261,7 +261,7 @@ class MJERP_Consignment_Payments_Repo {
 		$payments    = self::table();
 
 		$sql = $wpdb->prepare(
-			"SELECT a.*, p.payment_date, p.kind, p.method, p.currency, p.amount, p.reference
+			"SELECT a.*, p.payment_date, p.kind, p.method, p.currency, p.amount, p.rate, p.reference
 			 FROM {$allocations} a
 			 INNER JOIN {$payments} p ON p.id = a.payment_id
 			 WHERE a.sale_id = %d
@@ -285,6 +285,7 @@ class MJERP_Consignment_Payments_Repo {
 				'method_label' => MJERP_Settings::payment_method_label( isset( $row['method'] ) ? $row['method'] : '' ),
 				'currency'     => (string) ( isset( $row['currency'] ) ? $row['currency'] : '' ),
 				'amount'       => isset( $row['amount'] ) ? round( (float) $row['amount'], 4 ) : null,
+				'rate'         => isset( $row['rate'] ) ? round( (float) $row['rate'], 6 ) : null,
 				'reference'    => (string) ( isset( $row['reference'] ) ? $row['reference'] : '' ),
 			);
 		}

@@ -136,7 +136,7 @@
 			if (p.parent_name) bits.push('<span>' + h(p.parent_name) + '</span>');
 		}
 		return '<td>' +
-			'<div class="mj-row mj-row--center">' +
+			'<div class="mj-row">' +
 				thumbHtml(p) +
 				'<div class="mj-truncate" style="min-width:0">' +
 					'<div class="mj-strong mj-truncate" title="' + h(name) + '">' + h(name) + '</div>' +
@@ -469,7 +469,7 @@
 		if (product.sku) bits.push('<span class="mj-mono">' + h(product.sku) + '</span>');
 		if (product.is_variation) bits.push('<span class="mj-tag">Variación</span>');
 		bits.push('<span>ID ' + h(product.id) + '</span>');
-		return '<div class="mj-row mj-row--center mj-mb">' +
+		return '<div class="mj-row mj-mb">' +
 			thumbHtml(product) +
 			'<div style="min-width:0">' +
 				'<div class="mj-strong mj-truncate" title="' + h(name) + '">' + h(name) + '</div>' +

@@ -240,6 +240,11 @@
 		return isNaN(n) ? null : n;
 	}
 
+	/** Si el idioma configurado escribe los decimales con coma (es-AR: 1.570,50). */
+	function decimalIsComma() {
+		try { return numberFormatter(1, 1).format(1.5).indexOf(',') >= 0; } catch (e) { return true; }
+	}
+
 	function parseNumber(str) {
 		if (typeof str === 'number') return isFinite(str) ? str : NaN;
 		if (str === null || str === undefined) return NaN;
@@ -257,10 +262,23 @@
 			}
 		} else if (lastComma >= 0) {
 			const commas = s.split(',').length - 1;
-			s = commas > 1 ? s.replace(/,/g, '') : s.replace(',', '.');
+			if (commas > 1 || (!decimalIsComma() && /^[-+]?[1-9]\d{0,2},\d{3}$/.test(s))) {
+				s = s.replace(/,/g, '');
+			} else {
+				s = s.replace(',', '.');
+			}
 		} else if (lastDot >= 0) {
 			const dots = s.split('.').length - 1;
-			if (dots > 1) s = s.replace(/\./g, '');
+			if (dots > 1) {
+				s = s.replace(/\./g, '');
+			} else if (decimalIsComma() && /^[-+]?[1-9]\d{0,2}\.\d{3}$/.test(s)) {
+				/*
+				 * "1.570" es mil quinientos setenta: así se escribe en castellano y así lo escribe el
+				 * propio ERP cuando rellena un campo. Leerlo como 1,57 guardaba el dólar a 1,57.
+				 * Un punto con otra cantidad de cifras detrás ("14.5", "0.125") sigue siendo decimal.
+				 */
+				s = s.replace('.', '');
+			}
 		}
 		const n = parseFloat(s);
 		return isFinite(n) ? n : NaN;

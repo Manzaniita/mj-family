@@ -353,35 +353,28 @@
 		const methods = Array.isArray(opts.methods) ? opts.methods : [];
 		const isAdjust = payment.kind === 'ajuste';
 
-		const currencyOptions = (function () {
-			const list = Array.isArray(setting('currencies', [])) ? setting('currencies', []) : [];
-			const seen = {};
-			const out = [];
-			list.concat([baseCur(), localCur()]).forEach(function (c) {
-				const code = String(c || '').toUpperCase();
-				if (code && !seen[code]) { seen[code] = true; out.push({ value: code, label: code }); }
-			});
-			return out;
-		})();
+		const today = tc();
+		const paidInBase = String(payment.currency || '').toUpperCase() === baseCur();
+		let rate0 = f(payment.rate);
+		/*
+		 * Un pago en dólares no usa el TC para nada, así que algunos quedaron guardados con el TC mal
+		 * leído ("1.570" tomado como 1,57). Acá sí sirve para mostrar los pesos: si está fuera de
+		 * toda escala, se arranca con el dólar de hoy.
+		 */
+		if (paidInBase && today > 0 && (rate0 <= 0 || rate0 < today / 10 || rate0 > today * 10)) rate0 = today;
+		const base0 = f(payment.amount_base);
+		const local0 = paidInBase ? base0 * rate0 : f(payment.amount);
 
 		const body =
 			'<form class="mj-form" id="' + fid + '" novalidate>' +
 				MJ.ui.alert('Al guardar se vuelve a repartir sobre las ventas sin cobrar. Lo que sobre queda a favor.', 'info') +
-				'<div class="mj-form-row">' +
-					'<div class="mj-field">' +
-						'<label class="mj-field__label" for="' + fid + '-amount">Importe *</label>' +
-						'<div class="mj-input-group">' +
-							'<input class="mj-input" id="' + fid + '-amount" name="amount" type="text" inputmode="decimal" value="' + h(MJ.fmt.number(f(payment.amount), 2)) + '" required>' +
-							'<select class="mj-select mj-select--sm" name="currency">' + optionsHtml(currencyOptions, payment.currency) + '</select>' +
-						'</div>' +
-						'<div class="mj-field__hint" data-region="converted"></div>' +
-					'</div>' +
-					'<div class="mj-field">' +
-						'<label class="mj-field__label" for="' + fid + '-rate">Tipo de cambio</label>' +
-						'<input class="mj-input" id="' + fid + '-rate" name="rate" type="text" inputmode="decimal" value="' + h(MJ.fmt.number(f(payment.rate), 2)) + '">' +
-						'<div class="mj-field__hint">Con el que se pasó a ' + h(baseCur()) + '.</div>' +
-					'</div>' +
-				'</div>' +
+				MJ.consign.amountFieldsHtml(fid, {
+					label: 'Importe',
+					required: true,
+					base: base0,
+					local: rate0 > 0 ? local0 : null,
+					rate: rate0 > 0 ? rate0 : null,
+				}) +
 				'<div class="mj-form-row">' +
 					'<div class="mj-field">' +
 						'<label class="mj-field__label" for="' + fid + '-date">Fecha</label>' +
@@ -425,42 +418,28 @@
 			onMount(root, modal) {
 				const form = qs('#' + fid, root);
 				const submitBtn = qs('[data-submit]', root);
-				const convertedEl = qs('[data-region="converted"]', form);
+				const amounts = MJ.consign.bindAmountFields(form, {
+					fixed: paidInBase ? ['rate', 'base'] : ['rate', 'local'],
+				});
 				let submitting = false;
-
-				function refreshConverted() {
-					const amount = num(qs('[name="amount"]', form).value);
-					const currency = String(qs('[name="currency"]', form).value || '').toUpperCase();
-					const rate = f(num(qs('[name="rate"]', form).value));
-					if (amount === null) { convertedEl.textContent = ''; return; }
-					if (currency === baseCur()) {
-						convertedEl.textContent = 'Son ' + moneyBase(amount) + '.';
-						return;
-					}
-					convertedEl.textContent = rate > 0
-						? 'Son ' + moneyBase(amount / rate) + ' al TC ' + MJ.fmt.rate(rate) + '.'
-						: 'Poné el tipo de cambio para saber cuánto es en ' + baseCur() + '.';
-				}
-
-				MJ.ui.on(form, 'input', 'input', refreshConverted);
-				MJ.ui.on(form, 'change', 'select', refreshConverted);
-				refreshConverted();
 
 				form.addEventListener('submit', function (e) {
 					e.preventDefault();
 					if (submitting) return;
 					clearFormError(form);
 
-					const amount = num(qs('[name="amount"]', form).value);
+					const money = amounts.values();
+					const amount = money.amount;
 					const errors = {};
 					if (amount === null || (!isAdjust && amount <= 0)) errors.amount = 'Poné el importe.';
+					if (money.currency !== baseCur() && !(money.rate > 0)) errors.rate = 'Poné el tipo de cambio.';
 					if (isAdjust && !String(qs('[name="reason"]', form).value || '').trim()) errors.reason = 'Un ajuste necesita un motivo.';
 					if (Object.keys(errors).length) { MJ.ui.showErrors(form, errors); return; }
 
 					const payload = {
-						amount: amount,
-						currency: String(qs('[name="currency"]', form).value || ''),
-						rate: f(num(qs('[name="rate"]', form).value)),
+						amount: MJ.fmt.round(amount, 4),
+						currency: money.currency,
+						rate: money.rate > 0 ? MJ.fmt.round(money.rate, 6) : 0,
 						payment_date: String(qs('[name="payment_date"]', form).value || ''),
 						reference: String(qs('[name="reference"]', form).value || ''),
 						note: String(qs('[name="note"]', form).value || ''),

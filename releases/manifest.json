@@ -63,11 +63,11 @@
         "Slug":  "mj-erp",
         "Name":  "MJ ERP",
         "Type":  "plugin",
-        "Version":  "1.15.0",
+        "Version":  "1.16.0",
         "Parent":  null,
-        "Zip":  "mj-erp-1.15.0.zip",
-        "SizeKB":  528,
-        "Sha256":  "a9e9027e2c086317ab30eb8c0fdd0f930d7ac4224793c3c3543ff2dae4b75d59"
+        "Zip":  "mj-erp-1.16.0.zip",
+        "SizeKB":  532,
+        "Sha256":  "029b6af0a18496190d39be8815a9973441cc531c5f67ba292a230b8753002f32"
     },
     {
         "Slug":  "mj-fotos-rapidas",

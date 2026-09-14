@@ -505,7 +505,24 @@ lo divide por el dólar del momento y guarda US$ 14,01. Es lo que evita el
 centavo de diferencia que aparecía al cargar «14» a ojo y después cobrar 22.000.
 
 El dólar que usa es el de **MJ Dólar**; si ese plugin está apagado, el «TC de
-venta» de MJ ERP → Configuración → General.
+venta» de MJ ERP → Configuración → General. El TC siempre se escribe como
+**cuántos pesos vale 1 dólar** (1.570), nunca al revés.
+
+### Cobrar un pago
+
+El importe de un pago tiene tres casillas: **dólares, pesos y el TC**. Se
+escriben dos y la tercera se calcula sola:
+
+- Escribís los dólares: los pesos salen del dólar de hoy.
+- Si te pagó otra cifra en pesos (te debía US$ 14 y te dio $ 22.000), la
+  escribís encima: los dólares quedan en 14 y el TC se ajusta a lo que dé. El
+  pago se guarda **en pesos, tal cual**, así la caja recibe $ 22.000 y no los
+  $ 21.980 que daría 14 × 1.570.
+
+Para no escribir nada: **«Paga todo lo que debe»** llena el importe con toda la
+deuda, y **«Paga esta»** con lo que falta de una venta. En la lista de ventas del
+revendedor y en el detalle de cada venta está el botón **«Cobrar»**, que abre el
+pago ya lleno: solo elegís cómo pagó.
 
 ### Corregir lo ya cargado
 
@@ -516,8 +533,8 @@ Desde la ficha del revendedor se puede editar y eliminar:
   en adelante.
 - **Las ventas**: cantidad, precio, fecha y nota. No se puede tocar una venta que
   ya tiene un pago aplicado — primero se quita el pago.
-- **Los pagos**: importe, moneda, tipo de cambio, fecha, medio y referencia. Al
-  guardar se vuelven a repartir sobre las ventas impagas.
+- **Los pagos**: importe en dólares y en pesos, tipo de cambio, fecha, medio y
+  referencia. Al guardar se vuelven a repartir sobre las ventas impagas.
 
 Cada corrección queda anotada en la **bitácora**, que el revendedor ve en su
 panel bajo «Novedades». No es opcional: si le cambiás el precio de algo que ya

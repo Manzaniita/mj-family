@@ -4481,6 +4481,11 @@ th.mj-truncate {
 	font-variant-numeric: tabular-nums;
 }
 
+/* El TC va más angosto: es la referencia, no la plata. */
+.mj-dual-amount__side--rate {
+	flex: 0 1 130px;
+}
+
 /* -------------------------------------------------------------------------
  * Visor de comprobantes dentro del ERP
  * ---------------------------------------------------------------------- */
