@@ -1,0 +1,253 @@
+# Pruebas en la tienda real
+
+Para MJ Dólar, MJ Medios de Pago y MJ Envíos, que son los tres que todavía no
+se probaron con una tienda funcionando.
+
+Esto es lo único de la Fase 0 que no se puede hacer desde el código: los tres
+tocan plata o el checkout, y ahí el único que sabe si está bien sos vos
+mirándolo.
+
+---
+
+## Antes de empezar
+
+**Poné los registros en "Todo".** Ajustes → MJ · Registros → *Todo*. Así, si
+algo falla en silencio, queda anotado y después se lee en WooCommerce → Estado
+→ Registros, en los archivos que empiezan con `mj-`. Cuando termines de probar,
+volvelo a *Solo los errores*.
+
+**Probá con un producto de mentira.** Uno nuevo, precio redondo (100 USD),
+stock 10, que después borrás. No uses uno que estés vendiendo.
+
+**Anotá la hora de cada prueba.** Si algo sale mal, buscar en el registro por
+hora es mucho más rápido que buscar por texto.
+
+---
+
+## 1. MJ Dólar
+
+Lo que más importa: que el precio en pesos que ve el cliente sea el que vos
+esperás, y que cambie cuando movés el tipo de cambio.
+
+### 1.1. El precio sale bien
+
+1. Cargá el tipo de cambio del día en WooCommerce → Dólar.
+2. En el producto de prueba, poné precio USD 100. Guardá.
+3. Mirá la ficha del producto en la tienda.
+
+**Qué tiene que pasar:** el precio en pesos es 100 × el tipo de cambio,
+redondeado según el ajuste que elegiste.
+
+**Señal de que algo está mal:** el precio sale en 0, sale sin redondear, o sale
+el precio viejo en pesos que tenía el producto antes.
+
+### 1.2. Cambiar el dólar mueve todo
+
+1. Anotá el precio en pesos que muestra el producto.
+2. Cambiá el tipo de cambio (subilo un 10%, para que se note).
+3. Recargá la ficha del producto **sin esperar**.
+
+**Qué tiene que pasar:** el precio nuevo aparece al toque. El recálculo masivo
+corre en segundo plano, pero la ficha ya muestra el valor nuevo.
+
+4. Esperá unos minutos y mirá la lista de productos en el admin.
+
+**Qué tiene que pasar:** ahí también quedó el precio nuevo.
+
+**Señal de que algo está mal:** la ficha muestra uno y el listado del admin
+otro, y siguen distintos después de media hora. Eso quiere decir que el
+recálculo se cortó: revisá el registro `mj-dolar`, que ahora anota cuando eso
+pasa.
+
+### 1.3. Las variaciones
+
+Si tenés productos con variaciones (talles, colores), repetí 1.1 con uno.
+**Es el caso que más se rompe**, porque el precio vive en cada variación.
+
+### 1.4. Un producto sin precio en dólares
+
+Agarrá un producto que tenga precio en pesos y **ningún** precio USD.
+
+**Qué tiene que pasar:** sigue exactamente igual que siempre. MJ Dólar no lo
+toca.
+
+### 1.5. El pedido guarda el dólar del momento
+
+Hacé una compra de prueba del producto de 100 USD. Después abrí el pedido en el
+admin.
+
+**Qué tiene que pasar:** el pedido guarda con qué tipo de cambio se hizo. Si
+mañana cambia el dólar, ese pedido sigue mostrando el de ayer.
+
+### 1.6. La cotización sugerida
+
+En WooCommerce → Dólar, pedí la cotización sugerida.
+
+**Qué tiene que pasar:** trae un número de la fuente que elegiste.
+
+**Si falla:** ahora queda anotado en el registro `mj-dolar` con el motivo y el
+código HTTP. Antes no quedaba nada. Que falle no rompe la tienda —el tipo de
+cambio lo ponés vos igual—, pero conviene saber si la fuente dejó de responder.
+
+---
+
+## 2. MJ Medios de Pago
+
+Dos cosas distintas: el precio según el medio, y los comprobantes.
+
+### 2.1. El descuento o recargo se ve en los tres lugares
+
+Configurá un medio con un descuento bien visible (10%).
+
+Mirá el precio en:
+
+1. La ficha del producto.
+2. El carrito.
+3. El checkout, al elegir ese medio.
+
+**Qué tiene que pasar:** los tres dicen lo mismo, y el total del checkout es el
+que se cobra de verdad.
+
+**Señal de que algo está mal:** la ficha promete un precio y el checkout cobra
+otro. Es el error más caro de todos, porque el cliente ya decidió comprar.
+
+### 2.2. Cambiar de medio en el checkout
+
+En el checkout, cambiá de un medio con descuento a uno con recargo, y volvé.
+
+**Qué tiene que pasar:** el total se actualiza cada vez, sin recargar la página
+y sin quedarse pegado en el valor anterior.
+
+### 2.3. El cliente sube un comprobante
+
+1. Configurá que se pida comprobante en un medio (transferencia).
+2. Comprá con ese medio, desde una ventana de incógnito.
+3. Subí una foto desde Mi cuenta.
+
+**Qué tiene que pasar:** se sube, el cliente ve que quedó pendiente de revisión,
+y a vos te aparece en la bandeja.
+
+**Probá también:** un archivo que no sea imagen ni PDF, y uno muy pesado.
+Tienen que ser rechazados con un mensaje claro, no con un error genérico.
+
+**Si algo falla:** ahora queda anotado en el registro `mj-medios-pago`. Antes,
+si la base de datos rechazaba el comprobante, el cliente veía "no se pudo" y de
+tu lado no quedaba nada.
+
+### 2.4. Aprobar y rechazar
+
+Desde la bandeja, aprobá uno y rechazá otro.
+
+**Qué tiene que pasar:** el pedido cambia de estado, el cliente recibe el aviso,
+y la decisión queda guardada (recargá la página para confirmarlo).
+
+**Señal de que algo está mal:** aprobás, se ve aprobado, recargás y volvió a
+pendiente. Eso ahora queda anotado en el registro.
+
+### 2.5. El link sin cuenta
+
+Si tenés activados los links firmados, probá abrir uno desde otro navegador,
+sin estar logueado.
+
+**Qué tiene que pasar:** se puede subir el comprobante de ese pedido y **de
+ninguno otro**. Probá cambiarle el número al link: tiene que rechazarlo.
+
+---
+
+## 3. MJ Envíos
+
+### 3.1. Antes que nada: cargá el origen
+
+Sin el código postal de dónde despachás, ningún correo puede cotizar. El plugin
+te avisa con un cartel si falta.
+
+### 3.2. Un método que no depende de nadie
+
+Empezá por **retiro en el local** o **precio fijo**, que no llaman a ningún
+correo.
+
+1. Creá el método y encendelo.
+2. Andá al checkout con un producto en el carrito.
+
+**Qué tiene que pasar:** aparece, con el precio que pusiste, y pide los datos
+que configuraste.
+
+### 3.3. El código postal
+
+Probá en el checkout:
+
+- Un código postal de tu zona propia.
+- Uno de otra provincia.
+- Uno que no existe (99999).
+- El campo vacío.
+
+**Qué tiene que pasar:** cada uno muestra los métodos que corresponden, y el
+inválido da un mensaje claro en vez de romper el checkout o dejarlo colgado.
+
+### 3.4. Las condiciones de cada método
+
+Si configuraste que un método aparezca solo por encima de cierto monto, o solo
+con ciertos medios de pago, probá los dos lados: el caso que lo muestra y el
+que lo esconde.
+
+### 3.5. El envío gratis
+
+Poné el mínimo en un número que puedas superar con el producto de prueba.
+Probá justo debajo y justo encima.
+
+### 3.6. Los correos en vivo — **con cuidado**
+
+> **Esto no se probó nunca contra una cuenta real.** Vía Cargo, Andreani y
+> Correo Argentino están escritos contra la documentación de cada uno, sin
+> credenciales. Ninguna API se comporta exactamente como su documentación.
+
+**No lo actives en la tienda que está vendiendo** hasta que:
+
+1. Tengas cuenta de empresa con al menos uno de los tres.
+2. Lo hayas probado en una tienda de prueba, o con el método apagado para los
+   clientes.
+3. Hayas visto que cotiza bien cinco códigos postales distintos, incluido uno
+   del interior.
+
+Mientras tanto: **tabla propia o precio fijo**. Cotizan igual de bien y no
+dependen de que el servidor de nadie esté arriba.
+
+**Cuando lo pruebes:** el registro `mj-envios` anota cada fallo con el motivo,
+así que si algo no cotiza vas a poder ver si fue el usuario, la clave, un
+tiempo de espera agotado o una respuesta rara.
+
+### 3.7. Qué pasa si el correo no responde
+
+Esto es lo más importante de todo, y se prueba fácil: poné mal la clave del
+correo a propósito.
+
+**Qué tiene que pasar:** el checkout **sigue funcionando** y ofrece los otros
+métodos. El cliente no queda encerrado sin poder comprar.
+
+**Señal de que algo está mal:** el checkout se cuelga, tarda diez segundos, o
+no muestra ningún método de envío. Eso es una venta perdida cada vez que el
+correo tenga un mal día.
+
+---
+
+## Cuando termines
+
+1. Volvé los registros a **Solo los errores**.
+2. Borrá el producto de prueba y los pedidos de prueba.
+3. Anotá lo que salió mal. Si algo falló, el registro tiene el motivo: copialo
+   entero, que es mucho más útil que "no anduvo".
+
+---
+
+## Lo que ya se verificó desde el código
+
+Para que no lo pruebes de nuevo al pedo:
+
+- Los 139 archivos PHP compilan, en PHP 7.4 y en 8.3.
+- No hay sintaxis que rompa en un servidor con PHP 7.4.
+- Las dos apps de React compilan, y lo compilado coincide con lo que está
+  subido en `dist/`.
+- No hay inyección de SQL en ninguna consulta.
+
+Lo que **no** se puede verificar sin una tienda: que los números den bien, que
+el checkout no se cuelgue, y que los correos respondan. Eso es esta lista.

@@ -107,6 +107,8 @@ El paso a paso completo está en [`PUBLICAR.md`](PUBLICAR.md).
 | [`PUBLICAR.md`](PUBLICAR.md) | Cómo se saca una versión, cómo se numera y cómo se sube a una tienda. |
 | [`CONFIGURACION.md`](CONFIGURACION.md) | Qué se configura y desde dónde. El índice de todos los ajustes. |
 | [`PLUGINS-MJ.md`](PLUGINS-MJ.md) | El plan completo de la familia de plugins. |
+| [`ANALISIS.md`](ANALISIS.md) | Cómo está el código hoy: qué está bien, qué está flojo y en qué orden conviene moverse. |
+| [`PRUEBAS-EN-LA-TIENDA.md`](PRUEBAS-EN-LA-TIENDA.md) | Qué probar a mano en una tienda real, plugin por plugin. |
 | [`GLOSSYHAIR-TURNOS.md`](GLOSSYHAIR-TURNOS.md) | Entrega y puesta en marcha de GlossyHair con turnos. |
 | [`YAMANA-ENTRE-HILOS.md`](YAMANA-ENTRE-HILOS.md) | Entrega y puesta en marcha de Yamana con Entre Hilos. |
 
@@ -134,9 +136,41 @@ para desplegar.
 
 ---
 
+## Verificar antes de publicar
+
+```powershell
+.	oolserificar.ps1
+```
+
+Cuatro pasos: que todos los `.php` compilen, que nada use sintaxis que reviente
+en PHP 7.4, que no aparezcan avisos nuevos de seguridad o de base de datos, y
+que las dos apps de React compilen. Tarda un par de minutos; con `-Rapido` se
+saltea los builds, que es lo que más tarda.
+
+Lo mismo corre solo en GitHub en cada push, con
+[`.github/workflows/verificar.yml`](.github/workflows/verificar.yml).
+
+La primera vez hay que instalar las herramientas:
+
+```powershell
+winget install --id PHP.PHP.8.4 --scope user
+composer install
+```
+
+Sobre los avisos de PHPCS: hay 512 anotados en
+[`tools/phpcs-baseline.json`](tools/phpcs-baseline.json), casi todos falsos
+positivos de un linter que no entiende el contexto (marca "falta nonce" cada
+vez que se lee `$_GET`, aunque sea para mostrar un cartel). La verificación
+corta solo si aparece uno **nuevo**, así lo viejo queda a la vista sin frenar
+el trabajo. Si arreglaste deuda de verdad, `.	oolserificar.ps1 -Foto`
+vuelve a sacar la foto.
+
+---
+
 ## Trabajar en el proyecto
 
-Requisitos: Node 20 o superior, y PowerShell para el empaquetado.
+Requisitos: Node 20 o superior, PowerShell para el empaquetado, y PHP 8.4 más
+Composer para la verificación.
 
 ```powershell
 # Tienda del tema, con recarga en vivo
