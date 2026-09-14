@@ -146,7 +146,7 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 | MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. |
 | MJ ERP | MJ ERP → Ajustes | Ventas, clientes, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, y permisos del revendedor (por rol y por usuario). |
-| MJ Core | Ajustes → MJ · Actualizaciones | De qué repositorio de GitHub salen las versiones, el token para leerlo y cada cuántas horas se consulta. Muestra qué versión de cada paquete tiene la tienda y cuál está publicada. Ver `PUBLICAR.md`, sección 2.1. |
+| MJ Core | Ajustes → MJ · Actualizaciones | De qué repositorio de GitHub salen las versiones, el token para leerlo y cada cuántas horas se consulta. Muestra qué versión de cada paquete tiene la tienda y cuál está publicada. Ver `PUBLICAR.md`, sección 3. |
 
 ---
 
