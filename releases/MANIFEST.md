@@ -1,6 +1,6 @@
 ﻿# Versiones publicadas
 
-Generado por `tools/build-releases.ps1` el 2026-09-14 18:30.
+Generado por `tools/build-releases.ps1` el 2026-09-14 19:28.
 En `releases/` queda un solo zip por paquete: el de la versión que está
 hoy en el código. Los de versiones anteriores se borran — las que ya se
 publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
