@@ -63,6 +63,7 @@
     "glossyhair": {
       "label": "GlossyHair — salón de alisados con turnos y venta de productos",
       "packages": [
+        "mj-core",
         "mj-appearance",
         "mj-glossyhair",
         "mj-turnos-online",
@@ -75,6 +76,7 @@
     "yamana": {
       "label": "Yamana — tejidos artesanales con el proyecto colectivo Entre Hilos",
       "packages": [
+        "mj-core",
         "mj-appearance",
         "mj-yamana",
         "mj-colegas",
@@ -87,6 +89,7 @@
     "atelier": {
       "label": "MJ Atelier — tienda editorial con dólar, medios de pago y ERP",
       "packages": [
+        "mj-core",
         "mj-appearance",
         "mj-atelier",
         "mj-dolar",

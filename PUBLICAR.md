@@ -69,9 +69,83 @@ Después:
 3. Activar el tema hijo (el padre se queda instalado, sin activar).
 4. Configurar todo en **Apariencia → MJ Appearance**.
 
-Para **actualizar** una instalación que ya existe, se sube el zip nuevo encima:
-WordPress pregunta si reemplaza y hay que decirle que sí. No hace falta borrar
-nada — los ajustes viven en la base de datos y no se tocan.
+Para **actualizar** una instalación que ya existe, no hace falta subir nada si
+la tienda tiene **MJ Core** (ver la sección siguiente). Sin MJ Core, se sube el
+zip nuevo encima: WordPress pregunta si reemplaza y hay que decirle que sí. No
+hace falta borrar nada — los ajustes viven en la base de datos y no se tocan.
+
+---
+
+## 2.1. Que las tiendas pidan la actualización solas (MJ Core)
+
+Con **MJ Core** instalado, cada vez que se publica una versión nueva con
+`publicar.ps1`, las tiendas que usan ese tema o plugin la muestran como
+cualquier actualización de WordPress: en **Escritorio → Actualizaciones**, en
+la lista de plugins y en Apariencia → Temas, con su botón de "Actualizar ahora".
+También funciona el "Activar actualizaciones automáticas" de cada plugin.
+
+### Cómo sabe qué ofrecer
+
+MJ Core lee las Releases de GitHub del repositorio. Cada zip se llama
+`<carpeta>-<versión>.zip`, y con eso alcanza: si en la tienda hay un plugin o un
+tema en la carpeta `mj-erp` y en las Releases hay un `mj-erp-1.16.0.zip`, la
+tienda compara con la versión instalada y, si la publicada es más nueva, la
+ofrece. Se miran las últimas 20 Releases y de cada paquete gana la versión más
+alta.
+
+Por eso **la versión tiene que subir** (sección 3): un zip rehecho con `-Force`
+y el mismo número no le cambia nada a la tienda.
+
+GitHub se consulta cada 6 horas (se cambia en el panel). Para no esperar, el
+botón **Buscar versiones nuevas ahora** de Ajustes → MJ · Actualizaciones, o
+"Buscar de nuevo" en Escritorio → Actualizaciones.
+
+Al actualizar, MJ Core baja el zip con el token de la tienda y lo compara con
+el SHA-256 que GitHub publica de cada archivo. Si no coincide, no instala nada
+y lo anota en MJ · Registros.
+
+### Ponerlo en marcha en una tienda (una sola vez)
+
+1. **Crear el token en GitHub.** Settings → Developer settings → Personal access
+   tokens → *Fine-grained tokens* → Generate new token. Repository access: solo
+   `Manzaniita/mj-family`. Permissions: únicamente **Contents: Read-only**. Con
+   eso el token puede leer las Releases y nada más. Alcanza uno para las tres
+   tiendas, pero uno por tienda deja revocar una sin tocar las otras.
+2. **Subir `mj-core-<versión>.zip`** a mano, esta última vez, y activarlo.
+3. **Ajustes → MJ · Actualizaciones**: repositorio `Manzaniita/mj-family` y el
+   token. Guardar y apretar **Buscar versiones nuevas ahora**. La tabla muestra
+   qué versión tiene la tienda de cada paquete y cuál está publicada.
+
+Si preferís que el token no quede en la base de datos, va en `wp-config.php` y
+manda sobre el panel:
+
+```php
+define('MJ_CORE_REPO', 'Manzaniita/mj-family');
+define('MJ_CORE_TOKEN', 'github_pat_...');
+```
+
+Desde ahí, MJ Core se actualiza a sí mismo como los demás.
+
+### Cuando algo no anda
+
+La pantalla de MJ · Actualizaciones muestra el último error en castellano.
+Los más comunes:
+
+| Dice | Qué pasa |
+| --- | --- |
+| rechazó el token (401) | El token venció o se copió mal. Crear otro y pegarlo. |
+| no encuentra el repositorio (404) | Nombre mal escrito, o el token no tiene acceso a ese repositorio. |
+| frenó la consulta (403) | Falta el token: sin token GitHub deja 60 consultas por hora. |
+
+Mientras GitHub no responda, la tienda sigue ofreciendo lo último que había
+leído.
+
+### Volver a una versión anterior
+
+MJ Core ofrece siempre la más alta publicada, así que volver atrás sigue siendo
+a mano: bajar el zip de la Release vieja y subirlo encima. Para que después no
+vuelva a ofrecer la versión rota, lo que corresponde es publicar un arreglo con
+un número más alto.
 
 ---
 

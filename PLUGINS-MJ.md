@@ -25,6 +25,7 @@ desactivar sin romper el resto.
 | **MJ ERP** | Ventas propias y de la tienda, clientes, costeo, compras, proveedores, stock y consignación, con portal para consignatarios. La venta se carga como en un mostrador en la compu y en cinco pasos en el celular. Lleva la entrega y emite solo el pedido en WooCommerce, con su descuento de stock, cuando la venta se cobra o se entrega. | Entregado (1.14.0) |
 | **MJ Envíos** | Los métodos de envío los creás vos: a domicilio, a sucursal, retiro en el local, zona propia por código postal, gratis o a coordinar. Cada uno decide cuándo aparece, con qué medios de pago se combina, qué datos pide y de dónde sale su precio. Ver `plugins/mj-envios/LEEME.md`. | Entregado (1.0.0) |
 | **MJ Turnos Online** | Reserva de turnos con seña, fichas técnicas por visita y panel de agenda para quien atiende. Ver `GLOSSYHAIR-TURNOS.md`. | Entregado (1.2.0) |
+| **MJ Core** | Las actualizaciones de los temas y plugins MJ: cuando se publica una versión nueva, la tienda la ofrece con su botón de "Actualizar", como cualquier otra. Muestra qué versión de cada uno corre en la tienda. Ver `PUBLICAR.md`, sección 2.1. | Entregado (1.0.0), falta instalarlo en las tiendas |
 
 Además, el tema **MJ Appearance 3.4** sumó: logo configurable (con variante para modo noche), todos los textos fijos de cada pantalla editables desde Apariencia → MJ Appearance → Textos de la tienda, secciones de la portada que se pueden ocultar, cómo llamar a las "marcas", y términos y privacidad propios. Esto aplica también a MJ Importaciones: lo que no toques sigue igual que antes.
 
@@ -442,9 +443,10 @@ demás depende de esto.
 
 ### Fase 3 — crecer
 
-11. **Actualizaciones automáticas.** Hoy los zip se suben a mano a tres tiendas
-    y no hay forma de saber qué versión corre cada una. Subir esto de lugar si
-    empieza a molestar antes.
+11. ~~**Actualizaciones automáticas.**~~ **Hecho, adelantado a pedido: MJ Core.**
+    Cuando se publica una versión nueva, cada tienda que usa ese tema o plugin
+    la pide como cualquier actualización de WordPress. Queda instalarlo una vez
+    en cada tienda: paso a paso en `PUBLICAR.md`, sección 2.1.
 12. **MJ Precios Mayoristas** (punto 3.3).
 13. **MJ Carrito Abandonado** (punto 4.1).
 14. **MJ Presupuestos** (punto 3.4).

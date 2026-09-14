@@ -40,6 +40,7 @@ como paletas que se aplican con un botón y después se editan campo por campo.
 | **MJ ERP** | 1.15.0 | Ventas (propias y de la tienda), clientes, costeo, compras, proveedores, stock y consignación, con portal para consignatarios. La venta se carga como en un mostrador en la compu y en cinco pasos en el celular. Lleva la entrega —envío, punto de encuentro, en mano— y el pedido en WooCommerce se emite solo, con su descuento de stock, cuando la venta se cobra o se entrega. Cada medio de pago tiene su caja de ingreso, y el precio sugerido se redondea como lo publica la tienda. |
 | **MJ Optimizador de Imágenes** | 1.1.0 | Achica y convierte las imágenes en mi propio servidor, sin límites ni créditos. |
 | **MJ Fotos Rápidas** | 1.2.0 | Cargar las fotos de un producto desde el celular en dos toques y publicarlo ahí mismo. |
+| **MJ Core** | 1.0.0 | Actualizaciones desde wp-admin: cuando publico una versión nueva, cada tienda que usa ese tema o plugin la ofrece con su botón de "Actualizar". |
 
 Cada plugin hace una cosa y se puede desactivar sin romper el resto.
 
@@ -49,9 +50,9 @@ Cada plugin hace una cosa y se puede desactivar sin romper el resto.
 
 | Tienda | Tema | Plugins |
 | --- | --- | --- |
-| GlossyHair | GlossyHair | Turnos Online, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
-| Yamana | Yamana | Colegas, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
-| MJ Importaciones | MJ Atelier | Dólar, Medios de Pago, Envíos, ERP, Optimizador, Fotos Rápidas |
+| GlossyHair | GlossyHair | Core, Turnos Online, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
+| Yamana | Yamana | Core, Colegas, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
+| MJ Importaciones | MJ Atelier | Core, Dólar, Medios de Pago, Envíos, ERP, Optimizador, Fotos Rápidas |
 
 Esas combinaciones están declaradas en
 [`tools/releases.config.json`](tools/releases.config.json) y el script las

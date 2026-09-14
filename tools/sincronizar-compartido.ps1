@@ -52,6 +52,7 @@ $compartidos = @(
     @{
         Archivo = "class-mj-log.php"
         Plugins = @(
+            "mj-core",
             "mj-dolar",
             "mj-envios",
             "mj-erp",

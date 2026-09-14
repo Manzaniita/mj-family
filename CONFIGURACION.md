@@ -146,6 +146,7 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 | MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. |
 | MJ ERP | MJ ERP → Ajustes | Ventas, clientes, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, y permisos del revendedor (por rol y por usuario). |
+| MJ Core | Ajustes → MJ · Actualizaciones | De qué repositorio de GitHub salen las versiones, el token para leerlo y cada cuántas horas se consulta. Muestra qué versión de cada paquete tiene la tienda y cuál está publicada. Ver `PUBLICAR.md`, sección 2.1. |
 
 ---
 
@@ -656,6 +657,9 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Regla del comprobante de un pedido | — | `mjpm_order_receipt_requirement` |
 | Regla del comprobante de un pago de reventa | — | `mjerp_payment_receipt_requirement` |
 | Regla del comprobante de una seña | — | `mjto_receipt_requirement` |
+| Repositorio de donde salen las actualizaciones | `MJ_CORE_REPO` | `mjc_ajustes` |
+| Token de GitHub para leerlo (así no queda en la base) | `MJ_CORE_TOKEN` | `mjc_ajustes` |
+| Dirección de la API de GitHub (GitHub Enterprise) | — | `mjc_api_base` |
 
 Ejemplo — dejar los ajustes del tema solo para quien administre la tienda:
 

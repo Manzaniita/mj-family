@@ -1,6 +1,6 @@
 ﻿# Versiones publicadas
 
-Generado por `tools/build-releases.ps1` el 2026-09-14 17:26.
+Generado por `tools/build-releases.ps1` el 2026-09-14 18:30.
 En `releases/` queda un solo zip por paquete: el de la versión que está
 hoy en el código. Los de versiones anteriores se borran — las que ya se
 publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
@@ -19,6 +19,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 | Plugin | Versión | Archivo | Tamaño | SHA-256 |
 | --- | --- | --- | ---: | --- |
 | MJ Colegas | 1.0.0 | `mj-colegas-1.0.0.zip` | 22 KB | `3cfbfb8a225f42ea…` |
+| MJ Core | 1.0.0 | `mj-core-1.0.0.zip` | 19 KB | `084ede58060f7fc2…` |
 | MJ Dólar | 1.1.0 | `mj-dolar-1.1.0.zip` | 46 KB | `60ffbd65438235e3…` |
 | MJ Envíos | 1.1.0 | `mj-envios-1.1.0.zip` | 91 KB | `d4ac21eea2a74fa0…` |
 | MJ ERP | 1.15.0 | `mj-erp-1.15.0.zip` | 528 KB | `a9e9027e2c086317…` |
@@ -33,6 +34,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 e75c48ec1787f96c4ecb1f6c7bb5747f11df67ffa06c224d2bd183e156d826c7  mj-appearance-3.13.0.zip
 b77032acb491f6686f0dfa45729d0d7f936a97bf808aefabdce35189ac676fba  mj-atelier-1.1.0.zip
 3cfbfb8a225f42ea7900b50d0b0500ccc65f55f1b19a6cd5d01821792e2a852e  mj-colegas-1.0.0.zip
+084ede58060f7fc2f68b768ab61c5b0da5ebc30eec4bb167f150cf1931ede7f8  mj-core-1.0.0.zip
 60ffbd65438235e3235f33edf7c6a27eba366c8899e533b89ac6e34cf3aff510  mj-dolar-1.1.0.zip
 d4ac21eea2a74fa0daa997d3ef8b0a340526a8834ca029aaf00fbfb1f6c65f69  mj-envios-1.1.0.zip
 a9e9027e2c086317ab30eb8c0fdd0f930d7ac4224793c3c3543ff2dae4b75d59  mj-erp-1.15.0.zip

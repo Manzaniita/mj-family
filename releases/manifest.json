@@ -30,6 +30,16 @@
         "Sha256":  "3cfbfb8a225f42ea7900b50d0b0500ccc65f55f1b19a6cd5d01821792e2a852e"
     },
     {
+        "Slug":  "mj-core",
+        "Name":  "MJ Core",
+        "Type":  "plugin",
+        "Version":  "1.0.0",
+        "Parent":  null,
+        "Zip":  "mj-core-1.0.0.zip",
+        "SizeKB":  19,
+        "Sha256":  "084ede58060f7fc2f68b768ab61c5b0da5ebc30eec4bb167f150cf1931ede7f8"
+    },
+    {
         "Slug":  "mj-dolar",
         "Name":  "MJ Dólar",
         "Type":  "plugin",
