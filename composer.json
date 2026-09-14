@@ -1,0 +1,20 @@
+{
+    "name": "mj/mj-family",
+    "description": "Temas y plugins propios de MJ. Este composer.json existe solo para las herramientas de verificacion: no se empaqueta ni se sube a ninguna tienda.",
+    "type": "project",
+    "license": "proprietary",
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.10",
+        "wp-coding-standards/wpcs": "^3.1",
+        "phpcompatibility/phpcompatibility-wp": "^2.1"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "scripts": {
+        "verificar": "phpcs",
+        "arreglar": "phpcbf"
+    }
+}

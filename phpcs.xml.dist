@@ -1,0 +1,142 @@
+<?xml version="1.0"?>
+<ruleset name="MJ Family">
+
+	<description>
+		Verificación de PHP para los temas y plugins de MJ.
+
+		QUÉ REVISA Y QUÉ NO
+		El estándar de WordPress trae dos cosas mezcladas: reglas que evitan
+		agujeros de seguridad y errores reales, y reglas de formato (dónde van
+		los espacios, si un array se escribe array() o corchetes). Las primeras
+		se revisan todas. Las segundas se apagan: la casa escribe compacto
+		(if ($x) y no if ( $x )) y dejarlas prendidas daba 37.842 avisos de
+		formato que tapaban los que importan.
+
+		Esto no es pereza: es elegir que cuando la verificación diga algo, sea
+		algo que valga la pena leer. El día que se quiera unificar el formato,
+		se corre phpcbf una vez y se borra la sección "Formato" de abajo.
+	</description>
+
+	<!-- Qué se revisa. -->
+	<file>plugins</file>
+	<file>themes</file>
+
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/dist/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="parallel" value="8"/>
+	<arg value="sp"/>
+
+	<!-- ================================================================== -->
+	<!-- La base: el estándar de WordPress.                                  -->
+	<!-- ================================================================== -->
+	<rule ref="WordPress-Extra">
+
+		<!-- ============================================================== -->
+		<!-- Formato. Apagado a propósito: ver la descripción de arriba.     -->
+		<!-- ============================================================== -->
+		<exclude name="Generic.Formatting.MultipleStatementAlignment"/>
+		<exclude name="Generic.WhiteSpace.ArbitraryParenthesesSpacing"/>
+		<exclude name="Generic.WhiteSpace.DisallowSpaceIndent"/>
+		<exclude name="Generic.WhiteSpace.ScopeIndent"/>
+		<exclude name="NormalizedArrays.Arrays.ArrayBraceSpacing"/>
+		<exclude name="NormalizedArrays.Arrays.CommaAfterLast"/>
+		<exclude name="PEAR.Functions.FunctionCallSignature"/>
+		<exclude name="PSR12.Functions.ReturnTypeDeclaration"/>
+		<exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing"/>
+		<exclude name="Squiz.PHP.EmbeddedPhp"/>
+		<exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+		<exclude name="Universal.Operators.DisallowStandalonePostIncrementDecrement"/>
+		<exclude name="Universal.WhiteSpace.PrecisionAlignment"/>
+		<exclude name="WordPress.Arrays.ArrayDeclarationSpacing"/>
+		<exclude name="WordPress.Arrays.ArrayIndentation"/>
+		<exclude name="WordPress.Arrays.ArrayKeySpacingRestrictions"/>
+		<exclude name="WordPress.Arrays.MultipleStatementAlignment"/>
+		<exclude name="WordPress.WhiteSpace.CastStructureSpacing"/>
+		<exclude name="WordPress.WhiteSpace.ControlStructureSpacing"/>
+		<exclude name="WordPress.WhiteSpace.OperatorSpacing"/>
+
+		<!-- ============================================================== -->
+		<!-- Convenciones de nombre y de comentario. Son gusto, no errores.  -->
+		<!-- ============================================================== -->
+		<exclude name="Squiz.Commenting.FunctionComment"/>
+		<exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames"/>
+		<exclude name="WordPress.Files.FileName"/>
+		<exclude name="WordPress.NamingConventions.ValidVariableName"/>
+		<exclude name="WordPress.PHP.YodaConditions"/>
+
+		<!-- ============================================================== -->
+		<!-- Acceso a archivos.                                              -->
+		<!--                                                                 -->
+		<!-- WordPress recomienda WP_Filesystem en vez de fopen o unlink,     -->
+		<!-- porque contempla servidores donde PHP no escribe directo. Estas  -->
+		<!-- tiendas corren en servidores propios con escritura directa, y el -->
+		<!-- optimizador de imágenes necesita manipular archivos de verdad:   -->
+		<!-- pasar todo por WP_Filesystem sería más lento y más frágil.       -->
+		<!-- ============================================================== -->
+		<exclude name="WordPress.WP.AlternativeFunctions"/>
+
+	</rule>
+
+	<!-- ================================================================== -->
+	<!-- Lo que sí importa y se revisa en serio.                             -->
+	<!--                                                                     -->
+	<!-- Estos quedan como error, no como aviso: si aparece uno, el CI corta. -->
+	<!--   Seguridad      datos sin sanear, salida sin escapar, falta nonce   -->
+	<!--   Base de datos  SQL armado a mano sin prepare()                     -->
+	<!-- ================================================================== -->
+	<rule ref="WordPress.Security">
+		<type>error</type>
+	</rule>
+	<rule ref="WordPress.DB.PreparedSQL">
+		<type>error</type>
+	</rule>
+
+	<!-- ================================================================== -->
+	<!-- Compatibilidad con la versión de PHP que declaran las cabeceras.    -->
+	<!--                                                                     -->
+	<!-- Los plugins dicen "Requires PHP: 7.4". Esto verifica que no se cuele -->
+	<!-- sintaxis de PHP 8 que reventaría en un servidor con 7.4.             -->
+	<!-- ================================================================== -->
+	<config name="testVersion" value="7.4-"/>
+	<rule ref="PHPCompatibilityWP">
+		<type>error</type>
+	</rule>
+
+	<!-- ================================================================== -->
+	<!-- Contexto propio, para que no avise de más.                          -->
+	<!-- ================================================================== -->
+
+	<!-- La versión de WordPress más vieja que se soporta (cabeceras: 6.0). -->
+	<config name="minimum_wp_version" value="6.0"/>
+
+	<!--
+		Los archivos de shared/ se copian adentro de cada plugin que los usa,
+		así que la misma clase aparece varias veces a propósito: es lo que
+		permite que cada plugin siga funcionando solo, sin depender de otro.
+		Las copias se protegen con class_exists, y tools/sincronizar-compartido.ps1
+		las mantiene iguales. Avisar de "clase duplicada" acá es avisar del
+		diseño, no de un problema.
+	-->
+	<rule ref="Generic.Classes.DuplicateClassName">
+		<exclude-pattern>*/compartido/*</exclude-pattern>
+	</rule>
+
+	<rule ref="WordPress.WP.Capabilities">
+		<properties>
+			<property name="custom_capabilities" type="array">
+				<!-- MJ ERP: usar el ERP (MJERP_Capabilities::CAP). -->
+				<element value="manage_mjerp"/>
+				<!-- MJ ERP: entrar al portal de consignatarios (CAP_PORTAL). -->
+				<element value="mjerp_consignee"/>
+				<!-- MJ Turnos Online: manejar la agenda (MJTO_CAP). -->
+				<element value="mjto_manage"/>
+			</property>
+		</properties>
+	</rule>
+
+</ruleset>

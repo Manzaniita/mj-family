@@ -44,6 +44,16 @@ _backup/
 _zips/
 
 # ---------------------------------------------------------------------------
+# Informes de la verificacion
+#
+# Se rehacen cada vez que corre tools/verificar.ps1 o el CI. Lo que SI se
+# versiona es tools/phpcs-baseline.json, que es la foto de referencia contra
+# la que se compara.
+# ---------------------------------------------------------------------------
+phpcs.json
+phpcs.csv
+
+# ---------------------------------------------------------------------------
 # Herramientas y desarrollo
 # ---------------------------------------------------------------------------
 .vite-running
