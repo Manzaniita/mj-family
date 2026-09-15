@@ -4251,6 +4251,36 @@ th.mj-truncate {
 	border-top: 1px solid var(--mj-border);
 }
 
+/* Historial de una venta: quién cambió qué y cuándo, del más nuevo al más viejo. */
+.mj-sale-log {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.mj-sale-log__row {
+	display: flex;
+	flex-direction: column;
+	gap: var(--mj-sp-1);
+	padding: var(--mj-sp-3) var(--mj-sp-4);
+	border-top: 1px solid var(--mj-border);
+}
+
+.mj-sale-log__row:first-child {
+	border-top: 0;
+}
+
+.mj-sale-log__row--anulada .mj-sale-log__text,
+.mj-sale-log__row--cobro_borrado .mj-sale-log__text {
+	color: var(--mj-danger);
+}
+
+.mj-sale-log__changes {
+	margin: 0;
+	padding-left: var(--mj-sp-4);
+	color: var(--mj-text-muted);
+}
+
 /* Una venta anulada sigue en la lista, pero no compite por la atención. */
 .mj-table tr.is-muted td {
 	opacity: 0.55;

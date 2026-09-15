@@ -166,6 +166,8 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 			'currency'         => '',
 			'defaults'         => array(),
 			'permissions'      => array(),
+			'can_manage'       => false,
+			'log_enabled'      => false,
 		);
 
 		if ( ! class_exists( 'MJERP_Sales_Repo' ) || ! class_exists( 'MJERP_Sales' ) ) {
@@ -191,6 +193,12 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 		$info['order_statuses']   = class_exists( 'MJERP_Orders' ) ? MJERP_Orders::statuses() : array();
 		$info['currency']         = MJERP_Sales_Repo::shop_currency();
 		$info['permissions']      = class_exists( 'MJERP_Permissions' ) ? MJERP_Permissions::keys() : array();
+		/*
+		 * Quién corrige ventas (Configuración → Ventas → Corregir ventas). La pantalla lo usa para
+		 * mostrar el historial y las correcciones; quien decide de verdad es el servidor.
+		 */
+		$info['can_manage']       = MJERP_Capabilities::can_manage_sales();
+		$info['log_enabled']      = class_exists( 'MJERP_Sale_Log' ) && MJERP_Sale_Log::enabled();
 
 		if ( $info['enabled'] ) {
 			$info['stats']          = MJERP_Sales_Repo::stats();

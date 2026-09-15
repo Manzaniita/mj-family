@@ -47,6 +47,7 @@ class MJERP_Install {
 			'sales',
 			'sale_items',
 			'sale_payments',
+			'sale_log',
 		);
 	}
 
@@ -568,6 +569,7 @@ class MJERP_Install {
 		$sales     = self::table( 'sales' );
 		$sale_items = self::table( 'sale_items' );
 		$sale_pays  = self::table( 'sale_payments' );
+		$sale_log   = self::table( 'sale_log' );
 
 		$sql = array();
 
@@ -1057,6 +1059,26 @@ class MJERP_Install {
 	KEY sale_id (sale_id),
 	KEY payment_date (payment_date),
 	KEY status (status)
+) {$charset_collate};";
+
+		/*
+		 * Historial de cada venta: quién la cargó, cobró, entregó, editó o anuló, y cuándo. Se
+		 * escribe solo desde los hooks del módulo de ventas (MJERP_Sale_Log), así ningún camino que
+		 * cambie una venta se lo puede saltear.
+		 */
+		$sql[] = "CREATE TABLE {$sale_log} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	sale_id BIGINT UNSIGNED NOT NULL,
+	action VARCHAR(30) NOT NULL DEFAULT '',
+	summary VARCHAR(255) NOT NULL DEFAULT '',
+	detail LONGTEXT NULL,
+	reason VARCHAR(255) NULL,
+	actor_id BIGINT UNSIGNED NULL,
+	actor_name VARCHAR(190) NULL,
+	created_at DATETIME NULL,
+	PRIMARY KEY  (id),
+	KEY sale_id (sale_id),
+	KEY created_at (created_at)
 ) {$charset_collate};";
 
 		$report = array();

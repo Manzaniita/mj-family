@@ -4,7 +4,8 @@
  * un revendedor, qué se cobró y qué falta.
  *
  * REST: GET /sales/{id}, PUT /sales/{id}, POST /sales/{id}/void, POST /sales/{id}/order,
- *       POST /sales/{id}/payments, POST /sales/{id}/delivery, DELETE /sale-payments/{id}.
+ *       POST /sales/{id}/payments, POST /sales/{id}/delivery, DELETE /sale-payments/{id},
+ *       GET /sales/{id}/log.
  */
 (function () {
 	'use strict';
@@ -301,6 +302,41 @@
 		'</div>';
 	}
 
+	/**
+	 * Historial: quién cargó, cobró, entregó, corrigió o anuló la venta, y cuándo.
+	 *
+	 * Lo ve solo quien puede corregir ventas (Configuración → Ventas → Corregir ventas); el servidor
+	 * lo vuelve a controlar al pedirlo.
+	 */
+	function canSeeLog() {
+		return !!info().can_manage && info().log_enabled !== false;
+	}
+
+	function historyHtml(state) {
+		const rows = state.log;
+		let body;
+		if (rows === null) {
+			body = '<div class="mj-card__body">' + loadingHtml('Cargando el historial…') + '</div>';
+		} else if (!rows.length) {
+			body = '<div class="mj-card__body mj-muted">Todavía no hay nada anotado. Lo que se haga con esta venta desde ahora queda acá.</div>';
+		} else {
+			body = '<ol class="mj-sale-log">' + rows.map(logRowHtml).join('') + '</ol>';
+		}
+		return '<div class="mj-card"><div class="mj-card__header"><h3 class="mj-card__title">Historial</h3></div>' + body + '</div>';
+	}
+
+	function logRowHtml(row) {
+		const changes = row.detail && Array.isArray(row.detail.changes) ? row.detail.changes : [];
+		return '<li class="mj-sale-log__row mj-sale-log__row--' + h(row.action || '') + '">' +
+			'<div class="mj-small mj-muted">' + h(MJ.fmt.datetime(row.created_at)) + (row.actor_name ? ' · ' + h(row.actor_name) : '') + '</div>' +
+			'<div class="mj-sale-log__text">' + h(row.summary || '') + '</div>' +
+			(changes.length
+				? '<ul class="mj-sale-log__changes mj-small">' + changes.map(function (c) { return '<li>' + h(c) + '</li>'; }).join('') + '</ul>'
+				: '') +
+			(row.reason ? '<div class="mj-small mj-muted">Motivo: ' + h(row.reason) + '</div>' : '') +
+		'</li>';
+	}
+
 	/* ------------------------------------------------------------------ */
 	/* Página                                                              */
 	/* ------------------------------------------------------------------ */
@@ -310,7 +346,7 @@
 
 		render(container, params) {
 			const offs = [];
-			const state = { id: parseInt(params && params.id, 10) || 0, sale: null, disposed: false };
+			const state = { id: parseInt(params && params.id, 10) || 0, sale: null, log: null, disposed: false };
 
 			container.innerHTML = loadingHtml('Cargando la venta…');
 
@@ -327,6 +363,7 @@
 						'<div class="mj-grid__main">' +
 							itemsHtml(sale) +
 							'<div class="mj-mt">' + paymentsHtml(sale) + '</div>' +
+							(canSeeLog() ? '<div class="mj-mt" data-region="history">' + historyHtml(state) + '</div>' : '') +
 						'</div>' +
 						'<div class="mj-grid__side">' +
 							totalsHtml(sale) +
@@ -335,6 +372,30 @@
 							'<div class="mj-mt">' + detailsHtml(sale) + '</div>' +
 						'</div>' +
 					'</div>';
+				loadLog();
+			}
+
+			function paintHistory() {
+				const region = qs('[data-region="history"]', container);
+				if (region) region.innerHTML = historyHtml(state);
+			}
+
+			/*
+			 * El historial se vuelve a pedir cada vez que se repinta la venta: cobrar, entregar o
+			 * anular también dejan su anotación, y la tarjeta tiene que mostrarla sin recargar.
+			 */
+			function loadLog() {
+				if (!canSeeLog()) return;
+				MJ.api.get('sales/' + state.id + '/log').then(function (res) {
+					if (state.disposed) return;
+					state.log = (res && res.items) || [];
+					paintHistory();
+				}).catch(function (err) {
+					if (state.disposed) return;
+					state.log = state.log || [];
+					paintHistory();
+					if (err && err.status !== 403) toastError(err, 'No se pudo cargar el historial de la venta.');
+				});
 			}
 
 			function load() {

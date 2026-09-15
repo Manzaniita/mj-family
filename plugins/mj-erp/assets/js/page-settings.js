@@ -83,6 +83,7 @@
 		sales_pos_per_page: 'ventas', sales_pos_images: 'ventas', sales_pos_steps_width: 'ventas',
 		sales_delivery_enabled: 'ventas', sales_delivery_methods: 'ventas',
 		sales_default_delivery_method: 'ventas', sales_shop_delivery_method: 'ventas',
+		sales_admin_roles: 'ventas', sales_log_enabled: 'ventas',
 		customers_enabled: 'clientes', customers_doc_types: 'clientes', customers_default_doc_type: 'clientes',
 		customers_link_mode: 'clientes', customers_link_match: 'clientes', customers_link_backfill: 'clientes',
 		customers_quick_create: 'clientes', customers_require_on_sale: 'clientes', customers_fields: 'clientes',
@@ -221,6 +222,8 @@
 		],
 		sales_default_delivery_method: 'mostrador',
 		sales_shop_delivery_method: 'envio',
+		sales_admin_roles: ['administrator'],
+		sales_log_enabled: true,
 		customers_enabled: true,
 		customers_doc_types: [
 			{ key: 'dni', label: 'DNI' },
@@ -703,16 +706,34 @@
 		m.shop_price_list = listKeys.indexOf(shopList) >= 0 ? shopList : (listKeys.length ? listKeys[0] : '');
 		m.shop_price_notice = toBool(src.shop_price_notice, DEFAULTS.shop_price_notice);
 
+		m.allowed_roles = roleKeys(src.allowed_roles, DEFAULTS.allowed_roles);
+		m.sales_admin_roles = roleKeys(src.sales_admin_roles, DEFAULTS.sales_admin_roles);
+		m.sales_log_enabled = toBool(src.sales_log_enabled, DEFAULTS.sales_log_enabled);
+
+		m.delete_data_on_uninstall = toBool(src.delete_data_on_uninstall, DEFAULTS.delete_data_on_uninstall);
+		return m;
+	}
+
+	/** Roles como lista de claves, sin repetidos y con el administrador siempre adentro. */
+	function roleKeys(raw, def) {
 		const roles = [];
-		(Array.isArray(src.allowed_roles) ? src.allowed_roles : DEFAULTS.allowed_roles).forEach(function (r) {
+		(Array.isArray(raw) ? raw : def).forEach(function (r) {
 			const key = slugify(r).replace(/-/g, '_');
 			if (key && roles.indexOf(key) === -1) roles.push(key);
 		});
 		if (roles.indexOf('administrator') === -1) roles.unshift('administrator');
-		m.allowed_roles = roles;
+		return roles;
+	}
 
-		m.delete_data_on_uninstall = toBool(src.delete_data_on_uninstall, DEFAULTS.delete_data_on_uninstall);
-		return m;
+	/** Idem, para el payload. */
+	function payloadRoles(list) {
+		const roles = [];
+		(list || []).forEach(function (r) {
+			const key = str(r).trim();
+			if (key && roles.indexOf(key) === -1) roles.push(key);
+		});
+		if (roles.indexOf('administrator') === -1) roles.unshift('administrator');
+		return roles;
 	}
 
 	/** Elige `value` si es una de las claves conocidas; si no, el default. */
@@ -915,12 +936,7 @@
 			if (value && destinations.indexOf(value) === -1) destinations.push(value);
 		});
 
-		const roles = [];
-		(m.allowed_roles || []).forEach(function (r) {
-			const key = str(r).trim();
-			if (key && roles.indexOf(key) === -1) roles.push(key);
-		});
-		if (roles.indexOf('administrator') === -1) roles.unshift('administrator');
+		const roles = payloadRoles(m.allowed_roles);
 
 		const listForPrice = str(m.price_list_for_price);
 		const rounding = toInt(m.price_rounding, 0);
@@ -982,6 +998,8 @@
 			sales_delivery_methods: deliveryMethods,
 			sales_default_delivery_method: inList(m.sales_default_delivery_method, deliveryKeys, DEFAULTS.sales_default_delivery_method),
 			sales_shop_delivery_method: inList(m.sales_shop_delivery_method, deliveryKeys, DEFAULTS.sales_shop_delivery_method),
+			sales_admin_roles: payloadRoles(m.sales_admin_roles),
+			sales_log_enabled: !!m.sales_log_enabled,
 
 			customers_enabled: !!m.customers_enabled,
 			customers_doc_types: normalizePairs(m.customers_doc_types, DEFAULTS.customers_doc_types, false),
@@ -1633,7 +1651,7 @@
 		});
 	}
 
-	function roleList(m) {
+	function roleList(m, settingKey) {
 		const out = [];
 		const seen = {};
 		let source = [];
@@ -1646,7 +1664,7 @@
 			seen[key] = true;
 			out.push({ key: key, label: (typeof r === 'string' ? key : str(r.label || r.name)) || key });
 		});
-		(m.allowed_roles || []).forEach(function (key) {
+		(m[settingKey || 'allowed_roles'] || []).forEach(function (key) {
 			if (!key || seen[key]) return;
 			seen[key] = true;
 			out.push({ key: key, label: str(key) });
@@ -1660,8 +1678,16 @@
 		return out;
 	}
 
-	function rolesHtml(m) {
-		const roles = roleList(m);
+	/**
+	 * Checklist de roles para un ajuste que guarda una lista de roles.
+	 *
+	 * @param {Object} m          Model.
+	 * @param {string} settingKey Ajuste (allowed_roles por defecto).
+	 * @param {string} adminHint  Aclaración junto al administrador (HTML fijo).
+	 */
+	function rolesHtml(m, settingKey, adminHint) {
+		const setting = settingKey || 'allowed_roles';
+		const roles = roleList(m, setting);
 		if (!roles.length) {
 			return MJ.ui.empty({
 				icon: 'users',
@@ -1669,22 +1695,22 @@
 				text: 'Recargá la aplicación; mientras tanto solo los administradores tienen acceso.',
 			});
 		}
-		const allowed = m.allowed_roles || [];
+		const allowed = m[setting] || [];
 		let html = '<div class="mj-stack">';
 		roles.forEach(function (role) {
 			const isAdmin = role.key === 'administrator';
 			const checked = isAdmin || allowed.indexOf(role.key) >= 0;
-			const id = 'mj-set-role-' + role.key.replace(/[^A-Za-z0-9_-]/g, '-');
+			const id = 'mj-set-' + setting + '-' + role.key.replace(/[^A-Za-z0-9_-]/g, '-');
 			html += '<div class="mj-field">' +
 				'<label class="mj-checkbox" for="' + id + '">' +
-					'<input type="checkbox" id="' + id + '" data-role="' + h(role.key) + '"' + (checked ? ' checked' : '') + (isAdmin ? ' disabled' : '') + '>' +
+					'<input type="checkbox" id="' + id + '" data-role="' + h(role.key) + '" data-role-setting="' + h(setting) + '"' + (checked ? ' checked' : '') + (isAdmin ? ' disabled' : '') + '>' +
 					'<span>' + h(role.label) + ' <span class="mj-muted mj-mono mj-small">' + h(role.key) + '</span></span>' +
 				'</label>' +
-				(isAdmin ? '<div class="mj-field__hint">Los administradores siempre tienen acceso (capacidad <span class="mj-mono">manage_options</span>).</div>' : '') +
+				(isAdmin ? '<div class="mj-field__hint">' + (adminHint || 'Los administradores siempre tienen acceso (capacidad <span class="mj-mono">manage_options</span>).') + '</div>' : '') +
 			'</div>';
 		});
 		html += '</div>';
-		html += '<div data-editor-error="allowed_roles"></div>';
+		html += '<div data-editor-error="' + h(setting) + '"></div>';
 		return html;
 	}
 
@@ -2142,6 +2168,17 @@
 				key: 'sales_allow_oversell', label: 'Dejar vender sin stock', checked: !!m.sales_allow_oversell,
 				hint: 'Desactivado, el ERP no deja cargar una venta de algo que no tenés (salvo que el producto acepte pedidos pendientes).',
 			})
+		) +
+		sectionHtml('Corregir ventas', 'Cambiar lo que ya se vendió toca plata que ya existe: lo hace solo quien elijas acá, y cada cambio queda anotado en la venta.',
+			checkboxFieldHtml({
+				key: 'sales_log_enabled', label: 'Llevar el historial de cada venta', checked: !!m.sales_log_enabled,
+				hint: 'Anota quién cargó, cobró, entregó, corrigió o anuló cada venta, y cuándo. Se ve en el detalle de la venta, abajo de los cobros.',
+			}) +
+			'<div class="mj-field">' +
+				'<span class="mj-field__label">Quién puede corregir ventas y ver el historial</span>' +
+				'<div data-region="roles-sales_admin_roles">' + rolesHtml(m, 'sales_admin_roles', 'El administrador siempre puede.') + '</div>' +
+				'<div class="mj-field__hint">Además de uno de estos roles, hace falta poder entrar al ERP (pestaña Acceso).</div>' +
+			'</div>'
 		) +
 		sectionHtml('Códigos de venta', 'Se generan solos al registrar una venta.',
 			'<div class="mj-form-row">' +
@@ -2882,14 +2919,15 @@
 
 			function writeRole(el) {
 				const role = str(el.getAttribute('data-role'));
+				const setting = str(el.getAttribute('data-role-setting')) || 'allowed_roles';
 				if (!role || !state.model) return;
-				const roles = Array.isArray(state.model.allowed_roles) ? state.model.allowed_roles.slice() : [];
+				const roles = Array.isArray(state.model[setting]) ? state.model[setting].slice() : [];
 				const at = roles.indexOf(role);
 				if (el.checked && at === -1) roles.push(role);
 				if (!el.checked && at >= 0) roles.splice(at, 1);
 				if (roles.indexOf('administrator') === -1) roles.unshift('administrator');
-				state.model.allowed_roles = roles;
-				clearFieldError('allowed_roles');
+				state.model[setting] = roles;
+				clearFieldError(setting);
 				paintDirty();
 			}
 

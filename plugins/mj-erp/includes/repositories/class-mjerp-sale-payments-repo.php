@@ -422,6 +422,15 @@ class MJERP_Sale_Payments_Repo {
 
 		MJERP_Sales_Repo::sync_payments( (int) $payment['sale_id'] );
 
+		/**
+		 * Fires after a payment of a sale was deleted.
+		 *
+		 * @param int   $id      Payment id.
+		 * @param int   $sale_id Sale id.
+		 * @param array $payment Payment before deleting.
+		 */
+		do_action( 'mjerp_sale_payment_deleted', (int) $payment['id'], (int) $payment['sale_id'], $payment );
+
 		return true;
 	}
 

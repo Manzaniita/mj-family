@@ -177,7 +177,7 @@ class MJERP_REST_Settings extends MJERP_REST_Controller {
 		 */
 		return (array) apply_filters(
 			'mjerp_admin_only_settings',
-			array( 'allowed_roles', 'route_slug', 'cost_meta_key', 'delete_data_on_uninstall' )
+			array( 'allowed_roles', 'sales_admin_roles', 'route_slug', 'cost_meta_key', 'delete_data_on_uninstall' )
 		);
 	}
 
@@ -226,7 +226,7 @@ class MJERP_REST_Settings extends MJERP_REST_Controller {
 		if ( is_array( $default ) ) {
 			if ( ! is_array( $value ) ) {
 				// Allow comma separated strings for simple lists.
-				if ( is_string( $value ) && in_array( $key, array( 'currencies', 'destinations', 'allowed_roles' ), true ) ) {
+				if ( is_string( $value ) && in_array( $key, array( 'currencies', 'destinations', 'allowed_roles', 'sales_admin_roles' ), true ) ) {
 					$parts = array_map( 'trim', explode( ',', $value ) );
 					return array_values( array_filter( $parts, 'strlen' ) );
 				}
@@ -272,9 +272,10 @@ class MJERP_REST_Settings extends MJERP_REST_Controller {
 
 			case 'destinations':
 			case 'allowed_roles':
+			case 'sales_admin_roles':
 				foreach ( $value as $item ) {
 					if ( is_scalar( $item ) ) {
-						$item = 'allowed_roles' === $key ? sanitize_key( (string) $item ) : sanitize_text_field( (string) $item );
+						$item = 'destinations' !== $key ? sanitize_key( (string) $item ) : sanitize_text_field( (string) $item );
 						if ( '' !== $item ) {
 							$out[] = $item;
 						}
@@ -537,11 +538,14 @@ class MJERP_REST_Settings extends MJERP_REST_Controller {
 			}
 		}
 
-		if ( array_key_exists( 'allowed_roles', $partial ) ) {
+		foreach ( array( 'allowed_roles', 'sales_admin_roles' ) as $roles_key ) {
+			if ( ! array_key_exists( $roles_key, $partial ) ) {
+				continue;
+			}
 			$all_roles = wp_roles() ? array_keys( (array) wp_roles()->get_names() ) : array();
-			foreach ( (array) $partial['allowed_roles'] as $role ) {
+			foreach ( (array) $partial[ $roles_key ] as $role ) {
 				if ( ! in_array( $role, $all_roles, true ) ) {
-					$errors['allowed_roles'] = sprintf(
+					$errors[ $roles_key ] = sprintf(
 						/* translators: %s: role key */
 						__( 'El rol «%s» no existe.', 'mj-erp' ),
 						$role

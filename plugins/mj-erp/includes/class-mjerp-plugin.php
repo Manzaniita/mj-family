@@ -83,6 +83,7 @@ final class MJERP_Plugin {
 			'includes/class-mjerp-consignment-account.php',
 			'includes/repositories/class-mjerp-sales-repo.php',
 			'includes/repositories/class-mjerp-sale-payments-repo.php',
+			'includes/repositories/class-mjerp-sale-log-repo.php',
 			'includes/class-mjerp-sales.php',
 			'includes/class-mjerp-orders.php',
 			'includes/class-mjerp-pricing.php',
@@ -160,6 +161,8 @@ final class MJERP_Plugin {
 		MJERP_Orders::init();
 		// Escucha los cobros y las entregas: son los dos momentos que pueden comprometer una venta.
 		MJERP_Sales::init();
+		// Anota en cada venta quién cambió qué: escucha los mismos hooks que el módulo de ventas.
+		MJERP_Sale_Log::init();
 		MJERP_Pricing::init();
 		MJERP_Frontend::init();
 		MJERP_Portal::init();

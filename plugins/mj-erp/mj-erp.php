@@ -25,7 +25,7 @@ if ( ! defined( 'MJERP_VERSION' ) ) {
 	define( 'MJERP_VERSION', '1.17.0' );
 }
 if ( ! defined( 'MJERP_DB_VERSION' ) ) {
-	define( 'MJERP_DB_VERSION', '1.9.0' );
+	define( 'MJERP_DB_VERSION', '1.10.0' );
 }
 if ( ! defined( 'MJERP_FILE' ) ) {
 	define( 'MJERP_FILE', __FILE__ );

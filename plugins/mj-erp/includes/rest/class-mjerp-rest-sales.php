@@ -171,6 +171,15 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 
 		register_rest_route(
 			$ns,
+			'/sales/(?P<id>\d+)/log',
+			array(
+				'args' => array( 'id' => $this->id_arg( __( 'ID de la venta.', 'mj-erp' ) ) ),
+				$this->endpoint( WP_REST_Server::READABLE, 'list_log' ),
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			'/sales/(?P<id>\d+)/order',
 			array(
 				'args' => array( 'id' => $this->id_arg( __( 'ID de la venta.', 'mj-erp' ) ) ),
@@ -466,6 +475,30 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 		}
 
 		return $this->ok( MJERP_Sales_Repo::get_full( $id ) );
+	}
+
+	/**
+	 * GET /sales/{id}/log — quién cambió qué en la venta, del más nuevo al más viejo.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function list_log( $request ) {
+		if ( ! MJERP_Capabilities::can_manage_sales() ) {
+			return $this->fail( 'mjerp_forbidden', __( 'El historial de una venta lo ve solo quien puede corregir ventas.', 'mj-erp' ), 403 );
+		}
+
+		$id = $this->route_id( $request );
+		if ( ! MJERP_Sales_Repo::find( $id ) ) {
+			return $this->fail( 'mjerp_not_found', __( 'La venta no existe.', 'mj-erp' ), 404 );
+		}
+
+		return $this->ok(
+			array(
+				'items'   => MJERP_Sale_Log::for_sale( $id ),
+				'enabled' => MJERP_Sale_Log::enabled(),
+			)
+		);
 	}
 
 	/**

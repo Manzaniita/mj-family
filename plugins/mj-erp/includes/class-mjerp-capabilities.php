@@ -52,6 +52,39 @@ class MJERP_Capabilities {
 	}
 
 	/**
+	 * Whether a user may correct sales that already exist and read their history.
+	 *
+	 * Cambiar lo que ya se vendió toca plata que ya existe, así que no alcanza con poder usar el ERP:
+	 * hace falta tener uno de los roles de Configuración → Ventas → Corregir ventas. El administrador
+	 * puede siempre.
+	 *
+	 * @param int $user_id User id (0 = current user).
+	 * @return bool
+	 */
+	public static function can_manage_sales( $user_id = 0 ) {
+		$user_id = $user_id ? absint( $user_id ) : get_current_user_id();
+		$allowed = false;
+
+		if ( $user_id && self::user_can( $user_id ) ) {
+			if ( user_can( $user_id, 'manage_options' ) ) {
+				$allowed = true;
+			} else {
+				$user  = get_userdata( $user_id );
+				$roles = class_exists( 'MJERP_Settings' ) ? (array) MJERP_Settings::get( 'sales_admin_roles', array( 'administrator' ) ) : array( 'administrator' );
+				$allowed = $user && array_intersect( (array) $user->roles, array_map( 'strval', $roles ) );
+			}
+		}
+
+		/**
+		 * Filters whether a user may correct sales and read their history.
+		 *
+		 * @param bool $allowed Whether the user may.
+		 * @param int  $user_id User id.
+		 */
+		return (bool) apply_filters( 'mjerp_can_manage_sales', (bool) $allowed, (int) $user_id );
+	}
+
+	/**
 	 * Roles that must receive the capability (settings + administrator).
 	 *
 	 * @param array|null $roles Optional explicit list of role keys.

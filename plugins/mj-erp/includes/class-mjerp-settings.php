@@ -290,6 +290,13 @@ class MJERP_Settings {
 			'sales_allow_discount'       => true,
 			'sales_allow_oversell'       => false,
 
+			/*
+			 * Corregir ventas: quién puede cambiar lo que ya se vendió y ver el historial de cada
+			 * venta. Por defecto solo el administrador: son cambios sobre plata que ya existe.
+			 */
+			'sales_admin_roles'          => array( 'administrator' ),
+			'sales_log_enabled'          => true,
+
 			/* Emisión de la orden de WooCommerce (la que dispara la notificación de la app). */
 			'sales_create_order'         => true,
 			/*
@@ -1366,6 +1373,7 @@ class MJERP_Settings {
 				return max( 0, self::int( $value, $default ) );
 
 			case 'allowed_roles':
+			case 'sales_admin_roles':
 				return self::roles( $value );
 
 			case 'new_product_status':
@@ -1457,6 +1465,7 @@ class MJERP_Settings {
 			case 'sales_consignment_partial_lines':
 			case 'sales_pos_images':
 			case 'sales_delivery_enabled':
+			case 'sales_log_enabled':
 			case 'shop_price_notice':
 				return MJERP_Helpers::bool( $value );
 
@@ -1810,6 +1819,15 @@ class MJERP_Settings {
 			array_unshift( $s['allowed_roles'], 'administrator' );
 		}
 		$s['allowed_roles'] = array_values( array_unique( $s['allowed_roles'] ) );
+
+		// Quien corrige ventas: el administrador siempre.
+		if ( ! is_array( $s['sales_admin_roles'] ) ) {
+			$s['sales_admin_roles'] = array();
+		}
+		if ( ! in_array( 'administrator', $s['sales_admin_roles'], true ) ) {
+			array_unshift( $s['sales_admin_roles'], 'administrator' );
+		}
+		$s['sales_admin_roles'] = array_values( array_unique( $s['sales_admin_roles'] ) );
 
 		if ( '' === (string) $s['route_slug'] ) {
 			$s['route_slug'] = 'mjerp';

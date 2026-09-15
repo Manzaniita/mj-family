@@ -876,10 +876,11 @@ class MJERP_Sales_Repo {
 		/**
 		 * Fires after a sale was updated.
 		 *
-		 * @param int   $id  Sale id.
-		 * @param array $row Changed columns.
+		 * @param int   $id   Sale id.
+		 * @param array $row  Changed columns.
+		 * @param array $sale Sale before the change.
 		 */
-		do_action( 'mjerp_sale_updated', (int) $sale['id'], $row );
+		do_action( 'mjerp_sale_updated', (int) $sale['id'], $row, $sale );
 
 		return true;
 	}
@@ -923,10 +924,11 @@ class MJERP_Sales_Repo {
 		/**
 		 * Fires after a sale was voided.
 		 *
-		 * @param int   $id   Sale id.
-		 * @param array $sale Sale before voiding.
+		 * @param int    $id   Sale id.
+		 * @param array  $sale Sale before voiding.
+		 * @param string $note Reason.
 		 */
-		do_action( 'mjerp_sale_voided', (int) $sale['id'], $sale );
+		do_action( 'mjerp_sale_voided', (int) $sale['id'], $sale, $note );
 
 		return true;
 	}
