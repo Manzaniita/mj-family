@@ -324,6 +324,12 @@ documentación. Los pasos marcados **siempre** no se saltean nunca.
 - [ ] **Siempre.** Cabecera con `Version: 1.0.0`, `Requires at least`,
       `Requires PHP: 7.4` y `Author: MJ Importaciones`. En los plugins, además,
       la constante `MJ*_VERSION` con el mismo número.
+- [ ] **Siempre.** Un prefijo que no use ningún otro paquete para constantes,
+      clases, funciones y opciones: buscalo en todo el repositorio antes de
+      elegirlo. Dos plugins con la misma constante no dan error al definirla;
+      gana el que carga primero, y el otro falla lejos de ahí. Pasó con
+      `MJC_DIR`, que usaban MJ Colegas y MJ Core: en Yamana, MJ Core no se podía
+      activar.
 - [ ] **Siempre.** Plugin: `defined('ABSPATH') || exit;` arriba y un
       `uninstall.php` que borre sus opciones y tablas.
 - [ ] Tema hijo: `Template: mj-appearance` en `style.css`, descripción con el

@@ -28,7 +28,7 @@ class MJC_Admin {
 		add_action('admin_post_mjc_guardar', [__CLASS__, 'guardar']);
 		add_action('admin_post_mjc_buscar', [__CLASS__, 'buscar']);
 		add_action('admin_notices', [__CLASS__, 'aviso_sin_configurar']);
-		add_filter('plugin_action_links_' . plugin_basename(MJC_FILE), [__CLASS__, 'enlace_ajustes']);
+		add_filter('plugin_action_links_' . plugin_basename(MJCORE_FILE), [__CLASS__, 'enlace_ajustes']);
 	}
 
 	/**
@@ -397,7 +397,7 @@ class MJC_Admin {
 			</form>
 
 			<hr />
-			<p class="description">MJ Core <?php echo esc_html(MJC_VERSION); ?>.</p>
+			<p class="description">MJ Core <?php echo esc_html(MJCORE_VERSION); ?>.</p>
 		</div>
 		<?php
 	}

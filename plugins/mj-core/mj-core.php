@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Core
  * Description: Actualizaciones de los temas y plugins MJ desde wp-admin. Cuando se publica una versión nueva, la tienda la ofrece como cualquier otra actualización de WordPress, con su botón de "Actualizar ahora".
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: MJ Importaciones
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -24,19 +24,22 @@
 
 defined('ABSPATH') || exit;
 
-define('MJC_VERSION', '1.0.0');
-define('MJC_FILE', __FILE__);
-define('MJC_DIR', plugin_dir_path(__FILE__));
+/* MJCORE_ y no MJC_: MJ Colegas ya usa MJC_VERSION, MJC_FILE y MJC_DIR, y como
+   carga antes (orden alfabético) sus valores ganaban y MJ Core buscaba sus
+   archivos adentro de mj-colegas/. */
+define('MJCORE_VERSION', '1.0.1');
+define('MJCORE_FILE', __FILE__);
+define('MJCORE_DIR', plugin_dir_path(__FILE__));
 
 /* Cuaderno de errores compartido de la familia MJ. La copia maestra está en
    shared/class-mj-log.php; esta es una copia. Ver tools/sincronizar-compartido.ps1. */
-require_once MJC_DIR . 'includes/compartido/class-mj-log.php';
+require_once MJCORE_DIR . 'includes/compartido/class-mj-log.php';
 MJ_Log::init();
 
-require_once MJC_DIR . 'includes/class-mjc-ajustes.php';
-require_once MJC_DIR . 'includes/class-mjc-catalogo.php';
-require_once MJC_DIR . 'includes/class-mjc-actualizador.php';
-require_once MJC_DIR . 'includes/class-mjc-admin.php';
+require_once MJCORE_DIR . 'includes/class-mjc-ajustes.php';
+require_once MJCORE_DIR . 'includes/class-mjc-catalogo.php';
+require_once MJCORE_DIR . 'includes/class-mjc-actualizador.php';
+require_once MJCORE_DIR . 'includes/class-mjc-admin.php';
 
 MJC_Actualizador::init();
 

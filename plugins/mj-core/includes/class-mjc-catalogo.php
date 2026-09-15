@@ -166,7 +166,7 @@ class MJC_Catalogo {
 	public static function encabezados($acepta) {
 		$encabezados = [
 			'Accept'               => $acepta,
-			'User-Agent'           => 'MJ-Core/' . MJC_VERSION,
+			'User-Agent'           => 'MJ-Core/' . MJCORE_VERSION,
 			'X-GitHub-Api-Version' => '2022-11-28',
 		];
 		$token = MJC_Ajustes::token();

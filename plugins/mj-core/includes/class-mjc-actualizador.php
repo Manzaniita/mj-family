@@ -365,7 +365,7 @@ class MJC_Actualizador {
 					'timeout'  => 300,
 					'stream'   => true,
 					'filename' => $archivo,
-					'headers'  => ['User-Agent' => 'MJ-Core/' . MJC_VERSION],
+					'headers'  => ['User-Agent' => 'MJ-Core/' . MJCORE_VERSION],
 				]
 			);
 			$codigo = is_wp_error($respuesta) ? 0 : (int) wp_remote_retrieve_response_code($respuesta);
