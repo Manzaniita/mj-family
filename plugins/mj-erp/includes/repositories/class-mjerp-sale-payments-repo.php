@@ -159,6 +159,34 @@ class MJERP_Sale_Payments_Repo {
 		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE status = %s", self::STATUS_DECLARED ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
 	}
 
+	/**
+	 * Lo que vale un cobro en la moneda base.
+	 *
+	 * En la moneda de su venta se divide por el TC, igual que el total de la venta
+	 * (MJERP_Sales_Repo::to_base). Así el Cobrado y el Facturado se miden con la misma vara aunque la
+	 * venta haya quedado anotada con la moneda base: con to_base() a secas, una venta en pesos
+	 * anotada "USD" guardaba sus $ 25.000 como US$ 25.000.
+	 *
+	 * @param float      $amount   Importe en la moneda del cobro.
+	 * @param string     $currency Moneda del cobro.
+	 * @param float      $rate     TC del cobro.
+	 * @param array|null $sale     Venta del cobro.
+	 * @return float
+	 */
+	private static function amount_base( $amount, $currency, $rate, ?array $sale ) : float {
+		$amount   = MJERP_Helpers::to_float( $amount );
+		$rate     = MJERP_Helpers::to_float( $rate );
+		$currency = strtoupper( (string) $currency );
+		$sale_cur = ( $sale && isset( $sale['currency'] ) ) ? strtoupper( (string) $sale['currency'] ) : '';
+
+		if ( '' !== $sale_cur && $currency === $sale_cur ) {
+			return round( $rate > 0 ? $amount / $rate : $amount, 4 );
+		}
+
+		$base = strtoupper( (string) MJERP_Settings::get( 'base_currency', 'USD' ) );
+		return round( MJERP_Helpers::to_base( $amount, $currency, $rate, $base ), 4 );
+	}
+
 	/* ------------------------------------------------------------------
 	 * Write
 	 * ---------------------------------------------------------------- */
@@ -199,8 +227,7 @@ class MJERP_Sale_Payments_Repo {
 			$rate = MJERP_Sales_Repo::default_rate( $currency );
 		}
 
-		$base_currency = strtoupper( (string) MJERP_Settings::get( 'base_currency', 'USD' ) );
-		$amount_base   = round( MJERP_Helpers::to_base( $amount, $currency, $rate, $base_currency ), 4 );
+		$amount_base = self::amount_base( $amount, $currency, $rate, $sale );
 
 		$date = MJERP_Helpers::sanitize_date( MJERP_Helpers::array_get( $data, 'payment_date', null ) );
 		if ( null === $date ) {
@@ -316,10 +343,9 @@ class MJERP_Sale_Payments_Repo {
 		$amount   = array_key_exists( 'amount', $row ) ? $row['amount'] : $payment['amount'];
 		$currency = array_key_exists( 'currency', $row ) ? $row['currency'] : $payment['currency'];
 		$rate     = array_key_exists( 'rate', $row ) ? $row['rate'] : $payment['rate'];
-		$row['amount_base'] = round(
-			MJERP_Helpers::to_base( $amount, $currency, $rate, strtoupper( (string) MJERP_Settings::get( 'base_currency', 'USD' ) ) ),
-			4
-		);
+		$sale     = class_exists( 'MJERP_Sales_Repo' ) ? MJERP_Sales_Repo::find( (int) $payment['sale_id'] ) : null;
+
+		$row['amount_base'] = self::amount_base( $amount, $currency, $rate, $sale );
 		$row['updated_at'] = current_time( 'mysql' );
 
 		$result = $wpdb->update( self::table(), $row, array( 'id' => $payment['id'] ), self::formats( $row ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
