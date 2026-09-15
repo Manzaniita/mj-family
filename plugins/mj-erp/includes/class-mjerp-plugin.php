@@ -92,6 +92,7 @@ final class MJERP_Plugin {
 			'includes/class-mjerp-sale-editor.php',
 			'includes/class-mjerp-credit.php',
 			'includes/class-mjerp-returns.php',
+			'includes/class-mjerp-shop-credit.php',
 			'includes/class-mjerp-pricing.php',
 			'includes/class-mjerp-frontend.php',
 			'includes/class-mjerp-portal.php',
@@ -174,6 +175,7 @@ final class MJERP_Plugin {
 		MJERP_Sale_Editor::init();
 		MJERP_Credit::init();
 		MJERP_Returns::init();
+		MJERP_Shop_Credit::init();
 		MJERP_Pricing::init();
 		MJERP_Frontend::init();
 		MJERP_Portal::init();

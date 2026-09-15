@@ -287,6 +287,69 @@ que el pedido y lo descontado quedaron desparejos: anotá la venta y el pedido.
 
 ---
 
+## 5. MJ ERP: devoluciones, RMA y saldo a favor
+
+Mueve plata, stock y el saldo de un cliente: probalo con un cliente de prueba que
+tenga **cuenta en la tienda vinculada a su ficha**, y el producto de prueba (stock 10).
+
+### 5.1. Devolución que queda a favor
+
+1. Cargá en el ERP una venta de 2 unidades a ese cliente, con pedido, **cobrala
+   entera** y marcala entregada. El stock queda en 8.
+2. En el detalle, **Devolución o cambio**: vuelve 1 unidad, «Vuelve al stock»,
+   motivo, y «Queda como saldo a favor».
+
+**Qué tiene que pasar:** el total baja a una unidad, en Cobros aparece un renglón
+«Devolución» en negativo, el stock queda en 9, el pedido de WooCommerce dice 1
+unidad, y la ficha del cliente (Clientes → el nombre) tiene el saldo a favor por lo
+que pagó esa unidad. Si la venta tenía descuento, el saldo es sin el descuento.
+
+### 5.2. Fallado, con reemplazo
+
+1. En la misma venta, **Devolución o cambio**: 1 unidad, «Vino fallado (RMA)», tildá
+   «Le doy otro igual» y escribí el problema.
+
+**Qué tiene que pasar:** la plata no cambia, el stock baja a 8 (sale el reemplazo, el
+fallado no entra) y en **RMA** (menú) aparece abierto, con el proveedor de la última
+compra de ese producto.
+
+2. En RMA, **Baja**.
+
+**Qué tiene que pasar:** «Pérdida por garantías · mes» sube por el costo de esa unidad.
+Probá otro con **Al stock**: el stock sube 1 y no es pérdida.
+
+### 5.3. Anular una venta cobrada
+
+1. Cargá y cobrá otra venta a ese cliente. **Anular**.
+
+**Qué tiene que pasar:** pregunta qué pasa con la plata. Con «Le di la plata» pedí
+medio y caja; en Cobros queda el renglón «Devolución» y el saldo del cliente no
+cambia.
+
+### 5.4. El saldo en la tienda
+
+1. Entrá a la tienda con la cuenta del cliente: **Mi cuenta → Resumen** muestra el
+   saldo y sus movimientos.
+2. Armá un carrito y andá al checkout.
+
+**Qué tiene que pasar:** aparece «Usar mi saldo a favor», aplicado, y el total baja.
+Destildalo: el total vuelve. Probá «¿Querés usar menos?» con la mitad.
+
+3. Confirmá el pedido.
+
+**Qué tiene que pasar:** en la ficha del cliente el saldo bajó lo usado; la venta del
+pedido en el ERP tiene un cobro «Saldo a favor» y lo que falta lo cobra la pasarela.
+
+4. Cancelá ese pedido.
+
+**Qué tiene que pasar:** el saldo vuelve a como estaba, con un movimiento «Vuelve al
+saldo».
+
+**Señal de que algo está mal:** el saldo baja dos veces para el mismo pedido, o no
+vuelve al cancelar. Anotá el pedido y el cliente.
+
+---
+
 ## Cuando termines
 
 1. Volvé los registros a **Solo los errores**.

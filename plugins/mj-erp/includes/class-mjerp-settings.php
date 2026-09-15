@@ -313,6 +313,11 @@ class MJERP_Settings {
 			'rma_enabled'                => true,
 			'rma_code_prefix'            => 'RMA',
 
+			/* Saldo a favor en la tienda: «Mi cuenta» y el checkout (MJERP_Shop_Credit). */
+			'credit_shop_enabled'        => true,
+			// En el checkout el saldo viene aplicado; si no, el cliente lo marca.
+			'credit_shop_auto'           => true,
+
 			/* Emisión de la orden de WooCommerce (la que dispara la notificación de la app). */
 			'sales_create_order'         => true,
 			/*
@@ -1502,6 +1507,8 @@ class MJERP_Settings {
 			case 'returns_require_reason':
 			case 'returns_update_order':
 			case 'rma_enabled':
+			case 'credit_shop_enabled':
+			case 'credit_shop_auto':
 			case 'shop_price_notice':
 				return MJERP_Helpers::bool( $value );
 

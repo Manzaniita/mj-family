@@ -604,11 +604,22 @@ compre entra sin ficha, y pasa al cliente cuando confirmás. Para reconocer tamb
 por teléfono, marcalo en *Cuando se crean una cuenta en la tienda → Por qué datos
 reconocerlos*.
 
+**En la tienda.** Quien tiene cuenta vinculada a su ficha ve su saldo, moneda por
+moneda, y sus últimos movimientos en **Mi cuenta → Resumen**. Al pagar, el checkout
+le ofrece usarlo: todo o una parte, nunca más que el total (productos, envío y
+ajustes). Se descuenta como una línea con el nombre del saldo; si tiene saldo en otra
+moneda, se usa primero el de la moneda de la tienda y después el otro, al dólar de
+hoy. Al confirmar se vuelve a controlar que alcance y se toma del saldo; en el ERP,
+la venta del pedido lo muestra como cobro con saldo a favor y la pasarela cobra solo
+lo que falta. **Si el pedido se cancela, el saldo vuelve.**
+
 | Ajuste | Default | Para qué |
 | --- | --- | --- |
 | Llevar el saldo a favor de los clientes | Sí | Apagado, no se muestra ni se puede usar. Necesita la libreta de clientes. |
 | Cómo se llama | Saldo a favor | El nombre del medio de pago y de la sección, en el ERP y en la tienda. |
 | Una ficha con saldo a favor se vincula solo con tu confirmación | Sí | Apagado, sigue la regla general de vinculación. |
+| Que lo vean y lo usen en la tienda | Sí | Apagado, el saldo no aparece en «Mi cuenta» ni en el checkout; se sigue usando desde el ERP. |
+| En el checkout, el saldo viene aplicado | Sí | Apagado, el cliente lo tiene que marcar. En los dos casos lo puede sacar o usar menos. |
 
 ---
 
@@ -813,12 +824,14 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Variables CSS por tema | — | `mj_design_vars` |
 | Datos que recibe la tienda (`window.MJ`) | — | `mj_app_config` |
 | Accesos extra en «Mi cuenta» de la tienda | — | `mj_account_links` |
+| Datos extra de «Mi cuenta» (`GET /mj/v1/account`) | — | `mj_rest_account` |
 | Caja de ingreso de un medio de pago | — | `mjerp_cashbox_for_method` |
 | Quién puede corregir ventas y ver su historial | — | `mjerp_can_manage_sales` |
 | Cuándo una venta no se puede editar | — | `mjerp_sale_edit_blocker` |
 | Cuántas anotaciones del historial trae una venta | — | `mjerp_sale_log_limit` |
 | Clave del medio de pago «saldo a favor» | — | `mjerp_credit_method_key` |
 | Cuántos movimientos del saldo a favor trae una ficha | — | `mjerp_customer_credit_movements_limit` |
+| Cuántos movimientos del saldo a favor ve el cliente en «Mi cuenta» | — | `mjerp_shop_credit_movements_limit` |
 | Cuándo una venta cobrada no acepta devoluciones | — | `mjerp_sale_return_blocker` |
 | A qué proveedor se reclama un producto fallado | — | `mjerp_rma_supplier` |
 | Proveedor de la cotización del dólar | `MJD_SUGGEST_ENDPOINT` | `mjd_suggest_endpoint`, `mjd_suggest_sources` |

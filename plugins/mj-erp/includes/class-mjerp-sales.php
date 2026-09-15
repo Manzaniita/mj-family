@@ -665,6 +665,12 @@ class MJERP_Sales {
 			)
 		);
 
+		// Lo que el cliente pagó con saldo a favor en el checkout ya está tomado: entra como cobro antes
+		// que el de la pasarela, que así cobra solo lo que falta.
+		if ( class_exists( 'MJERP_Shop_Credit' ) ) {
+			MJERP_Shop_Credit::attach_to_sale( $sale_id, $order );
+		}
+
 		if ( self::should_capture_payment() && $order->is_paid() ) {
 			self::register_order_payment( $sale_id, $order );
 		}
