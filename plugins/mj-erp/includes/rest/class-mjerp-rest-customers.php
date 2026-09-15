@@ -222,19 +222,27 @@ class MJERP_REST_Customers extends MJERP_REST_Controller {
 			$active = $this->bool( $params, 'is_active' );
 		}
 
-		return $this->ok(
-			MJERP_Customers_Repo::query(
-				array(
-					'search'    => $this->str( $params, 'search', '', 190 ),
-					'linked'    => $this->str( $params, 'linked' ),
-					'is_active' => $active,
-					'page'      => max( 1, $this->int( $params, 'page', 1 ) ),
-					'per_page'  => $this->int( $params, 'per_page', 20 ),
-					'orderby'   => $this->str( $params, 'orderby', 'name' ),
-					'order'     => $this->str( $params, 'order', 'ASC' ),
-				)
+		$result = MJERP_Customers_Repo::query(
+			array(
+				'search'    => $this->str( $params, 'search', '', 190 ),
+				'linked'    => $this->str( $params, 'linked' ),
+				'is_active' => $active,
+				'page'      => max( 1, $this->int( $params, 'page', 1 ) ),
+				'per_page'  => $this->int( $params, 'per_page', 20 ),
+				'orderby'   => $this->str( $params, 'orderby', 'name' ),
+				'order'     => $this->str( $params, 'order', 'ASC' ),
 			)
 		);
+
+		// El saldo a favor de toda la página, en una sola consulta: moneda por moneda, sin convertir.
+		if ( class_exists( 'MJERP_Credit' ) && MJERP_Credit::enabled() && ! empty( $result['items'] ) ) {
+			$balances = MJERP_Customer_Credit_Repo::balances_for( wp_list_pluck( $result['items'], 'id' ) );
+			foreach ( $result['items'] as $index => $item ) {
+				$result['items'][ $index ]['credit'] = isset( $balances[ (int) $item['id'] ] ) ? $balances[ (int) $item['id'] ] : new stdClass();
+			}
+		}
+
+		return $this->ok( $result );
 	}
 
 	/**

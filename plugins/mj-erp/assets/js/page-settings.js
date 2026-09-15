@@ -88,6 +88,7 @@
 		customers_enabled: 'clientes', customers_doc_types: 'clientes', customers_default_doc_type: 'clientes',
 		customers_link_mode: 'clientes', customers_link_match: 'clientes', customers_link_backfill: 'clientes',
 		customers_quick_create: 'clientes', customers_require_on_sale: 'clientes', customers_fields: 'clientes',
+		credit_enabled: 'clientes', credit_label: 'clientes', credit_link_confirm: 'clientes',
 		portal_permissions: 'consignaciones',
 		consignee_role: 'consignaciones', consignee_role_label: 'consignaciones',
 		consignment_code_prefix: 'consignaciones', consignment_code_format: 'consignaciones',
@@ -243,6 +244,9 @@
 		customers_quick_create: true,
 		customers_require_on_sale: false,
 		customers_fields: ['phone', 'email', 'doc', 'address', 'notes'],
+		credit_enabled: true,
+		credit_label: 'Saldo a favor',
+		credit_link_confirm: true,
 		sales_track_cost: true,
 		sales_allow_discount: true,
 		sales_allow_oversell: false,
@@ -680,6 +684,9 @@
 		m.customers_quick_create = toBool(src.customers_quick_create, DEFAULTS.customers_quick_create);
 		m.customers_require_on_sale = toBool(src.customers_require_on_sale, DEFAULTS.customers_require_on_sale);
 		m.customers_fields = keyList(src.customers_fields, ['phone', 'email', 'doc', 'company', 'address', 'notes', 'price_list'], DEFAULTS.customers_fields);
+		m.credit_enabled = toBool(src.credit_enabled, DEFAULTS.credit_enabled);
+		m.credit_label = str(src.credit_label !== undefined ? src.credit_label : m.credit_label).trim() || DEFAULTS.credit_label;
+		m.credit_link_confirm = toBool(src.credit_link_confirm, DEFAULTS.credit_link_confirm);
 
 		m.sales_track_cost = toBool(src.sales_track_cost, DEFAULTS.sales_track_cost);
 		m.sales_allow_discount = toBool(src.sales_allow_discount, DEFAULTS.sales_allow_discount);
@@ -1020,6 +1027,9 @@
 			customers_quick_create: !!m.customers_quick_create,
 			customers_require_on_sale: !!m.customers_require_on_sale,
 			customers_fields: keyList(m.customers_fields, ['phone', 'email', 'doc', 'company', 'address', 'notes', 'price_list'], DEFAULTS.customers_fields),
+			credit_enabled: !!m.credit_enabled,
+			credit_label: str(m.credit_label).trim() || DEFAULTS.credit_label,
+			credit_link_confirm: !!m.credit_link_confirm,
 
 			sales_track_cost: !!m.sales_track_cost,
 			sales_allow_discount: !!m.sales_allow_discount,
@@ -2157,6 +2167,20 @@
 			checkboxFieldHtml({
 				key: 'customers_link_backfill', label: 'Al vincular, marcar también las ventas anteriores', checked: !!m.customers_link_backfill,
 				hint: 'Las ventas que ya le habías cargado en el mostrador pasan a figurar como de esa cuenta. Es lo que hace que el historial quede completo de un solo lado.',
+			})
+		) +
+		sectionHtml('Saldo a favor', 'Lo que se le reconoce a un cliente —por una devolución o un ajuste— y que puede usar después para pagar. Queda en la moneda en que pagó y no vence.',
+			checkboxFieldHtml({
+				key: 'credit_enabled', label: 'Llevar el saldo a favor de los clientes', checked: !!m.credit_enabled,
+				hint: 'Se ve en la ficha de cada cliente, con cada movimiento, y se puede usar como medio de pago al cobrar una venta. Necesita la libreta de clientes encendida.',
+			}) +
+			textFieldHtml({
+				key: 'credit_label', label: 'Cómo se llama', value: str(m.credit_label), maxlength: 60, placeholder: 'Saldo a favor',
+				hint: 'Es el nombre del medio de pago y de la sección, en el ERP y en la tienda.',
+			}) +
+			checkboxFieldHtml({
+				key: 'credit_link_confirm', label: 'Una ficha con saldo a favor se vincula solo con tu confirmación', checked: !!m.credit_link_confirm,
+				hint: 'Si alguien se crea una cuenta y coincide con un cliente que tiene saldo, aparece en «Posibles vinculaciones» aunque la vinculación esté en automático. Así nunca le queda el saldo a otra persona sin que lo mires.',
 			})
 		);
 	}

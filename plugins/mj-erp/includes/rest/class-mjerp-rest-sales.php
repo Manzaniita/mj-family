@@ -230,6 +230,8 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 						'payment_date' => array( 'sanitize_callback' => array( $this, 'arg_date' ) ),
 						'reference'    => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'note'         => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+						// Con el medio «saldo a favor»: de qué saldo sale (la moneda).
+						'credit_currency' => array( 'sanitize_callback' => array( $this, 'arg_currency' ) ),
 					)
 				),
 			)
@@ -668,11 +670,12 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 					'cashbox_id',
 					sanitize_key( $this->str( $params, 'method' ) ) === sanitize_key( (string) $sale['payment_method'] ) ? (int) $sale['cashbox_id'] : 0
 				),
-				'payment_date' => $this->date( $params, 'payment_date' ),
-				'reference'    => $this->str( $params, 'reference', '', 190 ),
-				'note'         => $this->str( $params, 'note', '', 255 ),
-				'status'       => MJERP_Sale_Payments_Repo::STATUS_CONFIRMED,
-				'source'       => MJERP_Sale_Payments_Repo::SOURCE_ADMIN,
+				'payment_date'    => $this->date( $params, 'payment_date' ),
+				'reference'       => $this->str( $params, 'reference', '', 190 ),
+				'note'            => $this->str( $params, 'note', '', 255 ),
+				'credit_currency' => $this->currency( $params, 'credit_currency', '' ),
+				'status'          => MJERP_Sale_Payments_Repo::STATUS_CONFIRMED,
+				'source'          => MJERP_Sale_Payments_Repo::SOURCE_ADMIN,
 			)
 		);
 

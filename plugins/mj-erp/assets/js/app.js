@@ -20,6 +20,7 @@
 		{ name: 'purchases', pattern: '/compras', page: 'purchases', nav: 'purchases' },
 		{ name: 'purchase', pattern: '/compras/:id', page: 'purchase', nav: 'purchases' },
 		{ name: 'customers', pattern: '/clientes', page: 'customers', nav: 'customers' },
+		{ name: 'customer', pattern: '/clientes/:id', page: 'customer', nav: 'customers' },
 		{ name: 'suppliers', pattern: '/proveedores', page: 'suppliers', nav: 'suppliers' },
 		{ name: 'products', pattern: '/productos', page: 'products', nav: 'products' },
 		{ name: 'settings', pattern: '/configuracion', page: 'settings', nav: 'settings' },
@@ -51,7 +52,7 @@
 
 	const PAGE_LABELS = {
 		dashboard: 'Inicio', purchases: 'Compras', purchase: 'Compra', suppliers: 'Proveedores', products: 'Productos',
-		customers: 'Clientes',
+		customers: 'Clientes', customer: 'Cliente',
 		settings: 'Configuración', consignees: 'Consignaciones', consignee: 'Revendedor', consignment: 'Entrega',
 		sales: 'Ventas', sale: 'Venta', saleNew: 'Nueva venta',
 		caja: 'Caja', reportes: 'Reportes',

@@ -116,7 +116,7 @@
 		if (sale.customer_name || sale.customer_id) {
 			const label = h(sale.customer_name || ('Cliente #' + sale.customer_id));
 			rows.push(['Cliente', sale.customer_id
-				? '<a class="mj-link" href="' + h(MJ.router.link('/clientes?q=' + encodeURIComponent(sale.customer_name || ''))) + '">' + label + '</a>'
+				? '<a class="mj-link" href="' + h(MJ.router.link('/clientes/' + sale.customer_id)) + '">' + label + '</a>'
 				: label]);
 		}
 		if (sale.customer_email) rows.push(['Email', h(sale.customer_email)]);

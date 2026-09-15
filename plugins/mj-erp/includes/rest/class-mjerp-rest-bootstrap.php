@@ -168,6 +168,11 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 			'permissions'      => array(),
 			'can_manage'       => false,
 			'log_enabled'      => false,
+			'credit'           => array(
+				'enabled' => false,
+				'label'   => '',
+				'method'  => '',
+			),
 		);
 
 		if ( ! class_exists( 'MJERP_Sales_Repo' ) || ! class_exists( 'MJERP_Sales' ) ) {
@@ -199,6 +204,14 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 		 */
 		$info['can_manage']       = MJERP_Capabilities::can_manage_sales();
 		$info['log_enabled']      = class_exists( 'MJERP_Sale_Log' ) && MJERP_Sale_Log::enabled();
+		// Saldo a favor: el medio de pago que no está en la lista (no entra plata a ninguna caja).
+		if ( class_exists( 'MJERP_Credit' ) ) {
+			$info['credit'] = array(
+				'enabled' => MJERP_Credit::enabled(),
+				'label'   => MJERP_Credit::label(),
+				'method'  => MJERP_Credit::method_key(),
+			);
+		}
 
 		if ( $info['enabled'] ) {
 			$info['stats']          = MJERP_Sales_Repo::stats();

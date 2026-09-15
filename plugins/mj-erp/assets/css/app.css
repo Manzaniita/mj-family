@@ -4281,6 +4281,25 @@ th.mj-truncate {
 	color: var(--mj-text-muted);
 }
 
+/* Saldo a favor de un cliente: cada moneda por su lado, sin convertir. */
+.mj-credit-balances {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--mj-sp-4);
+}
+
+.mj-credit-balance {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.mj-credit-balance__amount {
+	font-size: var(--mj-fs-lg);
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
 /* Corregir los productos de una venta. */
 .mj-sale-edit__table td.is-num .mj-input:not(.mj-qty__input) {
 	width: 7.5em;

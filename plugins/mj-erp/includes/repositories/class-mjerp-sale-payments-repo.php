@@ -237,6 +237,31 @@ class MJERP_Sale_Payments_Repo {
 		$status = self::sanitize_status( MJERP_Helpers::array_get( $data, 'status', self::STATUS_CONFIRMED ) );
 		$now    = current_time( 'mysql' );
 		$method = self::sanitize_method( MJERP_Helpers::array_get( $data, 'method', '' ) );
+		$note   = MJERP_Helpers::text( MJERP_Helpers::array_get( $data, 'note', '' ), 255 );
+
+		/*
+		 * Cobrar con saldo a favor: la plata no entra a ninguna caja, sale del saldo del cliente. Se
+		 * controla antes de guardar que alcance; un pedido de la tienda llega con el saldo ya tomado
+		 * (`credit_entry_id`) y solo se ata a este cobro.
+		 */
+		$credit_plan  = null;
+		$credit_entry = absint( MJERP_Helpers::array_get( $data, 'credit_entry_id', 0 ) );
+		if ( class_exists( 'MJERP_Credit' ) && MJERP_Credit::is_method( $method ) && ! $credit_entry ) {
+			$credit_plan = MJERP_Credit::plan_use( (int) $sale['customer_id'], $amount, $currency, (string) MJERP_Helpers::array_get( $data, 'credit_currency', '' ) );
+			if ( is_wp_error( $credit_plan ) ) {
+				return $credit_plan;
+			}
+			if ( $credit_plan['currency'] !== $currency ) {
+				$note = trim(
+					$note . ' ' . sprintf(
+						/* translators: 1: amount taken from the credit, 2: exchange rate */
+						__( 'Con %1$s de saldo a favor, al dólar %2$s.', 'mj-erp' ),
+						MJERP_Sale_Log::money( $credit_plan['amount'], $credit_plan['currency'] ),
+						number_format_i18n( (float) $credit_plan['rate'], 2 )
+					)
+				);
+			}
+		}
 
 		$row = array(
 			'sale_id'      => $sale_id,
@@ -248,7 +273,7 @@ class MJERP_Sale_Payments_Repo {
 			'method'       => $method,
 			'cashbox_id'   => self::resolve_cashbox( MJERP_Helpers::array_get( $data, 'cashbox_id', 0 ), $method ),
 			'reference'    => MJERP_Helpers::text( MJERP_Helpers::array_get( $data, 'reference', '' ), 190 ),
-			'note'         => MJERP_Helpers::text( MJERP_Helpers::array_get( $data, 'note', '' ), 255 ),
+			'note'         => MJERP_Helpers::text( $note, 255 ),
 			'status'       => $status,
 			'source'       => self::sanitize_source( MJERP_Helpers::array_get( $data, 'source', self::SOURCE_ADMIN ) ),
 			'created_by'   => get_current_user_id(),
@@ -264,6 +289,24 @@ class MJERP_Sale_Payments_Repo {
 		}
 
 		$id = (int) $wpdb->insert_id;
+
+		if ( $credit_plan ) {
+			$entry = MJERP_Credit::record_use(
+				(int) $sale['customer_id'],
+				$credit_plan,
+				array(
+					'sale_id'    => $sale_id,
+					'payment_id' => $id,
+				)
+			);
+			if ( is_wp_error( $entry ) ) {
+				// Sin saldo tomado no hay cobro: se deshace antes de que cuente.
+				$wpdb->delete( self::table(), array( 'id' => $id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				return $entry;
+			}
+		} elseif ( $credit_entry && class_exists( 'MJERP_Customer_Credit_Repo' ) ) {
+			MJERP_Customer_Credit_Repo::set_payment( $credit_entry, $id, $sale_id );
+		}
 
 		MJERP_Sales_Repo::sync_payments( $sale_id );
 
@@ -292,6 +335,11 @@ class MJERP_Sale_Payments_Repo {
 		$payment = self::find( $id );
 		if ( ! $payment ) {
 			return new WP_Error( 'mjerp_not_found', __( 'El cobro no existe.', 'mj-erp' ), array( 'status' => 404 ) );
+		}
+
+		// Un cobro con saldo a favor movió el saldo del cliente: se borra y se carga de nuevo, no se edita.
+		if ( class_exists( 'MJERP_Credit' ) && ( MJERP_Credit::is_method( $payment['method'] ) || ( array_key_exists( 'method', $data ) && MJERP_Credit::is_method( $data['method'] ) ) ) ) {
+			return new WP_Error( 'mjerp_credit_payment_locked', __( 'Un cobro con saldo a favor no se edita: borralo y cargalo de nuevo.', 'mj-erp' ), array( 'status' => 409 ) );
 		}
 
 		$row = array();
@@ -420,6 +468,11 @@ class MJERP_Sale_Payments_Repo {
 			return new WP_Error( 'mjerp_db_error', __( 'No se pudo borrar el cobro.', 'mj-erp' ), array( 'status' => 500 ) );
 		}
 
+		// El saldo que se había usado para este cobro vuelve al cliente.
+		if ( class_exists( 'MJERP_Credit' ) && MJERP_Credit::is_method( $payment['method'] ) ) {
+			MJERP_Credit::reverse_payment( (int) $payment['id'] );
+		}
+
 		MJERP_Sales_Repo::sync_payments( (int) $payment['sale_id'] );
 
 		/**
@@ -482,6 +535,9 @@ class MJERP_Sale_Payments_Repo {
 	 */
 	public static function sanitize_method( $value ) : string {
 		$value = sanitize_key( (string) $value );
+		if ( class_exists( 'MJERP_Credit' ) && MJERP_Credit::is_method( $value ) ) {
+			return MJERP_Credit::method_key();
+		}
 		$keys  = wp_list_pluck( MJERP_Settings::sale_payment_methods(), 'key' );
 		if ( in_array( $value, $keys, true ) ) {
 			return $value;
@@ -502,6 +558,10 @@ class MJERP_Sale_Payments_Repo {
 	 * @return int
 	 */
 	public static function resolve_cashbox( $requested, $method ) : int {
+		// Pagar con saldo a favor no mete plata en ninguna caja: ya había entrado cuando se generó.
+		if ( class_exists( 'MJERP_Credit' ) && MJERP_Credit::is_method( $method ) ) {
+			return 0;
+		}
 		$requested = absint( $requested );
 		if ( $requested > 0 ) {
 			return $requested;

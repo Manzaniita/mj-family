@@ -509,6 +509,53 @@ Apariencia → MJ Appearance → Barra de navegación.
 
 ---
 
+## 3.1.4. Saldo a favor
+
+**Dónde se configura:** MJ ERP → Configuración → Clientes → *Saldo a favor*.
+
+Es lo que se le reconoce a un cliente —por una devolución, por anular una venta
+que ya pagó, o a mano— y que puede usar después para pagar. Vive en la **ficha
+del cliente** (Clientes → el nombre), con cada movimiento y el saldo después de
+cada uno.
+
+- **Queda en la moneda en que pagó.** Si pagó en pesos, el saldo es en pesos; si
+  pagó en dólares, en dólares. Un cliente puede tener las dos. **No se convierte
+  nunca**: si se devalúa, es del cliente por no usarlo antes.
+- **No vence.**
+- **Usarlo en otra moneda** (dólares en una venta en pesos, o al revés) lo pasa al
+  dólar de ese momento, y ese dólar queda anotado en el cobro.
+- **Nunca queda en negativo**: usar, restar o devolver la plata no puede pasar de
+  lo que hay.
+
+Cómo se usa desde el ERP:
+
+| Qué | Dónde | Quién |
+| --- | --- | --- |
+| Ver el saldo y sus movimientos | Ficha del cliente, y la columna del saldo en la lista de clientes | Cualquiera que use el ERP |
+| Pagar una venta con saldo | *Registrar cobro* → medio **Saldo a favor** (aparece solo si el cliente tiene) | Cualquiera que use el ERP |
+| Sumar o restar a mano | Ficha del cliente → **Ajustar** (motivo obligatorio) | Quien puede corregir ventas |
+| Devolverle la plata | Ficha del cliente → **Le di la plata**: medio, caja de la que sale y referencia | Quien puede corregir ventas |
+
+Un cobro con saldo **no entra a ninguna caja** (la plata ya había entrado), no se
+edita —se borra y se carga de nuevo— y, si se borra o se anula la venta, **el
+saldo vuelve** con un movimiento nuevo.
+
+**La vinculación con la cuenta de la tienda.** Una ficha con saldo **nunca se une
+sola** a una cuenta, aunque la vinculación esté en *automático*: si alguien se crea
+una cuenta con el mismo email o teléfono, aparece en **Posibles vinculaciones**
+(arriba de la lista de clientes) y vos confirmás. Mientras tanto, lo que esa cuenta
+compre entra sin ficha, y pasa al cliente cuando confirmás. Para reconocer también
+por teléfono, marcalo en *Cuando se crean una cuenta en la tienda → Por qué datos
+reconocerlos*.
+
+| Ajuste | Default | Para qué |
+| --- | --- | --- |
+| Llevar el saldo a favor de los clientes | Sí | Apagado, no se muestra ni se puede usar. Necesita la libreta de clientes. |
+| Cómo se llama | Saldo a favor | El nombre del medio de pago y de la sección, en el ERP y en la tienda. |
+| Una ficha con saldo a favor se vincula solo con tu confirmación | Sí | Apagado, sigue la regla general de vinculación. |
+
+---
+
 ## 3.2. Cómo funciona una consignación
 
 El circuito es el de la calle, no el de un formulario:
@@ -714,6 +761,8 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Quién puede corregir ventas y ver su historial | — | `mjerp_can_manage_sales` |
 | Cuándo una venta no se puede editar | — | `mjerp_sale_edit_blocker` |
 | Cuántas anotaciones del historial trae una venta | — | `mjerp_sale_log_limit` |
+| Clave del medio de pago «saldo a favor» | — | `mjerp_credit_method_key` |
+| Cuántos movimientos del saldo a favor trae una ficha | — | `mjerp_customer_credit_movements_limit` |
 | Proveedor de la cotización del dólar | `MJD_SUGGEST_ENDPOINT` | `mjd_suggest_endpoint`, `mjd_suggest_sources` |
 | Achique de fotos desde el celular | — | `mj_fotos_rapidas_ajustes` |
 | Tope de subidas de comprobante por IP y hora | — | `mjpm_receipt_rate_limit` |

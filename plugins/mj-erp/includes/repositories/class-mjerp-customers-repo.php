@@ -603,9 +603,19 @@ class MJERP_Customers_Repo {
 		$from = $user instanceof WP_User ? self::fields_from_user( $user ) : array();
 		$data = array_filter( array_merge( $from, array_filter( $data, $filled ) ), $filled );
 
-		if ( 'automatico' === self::link_mode() ) {
-			$candidates = self::find_candidates( $data, 1 );
-			if ( ! empty( $candidates ) ) {
+		$candidates = self::find_candidates( $data, 1 );
+		if ( ! empty( $candidates ) ) {
+			/*
+			 * La ficha que coincide tiene saldo a favor: no se vincula sola ni se le abre otra al lado a
+			 * esta cuenta (eso la dejaría tomada y la vinculación ya no se podría confirmar). Queda como
+			 * sugerencia; la venta entra sin ficha y la toma cuando confirmes que es la misma persona.
+			 */
+			if ( class_exists( 'MJERP_Credit' ) && class_exists( 'MJERP_Customers' ) && MJERP_Credit::requires_link_confirmation( (int) $candidates[0]['id'] ) ) {
+				update_user_meta( $user_id, MJERP_Customers::META_SUGGESTION, (int) $candidates[0]['id'] );
+				return null;
+			}
+
+			if ( 'automatico' === self::link_mode() ) {
 				$linked = self::link( (int) $candidates[0]['id'], $user_id );
 				if ( ! is_wp_error( $linked ) ) {
 					return $linked;
@@ -637,13 +647,25 @@ class MJERP_Customers_Repo {
 
 		$sales = self::sales_table();
 
-		return (int) $wpdb->query( // phpcs:ignore WordPress.DB
+		$touched = (int) $wpdb->query( // phpcs:ignore WordPress.DB
 			$wpdb->prepare(
 				"UPDATE {$sales} SET customer_user_id = %d WHERE customer_id = %d AND customer_user_id = 0",
 				$user_id,
 				$id
 			)
 		);
+
+		// Y al revés: lo que esa cuenta compró en la tienda mientras esperaba la vinculación entró sin
+		// ficha, y ahora pasa a ser de este cliente.
+		$touched += (int) $wpdb->query( // phpcs:ignore WordPress.DB
+			$wpdb->prepare(
+				"UPDATE {$sales} SET customer_id = %d WHERE customer_user_id = %d AND customer_id = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+				$id,
+				$user_id
+			)
+		);
+
+		return $touched;
 	}
 
 	/**

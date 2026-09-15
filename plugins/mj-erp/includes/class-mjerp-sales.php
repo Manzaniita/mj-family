@@ -1527,7 +1527,9 @@ class MJERP_Sales {
 			return;
 		}
 
-		$due = MJERP_Sales_Repo::amount_due( $sale );
+		// Lo que falta, no el total: parte pudo haberse pagado antes (con saldo a favor, por ejemplo), y
+		// anotar el total entero lo daría por cobrado dos veces.
+		$due = round( MJERP_Sales_Repo::amount_due( $sale ) - (float) $sale['paid_total'], 4 );
 		if ( $due <= 0.0001 ) {
 			return;
 		}

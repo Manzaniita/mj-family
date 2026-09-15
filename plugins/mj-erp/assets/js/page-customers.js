@@ -85,6 +85,16 @@
 		'</div>';
 	}
 
+	function creditOn() {
+		return !!(MJ.components && MJ.components.creditEnabled && MJ.components.creditEnabled());
+	}
+
+	/** Saldo a favor, moneda por moneda: no se suma ni se convierte. */
+	function creditCell(row) {
+		const text = MJ.components.creditBalancesText(row.credit);
+		return text ? '<span class="mj-success-text">' + h(text) + '</span>' : dash();
+	}
+
 	function rowHtml(row) {
 		const stats = row.stats || {};
 		const sales = MJ.fmt.toNumber(stats.sales_count) || 0;
@@ -93,7 +103,7 @@
 
 		return '<tr data-id="' + h(row.id) + '"' + (row.is_active === false ? ' class="is-inactive"' : '') + '>' +
 			'<td>' +
-				'<div class="mj-strong mj-truncate" title="' + h(row.name) + '">' + h(row.name) + '</div>' +
+				'<div class="mj-strong mj-truncate" title="' + h(row.name) + '"><a class="mj-link" href="' + h(MJ.router.link('/clientes/' + row.id)) + '">' + h(row.name) + '</a></div>' +
 				(company ? '<div class="mj-table__sub mj-muted mj-truncate" title="' + h(company) + '">' + h(company) + '</div>' : '') +
 			'</td>' +
 			'<td>' + phoneCell(row.phone) + '</td>' +
@@ -102,6 +112,7 @@
 			'<td class="mj-text-right">' + (sales ? MJ.fmt.int(sales) : dash()) + '</td>' +
 			'<td class="mj-text-right">' + (stats.total ? h(money(stats.total)) : dash()) + '</td>' +
 			'<td class="mj-text-right">' + (due > 0 ? '<span class="mj-danger-text">' + h(money(due)) + '</span>' : dash()) + '</td>' +
+			(creditOn() ? '<td class="mj-text-right">' + creditCell(row) + '</td>' : '') +
 			'<td>' + accountCell(row) + '</td>' +
 			'<td class="is-actions">' +
 				'<div class="mj-btn-group">' +
@@ -227,6 +238,7 @@
 		let html = '<div class="mj-table-wrap"><table class="mj-table"><thead><tr>' +
 			'<th>Nombre</th><th>Teléfono</th><th>Email</th><th>Documento</th>' +
 			'<th class="mj-text-right">Ventas</th><th class="mj-text-right">Total</th><th class="mj-text-right">Debe</th>' +
+			(creditOn() ? '<th class="mj-text-right">' + h(MJ.components.creditLabel()) + '</th>' : '') +
 			'<th>Cuenta</th><th class="is-actions"><span class="mj-hidden">Acciones</span></th>' +
 		'</tr></thead><tbody>';
 		state.rows.forEach(function (row) { html += rowHtml(row); });

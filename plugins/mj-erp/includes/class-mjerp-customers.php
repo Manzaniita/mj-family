@@ -67,7 +67,11 @@ class MJERP_Customers {
 			return;
 		}
 
-		if ( 'automatico' === $mode ) {
+		// Una ficha con saldo a favor espera tu confirmación aunque la vinculación esté en automático:
+		// unirla con la cuenta equivocada le daría esa plata a otra persona.
+		$confirm = class_exists( 'MJERP_Credit' ) && MJERP_Credit::requires_link_confirmation( (int) $candidates[0]['id'] );
+
+		if ( 'automatico' === $mode && ! $confirm ) {
 			MJERP_Customers_Repo::link( (int) $candidates[0]['id'], $user_id );
 			return;
 		}
@@ -98,7 +102,8 @@ class MJERP_Customers {
 	 * @return array [ { user, customer } ]
 	 */
 	public static function pending_suggestions( int $limit = 20 ) : array {
-		if ( ! class_exists( 'MJERP_Customers_Repo' ) || 'sugerir' !== MJERP_Customers_Repo::link_mode() ) {
+		// En automático también puede haber sugerencias: las de fichas con saldo a favor, que esperan confirmación.
+		if ( ! class_exists( 'MJERP_Customers_Repo' ) || 'nunca' === MJERP_Customers_Repo::link_mode() ) {
 			return array();
 		}
 

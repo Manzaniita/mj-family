@@ -383,6 +383,15 @@ class MJERP_Settings {
 			/* Campos que la ficha pide además del nombre. */
 			'customers_fields'           => array( 'phone', 'email', 'doc', 'address', 'notes' ),
 
+			/*
+			 * Saldo a favor: lo que se le reconoce a un cliente —una devolución, un ajuste— y que puede
+			 * usar después para pagar. Queda en la moneda en que pagó y no vence.
+			 */
+			'credit_enabled'             => true,
+			'credit_label'               => 'Saldo a favor',
+			// Una ficha con saldo no se vincula sola a una cuenta de la tienda: la confirmás vos.
+			'credit_link_confirm'        => true,
+
 			/* Precio que ve un revendedor logueado en la tienda. */
 			'shop_price_mode'            => 'publico',
 			'shop_price_list'            => 'mayorista',
@@ -802,6 +811,10 @@ class MJERP_Settings {
 	 * @return string
 	 */
 	public static function sale_payment_method_label( $key ) {
+		// El saldo a favor no está en la lista de medios: no entra plata a ninguna caja.
+		if ( class_exists( 'MJERP_Credit' ) && MJERP_Credit::is_method( $key ) ) {
+			return MJERP_Credit::label();
+		}
 		return self::label_from( self::sale_payment_methods(), $key );
 	}
 
@@ -1552,6 +1565,8 @@ class MJERP_Settings {
 			case 'customers_link_backfill':
 			case 'customers_quick_create':
 			case 'customers_require_on_sale':
+			case 'credit_enabled':
+			case 'credit_link_confirm':
 				return MJERP_Helpers::bool( $value );
 
 			case 'customers_doc_types':
@@ -1559,6 +1574,10 @@ class MJERP_Settings {
 
 			case 'customers_default_doc_type':
 				return is_scalar( $value ) ? sanitize_key( (string) $value ) : $default;
+
+			case 'credit_label':
+				$label = self::text( $value, 60 );
+				return '' === $label ? $default : $label;
 
 			case 'customers_link_mode':
 				$mode = is_scalar( $value ) ? sanitize_key( (string) $value ) : '';

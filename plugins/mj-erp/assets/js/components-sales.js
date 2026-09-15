@@ -482,9 +482,14 @@
 						'<label class="mj-field__label" for="mj-sp-method">Medio de pago</label>' +
 						'<select class="mj-select" id="mj-sp-method" name="method"></select>' +
 					'</div>' +
-					'<div class="mj-field">' +
+					'<div class="mj-field" data-cashbox-field>' +
 						'<label class="mj-field__label" for="mj-sp-cashbox">Caja</label>' +
 						'<select class="mj-select" id="mj-sp-cashbox" name="cashbox_id"></select>' +
+					'</div>' +
+					'<div class="mj-field mj-hidden" data-credit-field>' +
+						'<label class="mj-field__label" for="mj-sp-credit-cur">De qué saldo</label>' +
+						'<select class="mj-select" id="mj-sp-credit-cur" name="credit_currency" disabled></select>' +
+						'<div class="mj-field__hint mj-small mj-muted" data-credit-hint></div>' +
 					'</div>' +
 					'<div class="mj-field mj-grid__full">' +
 						'<label class="mj-field__label" for="mj-sp-ref">Referencia</label>' +
@@ -510,12 +515,57 @@
 		MJ.ui.fillSelect(methodSelect, methodOptions(), initialMethod);
 		MJ.ui.fillSelect(cashboxSelect, cashboxes, sale.cashbox_id || cashboxForMethod(initialMethod), 'Sin caja');
 
+		/*
+		 * Saldo a favor: aparece como un medio más solo si el cliente tiene. No entra a ninguna caja,
+		 * así que en su lugar se elige de qué saldo sale (cada moneda por separado).
+		 */
+		const creditKey = C.creditMethod ? C.creditMethod() : '';
+		const creditSelect = qs('#mj-sp-credit-cur', modal.el);
+		let creditBalances = [];
+
+		function isCredit() { return !!creditKey && methodSelect.value === creditKey; }
+
+		function paintCreditHint() {
+			const hint = qs('[data-credit-hint]', modal.el);
+			const row = creditBalances.find(function (b) { return b.currency === creditSelect.value; });
+			if (!hint || !row) return;
+			const inSale = C.creditConvert(row.amount, row.currency, sale.currency || saleCurrency());
+			hint.textContent = 'Tiene ' + MJ.fmt.money(row.amount, row.currency) +
+				(row.currency !== String(sale.currency || saleCurrency()).toUpperCase() && inSale !== null
+					? ' (≈ ' + money(inSale, sale.currency) + ' al dólar de hoy).'
+					: '.');
+		}
+
+		function syncCredit() {
+			const on = isCredit();
+			qs('[data-credit-field]', modal.el).classList.toggle('mj-hidden', !on);
+			qs('[data-cashbox-field]', modal.el).classList.toggle('mj-hidden', on);
+			creditSelect.disabled = !on;
+			cashboxSelect.disabled = on;
+			if (on) paintCreditHint();
+		}
+
+		if (creditKey && sale.customer_id && C.creditEnabled && C.creditEnabled()) {
+			MJ.api.get('customers/' + sale.customer_id + '/credit').then(function (res) {
+				if (!modal.isOpen()) return;
+				creditBalances = C.creditBalancesList(res && res.balances).filter(function (b) { return b.amount > 0.004; });
+				if (!creditBalances.length) return;
+				MJ.ui.fillSelect(methodSelect, methodOptions().concat([{ value: creditKey, label: C.creditLabel() + ' · ' + C.creditBalancesText(creditBalances) }]), methodSelect.value);
+				const own = creditBalances.find(function (b) { return b.currency === String(sale.currency || '').toUpperCase(); });
+				MJ.ui.fillSelect(creditSelect, creditBalances.map(function (b) {
+					return { value: b.currency, label: b.currency + ' · ' + MJ.fmt.money(b.amount, b.currency) };
+				}), (own || creditBalances[0]).currency);
+			}).catch(function () { /* sin saldo se cobra igual con los otros medios */ });
+		}
+
 		// La caja sigue al medio de pago: si cobrás en dólares, la plata va a la caja de dólares.
 		// Se puede pisar a mano, y a partir de ahí el select deja de moverse solo.
 		let cashboxTouched = false;
 		MJ.ui.on(modal.el, 'change', '#mj-sp-cashbox', function () { cashboxTouched = true; });
+		MJ.ui.on(modal.el, 'change', '#mj-sp-credit-cur', paintCreditHint);
 		MJ.ui.on(modal.el, 'change', '#mj-sp-method', function (e, elx) {
-			if (cashboxTouched) return;
+			syncCredit();
+			if (cashboxTouched || isCredit()) return;
 			MJ.ui.fillSelect(cashboxSelect, cashboxes, cashboxForMethod(elx.value), 'Sin caja');
 		});
 

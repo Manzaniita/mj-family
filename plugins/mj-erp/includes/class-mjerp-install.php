@@ -48,6 +48,7 @@ class MJERP_Install {
 			'sale_items',
 			'sale_payments',
 			'sale_log',
+			'customer_credit',
 		);
 	}
 
@@ -570,6 +571,7 @@ class MJERP_Install {
 		$sale_items = self::table( 'sale_items' );
 		$sale_pays  = self::table( 'sale_payments' );
 		$sale_log   = self::table( 'sale_log' );
+		$credit     = self::table( 'customer_credit' );
 
 		$sql = array();
 
@@ -1079,6 +1081,38 @@ class MJERP_Install {
 	PRIMARY KEY  (id),
 	KEY sale_id (sale_id),
 	KEY created_at (created_at)
+) {$charset_collate};";
+
+		/*
+		 * Saldo a favor de los clientes: un libro de movimientos con signo, en la moneda de cada uno.
+		 * El saldo es la suma por moneda y no se guarda en ningún otro lado (MJERP_Customer_Credit_Repo).
+		 */
+		$sql[] = "CREATE TABLE {$credit} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	customer_id BIGINT UNSIGNED NOT NULL,
+	currency VARCHAR(3) NOT NULL DEFAULT 'ARS',
+	amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+	kind VARCHAR(20) NOT NULL DEFAULT '',
+	sale_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	order_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	payment_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	return_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	reverses_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	rate DECIMAL(18,6) NOT NULL DEFAULT 0,
+	method VARCHAR(60) NULL,
+	cashbox_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	reference VARCHAR(190) NULL,
+	reason VARCHAR(255) NULL,
+	note VARCHAR(255) NULL,
+	created_by BIGINT UNSIGNED NULL,
+	created_at DATETIME NULL,
+	PRIMARY KEY  (id),
+	KEY customer_id (customer_id),
+	KEY sale_id (sale_id),
+	KEY order_id (order_id),
+	KEY payment_id (payment_id),
+	KEY return_id (return_id),
+	KEY reverses_id (reverses_id)
 ) {$charset_collate};";
 
 		$report = array();

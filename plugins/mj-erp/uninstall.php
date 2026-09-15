@@ -77,6 +77,7 @@ function mjerp_uninstall_current_site() {
 		'purchase_items',
 		'purchase_expenses',
 		'stock_movements',
+		'customer_credit',
 		'sale_log',
 		'sale_payments',
 		'sale_items',
