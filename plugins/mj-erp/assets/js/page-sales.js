@@ -26,6 +26,10 @@
 	function num(v) { return MJ.fmt.toNumber(v); }
 	function money(v) { return MJ.fmt.money(v, currency()); }
 	function moneyBase(v) { return MJ.fmt.money(v, baseCur()); }
+	// Los pesos al dólar de hoy, para tener una idea: no son los que se cobraron ese día.
+	function localToday(v) { const l = MJ.fmt.toLocal(v); return l === null ? '' : MJ.fmt.moneyLocal(l, 0); }
+	function moneyBoth(v) { const l = localToday(v); return moneyBase(v) + (l ? ' (' + l + ')' : ''); }
+	function tcTitle() { return 'Al dólar de hoy (' + MJ.fmt.moneyLocal(MJ.fmt.tc(), 0) + ')'; }
 	function dash() { return '<span class="mj-muted">—</span>'; }
 
 	function saleLink(id) { return MJ.router.link(PATH + '/' + id); }
@@ -69,8 +73,8 @@
 		const parts = [];
 		const count = parseInt(stats.month.count, 10) || 0;
 		parts.push(count === 1 ? '1 venta este mes' : MJ.fmt.int(count) + ' ventas este mes');
-		if ((num(stats.month.total) || 0) > 0) parts.push(moneyBase(stats.month.total));
-		if ((num(stats.month.profit) || 0) !== 0) parts.push('margen ' + moneyBase(stats.month.profit));
+		if ((num(stats.month.total) || 0) > 0) parts.push(moneyBoth(stats.month.total));
+		if ((num(stats.month.profit) || 0) !== 0) parts.push('margen ' + moneyBoth(stats.month.profit));
 		const unpaid = parseInt(stats.unpaid_count, 10) || 0;
 		if (unpaid) parts.push(unpaid === 1 ? '1 con saldo' : MJ.fmt.int(unpaid) + ' con saldo');
 		// Lo que falta entregar se dice acá arriba: es trabajo pendiente, igual que el saldo.
@@ -141,18 +145,20 @@
 	function totalsHtml(totals) {
 		if (!totals) return '';
 		return '<div class="mj-stats mj-mb">' +
-			statCard('Facturado', moneyBase(totals.total_base), 'cash') +
-			statCard('Margen', moneyBase(totals.profit_base), 'chart') +
-			statCard('A revendedores', moneyBase(totals.consignment_base), 'users') +
-			statCard('Cobrado', moneyBase(totals.paid_base), 'check-circle') +
+			statCard('Facturado', moneyBase(totals.total_base), 'cash', localToday(totals.total_base)) +
+			statCard('Margen', moneyBase(totals.profit_base), 'chart', localToday(totals.profit_base)) +
+			statCard('A revendedores', moneyBase(totals.consignment_base), 'users', localToday(totals.consignment_base)) +
+			statCard('Cobrado', moneyBase(totals.paid_base), 'check-circle', localToday(totals.paid_base)) +
 		'</div>';
 	}
 
-	function statCard(label, value, icon) {
+	function statCard(label, value, icon, local) {
 		return '<div class="mj-stat">' +
 			'<div class="mj-stat__icon">' + MJ.icon(icon) + '</div>' +
 			'<div><div class="mj-stat__label mj-small mj-muted">' + h(label) + '</div>' +
-			'<div class="mj-stat__value mj-strong">' + h(value) + '</div></div>' +
+			'<div class="mj-stat__value mj-strong">' + h(value) + '</div>' +
+			(local ? '<div class="mj-small mj-muted mj-money" title="' + h(tcTitle()) + '">' + h(local) + '</div>' : '') +
+			'</div>' +
 		'</div>';
 	}
 

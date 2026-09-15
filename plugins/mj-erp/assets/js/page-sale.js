@@ -28,6 +28,17 @@
 	}
 	function moneyBase(v) { return MJ.fmt.money(v, baseCur()); }
 
+	// Los pesos al dólar de hoy, para tener una idea: no son los que se cobraron ese día.
+	function localToday(v) { const l = MJ.fmt.toLocal(v); return l === null ? '' : MJ.fmt.moneyLocal(l, 0); }
+	function moneyBoth(v) { const l = localToday(v); return moneyBase(v) + (l ? ' (' + l + ')' : ''); }
+	function moneyPairHtml(v) {
+		const l = localToday(v);
+		return '<span class="mj-money-pair">' +
+			'<span class="mj-money-pair__base">' + h(moneyBase(v)) + '</span>' +
+			(l ? '<span class="mj-money-pair__local">' + h(l) + '</span>' : '') +
+		'</span>';
+	}
+
 	function loadingHtml(text) {
 		return '<div class="mj-loading">' + MJ.ui.spinner() + '<span>' + h(text || 'Cargando…') + '</span></div>';
 	}
@@ -153,13 +164,13 @@
 			'<td>' +
 				MJ.ui.badgeRaw(item.origin_label || '', isConsignment ? 'info' : 'neutral') +
 				(isConsignment
-					? '<div class="mj-small mj-muted">Le debe ' + h(moneyBase(item.consignment_total_base)) + '</div>'
+					? '<div class="mj-small mj-muted">Le debe ' + h(moneyBoth(item.consignment_total_base)) + '</div>'
 					: '') +
 			'</td>' +
 			'<td class="is-num">' + h(MJ.fmt.qty(item.qty)) + '</td>' +
 			'<td class="is-num">' + h(money(item.unit_price, sale)) + '</td>' +
 			'<td class="is-num mj-strong">' + h(money(item.line_total, sale)) + '</td>' +
-			'<td class="is-num">' + ((num(item.cost_base) || 0) > 0 ? h(moneyBase(item.cost_base)) : dash()) + '</td>' +
+			'<td class="is-num">' + ((num(item.cost_base) || 0) > 0 ? moneyPairHtml(item.cost_base) : dash()) + '</td>' +
 		'</tr>';
 	}
 
@@ -185,8 +196,8 @@
 			'</dl>' +
 			'<hr class="mj-hr">' +
 			'<dl class="mj-totals mj-small">' +
-				'<div class="mj-totals__row"><dt>Costo</dt><dd>' + h(moneyBase(sale.cost_base)) + '</dd></div>' +
-				'<div class="mj-totals__row"><dt>Margen</dt><dd class="' + ((num(sale.profit_base) || 0) >= 0 ? 'mj-success-text' : 'mj-danger-text') + '">' + h(moneyBase(sale.profit_base)) + '</dd></div>' +
+				'<div class="mj-totals__row"><dt>Costo</dt><dd>' + moneyPairHtml(sale.cost_base) + '</dd></div>' +
+				'<div class="mj-totals__row"><dt>Margen</dt><dd class="' + ((num(sale.profit_base) || 0) >= 0 ? 'mj-success-text' : 'mj-danger-text') + '">' + moneyPairHtml(sale.profit_base) + '</dd></div>' +
 			'</dl>' +
 			'</div></div>';
 	}

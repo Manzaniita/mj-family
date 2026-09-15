@@ -3,7 +3,7 @@
  * Plugin Name:       MJ ERP
  * Plugin URI:        https://mjimportaciones.com.ar
  * Description:       ERP para WooCommerce: ventas propias y de la tienda con imputación automática a la consignación de cada revendedor, compras e importaciones con costeo en vivo, cuenta corriente, proveedores, cajas, actualización de stock y costos, y publicación del precio de venta en dólares a través de MJ Dólar (compatible con el tema MJ Appearance y sus temas hijo).
- * Version:           1.16.1
+ * Version:           1.16.2
  * Author:            MJ Importaciones
  * Author URI:        https://mjimportaciones.com.ar
  * Text Domain:       mj-erp
@@ -22,7 +22,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'MJERP_VERSION' ) ) {
-	define( 'MJERP_VERSION', '1.16.1' );
+	define( 'MJERP_VERSION', '1.16.2' );
 }
 if ( ! defined( 'MJERP_DB_VERSION' ) ) {
 	define( 'MJERP_DB_VERSION', '1.9.0' );

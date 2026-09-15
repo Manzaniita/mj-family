@@ -18,10 +18,16 @@
 
 	function num(v) { const n = MJ.fmt.toNumber(v); return n === null ? 0 : n; }
 
+	// Los pesos al dólar de hoy, para tener una idea. '' sin TC cargado.
+	function localToday(v) { const l = MJ.fmt.toLocal(v); return l === null ? '' : MJ.fmt.moneyLocal(l, 0); }
+
 	function kpi(opts) {
 		return '<div class="mj-card mj-kpi' + (opts.className ? ' ' + opts.className : '') + '"' + (opts.href ? ' data-href="' + h(opts.href) + '" role="link" tabindex="0"' : '') + '>' +
 			'<div class="mj-kpi__label">' + (opts.icon ? MJ.icon(opts.icon) : '') + '<span>' + h(opts.label) + '</span></div>' +
 			'<div class="mj-kpi__value' + (opts.money ? ' mj-money' : '') + '"' + (opts.valueAttr ? ' ' + opts.valueAttr : '') + '>' + (opts.valueHtml !== undefined ? opts.valueHtml : h(opts.value)) + '</div>' +
+			(opts.local
+				? '<div class="mj-kpi__local mj-muted mj-money" title="' + h('Al dólar de hoy (' + MJ.fmt.moneyLocal(MJ.fmt.tc(), 0) + ')') + '">' + h(opts.local) + '</div>'
+				: '') +
 			'<div class="mj-kpi__sub mj-muted"' + (opts.subAttr ? ' ' + opts.subAttr : '') + '>' + (opts.subHtml !== undefined ? opts.subHtml : h(opts.sub || '')) + '</div>' +
 		'</div>';
 	}
@@ -45,17 +51,19 @@
 		const pending = parseInt(info.pending_sales, 10) || 0;
 		const balance = num(info.balance_base);
 		const people = parseInt(info.consignees, 10) || 0;
+		const onHandLocal = localToday(info.on_hand_value_base);
 
 		return '<div class="mj-grid mj-grid--3 mj-mb">' +
 			kpi({
 				icon: 'layers', label: 'En la calle', className: 'mj-kpi--transit', href: MJ.router.link('/consignaciones'),
 				value: MJ.fmt.qty(info.on_hand_units) + ' u.',
-				sub: moneyBase(info.on_hand_value_base) + ' en ' + (people === 1 ? '1 revendedor' : people + ' revendedores'),
+				sub: moneyBase(info.on_hand_value_base) + (onHandLocal ? ' (' + onHandLocal + ')' : '') + ' en ' + (people === 1 ? '1 revendedor' : people + ' revendedores'),
 			}) +
 			kpi({
 				icon: 'cash', label: 'Me deben', money: true, className: balance > 0.005 ? 'mj-kpi--year' : 'mj-kpi--received',
 				href: MJ.router.link('/consignaciones'),
 				value: moneyBase(Math.abs(balance)),
+				local: localToday(Math.abs(balance)),
 				sub: balance > 0.005 ? 'Cuenta corriente de reventa' : (balance < -0.005 ? 'Saldo a favor de los revendedores' : 'Todos al día'),
 			}) +
 			kpi({
@@ -104,6 +112,7 @@
 				icon: 'cash', label: 'Vendido este mes', money: true, className: 'mj-kpi--month',
 				href: MJ.router.link('/ventas'),
 				value: moneyBase(month.total),
+				local: localToday(month.total),
 				sub: (num(month.count) === 1 ? '1 venta' : MJ.fmt.int(num(month.count)) + ' ventas') +
 					(todayCount ? ' · ' + (todayCount === 1 ? '1 hoy' : todayCount + ' hoy') : ''),
 			}) +
@@ -111,6 +120,7 @@
 				icon: 'chart', label: 'Margen del mes', money: true, className: 'mj-kpi--received',
 				href: MJ.router.link('/ventas'),
 				value: moneyBase(month.profit),
+				local: localToday(month.profit),
 				sub: 'Precio de venta menos costo landed',
 			}) +
 			kpi({
