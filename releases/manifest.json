@@ -33,11 +33,11 @@
         "Slug":  "mj-core",
         "Name":  "MJ Core",
         "Type":  "plugin",
-        "Version":  "1.0.0",
+        "Version":  "1.0.1",
         "Parent":  null,
-        "Zip":  "mj-core-1.0.0.zip",
-        "SizeKB":  19,
-        "Sha256":  "d9395b30ad83135019a8a9c5f8a050dec87a115261fa292e8e2135ee6ff0a80c"
+        "Zip":  "mj-core-1.0.1.zip",
+        "SizeKB":  20,
+        "Sha256":  "8ee6f8500b9396b2bbe63baf2df21e071f8abb7aa6c63b48598756a19be95ba1"
     },
     {
         "Slug":  "mj-dolar",
@@ -63,11 +63,11 @@
         "Slug":  "mj-erp",
         "Name":  "MJ ERP",
         "Type":  "plugin",
-        "Version":  "1.16.1",
+        "Version":  "1.16.2",
         "Parent":  null,
-        "Zip":  "mj-erp-1.16.1.zip",
+        "Zip":  "mj-erp-1.16.2.zip",
         "SizeKB":  532,
-        "Sha256":  "5f6f4a2cbe8caa035d0ccc61391c6e73ee0a9ddb2ca64ce058296a7a34208d87"
+        "Sha256":  "8a7b508ff8b4b3f46107082a7fcd60e4ff00f25c54b862a72f6bd2b3c652281a"
     },
     {
         "Slug":  "mj-fotos-rapidas",
