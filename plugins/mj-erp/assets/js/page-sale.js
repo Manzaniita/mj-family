@@ -5,7 +5,7 @@
  *
  * REST: GET /sales/{id}, PUT /sales/{id}, POST /sales/{id}/void, POST /sales/{id}/order,
  *       POST /sales/{id}/payments, POST /sales/{id}/delivery, DELETE /sale-payments/{id},
- *       GET /sales/{id}/log.
+ *       GET /sales/{id}/log. Editar productos: MJ.components.saleItemsModal (components-sale-edit.js).
  */
 (function () {
 	'use strict';
@@ -136,13 +136,28 @@
 			'</dl></div></div>';
 	}
 
+	/**
+	 * Editar productos: solo para quien corrige ventas, y solo si la venta se deja (sin cobros, sin
+	 * consignación). Si no se deja, se dice por qué en vez de esconder el botón sin explicación.
+	 */
+	function editItemsHtml(sale) {
+		const edit = sale.edit || {};
+		if (!edit.can_manage || sale.status === 'anulada' || !MJ.components.saleItemsModal) return '';
+		if (edit.can_edit) {
+			return '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="edit-items">' + MJ.icon('edit') + '<span>Editar productos</span></button>';
+		}
+		return edit.reason
+			? '<span class="mj-small mj-muted" title="' + h(edit.reason) + '">' + MJ.icon('info') + ' No se puede editar</span>'
+			: '';
+	}
+
 	function itemsHtml(sale) {
 		const items = sale.items || [];
 		if (!items.length) {
 			return '<div class="mj-card"><div class="mj-card__body mj-muted">Esta venta no tiene productos.</div></div>';
 		}
 
-		return '<div class="mj-card"><div class="mj-card__header"><h3 class="mj-card__title">Productos</h3></div>' +
+		return '<div class="mj-card"><div class="mj-card__header"><h3 class="mj-card__title">Productos</h3>' + editItemsHtml(sale) + '</div>' +
 			'<div class="mj-table-wrap"><table class="mj-table"><thead><tr>' +
 				'<th>Producto</th>' +
 				'<th>Sale de</th>' +
@@ -446,6 +461,19 @@
 				MJ.components.salePaymentModal({
 					sale: state.sale,
 					onSaved(updated) {
+						state.sale = updated;
+						paint();
+						MJ.events.emit('sales:changed', {});
+					},
+				});
+			}));
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="edit-items"]', function () {
+				if (!state.sale) return;
+				MJ.components.saleItemsModal({
+					sale: state.sale,
+					onSaved(updated) {
+						if (state.disposed) return;
 						state.sale = updated;
 						paint();
 						MJ.events.emit('sales:changed', {});

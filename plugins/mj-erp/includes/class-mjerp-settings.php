@@ -296,6 +296,11 @@ class MJERP_Settings {
 			 */
 			'sales_admin_roles'          => array( 'administrator' ),
 			'sales_log_enabled'          => true,
+			// Editar los productos de una venta que todavía no se cobró.
+			'sales_edit_enabled'         => true,
+			'sales_edit_require_reason'  => false,
+			// Una venta entregada que suma productos vuelve a «A entregar»: lo nuevo no se lo llevó.
+			'sales_edit_redeliver'       => true,
 
 			/* Emisión de la orden de WooCommerce (la que dispara la notificación de la app). */
 			'sales_create_order'         => true,
@@ -1466,6 +1471,9 @@ class MJERP_Settings {
 			case 'sales_pos_images':
 			case 'sales_delivery_enabled':
 			case 'sales_log_enabled':
+			case 'sales_edit_enabled':
+			case 'sales_edit_require_reason':
+			case 'sales_edit_redeliver':
 			case 'shop_price_notice':
 				return MJERP_Helpers::bool( $value );
 

@@ -508,8 +508,8 @@ class MJERP_Sale_Log {
 				return sprintf( __( 'Dónde se entrega: %1$s → %2$s', 'mj-erp' ), self::or_dash( $old ), self::or_dash( $new ) );
 			case 'status':
 				$statuses = MJERP_Settings::sale_statuses();
-				/* translators: 1: previous status, 2: new status */
 				return sprintf(
+					/* translators: 1: previous status, 2: new status */
 					__( 'Estado: %1$s → %2$s', 'mj-erp' ),
 					isset( $statuses[ (string) $old ]['label'] ) ? $statuses[ (string) $old ]['label'] : self::or_dash( $old ),
 					isset( $statuses[ (string) $new ]['label'] ) ? $statuses[ (string) $new ]['label'] : self::or_dash( $new )

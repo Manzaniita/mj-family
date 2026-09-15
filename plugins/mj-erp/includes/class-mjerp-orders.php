@@ -405,6 +405,209 @@ class MJERP_Orders {
 	}
 
 	/**
+	 * Rewrites the lines of an order so it tells the same story as its corrected sale.
+	 *
+	 * Una línea por producto, como el pedido que emitió el ERP. Si WooCommerce ya había descontado
+	 * el stock del pedido, cada línea se ajusta por la diferencia contra lo que ella misma descontó
+	 * (`_reduced_stock`), así cancelar el pedido después sigue devolviendo exactamente lo que salió.
+	 * Si todavía no lo descontó, solo se cambian las líneas: lo va a hacer WooCommerce cuando le toque.
+	 *
+	 * @param int    $sale_id Sale id (already corrected).
+	 * @param string $reason  Reason, for the order note.
+	 * @return true|WP_Error
+	 */
+	public static function sync_sale_items( $sale_id, string $reason = '' ) {
+		if ( ! function_exists( 'wc_get_order' ) ) {
+			return new WP_Error( 'mjerp_wc_missing', __( 'WooCommerce no está disponible.', 'mj-erp' ), array( 'status' => 500 ) );
+		}
+
+		$sale  = MJERP_Sales_Repo::find( $sale_id );
+		$order = $sale && $sale['order_id'] ? wc_get_order( (int) $sale['order_id'] ) : false;
+		if ( ! $order instanceof WC_Order ) {
+			return true;
+		}
+
+		$reduced = (bool) $order->get_data_store()->get_stock_reduced( $order->get_id() );
+
+		// Lo que tiene que decir el pedido, por producto.
+		$targets = array();
+		foreach ( MJERP_Sales_Repo::items( $sale_id ) as $item ) {
+			$key = (int) $item['product_id'] . ':' . (int) $item['variation_id'];
+			if ( ! isset( $targets[ $key ] ) ) {
+				$targets[ $key ] = array(
+					'item'     => $item,
+					'qty'      => 0.0,
+					'subtotal' => 0.0,
+					'total'    => 0.0,
+					'lines'    => array(),
+				);
+			}
+			$targets[ $key ]['qty']      += (float) $item['qty'];
+			$targets[ $key ]['subtotal'] += round( (float) $item['qty'] * (float) $item['unit_price'], 4 );
+			$targets[ $key ]['total']    += (float) $item['line_total'];
+			$targets[ $key ]['lines'][]   = (int) $item['id'];
+		}
+
+		self::$emitting = true;
+
+		try {
+			$kept = array();
+
+			foreach ( $order->get_items( 'line_item' ) as $order_item ) {
+				if ( ! $order_item instanceof WC_Order_Item_Product ) {
+					continue;
+				}
+				$key = (int) $order_item->get_product_id() . ':' . (int) $order_item->get_variation_id();
+
+				if ( isset( $targets[ $key ] ) && ! isset( $kept[ $key ] ) ) {
+					$kept[ $key ] = $order_item;
+					if ( $reduced ) {
+						self::move_item_stock( $order_item, $targets[ $key ]['qty'], $sale );
+					}
+					$order_item->set_quantity( $targets[ $key ]['qty'] );
+					$order_item->set_subtotal( round( $targets[ $key ]['subtotal'], 4 ) );
+					$order_item->set_total( round( $targets[ $key ]['total'], 4 ) );
+					$order_item->save();
+					continue;
+				}
+
+				// Ya no está en la venta (o el pedido lo tenía repetido): vuelve lo que había salido.
+				if ( $reduced ) {
+					self::move_item_stock( $order_item, 0, $sale );
+				}
+				$order->remove_item( $order_item->get_id() );
+			}
+
+			foreach ( $targets as $key => $target ) {
+				if ( isset( $kept[ $key ] ) ) {
+					continue;
+				}
+				$item    = $target['item'];
+				$lookup  = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
+				$product = $lookup ? wc_get_product( $lookup ) : false;
+
+				$line = new WC_Order_Item_Product();
+				if ( $product instanceof WC_Product ) {
+					$line->set_product( $product );
+				} else {
+					$line->set_name( (string) $item['name'] );
+				}
+				$line->set_quantity( $target['qty'] );
+				$line->set_subtotal( round( $target['subtotal'], 4 ) );
+				$line->set_total( round( $target['total'], 4 ) );
+				$order->add_item( $line );
+				$line->set_order_id( $order->get_id() );
+				$line->save();
+
+				if ( $reduced ) {
+					self::move_item_stock( $line, $target['qty'], $sale );
+				}
+				$kept[ $key ] = $line;
+			}
+
+			foreach ( $targets as $key => $target ) {
+				foreach ( $target['lines'] as $sale_item_id ) {
+					MJERP_Sales_Repo::set_order_item( $sale_item_id, $kept[ $key ]->get_id() );
+				}
+			}
+
+			$shipping_total = (float) $sale['shipping_total'];
+			$shipping_items = $order->get_items( 'shipping' );
+			if ( ! empty( $shipping_items ) ) {
+				$shipping = reset( $shipping_items );
+				if ( abs( (float) $shipping->get_total() - $shipping_total ) > 0.004 ) {
+					$shipping->set_total( $shipping_total );
+					$shipping->save();
+				}
+			} elseif ( $shipping_total > 0 ) {
+				$shipping = new WC_Order_Item_Shipping();
+				$shipping->set_method_title( __( 'Envío', 'mj-erp' ) );
+				$shipping->set_total( $shipping_total );
+				$order->add_item( $shipping );
+			}
+
+			$order->calculate_totals( false );
+			// Como al emitirlo: el total del ERP manda, porque ya trae el descuento de la venta.
+			$order->set_total( (float) $sale['total'] );
+			$order->add_order_note(
+				'' !== $reason
+					/* translators: 1: sale code, 2: reason */
+					? sprintf( __( 'Productos corregidos desde MJ ERP (%1$s). Motivo: %2$s', 'mj-erp' ), $sale['code'], $reason )
+					/* translators: %s: sale code */
+					: sprintf( __( 'Productos corregidos desde MJ ERP (%s).', 'mj-erp' ), $sale['code'] )
+			);
+			$order->save();
+		} catch ( Throwable $e ) {
+			self::$emitting = false;
+			return new WP_Error( 'mjerp_order_sync_failed', $e->getMessage(), array( 'status' => 500 ) );
+		}
+
+		self::$emitting = false;
+
+		return true;
+	}
+
+	/**
+	 * Takes out or puts back the units of one order line up to `$target`.
+	 *
+	 * @param WC_Order_Item_Product $order_item Order line.
+	 * @param float                 $target     Units the line has to have discounted.
+	 * @param array                 $sale       Sale.
+	 * @return void
+	 */
+	protected static function move_item_stock( WC_Order_Item_Product $order_item, $target, array $sale ) : void {
+		$product = $order_item->get_product();
+		if ( ! $product instanceof WC_Product || ! $product->managing_stock() || ! function_exists( 'wc_update_product_stock' ) ) {
+			return;
+		}
+
+		$already = MJERP_Helpers::to_float( $order_item->get_meta( '_reduced_stock', true ) );
+		$target  = function_exists( 'wc_stock_amount' ) ? wc_stock_amount( $target ) : (float) $target;
+		$diff    = $target - $already;
+		if ( abs( $diff ) < 0.0001 ) {
+			return;
+		}
+
+		try {
+			$holder = MJERP_Products::stock_holder( $product );
+			$before = MJERP_Helpers::to_float( $holder->get_stock_quantity() );
+			$after  = wc_update_product_stock( $product, abs( $diff ), $diff > 0 ? 'decrease' : 'increase' );
+			if ( false === $after || null === $after ) {
+				return;
+			}
+
+			if ( $target > 0 ) {
+				$order_item->update_meta_data( '_reduced_stock', $target );
+			} else {
+				$order_item->delete_meta_data( '_reduced_stock' );
+			}
+			$order_item->save();
+
+			MJERP_Movements_Repo::insert(
+				array(
+					'product_id'   => (int) $order_item->get_product_id(),
+					'variation_id' => (int) $order_item->get_variation_id(),
+					'qty'          => -1 * (float) $diff,
+					'type'         => 'sale_edit',
+					'ref_type'     => 'sale',
+					'ref_id'       => (int) $sale['id'],
+					'stock_before' => $before,
+					'stock_after'  => (float) $after,
+					'note'         => sprintf(
+						/* translators: 1: sale code, 2: order number */
+						__( 'Corrección de la venta %1$s (pedido #%2$s)', 'mj-erp' ),
+						$sale['code'],
+						$sale['order_number']
+					),
+					'user_id'      => get_current_user_id(),
+				)
+			);
+		} catch ( Throwable $e ) {
+			return;
+		}
+	}
+
+	/**
 	 * Cancels the order behind a voided sale.
 	 *
 	 * @param int $order_id Order id.

@@ -333,7 +333,14 @@ class MJERP_Sales_Repo {
 		}
 		$sale['items']    = self::items( $sale['id'] );
 		$sale['payments'] = class_exists( 'MJERP_Sale_Payments_Repo' ) ? MJERP_Sale_Payments_Repo::for_sale( $sale['id'] ) : array();
-		return $sale;
+
+		/**
+		 * Filters a sale with its lines and payments, as the API returns it.
+		 *
+		 * @param array $sale Sale.
+		 */
+		$filtered = apply_filters( 'mjerp_sale_full', $sale );
+		return is_array( $filtered ) ? $filtered : $sale;
 	}
 
 	/**
@@ -652,6 +659,84 @@ class MJERP_Sales_Repo {
 		}
 
 		return (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * Replaces the lines of a sale and the amounts that sit on top of them.
+	 *
+	 * Solo la usa la corrección de una venta (MJERP_Sale_Editor), que antes decidió qué se puede
+	 * cambiar y cómo se mueve el stock: acá solo se reescriben las filas y se recalculan los totales.
+	 *
+	 * @param int   $sale_id Sale id.
+	 * @param array $items   New lines (same shape as add_item()).
+	 * @param array $amounts discount_total, shipping_total.
+	 * @return true|WP_Error
+	 */
+	public static function replace_items( $sale_id, array $items, array $amounts = array() ) {
+		global $wpdb;
+
+		$sale = self::find( $sale_id );
+		if ( ! $sale ) {
+			return new WP_Error( 'mjerp_not_found', __( 'La venta no existe.', 'mj-erp' ), array( 'status' => 404 ) );
+		}
+
+		$row = array();
+		if ( array_key_exists( 'discount_total', $amounts ) ) {
+			$row['discount_total'] = round( max( 0, MJERP_Helpers::to_float( $amounts['discount_total'] ) ), 4 );
+		}
+		if ( array_key_exists( 'shipping_total', $amounts ) ) {
+			$row['shipping_total'] = round( MJERP_Helpers::to_float( $amounts['shipping_total'] ), 4 );
+		}
+		if ( ! empty( $row ) ) {
+			$row['updated_at'] = current_time( 'mysql' );
+			$wpdb->update( self::table(), $row, array( 'id' => $sale['id'] ), self::formats( $row, self::FORMATS ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		}
+
+		$wpdb->delete( self::items_table(), array( 'sale_id' => $sale['id'] ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+		$sort = 0;
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			unset( $item['id'] );
+			$item['sort_order'] = $sort;
+			$added              = self::add_item( $sale['id'], $item );
+			if ( is_wp_error( $added ) ) {
+				self::recalculate( $sale['id'] );
+				return $added;
+			}
+			$sort++;
+		}
+
+		self::recalculate( $sale['id'] );
+
+		return true;
+	}
+
+	/**
+	 * Points a line at the WooCommerce order line that carries it.
+	 *
+	 * @param int $item_id       Line id.
+	 * @param int $order_item_id Order item id.
+	 * @return void
+	 */
+	public static function set_order_item( $item_id, $order_item_id ) : void {
+		global $wpdb;
+		$item_id = absint( $item_id );
+		if ( ! $item_id ) {
+			return;
+		}
+		$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			self::items_table(),
+			array(
+				'order_item_id' => absint( $order_item_id ),
+				'updated_at'    => current_time( 'mysql' ),
+			),
+			array( 'id' => $item_id ),
+			array( '%d', '%s' ),
+			array( '%d' )
+		);
 	}
 
 	/**

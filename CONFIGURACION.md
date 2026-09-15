@@ -453,6 +453,51 @@ la venta.
 
 ---
 
+### Corregir una venta
+
+**Dónde se configura:** MJ ERP → Configuración → Ventas → *Corregir ventas*.
+
+Cuando el cliente cambia de idea antes de pagar —se lleva tres en vez de dos, cambia
+un producto por otro— no hace falta anular y cargar de nuevo: en el detalle de la
+venta, **Editar productos** cambia la misma venta, con su código, su fecha y su pedido.
+
+Se pueden cambiar cantidades, precios, el descuento de cada línea, el descuento de la
+venta y el envío, sacar productos y agregar otros. Antes de guardar, la pantalla
+muestra cómo queda el total, qué pasa con el stock y con la entrega.
+
+Lo que hace al guardar:
+
+- **Lo que ya estaba conserva su costo.** Lo que se agrega toma el costo de hoy y, si
+  no escribís el precio, el sugerido **con el dólar de la venta**, no con el de hoy.
+- **El stock se mueve solo por la diferencia**, y lo mueve quien lo movió la primera
+  vez: el pedido de WooCommerce si lo hay, el ERP si no. Si la venta todavía no bajó
+  stock, no se toca nada.
+- **El pedido de WooCommerce se reescribe** para que diga lo mismo que la venta, con
+  una nota que lo cuenta.
+- **Si estaba entregada y suma productos, vuelve a «A entregar»**: lo nuevo todavía no
+  se lo llevó.
+- **Queda en el historial** de la venta: qué cambió, quién, cuándo y por qué.
+
+Lo que **no** se edita, a propósito:
+
+- **Una venta con cobros.** Cambiar lo que ya se pagó es una devolución, con su plata.
+- **Una venta con productos de la consignación de un revendedor**, porque toca su
+  cuenta corriente. Tampoco se le puede agregar algo que el revendedor tiene en
+  consignación. Esas se anulan y se cargan de nuevo.
+- **Una venta anulada**, ni una cuyo pedido tenga reembolsos en WooCommerce.
+
+Si no se puede, el detalle de la venta dice por qué en lugar del botón.
+
+| Ajuste | Default | Para qué |
+| --- | --- | --- |
+| Llevar el historial de cada venta | Sí | Anota quién cargó, cobró, entregó, corrigió o anuló cada venta, y cuándo. Se ve en el detalle, abajo de los cobros. |
+| Quién puede corregir ventas y ver el historial | Administrador | Roles que, además de entrar al ERP, pueden corregir ventas y ver su historial. El administrador siempre puede. Este ajuste lo cambia solo un administrador. |
+| Dejar editar los productos de una venta sin cobrar | Sí | Apagado, el botón no aparece y el servidor rechaza cualquier corrección. |
+| Pedir el motivo de cada corrección | No | Obliga a escribir por qué se cambió. Queda en el historial y en la nota del pedido. |
+| Si una venta entregada suma productos, vuelve a «A entregar» | Sí | Apagado, la entrega queda como estaba. |
+
+---
+
 ### El camino de vuelta a la tienda
 
 **Dónde:** MJ ERP → Configuración → General → *Acceso a la tienda*.
@@ -666,6 +711,9 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Datos que recibe la tienda (`window.MJ`) | — | `mj_app_config` |
 | Accesos extra en «Mi cuenta» de la tienda | — | `mj_account_links` |
 | Caja de ingreso de un medio de pago | — | `mjerp_cashbox_for_method` |
+| Quién puede corregir ventas y ver su historial | — | `mjerp_can_manage_sales` |
+| Cuándo una venta no se puede editar | — | `mjerp_sale_edit_blocker` |
+| Cuántas anotaciones del historial trae una venta | — | `mjerp_sale_log_limit` |
 | Proveedor de la cotización del dólar | `MJD_SUGGEST_ENDPOINT` | `mjd_suggest_endpoint`, `mjd_suggest_sources` |
 | Achique de fotos desde el celular | — | `mj_fotos_rapidas_ajustes` |
 | Tope de subidas de comprobante por IP y hora | — | `mjpm_receipt_rate_limit` |

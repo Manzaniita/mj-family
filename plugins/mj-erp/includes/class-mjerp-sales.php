@@ -1101,16 +1101,18 @@ class MJERP_Sales {
 	 * @param int              $variation_id Variation id.
 	 * @param string           $price_list   Price list key.
 	 * @param float            $rate         Exchange rate.
+	 * @param bool             $sale_rate    Convert with `$rate` itself: a sale being corrected keeps the
+	 *                                       dollar it was sold with.
 	 * @return float
 	 */
-	public static function suggested_unit_price( $product, $product_id, $variation_id, string $price_list, float $rate ) : float {
+	public static function suggested_unit_price( $product, $product_id, $variation_id, string $price_list, float $rate, bool $sale_rate = false ) : float {
 		$target = absint( $variation_id ) ? absint( $variation_id ) : absint( $product_id );
 
 		if ( '' !== $price_list && $target ) {
 			$suggested = MJERP_Consignees::suggested_price( $target, null, $price_list );
 			$base      = (float) $suggested['unit_price_base'];
 			if ( $base > 0 ) {
-				return self::round_sale_price( self::base_to_sale_currency( $base, $rate ) );
+				return self::round_sale_price( self::base_to_sale_currency( $base, $rate, $sale_rate ) );
 			}
 		}
 
@@ -1127,16 +1129,22 @@ class MJERP_Sales {
 	 * La cotización que manda es la de MJ Dólar, que es la que la tienda usó para publicar; el tipo
 	 * de cambio de la venta queda como red de contención para cuando MJ Dólar no está.
 	 *
-	 * @param float $base Price in base currency.
-	 * @param float $rate Sale exchange rate (local units per base unit).
+	 * @param float $base      Price in base currency.
+	 * @param float $rate      Sale exchange rate (local units per base unit).
+	 * @param bool  $sale_rate Use `$rate` instead of today's store rate.
 	 * @return float
 	 */
-	public static function base_to_sale_currency( float $base, float $rate ) : float {
+	public static function base_to_sale_currency( float $base, float $rate, bool $sale_rate = false ) : float {
 		$base_currency = strtoupper( (string) MJERP_Settings::get( 'base_currency', 'USD' ) );
 		$sale_currency = MJERP_Sales_Repo::shop_currency();
 
 		if ( $sale_currency === $base_currency ) {
 			return round( $base, 6 );
+		}
+
+		// El dólar queda congelado en cada venta: corregirla no la pasa al de hoy.
+		if ( $sale_rate && $rate > 0 ) {
+			return round( $base * $rate, 6 );
 		}
 
 		$cfg        = self::store_price_config();

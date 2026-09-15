@@ -4281,6 +4281,23 @@ th.mj-truncate {
 	color: var(--mj-text-muted);
 }
 
+/* Corregir los productos de una venta. */
+.mj-sale-edit__table td.is-num .mj-input:not(.mj-qty__input) {
+	width: 7.5em;
+}
+
+.mj-sale-edit__summary {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: var(--mj-sp-4);
+	margin-top: var(--mj-sp-4);
+}
+
+.mj-sale-edit__summary ul {
+	margin: var(--mj-sp-1) 0 0;
+	padding-left: var(--mj-sp-4);
+}
+
 /* Una venta anulada sigue en la lista, pero no compite por la atención. */
 .mj-table tr.is-muted td {
 	opacity: 0.55;

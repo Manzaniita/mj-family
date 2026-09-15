@@ -33,6 +33,7 @@ $mjerp_scripts = array(
 	'components-consignment.js',
 	'components-consignment-edit.js',
 	'components-sales.js',
+	'components-sale-edit.js',
 	'components-customers.js',
 	'page-dashboard.js',
 	'page-purchases.js',

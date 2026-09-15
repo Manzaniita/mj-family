@@ -86,6 +86,7 @@ final class MJERP_Plugin {
 			'includes/repositories/class-mjerp-sale-log-repo.php',
 			'includes/class-mjerp-sales.php',
 			'includes/class-mjerp-orders.php',
+			'includes/class-mjerp-sale-editor.php',
 			'includes/class-mjerp-pricing.php',
 			'includes/class-mjerp-frontend.php',
 			'includes/class-mjerp-portal.php',
@@ -163,6 +164,7 @@ final class MJERP_Plugin {
 		MJERP_Sales::init();
 		// Anota en cada venta quién cambió qué: escucha los mismos hooks que el módulo de ventas.
 		MJERP_Sale_Log::init();
+		MJERP_Sale_Editor::init();
 		MJERP_Pricing::init();
 		MJERP_Frontend::init();
 		MJERP_Portal::init();

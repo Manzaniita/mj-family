@@ -1,11 +1,10 @@
 # Pruebas en la tienda real
 
-Para MJ Dólar, MJ Medios de Pago y MJ Envíos, que son los tres que todavía no
-se probaron con una tienda funcionando.
+Para MJ Dólar, MJ Medios de Pago, MJ Envíos y la corrección de ventas de MJ ERP,
+que todavía no se probaron con una tienda funcionando.
 
-Esto es lo único de la Fase 0 que no se puede hacer desde el código: los tres
-tocan plata o el checkout, y ahí el único que sabe si está bien sos vos
-mirándolo.
+Esto es lo que no se puede hacer desde el código: todos tocan plata, stock o el
+checkout, y ahí el único que sabe si está bien sos vos mirándolo.
 
 ---
 
@@ -227,6 +226,64 @@ métodos. El cliente no queda encerrado sin poder comprar.
 **Señal de que algo está mal:** el checkout se cuelga, tarda diez segundos, o
 no muestra ningún método de envío. Eso es una venta perdida cada vez que el
 correo tenga un mal día.
+
+---
+
+## 4. MJ ERP: corregir una venta
+
+Toca el stock y el pedido de WooCommerce, así que conviene verlo con ventas de
+prueba antes de usarlo con clientes. Usá el producto de prueba (stock 10).
+
+### 4.1. Una venta sin pedido
+
+1. Cargá en el ERP una venta de 2 unidades, **destildando** «Emitir el pedido», y
+   marcala entregada. El stock tiene que quedar en 8.
+2. En el detalle, **Editar productos**: pasá la cantidad a 3 y guardá.
+
+**Qué tiene que pasar:** el total sube, el stock queda en 7, la entrega vuelve a
+«A entregar» y el **Historial** dice qué cambió y quién lo hizo.
+
+3. Volvé a editar y dejala en 2.
+
+**Qué tiene que pasar:** el stock vuelve a 8.
+
+### 4.2. Una venta con pedido
+
+1. Cargá una venta de 2 unidades **con** pedido y marcala entregada: se emite el
+   pedido y el stock baja a 8.
+2. Editá: 3 unidades, y agregá un segundo producto.
+
+**Qué tiene que pasar:** el pedido en WooCommerce muestra las mismas líneas y el
+mismo total que la venta, tiene la nota «Productos corregidos desde MJ ERP», y el
+stock de cada producto bajó solo lo que se agregó.
+
+3. Cancelá el pedido desde WooCommerce.
+
+**Qué tiene que pasar:** vuelve **todo** el stock (el producto de prueba, a 10) y la
+venta queda anulada.
+
+**Señal de que algo está mal:** al cancelar, el stock no vuelve a 10. Quiere decir
+que el pedido y lo descontado quedaron desparejos: anotá la venta y el pedido.
+
+### 4.3. Lo que sale de la consignación de un revendedor
+
+1. Entregale en consignación 2 unidades del producto de prueba a un revendedor de
+   prueba.
+2. Cargá en el ERP una venta de 1 unidad a ese revendedor, con pedido, y marcala
+   entregada.
+
+**Qué tiene que pasar:** el stock baja **una sola vez** (de 10 a 9).
+
+3. Anulá la venta.
+
+**Qué tiene que pasar:** el stock vuelve a 10 y al revendedor se le saca la deuda.
+
+### 4.4. Lo que no se tiene que poder
+
+- Registrá un cobro en una venta: el botón **Editar productos** desaparece y en su
+  lugar dice por qué no se puede.
+- Entrá con un usuario que use el ERP pero no esté en «Quién puede corregir
+  ventas»: no ve el botón ni el Historial.
 
 ---
 

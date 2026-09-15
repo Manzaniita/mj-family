@@ -169,6 +169,31 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 			)
 		);
 
+		$edit_args = array(
+			'items'          => array( 'sanitize_callback' => array( $this, 'arg_array' ) ),
+			'discount_total' => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+			'shipping_total' => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+			'reason'         => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+		);
+
+		register_rest_route(
+			$ns,
+			'/sales/(?P<id>\d+)/items',
+			array(
+				'args' => array( 'id' => $this->id_arg( __( 'ID de la venta.', 'mj-erp' ) ) ),
+				$this->endpoint( WP_REST_Server::EDITABLE, 'edit_items', $edit_args ),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/sales/(?P<id>\d+)/items/preview',
+			array(
+				'args' => array( 'id' => $this->id_arg( __( 'ID de la venta.', 'mj-erp' ) ) ),
+				$this->endpoint( WP_REST_Server::CREATABLE, 'preview_items', $edit_args ),
+			)
+		);
+
 		register_rest_route(
 			$ns,
 			'/sales/(?P<id>\d+)/log',
@@ -478,6 +503,28 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 	}
 
 	/**
+	 * PUT /sales/{id}/items — corrige los productos de una venta sin cobrar.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function edit_items( $request ) {
+		$result = MJERP_Sale_Editor::apply( $this->route_id( $request ), $this->edit_input( $this->params( $request ) ) );
+		return is_wp_error( $result ) ? $result : $this->ok( $result );
+	}
+
+	/**
+	 * POST /sales/{id}/items/preview — cómo quedaría la venta, sin guardar nada.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function preview_items( $request ) {
+		$result = MJERP_Sale_Editor::preview( $this->route_id( $request ), $this->edit_input( $this->params( $request ) ) );
+		return is_wp_error( $result ) ? $result : $this->ok( $result );
+	}
+
+	/**
 	 * GET /sales/{id}/log — quién cambió qué en la venta, del más nuevo al más viejo.
 	 *
 	 * @param WP_REST_Request $request Request.
@@ -726,6 +773,8 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 				continue;
 			}
 			$line = array(
+				// Only a correction reads it: the line of the sale this row stands for (0 = new).
+				'id'           => isset( $item['id'] ) ? absint( $item['id'] ) : 0,
 				'product_id'   => isset( $item['product_id'] ) ? absint( $item['product_id'] ) : 0,
 				'variation_id' => isset( $item['variation_id'] ) ? absint( $item['variation_id'] ) : 0,
 				'qty'          => isset( $item['qty'] ) ? $this->to_float( $item['qty'] ) : 0,
@@ -740,6 +789,27 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Sanitizes the body of a correction.
+	 *
+	 * Absent amounts stay as they are on the sale; a present one, even 0, replaces them.
+	 *
+	 * @param array $params Params.
+	 * @return array
+	 */
+	protected function edit_input( array $params ) : array {
+		$data = array(
+			'items'  => $this->sale_items( $params ),
+			'reason' => $this->str( $params, 'reason', '', 255 ),
+		);
+		foreach ( array( 'discount_total', 'shipping_total' ) as $key ) {
+			if ( $this->has( $params, $key ) ) {
+				$data[ $key ] = $this->float( $params, $key );
+			}
+		}
+		return $data;
 	}
 
 	/**
