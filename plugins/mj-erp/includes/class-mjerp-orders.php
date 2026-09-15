@@ -412,11 +412,17 @@ class MJERP_Orders {
 	 * (`_reduced_stock`), así cancelar el pedido después sigue devolviendo exactamente lo que salió.
 	 * Si todavía no lo descontó, solo se cambian las líneas: lo va a hacer WooCommerce cuando le toque.
 	 *
-	 * @param int    $sale_id Sale id (already corrected).
-	 * @param string $reason  Reason, for the order note.
+	 * Con `$move_stock` en false las líneas se reescriben pero el stock no se toca: lo movió el ERP
+	 * (una devolución), y acá solo se deja anotado cuánto descontó cada línea para que cancelar el
+	 * pedido después devuelva lo justo.
+	 *
+	 * @param int    $sale_id    Sale id (already corrected).
+	 * @param string $reason     Reason, for the order note.
+	 * @param bool   $move_stock Whether the order moves the stock difference itself.
+	 * @param string $note       Order note ('' = the one of a correction).
 	 * @return true|WP_Error
 	 */
-	public static function sync_sale_items( $sale_id, string $reason = '' ) {
+	public static function sync_sale_items( $sale_id, string $reason = '', bool $move_stock = true, string $note = '' ) {
 		if ( ! function_exists( 'wc_get_order' ) ) {
 			return new WP_Error( 'mjerp_wc_missing', __( 'WooCommerce no está disponible.', 'mj-erp' ), array( 'status' => 500 ) );
 		}
@@ -461,8 +467,10 @@ class MJERP_Orders {
 
 				if ( isset( $targets[ $key ] ) && ! isset( $kept[ $key ] ) ) {
 					$kept[ $key ] = $order_item;
-					if ( $reduced ) {
+					if ( $reduced && $move_stock ) {
 						self::move_item_stock( $order_item, $targets[ $key ]['qty'], $sale );
+					} elseif ( $reduced && '' !== (string) $order_item->get_meta( '_reduced_stock', true ) ) {
+						self::set_item_reduced( $order_item, $targets[ $key ]['qty'] );
 					}
 					$order_item->set_quantity( $targets[ $key ]['qty'] );
 					$order_item->set_subtotal( round( $targets[ $key ]['subtotal'], 4 ) );
@@ -472,7 +480,7 @@ class MJERP_Orders {
 				}
 
 				// Ya no está en la venta (o el pedido lo tenía repetido): vuelve lo que había salido.
-				if ( $reduced ) {
+				if ( $reduced && $move_stock ) {
 					self::move_item_stock( $order_item, 0, $sale );
 				}
 				$order->remove_item( $order_item->get_id() );
@@ -499,8 +507,10 @@ class MJERP_Orders {
 				$line->set_order_id( $order->get_id() );
 				$line->save();
 
-				if ( $reduced ) {
+				if ( $reduced && $move_stock ) {
 					self::move_item_stock( $line, $target['qty'], $sale );
+				} elseif ( $reduced ) {
+					self::set_item_reduced( $line, $target['qty'] );
 				}
 				$kept[ $key ] = $line;
 			}
@@ -529,13 +539,14 @@ class MJERP_Orders {
 			$order->calculate_totals( false );
 			// Como al emitirlo: el total del ERP manda, porque ya trae el descuento de la venta.
 			$order->set_total( (float) $sale['total'] );
-			$order->add_order_note(
-				'' !== $reason
+			if ( '' === $note ) {
+				$note = '' !== $reason
 					/* translators: 1: sale code, 2: reason */
 					? sprintf( __( 'Productos corregidos desde MJ ERP (%1$s). Motivo: %2$s', 'mj-erp' ), $sale['code'], $reason )
 					/* translators: %s: sale code */
-					: sprintf( __( 'Productos corregidos desde MJ ERP (%s).', 'mj-erp' ), $sale['code'] )
-			);
+					: sprintf( __( 'Productos corregidos desde MJ ERP (%s).', 'mj-erp' ), $sale['code'] );
+			}
+			$order->add_order_note( $note );
 			$order->save();
 		} catch ( Throwable $e ) {
 			self::$emitting = false;
@@ -605,6 +616,27 @@ class MJERP_Orders {
 		} catch ( Throwable $e ) {
 			return;
 		}
+	}
+
+	/**
+	 * Notes how many units of a line are out of the stock, without moving any.
+	 *
+	 * @param WC_Order_Item_Product $order_item Order line.
+	 * @param float                 $qty        Units the line has discounted.
+	 * @return void
+	 */
+	protected static function set_item_reduced( WC_Order_Item_Product $order_item, $qty ) : void {
+		$product = $order_item->get_product();
+		if ( ! $product instanceof WC_Product || ! $product->managing_stock() ) {
+			return;
+		}
+		$qty = function_exists( 'wc_stock_amount' ) ? wc_stock_amount( $qty ) : (float) $qty;
+		if ( $qty > 0 ) {
+			$order_item->update_meta_data( '_reduced_stock', $qty );
+		} else {
+			$order_item->delete_meta_data( '_reduced_stock' );
+		}
+		$order_item->save();
 	}
 
 	/**

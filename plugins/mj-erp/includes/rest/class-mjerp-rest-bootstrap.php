@@ -173,6 +173,11 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 				'label'   => '',
 				'method'  => '',
 			),
+			'returns'          => array( 'enabled' => false ),
+			'rma'              => array(
+				'enabled'    => false,
+				'open_count' => 0,
+			),
 		);
 
 		if ( ! class_exists( 'MJERP_Sales_Repo' ) || ! class_exists( 'MJERP_Sales' ) ) {
@@ -210,6 +215,14 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 				'enabled' => MJERP_Credit::enabled(),
 				'label'   => MJERP_Credit::label(),
 				'method'  => MJERP_Credit::method_key(),
+			);
+		}
+		// Devoluciones y RMA: el globo del menú cuenta los fallados sin resolver.
+		if ( class_exists( 'MJERP_Returns' ) ) {
+			$info['returns'] = array( 'enabled' => MJERP_Returns::enabled() );
+			$info['rma']     = array(
+				'enabled'    => MJERP_Returns::rma_enabled(),
+				'open_count' => $info['can_manage'] ? MJERP_RMA_Repo::open_count() : 0,
 			);
 		}
 

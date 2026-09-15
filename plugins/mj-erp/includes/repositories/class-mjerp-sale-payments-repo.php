@@ -27,6 +27,8 @@ class MJERP_Sale_Payments_Repo {
 	const SOURCE_ADMIN  = 'admin';
 	const SOURCE_PORTAL = 'portal';
 	const SOURCE_SHOP   = 'tienda';
+	/** La plata que sale de una venta por una devolución o una anulación: un cobro negativo. */
+	const SOURCE_RETURN = 'devolucion';
 
 	const FORMATS = array(
 		'sale_id'      => '%d',
@@ -323,6 +325,65 @@ class MJERP_Sale_Payments_Repo {
 	}
 
 	/**
+	 * The money that leaves a sale because of a return or a void: a negative, confirmed collection.
+	 *
+	 * Solo lo usa MJERP_Returns, que antes decidió cuánto sale y adónde va (al saldo a favor del
+	 * cliente o a una caja). Así el Cobrado de la venta dice lo que de verdad quedó adentro.
+	 *
+	 * @param array $data sale_id, amount (> 0: lo que sale), method, cashbox_id, reference, note.
+	 * @return int|WP_Error
+	 */
+	public static function create_reversal( array $data ) {
+		global $wpdb;
+
+		$sale_id = absint( MJERP_Helpers::array_get( $data, 'sale_id', 0 ) );
+		$sale    = $sale_id ? MJERP_Sales_Repo::find( $sale_id ) : null;
+		if ( ! $sale ) {
+			return new WP_Error( 'mjerp_not_found', __( 'La venta no existe.', 'mj-erp' ), array( 'status' => 404 ) );
+		}
+
+		$amount = -1 * round( abs( MJERP_Helpers::to_float( MJERP_Helpers::array_get( $data, 'amount', 0 ) ) ), 4 );
+		if ( $amount >= 0 ) {
+			return new WP_Error( 'mjerp_invalid_amount', __( 'El importe tiene que ser mayor a cero.', 'mj-erp' ), array( 'status' => 400 ) );
+		}
+
+		$method = self::sanitize_method( MJERP_Helpers::array_get( $data, 'method', '' ) );
+		$now    = current_time( 'mysql' );
+		$rate   = (float) $sale['rate'] > 0 ? (float) $sale['rate'] : 1.0;
+
+		$row = array(
+			'sale_id'      => $sale_id,
+			'payment_date' => current_time( 'Y-m-d' ),
+			'amount'       => $amount,
+			'currency'     => (string) $sale['currency'],
+			'rate'         => round( $rate, 6 ),
+			'amount_base'  => self::amount_base( $amount, (string) $sale['currency'], $rate, $sale ),
+			'method'       => $method,
+			'cashbox_id'   => self::resolve_cashbox( MJERP_Helpers::array_get( $data, 'cashbox_id', 0 ), $method ),
+			'reference'    => MJERP_Helpers::text( MJERP_Helpers::array_get( $data, 'reference', '' ), 190 ),
+			'note'         => MJERP_Helpers::text( MJERP_Helpers::array_get( $data, 'note', '' ), 255 ),
+			'status'       => self::STATUS_CONFIRMED,
+			'source'       => self::SOURCE_RETURN,
+			'created_by'   => get_current_user_id(),
+			'confirmed_by' => get_current_user_id(),
+			'confirmed_at' => $now,
+			'created_at'   => $now,
+			'updated_at'   => $now,
+		);
+
+		$result = $wpdb->insert( self::table(), $row, self::formats( $row ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		if ( false === $result ) {
+			return new WP_Error( 'mjerp_db_error', __( 'No se pudo anotar la plata que sale de la venta.', 'mj-erp' ), array( 'status' => 500 ) );
+		}
+
+		$id = (int) $wpdb->insert_id;
+
+		MJERP_Sales_Repo::sync_payments( $sale_id );
+
+		return $id;
+	}
+
+	/**
 	 * Updates a payment.
 	 *
 	 * @param int   $id   Payment id.
@@ -463,6 +524,11 @@ class MJERP_Sale_Payments_Repo {
 			return new WP_Error( 'mjerp_not_found', __( 'El cobro no existe.', 'mj-erp' ), array( 'status' => 404 ) );
 		}
 
+		// La plata que salió por una devolución ya está en el saldo del cliente o en su mano.
+		if ( self::SOURCE_RETURN === (string) $payment['source'] ) {
+			return new WP_Error( 'mjerp_return_payment_locked', __( 'Esto es parte de una devolución: no se borra suelto.', 'mj-erp' ), array( 'status' => 409 ) );
+		}
+
 		$result = $wpdb->delete( self::table(), array( 'id' => $payment['id'] ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		if ( false === $result ) {
 			return new WP_Error( 'mjerp_db_error', __( 'No se pudo borrar el cobro.', 'mj-erp' ), array( 'status' => 500 ) );
@@ -524,7 +590,7 @@ class MJERP_Sale_Payments_Repo {
 	 */
 	public static function sanitize_source( $value ) : string {
 		$value = sanitize_key( (string) $value );
-		return in_array( $value, array( self::SOURCE_ADMIN, self::SOURCE_PORTAL, self::SOURCE_SHOP ), true ) ? $value : self::SOURCE_ADMIN;
+		return in_array( $value, array( self::SOURCE_ADMIN, self::SOURCE_PORTAL, self::SOURCE_SHOP, self::SOURCE_RETURN ), true ) ? $value : self::SOURCE_ADMIN;
 	}
 
 	/**

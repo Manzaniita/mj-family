@@ -28,6 +28,7 @@
 		{ name: 'sales', pattern: '/ventas', page: 'sales', nav: 'sales' },
 		{ name: 'saleNew', pattern: '/ventas/nueva', page: 'saleNew', nav: 'sales' },
 		{ name: 'sale', pattern: '/ventas/:id', page: 'sale', nav: 'sales' },
+		{ name: 'rma', pattern: '/rma', page: 'rma', nav: 'rma' },
 		{ name: 'consignaciones', pattern: '/consignaciones', page: 'consignees', nav: 'consignaciones' },
 		{ name: 'consignee', pattern: '/consignaciones/revendedor/:id', page: 'consignee', nav: 'consignaciones' },
 		{ name: 'consignment', pattern: '/consignaciones/entrega/:id', page: 'consignment', nav: 'consignaciones' },
@@ -38,6 +39,8 @@
 	const NAV = [
 		{ key: 'dashboard', path: '/', label: 'Inicio', icon: 'home' },
 		{ key: 'sales', path: '/ventas', label: 'Ventas', icon: 'cash', badge: 'salesUnpaid', badgeTitle: 'Ventas con saldo, cobros a confirmar y entregas pendientes' },
+		// Solo para quien corrige ventas, y si la lista de RMA está prendida (Configuración → Ventas).
+		{ key: 'rma', path: '/rma', label: 'RMA', icon: 'archive', badge: 'rmaOpen', badgeTitle: 'Productos fallados esperando el reclamo al proveedor', when: rmaVisible },
 		{ key: 'purchases', path: '/compras', label: 'Compras', icon: 'cart' },
 		{ key: 'consignaciones', path: '/consignaciones', label: 'Consignaciones', icon: 'layers', badge: 'consignmentPending', badgeTitle: 'Ventas y pagos de revendedores esperando confirmación' },
 		{ key: 'customers', path: '/clientes', label: 'Clientes', icon: 'user' },
@@ -54,7 +57,7 @@
 		dashboard: 'Inicio', purchases: 'Compras', purchase: 'Compra', suppliers: 'Proveedores', products: 'Productos',
 		customers: 'Clientes', customer: 'Cliente',
 		settings: 'Configuración', consignees: 'Consignaciones', consignee: 'Revendedor', consignment: 'Entrega',
-		sales: 'Ventas', sale: 'Venta', saleNew: 'Nueva venta',
+		sales: 'Ventas', sale: 'Venta', saleNew: 'Nueva venta', rma: 'RMA',
 		caja: 'Caja', reportes: 'Reportes',
 	};
 
@@ -77,7 +80,16 @@
 				(parseInt(info.declared_count, 10) || 0) +
 				(info.delivery_enabled === false ? 0 : parseInt(info.pending_delivery, 10) || 0);
 		}
+		if (key === 'rmaOpen') {
+			const rma = MJ.state.bootstrap && MJ.state.bootstrap.sales && MJ.state.bootstrap.sales.rma;
+			return rma ? parseInt(rma.open_count, 10) || 0 : 0;
+		}
 		return 0;
+	}
+
+	function rmaVisible() {
+		const info = MJ.state.bootstrap && MJ.state.bootstrap.sales;
+		return !!(info && info.can_manage && info.rma && info.rma.enabled);
 	}
 
 	let root = null;
@@ -98,6 +110,7 @@
 		return NAV.map(function (item) {
 			if (item.group) return '<div class="mj-nav__group-label">' + h(item.group) + '</div>';
 			if (item.divider) return '<div class="mj-divider"></div>';
+			if (typeof item.when === 'function' && !item.when()) return '';
 			const count = item.badge ? navBadge(item.badge) : 0;
 			return '<a class="mj-nav__item' + (item.soon ? ' is-soon' : '') + '" href="' + h(MJ.router.link(item.path)) + '" data-nav="' + h(item.key) + '">' +
 				MJ.icon(item.icon) + '<span class="mj-nav__label">' + h(item.label) + '</span>' +
@@ -409,6 +422,12 @@
 	});
 	MJ.events.on('bootstrap:loaded', function () {
 		if (refs.footer) refs.footer.innerHTML = footerHtml();
+		// Hay entradas del menú que dependen de permisos y ajustes que llegan con el bootstrap.
+		if (refs.nav) {
+			refs.nav.innerHTML = navHtml();
+			const route = ROUTES.find(function (r) { return r.name === current.name; });
+			if (route) setActiveNav(route.nav);
+		}
 		const brand = qs('[data-brand]', root || document);
 		if (brand) brand.textContent = appTitle();
 	});

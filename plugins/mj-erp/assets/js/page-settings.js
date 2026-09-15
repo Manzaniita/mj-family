@@ -85,6 +85,8 @@
 		sales_default_delivery_method: 'ventas', sales_shop_delivery_method: 'ventas',
 		sales_admin_roles: 'ventas', sales_log_enabled: 'ventas',
 		sales_edit_enabled: 'ventas', sales_edit_require_reason: 'ventas', sales_edit_redeliver: 'ventas',
+		returns_enabled: 'ventas', returns_require_reason: 'ventas', returns_default_settlement: 'ventas',
+		returns_update_order: 'ventas', returns_code_prefix: 'ventas', rma_enabled: 'ventas', rma_code_prefix: 'ventas',
 		customers_enabled: 'clientes', customers_doc_types: 'clientes', customers_default_doc_type: 'clientes',
 		customers_link_mode: 'clientes', customers_link_match: 'clientes', customers_link_backfill: 'clientes',
 		customers_quick_create: 'clientes', customers_require_on_sale: 'clientes', customers_fields: 'clientes',
@@ -229,6 +231,13 @@
 		sales_edit_enabled: true,
 		sales_edit_require_reason: false,
 		sales_edit_redeliver: true,
+		returns_enabled: true,
+		returns_require_reason: true,
+		returns_default_settlement: 'saldo',
+		returns_update_order: true,
+		returns_code_prefix: 'DEV',
+		rma_enabled: true,
+		rma_code_prefix: 'RMA',
 		customers_enabled: true,
 		customers_doc_types: [
 			{ key: 'dni', label: 'DNI' },
@@ -723,6 +732,13 @@
 		m.sales_edit_enabled = toBool(src.sales_edit_enabled, DEFAULTS.sales_edit_enabled);
 		m.sales_edit_require_reason = toBool(src.sales_edit_require_reason, DEFAULTS.sales_edit_require_reason);
 		m.sales_edit_redeliver = toBool(src.sales_edit_redeliver, DEFAULTS.sales_edit_redeliver);
+		m.returns_enabled = toBool(src.returns_enabled, DEFAULTS.returns_enabled);
+		m.returns_require_reason = toBool(src.returns_require_reason, DEFAULTS.returns_require_reason);
+		m.returns_default_settlement = ['saldo', 'reintegro'].indexOf(str(src.returns_default_settlement)) >= 0 ? str(src.returns_default_settlement) : DEFAULTS.returns_default_settlement;
+		m.returns_update_order = toBool(src.returns_update_order, DEFAULTS.returns_update_order);
+		m.returns_code_prefix = str(src.returns_code_prefix !== undefined ? src.returns_code_prefix : m.returns_code_prefix).trim() || DEFAULTS.returns_code_prefix;
+		m.rma_enabled = toBool(src.rma_enabled, DEFAULTS.rma_enabled);
+		m.rma_code_prefix = str(src.rma_code_prefix !== undefined ? src.rma_code_prefix : m.rma_code_prefix).trim() || DEFAULTS.rma_code_prefix;
 
 		m.delete_data_on_uninstall = toBool(src.delete_data_on_uninstall, DEFAULTS.delete_data_on_uninstall);
 		return m;
@@ -1017,6 +1033,13 @@
 			sales_edit_enabled: !!m.sales_edit_enabled,
 			sales_edit_require_reason: !!m.sales_edit_require_reason,
 			sales_edit_redeliver: !!m.sales_edit_redeliver,
+			returns_enabled: !!m.returns_enabled,
+			returns_require_reason: !!m.returns_require_reason,
+			returns_default_settlement: m.returns_default_settlement === 'reintegro' ? 'reintegro' : 'saldo',
+			returns_update_order: !!m.returns_update_order,
+			returns_code_prefix: str(m.returns_code_prefix).trim() || DEFAULTS.returns_code_prefix,
+			rma_enabled: !!m.rma_enabled,
+			rma_code_prefix: str(m.rma_code_prefix).trim() || DEFAULTS.rma_code_prefix,
 
 			customers_enabled: !!m.customers_enabled,
 			customers_doc_types: normalizePairs(m.customers_doc_types, DEFAULTS.customers_doc_types, false),
@@ -2226,7 +2249,40 @@
 				'<div class="mj-field__hint">Además de uno de estos roles, hace falta poder entrar al ERP (pestaña Acceso).</div>' +
 			'</div>'
 		) +
-		sectionHtml('Códigos de venta', 'Se generan solos al registrar una venta.',
+		sectionHtml('Devoluciones, cambios y garantías', 'Cuando una venta ya cobrada vuelve —entera o en parte, fallada, o para cambiarla por otra cosa—. Lo registra solo quien puede corregir ventas.',
+			checkboxFieldHtml({
+				key: 'returns_enabled', label: 'Registrar devoluciones y cambios de ventas cobradas', checked: !!m.returns_enabled,
+				hint: 'En el detalle de la venta aparece «Devolución o cambio». Se le reconoce lo que pagó, sin el descuento; lo que se lleva a cambio va al precio de hoy con el dólar de la venta. El stock y el pedido de WooCommerce se acomodan solos.',
+			}) +
+			checkboxFieldHtml({
+				key: 'returns_require_reason', label: 'Pedir el motivo de cada devolución', checked: !!m.returns_require_reason,
+				hint: 'Queda escrito en el historial de la venta y en la nota del pedido.',
+			}) +
+			selectFieldHtml({
+				key: 'returns_default_settlement', label: 'Qué se propone con la plata que sobra', value: str(m.returns_default_settlement),
+				options: [{ value: 'saldo', label: 'Queda como saldo a favor' }, { value: 'reintegro', label: 'Le di la plata' }],
+				hint: 'Es lo que viene marcado; en cada devolución, y al anular una venta cobrada, se puede elegir lo otro.',
+			}) +
+			checkboxFieldHtml({
+				key: 'returns_update_order', label: 'Actualizar el pedido de WooCommerce', checked: !!m.returns_update_order,
+				hint: 'Las líneas del pedido quedan con lo que el cliente se llevó al final, con una nota. El stock lo mueve el ERP, no el pedido.',
+			}) +
+			checkboxFieldHtml({
+				key: 'rma_enabled', label: 'Mandar lo fallado a la lista de RMA', checked: !!m.rma_enabled,
+				hint: 'Lo que vuelve fallado no entra al stock: espera en RMA el reclamo al proveedor, hasta que vuelva al stock o se dé de baja. Recién al darlo de baja su costo cuenta como pérdida por garantías.',
+			}) +
+			'<div class="mj-form-row">' +
+				textFieldHtml({
+					key: 'returns_code_prefix', label: 'Prefijo de las devoluciones', value: str(m.returns_code_prefix), mono: true, maxlength: 20, placeholder: 'DEV',
+					hint: 'Queda así: <span class="mj-mono">DEV-2026-0001</span>.',
+				}) +
+				textFieldHtml({
+					key: 'rma_code_prefix', label: 'Prefijo de los RMA', value: str(m.rma_code_prefix), mono: true, maxlength: 20, placeholder: 'RMA',
+					hint: 'Queda así: <span class="mj-mono">RMA-2026-0001</span>.',
+				}) +
+			'</div>'
+		) +
+		sectionHtml('Códigos de venta','Se generan solos al registrar una venta.',
 			'<div class="mj-form-row">' +
 				textFieldHtml({
 					key: 'sales_code_prefix', label: 'Prefijo', value: str(m.sales_code_prefix), mono: true, maxlength: 20, placeholder: 'VTA',

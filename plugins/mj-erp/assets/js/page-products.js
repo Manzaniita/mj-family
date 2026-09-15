@@ -42,6 +42,13 @@
 		purchase_receive: { label: 'Recepción', color: 'success' },
 		purchase_revert: { label: 'Reversión', color: 'danger' },
 		adjustment: { label: 'Ajuste', color: 'info' },
+		sale: { label: 'Venta', color: 'neutral' },
+		sale_revert: { label: 'Anulación de venta', color: 'warning' },
+		sale_edit: { label: 'Corrección de venta', color: 'info' },
+		sale_return: { label: 'Devolución', color: 'success' },
+		sale_exchange: { label: 'Cambio', color: 'info' },
+		rma_replacement: { label: 'Reemplazo por garantía', color: 'warning' },
+		rma_restock: { label: 'RMA: volvió al stock', color: 'success' },
 	};
 
 	/* ------------------------------------------------------------------ */

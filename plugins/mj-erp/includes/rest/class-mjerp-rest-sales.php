@@ -147,7 +147,13 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 				$this->endpoint(
 					WP_REST_Server::CREATABLE,
 					'void_sale',
-					array( 'reason' => array( 'sanitize_callback' => array( $this, 'arg_text' ) ) )
+					array(
+						'reason'       => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+						// Una venta cobrada: qué pasa con la plata (ninguno | saldo | reintegro).
+						'settlement'   => array( 'sanitize_callback' => array( $this, 'arg_key' ) ),
+						'credit_split' => array( 'sanitize_callback' => array( $this, 'arg_array' ) ),
+						'refund'       => array( 'sanitize_callback' => array( $this, 'arg_array' ) ),
+					)
 				),
 			)
 		);
@@ -460,7 +466,13 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 		$id     = $this->route_id( $request );
 		$params = $this->params( $request );
 
-		$result = MJERP_Sales::void_sale( $id, $this->str( $params, 'reason', '', 255 ) );
+		$settle = array(
+			'settlement'   => $this->str( $params, 'settlement', 'ninguno' ),
+			'credit_split' => isset( $params['credit_split'] ) && is_array( $params['credit_split'] ) ? $params['credit_split'] : null,
+			'refund'       => isset( $params['refund'] ) && is_array( $params['refund'] ) ? $params['refund'] : array(),
+		);
+
+		$result = MJERP_Returns::void_sale( $id, $this->str( $params, 'reason', '', 255 ), $settle );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}

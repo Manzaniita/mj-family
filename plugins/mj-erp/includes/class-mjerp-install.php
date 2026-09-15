@@ -49,6 +49,9 @@ class MJERP_Install {
 			'sale_payments',
 			'sale_log',
 			'customer_credit',
+			'sale_returns',
+			'sale_return_items',
+			'rma',
 		);
 	}
 
@@ -572,6 +575,9 @@ class MJERP_Install {
 		$sale_pays  = self::table( 'sale_payments' );
 		$sale_log   = self::table( 'sale_log' );
 		$credit     = self::table( 'customer_credit' );
+		$returns    = self::table( 'sale_returns' );
+		$ret_items  = self::table( 'sale_return_items' );
+		$rma        = self::table( 'rma' );
 
 		$sql = array();
 
@@ -1113,6 +1119,99 @@ class MJERP_Install {
 	KEY payment_id (payment_id),
 	KEY return_id (return_id),
 	KEY reverses_id (reverses_id)
+) {$charset_collate};";
+
+		/*
+		 * Devoluciones, cambios y garantías de ventas cobradas (MJERP_Returns): qué volvió, a dónde fue
+		 * cada unidad, qué se llevó a cambio y qué se hizo con la plata.
+		 */
+		$sql[] = "CREATE TABLE {$returns} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	code VARCHAR(60) NOT NULL,
+	sale_id BIGINT UNSIGNED NOT NULL,
+	customer_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	return_date DATE NULL,
+	kind VARCHAR(20) NOT NULL DEFAULT 'devolucion',
+	currency VARCHAR(3) NOT NULL DEFAULT 'ARS',
+	returned_value DECIMAL(18,4) NOT NULL DEFAULT 0,
+	new_value DECIMAL(18,4) NOT NULL DEFAULT 0,
+	total_before DECIMAL(18,4) NOT NULL DEFAULT 0,
+	total_after DECIMAL(18,4) NOT NULL DEFAULT 0,
+	paid_before DECIMAL(18,4) NOT NULL DEFAULT 0,
+	excess DECIMAL(18,4) NOT NULL DEFAULT 0,
+	due_after DECIMAL(18,4) NOT NULL DEFAULT 0,
+	settlement VARCHAR(20) NOT NULL DEFAULT 'ninguno',
+	settlement_detail LONGTEXT NULL,
+	refund_method VARCHAR(60) NULL,
+	refund_cashbox_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	refund_reference VARCHAR(190) NULL,
+	reason VARCHAR(255) NULL,
+	created_by BIGINT UNSIGNED NULL,
+	created_at DATETIME NULL,
+	PRIMARY KEY  (id),
+	UNIQUE KEY code (code),
+	KEY sale_id (sale_id),
+	KEY customer_id (customer_id)
+) {$charset_collate};";
+
+		$sql[] = "CREATE TABLE {$ret_items} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	return_id BIGINT UNSIGNED NOT NULL,
+	sale_id BIGINT UNSIGNED NOT NULL,
+	sale_item_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	type VARCHAR(20) NOT NULL DEFAULT 'devuelto',
+	replaced TINYINT(1) NOT NULL DEFAULT 0,
+	product_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	variation_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	name VARCHAR(255) NOT NULL DEFAULT '',
+	sku VARCHAR(100) NULL,
+	qty DECIMAL(18,4) NOT NULL DEFAULT 0,
+	unit_value DECIMAL(18,6) NOT NULL DEFAULT 0,
+	line_value DECIMAL(18,4) NOT NULL DEFAULT 0,
+	unit_cost_base DECIMAL(18,6) NOT NULL DEFAULT 0,
+	destination VARCHAR(20) NULL,
+	problem VARCHAR(255) NULL,
+	rma_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	PRIMARY KEY  (id),
+	KEY return_id (return_id),
+	KEY sale_id (sale_id)
+) {$charset_collate};";
+
+		/*
+		 * RMA: lo que volvió fallado y espera el reclamo al proveedor. Su costo es pérdida por
+		 * garantías recién cuando se da de baja.
+		 */
+		$sql[] = "CREATE TABLE {$rma} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	code VARCHAR(60) NOT NULL,
+	status VARCHAR(20) NOT NULL DEFAULT 'abierto',
+	sale_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	return_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	return_item_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	customer_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	product_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	variation_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	name VARCHAR(255) NOT NULL DEFAULT '',
+	sku VARCHAR(100) NULL,
+	qty DECIMAL(18,4) NOT NULL DEFAULT 0,
+	unit_cost_base DECIMAL(18,6) NOT NULL DEFAULT 0,
+	cost_base DECIMAL(18,4) NOT NULL DEFAULT 0,
+	supplier_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	supplier_name VARCHAR(190) NULL,
+	problem VARCHAR(255) NULL,
+	note TEXT NULL,
+	resolution_note VARCHAR(255) NULL,
+	resolved_at DATETIME NULL,
+	resolved_by BIGINT UNSIGNED NULL,
+	created_by BIGINT UNSIGNED NULL,
+	created_at DATETIME NULL,
+	updated_at DATETIME NULL,
+	PRIMARY KEY  (id),
+	UNIQUE KEY code (code),
+	KEY status (status),
+	KEY sale_id (sale_id),
+	KEY supplier_id (supplier_id),
+	KEY product (product_id,variation_id)
 ) {$charset_collate};";
 
 		$report = array();

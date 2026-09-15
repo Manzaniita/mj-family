@@ -95,7 +95,7 @@ class MJERP_Sale_Editor {
 		} elseif ( MJERP_Sales_Repo::STATUS_VOID === (string) $sale['status'] ) {
 			$error = new WP_Error( 'mjerp_sale_void', __( 'La venta está anulada: no hay nada que editar.', 'mj-erp' ), array( 'status' => 409 ) );
 		} elseif ( (float) $sale['paid_total'] > MJERP_Sales_Repo::EPSILON ) {
-			$error = new WP_Error( 'mjerp_sale_paid', __( 'La venta ya tiene cobros: los productos se editan solo mientras no se cobró nada.', 'mj-erp' ), array( 'status' => 409 ) );
+			$error = new WP_Error( 'mjerp_sale_paid', __( 'La venta ya tiene cobros: para cambiar lo que se llevó, registrá una devolución o cambio.', 'mj-erp' ), array( 'status' => 409 ) );
 		} elseif ( (float) $sale['consignment_qty'] > MJERP_Sales_Repo::EPSILON ) {
 			$error = new WP_Error( 'mjerp_sale_consignment', __( 'Tiene productos de la consignación de un revendedor: para cambiarla, anulala y cargala de nuevo.', 'mj-erp' ), array( 'status' => 409 ) );
 		} elseif ( ! empty( $sale['order_id'] ) && function_exists( 'wc_get_order' ) ) {

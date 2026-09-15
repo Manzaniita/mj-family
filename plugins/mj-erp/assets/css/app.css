@@ -4317,6 +4317,21 @@ th.mj-truncate {
 	padding-left: var(--mj-sp-4);
 }
 
+/* Devolución o cambio de una venta cobrada. */
+.mj-return__table .mj-select--sm {
+	min-width: 11em;
+}
+
+.mj-return__table td .mj-input:not(.mj-qty__input) {
+	min-width: 12em;
+}
+
+.mj-return__settle {
+	padding: var(--mj-sp-4);
+	border: 1px solid var(--mj-border);
+	border-radius: var(--mj-radius, 8px);
+}
+
 /* Una venta anulada sigue en la lista, pero no compite por la atención. */
 .mj-table tr.is-muted td {
 	opacity: 0.55;

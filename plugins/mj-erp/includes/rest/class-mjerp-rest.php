@@ -41,6 +41,7 @@ class MJERP_REST {
 			'MJERP_REST_Consignments' => 'class-mjerp-rest-consignments.php',
 			'MJERP_REST_Sales'     => 'class-mjerp-rest-sales.php',
 			'MJERP_REST_Credit'    => 'class-mjerp-rest-credit.php',
+			'MJERP_REST_Returns'   => 'class-mjerp-rest-returns.php',
 			'MJERP_REST_Portal'    => 'class-mjerp-rest-portal.php',
 		);
 	}

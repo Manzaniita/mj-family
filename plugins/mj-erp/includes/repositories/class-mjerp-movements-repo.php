@@ -190,6 +190,13 @@ class MJERP_Movements_Repo {
 			self::TYPE_RECEIVE => __( 'Recepción de compra', 'mj-erp' ),
 			self::TYPE_REVERT  => __( 'Reversión de recepción', 'mj-erp' ),
 			'adjustment'       => __( 'Ajuste manual', 'mj-erp' ),
+			'sale'             => __( 'Venta', 'mj-erp' ),
+			'sale_revert'      => __( 'Anulación de venta', 'mj-erp' ),
+			'sale_edit'        => __( 'Corrección de venta', 'mj-erp' ),
+			'sale_return'      => __( 'Devolución', 'mj-erp' ),
+			'sale_exchange'    => __( 'Cambio', 'mj-erp' ),
+			'rma_replacement'  => __( 'Reemplazo por garantía', 'mj-erp' ),
+			'rma_restock'      => __( 'RMA: volvió al stock', 'mj-erp' ),
 		);
 		return isset( $labels[ $type ] ) ? $labels[ $type ] : ucfirst( str_replace( '_', ' ', $type ) );
 	}

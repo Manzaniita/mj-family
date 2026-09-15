@@ -480,7 +480,8 @@ Lo que hace al guardar:
 
 Lo que **no** se edita, a propósito:
 
-- **Una venta con cobros.** Cambiar lo que ya se pagó es una devolución, con su plata.
+- **Una venta con cobros.** Cambiar lo que ya se pagó es una devolución, con su plata:
+  ver *Devoluciones, cambios y garantías*, más abajo.
 - **Una venta con productos de la consignación de un revendedor**, porque toca su
   cuenta corriente. Tampoco se le puede agregar algo que el revendedor tiene en
   consignación. Esas se anulan y se cargan de nuevo.
@@ -495,6 +496,61 @@ Si no se puede, el detalle de la venta dice por qué en lugar del botón.
 | Dejar editar los productos de una venta sin cobrar | Sí | Apagado, el botón no aparece y el servidor rechaza cualquier corrección. |
 | Pedir el motivo de cada corrección | No | Obliga a escribir por qué se cambió. Queda en el historial y en la nota del pedido. |
 | Si una venta entregada suma productos, vuelve a «A entregar» | Sí | Apagado, la entrega queda como estaba. |
+
+---
+
+### Devoluciones, cambios y garantías
+
+**Dónde se configura:** MJ ERP → Configuración → Ventas → *Devoluciones, cambios y
+garantías*.
+
+Cuando una venta **ya cobrada** vuelve —entera o en parte, fallada, o para cambiarla
+por otra cosa—, en el detalle de la venta **Devolución o cambio** la corrige sin
+anularla. Lo registra solo quien puede corregir ventas.
+
+Por cada producto se marca cuántas unidades vuelven, **a dónde va** cada una (al stock,
+o a RMA si vino fallada) y si **se le da otro igual** por garantía. También se puede
+agregar lo que se lleva a cambio. Antes de guardar, la pantalla muestra cómo queda la
+venta, qué pasa con el stock y cuánta plata sobra o falta.
+
+- **Se le reconoce lo que pagó**: el precio de la línea con el descuento de la venta
+  repartido. Un descuento no es plata a favor.
+- **La garantía del mismo producto no mueve plata**, aunque hoy valga más. Si se lleva
+  otro modelo, es un cambio: se cobra o se le reconoce la diferencia.
+- **Lo que se lleva a cambio** va al precio de hoy **con el dólar de la venta**, y con
+  el costo de hoy.
+- **La plata que sobra** sale de la venta (un renglón «Devolución» en los cobros) y
+  **queda a favor del cliente** —repartida por moneda según cómo pagó, y se puede
+  cambiar el reparto— o **se le devuelve**, eligiendo medio, caja y referencia. Si
+  falta, queda en *Falta cobrar*.
+- **El stock lo mueve el ERP**: lo que vuelve al stock entra, el reemplazo y lo nuevo
+  salen, y **lo fallado no entra** hasta que su RMA vuelva al stock. Si la venta tiene
+  pedido, sus líneas se reescriben sin volver a mover stock.
+- **Si estaba entregada y se lleva algo**, vuelve a «A entregar».
+- **Queda en el historial** y en la tarjeta *Devoluciones y cambios* de la venta.
+
+Si vuelve **todo** lo que se llevó, no es una devolución: se **anula** la venta. Al
+anular una venta cobrada se elige lo mismo —queda a favor o le di la plata—; lo que
+había pagado con saldo a favor le vuelve solo a su saldo.
+
+No se puede con una venta anulada, con productos de la consignación de un revendedor, o
+cuyo pedido tenga reembolsos en WooCommerce.
+
+**RMA.** Lo que volvió fallado queda en **Ventas → RMA** (en el menú, con un globo de lo
+abierto), con el proveedor al que se reclama —el último que te lo vendió, y se puede
+cambiar—, el problema y una nota. Cada uno termina en **Volvió al stock** (entra al
+stock) o **Dado de baja**. Recién al darlo de baja su costo pasa a ser **pérdida por
+garantías**, que se muestra aparte (mes, año y total) y no toca el margen de las ventas.
+
+| Ajuste | Default | Para qué |
+| --- | --- | --- |
+| Registrar devoluciones y cambios de ventas cobradas | Sí | Apagado, el botón no aparece y el servidor rechaza cualquier devolución. |
+| Pedir el motivo de cada devolución | Sí | Obliga a escribir por qué. Queda en el historial y en la nota del pedido. |
+| Qué se propone con la plata que sobra | Queda como saldo a favor | Lo que viene marcado. En cada devolución se puede elegir lo otro. |
+| Actualizar el pedido de WooCommerce | Sí | Apagado, el pedido queda como estaba y solo cambia la venta. |
+| Mandar lo fallado a la lista de RMA | Sí | Apagado, todo lo que vuelve entra al stock y no hay lista de RMA. |
+| Prefijo de las devoluciones | DEV | Código de cada devolución: `DEV-2026-0001`. |
+| Prefijo de los RMA | RMA | Código de cada RMA: `RMA-2026-0001`. |
 
 ---
 
@@ -763,6 +819,8 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Cuántas anotaciones del historial trae una venta | — | `mjerp_sale_log_limit` |
 | Clave del medio de pago «saldo a favor» | — | `mjerp_credit_method_key` |
 | Cuántos movimientos del saldo a favor trae una ficha | — | `mjerp_customer_credit_movements_limit` |
+| Cuándo una venta cobrada no acepta devoluciones | — | `mjerp_sale_return_blocker` |
+| A qué proveedor se reclama un producto fallado | — | `mjerp_rma_supplier` |
 | Proveedor de la cotización del dólar | `MJD_SUGGEST_ENDPOINT` | `mjd_suggest_endpoint`, `mjd_suggest_sources` |
 | Achique de fotos desde el celular | — | `mj_fotos_rapidas_ajustes` |
 | Tope de subidas de comprobante por IP y hora | — | `mjpm_receipt_rate_limit` |

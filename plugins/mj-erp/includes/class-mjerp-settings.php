@@ -302,6 +302,17 @@ class MJERP_Settings {
 			// Una venta entregada que suma productos vuelve a «A entregar»: lo nuevo no se lo llevó.
 			'sales_edit_redeliver'       => true,
 
+			/* Devoluciones, cambios y garantías de ventas cobradas, y la lista de RMA de lo fallado. */
+			'returns_enabled'            => true,
+			'returns_require_reason'     => true,
+			// Qué se propone con la plata que sobra: `saldo` (queda a favor) o `reintegro` (se devuelve).
+			'returns_default_settlement' => 'saldo',
+			// La devolución reescribe también las líneas del pedido de WooCommerce.
+			'returns_update_order'       => true,
+			'returns_code_prefix'        => 'DEV',
+			'rma_enabled'                => true,
+			'rma_code_prefix'            => 'RMA',
+
 			/* Emisión de la orden de WooCommerce (la que dispara la notificación de la app). */
 			'sales_create_order'         => true,
 			/*
@@ -1487,6 +1498,10 @@ class MJERP_Settings {
 			case 'sales_edit_enabled':
 			case 'sales_edit_require_reason':
 			case 'sales_edit_redeliver':
+			case 'returns_enabled':
+			case 'returns_require_reason':
+			case 'returns_update_order':
+			case 'rma_enabled':
 			case 'shop_price_notice':
 				return MJERP_Helpers::bool( $value );
 
@@ -1500,6 +1515,14 @@ class MJERP_Settings {
 			case 'sales_pos_steps_width':
 				// 0 = nunca; el tope evita dejar el paso a paso activo en un monitor.
 				return max( 0, min( 1600, self::int( $value, $default ) ) );
+
+			case 'returns_default_settlement':
+				return self::enum( $value, array( 'saldo', 'reintegro' ), $default );
+
+			case 'returns_code_prefix':
+			case 'rma_code_prefix':
+				$code_prefix = self::text( $value, 20 );
+				return '' === $code_prefix ? $default : $code_prefix;
 
 			case 'sales_code_prefix':
 				$prefix = self::text( $value, 20 );
