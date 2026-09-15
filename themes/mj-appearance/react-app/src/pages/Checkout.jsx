@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Lock, Check, ChevronLeft, Loader2, AlertCircle, Zap, Pencil } from 'lucide-react';
+import { Lock, Check, ChevronLeft, Loader2, AlertCircle, Zap, Pencil, Wallet } from 'lucide-react';
 import { Section } from '@/components/layout/Layout';
 import { Input, Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -100,6 +100,98 @@ function ExpressSummary({ form, onEdit }) {
           <Pencil size={13} /> Cambiar
         </button>
       </div>
+    </div>
+  );
+}
+
+/** "1.500,50" o "1500.5" → 1500.5 */
+function parseAmount(value) {
+  const s = String(value || '').trim().replace(/[^\d.,]/g, '');
+  if (!s) return 0;
+  if (s.includes(',')) return Number(s.replace(/\./g, '').replace(',', '.')) || 0;
+  if (/^\d{1,3}(\.\d{3})+$/.test(s)) return Number(s.replace(/\./g, '')) || 0;
+  return Number(s) || 0;
+}
+
+/** Un importe en su moneda: la de la tienda como siempre, dólares como dólares. */
+function moneyIn(amount, currency, shopCurrency) {
+  if (!currency || currency === shopCurrency) return formatPrice(amount);
+  if (currency === 'USD') return formatUsd(amount);
+  return `${currency} ${amount}`;
+}
+
+/**
+ * Saldo a favor del cliente (plugin MJ ERP → extensions.mjerp_credit): usarlo todo o una parte.
+ * La cuenta la hace el servidor; acá solo se elige y se muestra lo que vuelve.
+ */
+function CreditBox({ credit }) {
+  const syncCredit = useCart((s) => s.syncCredit);
+  const syncing = useCart((s) => s.syncing);
+  const [amount, setAmount] = useState('');
+  if (!credit || !(credit.available > 0)) return null;
+
+  const label = credit.label || 'Saldo a favor';
+  const others = credit.balances.filter((b) => b.currency !== credit.currency);
+  const apply = () => {
+    const n = parseAmount(amount);
+    syncCredit({ use: true, amount: n > 0 ? n : null });
+  };
+
+  return (
+    <div className="mt-6 rounded-xl2 border border-line p-4">
+      <button
+        type="button"
+        onClick={() => syncCredit({ use: !credit.use, amount: null })}
+        disabled={syncing}
+        className="flex w-full items-center justify-between gap-3 text-left"
+      >
+        <span className="flex items-center gap-3">
+          <Wallet size={17} className="shrink-0 text-accent" />
+          <span>
+            <span className="block text-sm font-medium">Usar mi {label.toLowerCase()}</span>
+            <span className="block text-xs text-ink-faint">
+              Tenés {formatPrice(credit.available)}
+              {others.length > 0 && ` (incluye ${others.map((b) => moneyIn(b.amount, b.currency, credit.currency)).join(' y ')} al dólar de hoy)`}
+            </span>
+          </span>
+        </span>
+        <span
+          className={cn(
+            'grid size-5 shrink-0 place-items-center rounded-md border-2 transition-colors',
+            credit.use ? 'border-accent bg-accent' : 'border-line-strong'
+          )}
+        >
+          {credit.use && <Check size={11} className="text-white" strokeWidth={3} />}
+        </span>
+      </button>
+      {credit.use && (
+        <div className="mt-4 border-t border-line pt-4">
+          <p className="text-sm font-medium text-success" aria-live="polite">
+            Se descuentan {formatPrice(credit.applied)} del total.
+          </p>
+          <div className="mt-3 flex items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <Input
+                label="¿Querés usar menos?"
+                inputMode="decimal"
+                placeholder={formatPrice(credit.max)}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter aplica el importe: no tiene que confirmar el pedido.
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    apply();
+                  }
+                }}
+              />
+            </div>
+            <Button type="button" size="sm" variant="secondary" onClick={apply} disabled={syncing}>
+              Aplicar
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -569,6 +661,7 @@ export default function Checkout() {
                   : `Recargo de ${formatPrice(adjustment.amount)} por pagar con ${payMethod?.short || payMethod?.title}.`}
               </p>
             )}
+            {IS_WP && <CreditBox credit={server?.credit} />}
           </Reveal>
 
           {fiscalCfg && (

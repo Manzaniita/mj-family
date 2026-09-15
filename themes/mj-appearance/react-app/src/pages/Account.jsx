@@ -13,7 +13,7 @@ import { ProductGrid } from '@/components/product/ProductGrid';
 import * as wc from '@/lib/wc';
 import { whatsappUrl } from '@/lib/consult';
 import { IS_WP, SITE, CONTACT, WHATSAPP_NUMBERS, ACCOUNT_LINKS } from '@/lib/config';
-import { formatPrice, isValidCuit, cn } from '@/lib/format';
+import { formatPrice, formatUsd, isValidCuit, cn } from '@/lib/format';
 
 const nav = [
   { to: '/cuenta', end: true, icon: LayoutDashboard, label: 'Resumen' },
@@ -167,6 +167,58 @@ export function AccountLayout() {
   );
 }
 
+/** Un importe en su moneda: la de la tienda como siempre, dólares como dólares. */
+function moneyIn(amount, currency, shopCurrency) {
+  if (!currency || currency === shopCurrency) return formatPrice(amount);
+  if (currency === 'USD') return formatUsd(amount);
+  return `${currency} ${amount}`;
+}
+
+/**
+ * Saldo a favor (lo manda el plugin MJ ERP): cada moneda por su lado, sin convertir, y los
+ * últimos movimientos. Sin plugin o sin saldo, no aparece.
+ */
+function CreditPanel({ credit }) {
+  if (!credit) return null;
+  const balances = (credit.balances || []).filter((b) => Number(b.amount) > 0.004);
+  const movements = credit.movements || [];
+  if (!balances.length && !movements.length) return null;
+  const money = (amount, currency) => moneyIn(Number(amount) || 0, currency, credit.currency);
+
+  return (
+    <div className="mj-panel rounded-xl3 border border-line glass p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="font-display text-lg font-semibold">{credit.label || 'Saldo a favor'}</h2>
+        {balances.length > 0 && <p className="text-xs text-ink-faint">Lo podés usar al pagar tu próximo pedido.</p>}
+      </div>
+      <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2">
+        {balances.length ? (
+          balances.map((b) => (
+            <p key={b.currency} className="font-display text-3xl font-semibold tracking-tight">{money(b.amount, b.currency)}</p>
+          ))
+        ) : (
+          <p className="text-sm text-ink-soft">No tenés saldo disponible.</p>
+        )}
+      </div>
+      {movements.length > 0 && (
+        <ul className="mt-5 divide-y divide-line text-sm">
+          {movements.map((m) => (
+            <li key={m.id} className="flex items-center justify-between gap-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate">{m.description}</p>
+                <p className="text-xs text-ink-faint">{formatDate(m.date)}</p>
+              </div>
+              <p className={cn('shrink-0 font-medium', m.amount < 0 ? 'text-ink-soft' : 'text-success')}>
+                {m.amount < 0 ? '- ' : '+ '}{money(Math.abs(m.amount), m.currency)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function AccountDashboard() {
   const { account } = useOutletContext();
   const orders = account?.orders ?? [];
@@ -190,6 +242,7 @@ export function AccountDashboard() {
           </div>
         ))}
       </div>
+      <CreditPanel credit={account?.credit} />
       <div className="mj-panel rounded-xl3 border border-line glass p-6">
         <h2 className="font-display text-lg font-semibold">Actividad reciente</h2>
         {recent.length === 0 ? (

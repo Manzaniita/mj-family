@@ -326,12 +326,16 @@ function mj_rest_account(WP_REST_Request $request) {
 		}
 	}
 
-	return rest_ensure_response([
+	/*
+	 * Otros plugins suman lo suyo a «Mi cuenta» (MJ ERP: el saldo a favor). El tema
+	 * no sabe nada de ellos: muestra lo que llegue.
+	 */
+	return rest_ensure_response(apply_filters('mj_rest_account', [
 		'user'      => mj_rest_user(wp_get_current_user()),
 		'orders'    => $orders,
 		'addresses' => mj_get_addresses($user_id),
 		'downloads' => $downloads,
-	]);
+	], $user_id));
 }
 
 /* POST /account/profile {first_name, last_name, display_name, email, current_password?, new_password?} */

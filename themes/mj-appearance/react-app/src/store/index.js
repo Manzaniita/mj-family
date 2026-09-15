@@ -114,7 +114,23 @@ function mapServerExtras(cart) {
         usdTotal: mjpm.usd_total != null ? Number(mjpm.usd_total) : null,
       }
     : null;
-  return { fees, totals, payment, shipping };
+  // Saldo a favor del cliente (plugin MJ ERP → extensions.mjerp_credit). null = no tiene o no aplica.
+  const mjc = cart?.extensions?.mjerp_credit;
+  const credit = mjc && mjc.enabled
+    ? {
+        label: mjc.label || '',
+        currency: mjc.currency || '',
+        available: Number(mjc.available) || 0,
+        balances: (Array.isArray(mjc.balances) ? mjc.balances : []).map((b) => ({
+          currency: String(b.currency || ''),
+          amount: Number(b.amount) || 0,
+        })),
+        use: !!mjc.use,
+        applied: Number(mjc.applied) || 0,
+        max: Number(mjc.max) || 0,
+      }
+    : null;
+  return { fees, totals, payment, shipping, credit };
 }
 
 /** Estado parcial que se aplica con TODO response de cart de la Store API. */
@@ -159,7 +175,7 @@ export const useCart = create(
         items: [], // { product, qty, key?, qtyLimits }
         shipping: { rates: [], selected: null, cost: null },
         // Lo que sabe el servidor y la SPA no calcula: fees, totales, ajuste por medio de pago y envío.
-        server: { fees: [], totals: null, payment: null, shipping: null },
+        server: { fees: [], totals: null, payment: null, shipping: null, credit: null },
         error: null,
         syncing: false,
 
@@ -240,6 +256,23 @@ export const useCart = create(
             })
             .catch((e) => {
               console.warn('[mj] No se pudo sincronizar el envío.', e);
+              return null;
+            });
+        },
+
+        /**
+         * Saldo a favor del cliente (plugin MJ ERP): usarlo o no, y cuánto (null = todo lo que
+         * alcance). El carrito vuelve con la línea del descuento ya puesta.
+         */
+        syncCredit: (data) => {
+          if (!IS_WP || !data) return Promise.resolve(null);
+          return enqueue(() => wc.updateCartExtension('mjerp_credit', data))
+            .then((cart) => {
+              set(serverCartState(cart));
+              return cart;
+            })
+            .catch((e) => {
+              get().setError(e.data?.message || e.message);
               return null;
             });
         },
