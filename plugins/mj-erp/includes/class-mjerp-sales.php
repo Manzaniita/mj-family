@@ -40,6 +40,12 @@ class MJERP_Sales {
 	const ITEM_META_CONSIGNMENT = '_mjerp_consignment_qty';
 
 	/**
+	 * Order item meta holding the consignment units whose stock the ERP already took out, so the
+	 * order does not move them a second time (see MJERP_Orders::stock_quantity_of_item()).
+	 */
+	const ITEM_META_CONSIGNMENT_STOCK = '_mjerp_consignment_stock';
+
+	/**
 	 * Whether the sales module is on.
 	 *
 	 * @return bool
@@ -697,9 +703,9 @@ class MJERP_Sales {
 			MJERP_Consignment_Sales_Repo::delete(
 				(int) $consignment_sale['id'],
 				array(
-					// WooCommerce puts the units back on its own, and the reseller's debt has to go
-					// even if a payment had already been allocated to it.
-					'skip_stock' => true,
+					// Quien sacó las unidades es quien las devuelve (ver consignment_stock_belongs_to_order),
+					// and the reseller's debt has to go even if a payment had already been allocated to it.
+					'skip_stock' => MJERP_Consignment_Sales_Repo::SOURCE_SHOP === (string) $consignment_sale['source'],
 					'force'      => true,
 				)
 			);
@@ -1434,8 +1440,7 @@ class MJERP_Sales {
 			MJERP_Consignment_Sales_Repo::delete(
 				(int) $item['consignment_sale_id'],
 				array(
-					// The units go back through the sale's own stock reversal (or through the order).
-					'skip_stock' => true,
+					'skip_stock' => self::consignment_stock_belongs_to_order( (int) $item['consignment_sale_id'] ),
 					'force'      => true,
 				)
 			);
@@ -1448,6 +1453,22 @@ class MJERP_Sales {
 		}
 
 		return MJERP_Sales_Repo::void( $sale_id, $reason );
+	}
+
+	/**
+	 * Whether WooCommerce, and not the consignment sale itself, holds the stock of that part.
+	 *
+	 * Lo que un revendedor compra en la tienda lo descuenta el pedido, y el pedido lo repone al
+	 * cancelarse. Lo que se carga en el ERP lo descuenta su venta en consignación en el momento de
+	 * registrarla —tenga pedido o no—, así que al deshacerla es ella la que lo tiene que devolver.
+	 * Antes se salteaba siempre, y esas unidades no volvían nunca.
+	 *
+	 * @param int $consignment_sale_id Consignment sale id.
+	 * @return bool
+	 */
+	private static function consignment_stock_belongs_to_order( $consignment_sale_id ) : bool {
+		$consignment_sale = MJERP_Consignment_Sales_Repo::find( $consignment_sale_id );
+		return $consignment_sale && MJERP_Consignment_Sales_Repo::SOURCE_SHOP === (string) $consignment_sale['source'];
 	}
 
 	/**

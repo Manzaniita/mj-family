@@ -57,6 +57,35 @@ class MJERP_Orders {
 		// Trashing an order takes the sale with it.
 		add_action( 'woocommerce_trash_order', array( __CLASS__, 'on_trashed' ), 20, 1 );
 		add_action( 'wp_trash_post', array( __CLASS__, 'on_trashed_post' ), 20, 1 );
+
+		// Consignment units the ERP already took out are not discounted again by the order.
+		add_filter( 'woocommerce_order_item_quantity', array( __CLASS__, 'stock_quantity_of_item' ), 10, 3 );
+	}
+
+	/**
+	 * Units of an order line that WooCommerce still has to move.
+	 *
+	 * Una venta cargada en el ERP que sale de la consignación de un revendedor descuenta esas
+	 * unidades al registrarse: lo hace su venta en consignación, que es también la que las devuelve
+	 * si se anula. Cuando después se emite el pedido, las mismas unidades viajan en la línea para que
+	 * el pedido cuente la venta entera, y WooCommerce las descontaba por segunda vez. La línea lleva
+	 * anotado cuántas ya salieron, y eso es lo que se le resta.
+	 *
+	 * @param float|int $qty   Quantity WooCommerce is about to move.
+	 * @param mixed     $order Order.
+	 * @param mixed     $item  Order line.
+	 * @return float|int
+	 */
+	public static function stock_quantity_of_item( $qty, $order = null, $item = null ) {
+		unset( $order );
+		if ( ! $item instanceof WC_Order_Item_Product ) {
+			return $qty;
+		}
+		$taken = MJERP_Helpers::to_float( $item->get_meta( MJERP_Sales::ITEM_META_CONSIGNMENT_STOCK, true ) );
+		if ( $taken <= 0 ) {
+			return $qty;
+		}
+		return max( 0, MJERP_Helpers::to_float( $qty ) - $taken );
 	}
 
 	/* ------------------------------------------------------------------
@@ -426,10 +455,32 @@ class MJERP_Orders {
 
 			if ( MJERP_Sales_Repo::ORIGIN_CONSIGNMENT === $item['origin'] ) {
 				$line->add_meta_data( MJERP_Sales::ITEM_META_CONSIGNMENT, (float) $item['qty'], true );
+				if ( self::consignment_stock_taken( (int) $item['consignment_sale_id'] ) ) {
+					$line->add_meta_data( MJERP_Sales::ITEM_META_CONSIGNMENT_STOCK, (float) $item['qty'], true );
+				}
 			}
 
 			$order->add_item( $line );
 		}
+	}
+
+	/**
+	 * Whether the consignment sale behind a line already took its units out of the stock.
+	 *
+	 * Only a sale loaded in the ERP does: a shop order's consignment part rides on the order's own
+	 * stock, and that one WooCommerce has to move as usual.
+	 *
+	 * @param int $consignment_sale_id Consignment sale id.
+	 * @return bool
+	 */
+	protected static function consignment_stock_taken( $consignment_sale_id ) : bool {
+		if ( $consignment_sale_id <= 0 || ! class_exists( 'MJERP_Consignment_Sales_Repo' ) ) {
+			return false;
+		}
+		$consignment_sale = MJERP_Consignment_Sales_Repo::find( $consignment_sale_id );
+		return $consignment_sale
+			&& ! empty( $consignment_sale['stock_applied'] )
+			&& MJERP_Consignment_Sales_Repo::SOURCE_SHOP !== (string) $consignment_sale['source'];
 	}
 
 	/**
