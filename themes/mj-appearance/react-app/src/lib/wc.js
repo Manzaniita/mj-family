@@ -370,6 +370,14 @@ export const cancelOrder = (id) => apiReq(`/account/orders/${id}/cancel`, { meth
 export const getReceiptToken = (orderId, orderKey) =>
   apiReq(`/comprobantes/token?pedido=${encodeURIComponent(orderId)}&clave=${encodeURIComponent(orderKey)}`, {}, 'mjpm/v1');
 
+/**
+ * Cómo pagar un pedido: instrucciones y datos para pagar (alias, CBU, titular…)
+ * del medio con que se compró. Mismo intercambio que el token del comprobante:
+ * el id y la clave que devuelve la Store API al cerrar el checkout.
+ */
+export const getPaymentInfo = (orderId, orderKey) =>
+  apiReq(`/como-pagar?pedido=${encodeURIComponent(orderId)}&clave=${encodeURIComponent(orderKey)}`, {}, 'mjpm/v1');
+
 /** kind: 'contact' | 'newsletter'. */
 export const sendContact = (data) => apiReq('/contact', { method: 'POST', body: data });
 

@@ -7,6 +7,7 @@ import { Input, Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ProductImage } from '@/components/ui/ProductImage';
 import { ReceiptUploader } from '@/components/ui/ReceiptUploader';
+import { PaymentDetails } from '@/components/ui/PaymentDetails';
 import { Reveal } from '@/components/motion/Reveal';
 import ShippingStep from '@/components/checkout/ShippingStep';
 import { useCart } from '@/store';
@@ -207,6 +208,8 @@ export default function Checkout() {
   });
   const [placedMethod, setPlacedMethod] = useState(null);
   const [placedUsd, setPlacedUsd] = useState(null);
+  /* Cómo pagar el pedido hecho: instrucciones y datos (alias, CBU…) que manda el servidor. */
+  const [payInfo, setPayInfo] = useState(null);
   const choosePayment = (id) => {
     setPayment(id);
     usePaymentMethod.getState().set(id); // Sincroniza los precios de la tienda y la línea de ajuste del carrito.
@@ -366,6 +369,13 @@ export default function Checkout() {
   const prefetchShipping = (data) => syncShippingRates(data);
 
   if (placed) {
+    /* Mientras llega la respuesta del servidor, lo que ya se sabía del medio elegido. */
+    const howTo = payInfo ?? {
+      instructions: placedMethod?.instructions || '',
+      detailsTitle: placedMethod?.detailsTitle || '',
+      details: placedMethod?.details || [],
+    };
+    const hasHowTo = !!howTo.instructions || howTo.details?.length > 0;
     return (
       <Section className="grid min-h-[60vh] place-items-center">
         <motion.div
@@ -391,10 +401,19 @@ export default function Checkout() {
               Total a pagar: <span className="font-semibold text-ink">{formatUsd(placedUsd)}</span> al dólar {EXCHANGE_RATE.formatted}
             </p>
           )}
-          {placedMethod?.instructions && (
+          {hasHowTo && (
             <div className="mj-panel mt-6 rounded-xl2 border border-line glass p-5 text-left">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">Cómo pagar · {placedMethod.short || placedMethod.title}</p>
-              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{placedMethod.instructions}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">
+                Cómo pagar{placedMethod || howTo.title ? ` · ${placedMethod?.short || placedMethod?.title || howTo.title}` : ''}
+              </p>
+              {howTo.instructions && (
+                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{howTo.instructions}</p>
+              )}
+              <PaymentDetails
+                title={howTo.detailsTitle}
+                rows={howTo.details}
+                className={howTo.instructions ? 'mt-4 border-t border-line pt-4' : 'mt-4'}
+              />
             </div>
           )}
           {receipt && (
@@ -515,6 +534,9 @@ export default function Checkout() {
        * pide; acá solo se pregunta, y el token autoriza a quien compró sin cuenta.
        */
       if (order?.order_id && order?.order_key) {
+        wc.getPaymentInfo(order.order_id, order.order_key)
+          .then((info) => { if (info) setPayInfo(info); })
+          .catch(() => { /* Sin el plugin: quedan las instrucciones que ya se conocían. */ });
         wc.getReceiptToken(order.order_id, order.order_key)
           .then((res) => {
             if (res?.asks) setReceipt({ objectId: res.objectId, token: res.token, noun: res.noun });
@@ -653,6 +675,14 @@ export default function Checkout() {
                 </button>
               ))}
             </div>
+            )}
+            {/* Datos para pagar del medio elegido: solo vienen si el admin los muestra en el checkout. */}
+            {payMethod?.details?.length > 0 && (
+              <PaymentDetails
+                title={payMethod.detailsTitle}
+                rows={payMethod.details}
+                className="mt-4 rounded-xl2 border border-line p-4"
+              />
             )}
             {adjustment && (
               <p className={cn('mt-4 text-sm font-medium', adjustment.amount < 0 ? 'text-success' : 'text-ink-soft')} aria-live="polite">
