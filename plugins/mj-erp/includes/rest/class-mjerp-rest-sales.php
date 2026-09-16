@@ -503,9 +503,18 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 		if ( $this->has( $params, 'note' ) ) {
 			$data['note'] = $this->str( $params, 'note', '', 190 );
 		}
+		// Entrega por producto: { id de línea: cantidad entregada en total }.
+		if ( $this->has( $params, 'items' ) && is_array( $params['items'] ) ) {
+			$data['items'] = array();
+			foreach ( $params['items'] as $item_id => $qty ) {
+				if ( absint( $item_id ) > 0 && is_scalar( $qty ) ) {
+					$data['items'][ absint( $item_id ) ] = MJERP_Helpers::to_float( $qty );
+				}
+			}
+		}
 
 		if ( empty( $data ) ) {
-			return $this->fail( 'mjerp_invalid', __( 'No hay nada que registrar: mandá el estado, el método o la nota.', 'mj-erp' ), 400 );
+			return $this->fail( 'mjerp_invalid', __( 'No hay nada que registrar: mandá el estado, el método, la nota o qué productos se entregaron.', 'mj-erp' ), 400 );
 		}
 
 		$result = MJERP_Sales_Repo::set_delivery( $id, $data );

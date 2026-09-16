@@ -237,6 +237,10 @@ class MJERP_Install {
 			self::migrate_1140_order_statuses();
 		}
 
+		if ( version_compare( $from, '1.15.0', '<' ) ) {
+			self::migrate_1150_item_deliveries();
+		}
+
 		/**
 		 * Fires so other code can run its own migrations.
 		 *
@@ -480,6 +484,26 @@ class MJERP_Install {
 	 */
 	protected static function migrate_1140_order_statuses() {
 		update_option( class_exists( 'MJERP_Orders' ) ? MJERP_Orders::OPTION_RESYNC : 'mjerp_order_status_resync', 1, false );
+	}
+
+	/**
+	 * 1.15.0 — cada producto de una venta sabe cuánto se entregó.
+	 *
+	 * Hasta acá la entrega era de la venta entera. La columna nueva nace en cero, así que las ventas
+	 * ya entregadas pasan a tener todos sus productos entregados; las pendientes quedan como estaban.
+	 *
+	 * @return void
+	 */
+	protected static function migrate_1150_item_deliveries() {
+		global $wpdb;
+		$items = self::table( 'sale_items' );
+		$sales = self::table( 'sales' );
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare(
+				"UPDATE {$items} i INNER JOIN {$sales} s ON s.id = i.sale_id SET i.delivered_qty = i.qty WHERE s.delivery_status = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				'entregado'
+			)
+		);
 	}
 
 	/**
@@ -1087,6 +1111,7 @@ class MJERP_Install {
 	name VARCHAR(255) NOT NULL,
 	sku VARCHAR(100) NULL,
 	qty DECIMAL(18,4) NOT NULL DEFAULT 0,
+	delivered_qty DECIMAL(18,4) NOT NULL DEFAULT 0,
 	unit_price DECIMAL(18,6) NOT NULL DEFAULT 0,
 	discount DECIMAL(18,4) NOT NULL DEFAULT 0,
 	line_total DECIMAL(18,4) NOT NULL DEFAULT 0,

@@ -201,9 +201,8 @@ class MJERP_Sale_Editor {
 			self::adjust_stock( $sale, $plan['stock']['rows'] );
 		}
 
-		if ( $plan['redeliver'] ) {
-			MJERP_Sales_Repo::set_delivery( $sale_id, array( 'status' => MJERP_Sales_Repo::DELIVERY_PENDING ) );
-		}
+		// Lo que se agregó queda por entregar (si así está configurado); lo entregado sigue entregado.
+		MJERP_Sales_Repo::settle_delivery( $sale_id, (bool) $plan['redeliver'] );
 
 		$after     = MJERP_Sales_Repo::find( $sale_id );
 		$new_items = MJERP_Sales_Repo::items( $sale_id );

@@ -70,7 +70,7 @@ class MJERP_Sale_Log {
 		add_action( 'mjerp_sale_created', array( __CLASS__, 'on_created' ), 20, 2 );
 		add_action( 'mjerp_sale_updated', array( __CLASS__, 'on_updated' ), 20, 3 );
 		// Antes que maybe_commit (10): la entrega se anota antes que el pedido que dispara.
-		add_action( 'mjerp_sale_delivery_changed', array( __CLASS__, 'on_delivery' ), 5, 2 );
+		add_action( 'mjerp_sale_delivery_changed', array( __CLASS__, 'on_delivery' ), 5, 3 );
 		add_action( 'mjerp_sale_payment_created', array( __CLASS__, 'on_payment_created' ), 20, 3 );
 		add_action( 'mjerp_sale_payment_confirmed', array( __CLASS__, 'on_payment_confirmed' ), 20, 2 );
 		add_action( 'mjerp_sale_payment_deleted', array( __CLASS__, 'on_payment_deleted' ), 20, 3 );
@@ -263,9 +263,10 @@ class MJERP_Sale_Log {
 	 *
 	 * @param int   $sale_id Sale id.
 	 * @param array $row     Changed columns.
+	 * @param array $moves   Lo que cambió por producto: [{ item_id, name, qty }].
 	 * @return void
 	 */
-	public static function on_delivery( $sale_id, $row ) : void {
+	public static function on_delivery( $sale_id, $row, $moves = array() ) : void {
 		if ( ! is_array( $row ) ) {
 			return;
 		}
@@ -284,6 +285,27 @@ class MJERP_Sale_Log {
 		}
 		if ( array_key_exists( 'delivery_note', $row ) && '' !== (string) $row['delivery_note'] ) {
 			$parts[] = (string) $row['delivery_note'];
+		}
+
+		/* Qué se llevó y qué volvió a faltar, producto por producto. */
+		$given = array();
+		$back  = array();
+		foreach ( is_array( $moves ) ? $moves : array() as $move ) {
+			$qty  = isset( $move['qty'] ) ? (float) $move['qty'] : 0.0;
+			$text = sprintf( '%s ×%s', isset( $move['name'] ) ? (string) $move['name'] : '', MJERP_Helpers::trim_number( abs( $qty ) ) );
+			if ( $qty > 0 ) {
+				$given[] = $text;
+			} elseif ( $qty < 0 ) {
+				$back[] = $text;
+			}
+		}
+		if ( $given ) {
+			/* translators: %s: products and quantities */
+			$parts[] = sprintf( __( 'se entregó %s', 'mj-erp' ), implode( ', ', $given ) );
+		}
+		if ( $back ) {
+			/* translators: %s: products and quantities */
+			$parts[] = sprintf( __( 'vuelve a faltar %s', 'mj-erp' ), implode( ', ', $back ) );
 		}
 		if ( empty( $parts ) ) {
 			return;

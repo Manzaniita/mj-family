@@ -153,12 +153,28 @@
 		}
 	}
 
-	/** ¿Esta venta ya guardada está firme? */
+	/** ¿Esta venta ya guardada está firme? Entregar una parte también cuenta, como en el servidor. */
 	function saleIsCommitted(sale) {
 		if (!sale) return false;
 		return commitsNow({
 			paid: String(sale.payment_status || '') === 'pagada',
-			delivered: !!sale.delivered,
+			delivered: !!(sale.delivered || sale.delivery_started),
+		});
+	}
+
+	/** ¿La venta tiene más de una unidad? Solo ahí tiene sentido entregar una parte. */
+	function deliveryHasParts(sale) {
+		const items = (sale && sale.items) || [];
+		if (items.length > 1) return true;
+		return items.length === 1 && (MJ.fmt.toNumber(items[0].qty) || 0) > 1;
+	}
+
+	/** Productos con algo por entregar: [{ name, qty }]. */
+	function deliveryPending(sale) {
+		return ((sale && sale.items) || []).filter(function (item) {
+			return (MJ.fmt.toNumber(item.pending_qty) || 0) > 0.00005;
+		}).map(function (item) {
+			return { name: item.name, qty: MJ.fmt.toNumber(item.pending_qty) || 0 };
 		});
 	}
 
@@ -189,6 +205,8 @@
 		deliveryStatuses: deliveryStatuses,
 		deliveryStatusLabel: deliveryStatusLabel,
 		deliveryBadge: deliveryBadge,
+		deliveryHasParts: deliveryHasParts,
+		deliveryPending: deliveryPending,
 		commitWhen: commitWhen,
 		commitsNow: commitsNow,
 		saleIsCommitted: saleIsCommitted,
@@ -200,18 +218,58 @@
 	/* ------------------------------------------------------------------ */
 
 	/**
-	 * Registrar la entrega de una venta: cómo se entrega, dónde y en qué estado quedó.
+	 * Registrar la entrega de una venta: cómo se entrega, dónde, en qué estado quedó y, si tiene más
+	 * de una unidad, qué se llevó de cada producto.
 	 *
 	 * El camino rápido no pasa por acá —desde la lista se marca entregado de un toque—; este modal
 	 * es para cuando hay algo que decir: cambiar el método, anotar el punto de encuentro o el
-	 * seguimiento, o volver atrás una entrega que se marcó de más.
+	 * seguimiento, entregar una parte («se llevó 2 y la otra se la mandamos») o volver atrás una
+	 * entrega que se marcó de más.
+	 *
+	 * Desde la lista de ventas llega la fila sin sus productos: se pide la venta completa y se vuelve
+	 * a abrir con ella.
 	 *
 	 * @param {Object} opts { sale, onSaved(sale) }
 	 */
 	C.saleDeliveryModal = function (opts) {
 		opts = opts || {};
 		const sale = opts.sale || {};
+		if (!sale.items && sale.id) {
+			return MJ.api.get('sales/' + sale.id).then(function (full) {
+				return C.saleDeliveryModal(Object.assign({}, opts, { sale: full }));
+			}).catch(function (err) {
+				MJ.ui.toastError(err, 'No se pudo abrir la venta.');
+			});
+		}
 		const statuses = deliveryStatuses();
+		const parts = deliveryHasParts(sale);
+		const step = function (qty) { return Math.abs(qty - Math.round(qty)) < 0.00005 ? 1 : 0.5; };
+
+		const itemsHtml = !parts ? '' :
+			'<div class="mj-field mj-grid__full mj-delivery-items">' +
+				'<div class="mj-field__label">Qué se llevó</div>' +
+				'<table class="mj-table mj-table--compact"><tbody>' +
+					sale.items.map(function (item) {
+						const qty = MJ.fmt.toNumber(item.qty) || 0;
+						const delivered = Math.min(qty, MJ.fmt.toNumber(item.delivered_qty) || 0);
+						return '<tr data-delivery-item data-qty="' + h(qty) + '" data-step="' + h(step(qty)) + '">' +
+							'<td>' +
+								'<div class="mj-strong">' + h(item.name) + '</div>' +
+								(item.sku ? '<div class="mj-small mj-muted">SKU ' + h(item.sku) + '</div>' : '') +
+							'</td>' +
+							'<td class="is-num mj-delivery-items__qty">' +
+								'<div class="mj-qty">' +
+									'<button type="button" class="mj-qty__btn" data-action="delivered-down" aria-label="Una menos">' + MJ.icon('minus') + '</button>' +
+									'<input class="mj-input mj-input--sm mj-qty__input" type="text" inputmode="decimal" name="items[' + h(item.id) + ']" value="' + h(MJ.fmt.qty(delivered)) + '" aria-label="Entregado de ' + h(item.name) + '">' +
+									'<button type="button" class="mj-qty__btn" data-action="delivered-up" aria-label="Una más">' + MJ.icon('plus') + '</button>' +
+								'</div>' +
+								'<span class="mj-small mj-muted"> de ' + h(MJ.fmt.qty(qty)) + '</span>' +
+							'</td>' +
+						'</tr>';
+					}).join('') +
+				'</tbody></table>' +
+				'<div class="mj-field__hint mj-small mj-muted">Lo que falta se entrega como diga «Cómo se entrega», en «Dónde / referencia».</div>' +
+			'</div>';
 
 		const body =
 			'<form class="mj-form" data-form novalidate autocomplete="off">' +
@@ -228,6 +286,7 @@
 							}).join('') +
 						'</select>' +
 					'</div>' +
+					itemsHtml +
 					'<div class="mj-field mj-grid__full">' +
 						'<label class="mj-field__label" for="mj-sd-note">Dónde / referencia</label>' +
 						'<input class="mj-input" id="mj-sd-note" name="note" type="text" maxlength="190" value="' + h(sale.delivery_note || '') + '" placeholder="Punto de encuentro, dirección, seguimiento…">' +
@@ -249,9 +308,61 @@
 		const methodSelect = qs('#mj-sd-method', modal.el);
 		MJ.ui.fillSelect(methodSelect, deliveryMethodOptions(), sale.delivery_method || '', 'Sin definir');
 
+		/* Productos y estado se acompañan: marcar todo es «Entregado», nada es «A entregar», una parte es «Entregado en parte». */
+		const statusSelect = qs('#mj-sd-status', modal.el);
+		const rows = function () { return Array.prototype.slice.call(modal.el.querySelectorAll('[data-delivery-item]')); };
+		const rowInput = function (row) { return row.querySelector('input'); };
+		const clampRow = function (row, value) {
+			const qty = parseFloat(row.getAttribute('data-qty')) || 0;
+			const clean = Math.max(0, Math.min(qty, MJ.fmt.toNumber(value) || 0));
+			rowInput(row).value = MJ.fmt.qty(clean);
+			return clean;
+		};
+		const has = function (key) { return !!statuses[key]; };
+		const statusFromItems = function () {
+			const list = rows();
+			if (!list.length) return;
+			let all = true;
+			let some = false;
+			list.forEach(function (row) {
+				const qty = parseFloat(row.getAttribute('data-qty')) || 0;
+				const value = MJ.fmt.toNumber(rowInput(row).value) || 0;
+				if (value > 0.00005) some = true;
+				if (value + 0.00005 < qty) all = false;
+			});
+			const current = statusSelect.value;
+			if (all && has('entregado')) statusSelect.value = 'entregado';
+			else if (!some && (current === 'entregado' || current === 'parcial') && has('pendiente')) statusSelect.value = 'pendiente';
+			else if (some && !all && current !== 'en_camino' && has('parcial')) statusSelect.value = 'parcial';
+		};
+
+		MJ.ui.on(modal.el, 'click', '[data-action="delivered-down"], [data-action="delivered-up"]', function (e, btn) {
+			const row = btn.closest('[data-delivery-item]');
+			const delta = (parseFloat(row.getAttribute('data-step')) || 1) * (btn.getAttribute('data-action') === 'delivered-up' ? 1 : -1);
+			clampRow(row, (MJ.fmt.toNumber(rowInput(row).value) || 0) + delta);
+			statusFromItems();
+		});
+		MJ.ui.on(modal.el, 'change', '[data-delivery-item] input', function (e, input) {
+			clampRow(input.closest('[data-delivery-item]'), input.value);
+			statusFromItems();
+		});
+		if (statusSelect) {
+			statusSelect.addEventListener('change', function () {
+				if (statusSelect.value === 'entregado') {
+					rows().forEach(function (row) { clampRow(row, parseFloat(row.getAttribute('data-qty')) || 0); });
+				} else if (statusSelect.value === 'pendiente') {
+					rows().forEach(function (row) { clampRow(row, 0); });
+				}
+			});
+		}
+
 		MJ.ui.on(modal.el, 'click', '[data-action="save"]', function (e, btn) {
 			const form = qs('[data-form]', modal.el);
 			const data = MJ.ui.formData(form);
+			/* Las cantidades se ven con el formato del idioma («1,5»): al servidor van como número. */
+			if (data.items) {
+				Object.keys(data.items).forEach(function (id) { data.items[id] = MJ.fmt.toNumber(data.items[id]) || 0; });
+			}
 			MJ.ui.setLoading(btn, true);
 			MJ.ui.clearErrors(form);
 

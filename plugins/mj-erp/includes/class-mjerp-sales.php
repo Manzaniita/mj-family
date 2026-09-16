@@ -90,7 +90,8 @@ class MJERP_Sales {
 		$when = (string) MJERP_Settings::get( 'sales_commit_when', 'pago_o_entrega' );
 
 		$paid      = MJERP_Sales_Repo::PAY_PAID === (string) MJERP_Helpers::array_get( $sale, 'payment_status', '' );
-		$delivered = MJERP_Sales_Repo::DELIVERY_DELIVERED === (string) MJERP_Helpers::array_get( $sale, 'delivery_status', '' );
+		/* Entregar una parte también cuenta: la mercadería ya salió. */
+		$delivered = in_array( (string) MJERP_Helpers::array_get( $sale, 'delivery_status', '' ), array( MJERP_Sales_Repo::DELIVERY_DELIVERED, MJERP_Sales_Repo::DELIVERY_PARTIAL ), true );
 
 		switch ( $when ) {
 			case 'registrar':

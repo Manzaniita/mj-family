@@ -2276,8 +2276,8 @@
 				hint: 'Queda escrito en el historial de la venta y en la nota del pedido.',
 			}) +
 			checkboxFieldHtml({
-				key: 'sales_edit_redeliver', label: 'Si una venta entregada suma productos, vuelve a «A entregar»', checked: !!m.sales_edit_redeliver,
-				hint: 'Lo que se agregó todavía no se lo llevó. Apagado, la entrega queda como estaba.',
+				key: 'sales_edit_redeliver', label: 'Si una venta entregada suma productos, lo nuevo queda por entregar', checked: !!m.sales_edit_redeliver,
+				hint: 'Lo que se agregó todavía no se lo llevó: la venta queda «Entregado en parte» y lo demás sigue entregado. Apagado, la entrega queda como estaba.',
 			}) +
 			'<div class="mj-field">' +
 				'<span class="mj-field__label">Quién puede corregir ventas y ver el historial</span>' +

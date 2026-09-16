@@ -176,12 +176,34 @@
 			'</tbody></table></div></div>';
 	}
 
+	/** ¿La entrega va por partes? Hay algo entregado y algo que falta. */
+	function deliverySplit(sale) {
+		const items = sale.items || [];
+		return MJ.components.saleHelpers.deliveryEnabled() && sale.status !== 'anulada' &&
+			items.some(function (item) { return (num(item.delivered_qty) || 0) > 0.00005; }) &&
+			items.some(function (item) { return (num(item.pending_qty) || 0) > 0.00005; });
+	}
+
+	/** Debajo del nombre, en una entrega por partes: qué de este producto ya se llevó. */
+	function itemDeliveryHtml(item, sale) {
+		if (!deliverySplit(sale)) return '';
+		const pending = num(item.pending_qty) || 0;
+		if (pending <= 0.00005) {
+			return '<div class="mj-small">' + MJ.ui.badgeRaw('Entregado', 'success') + '</div>';
+		}
+		const delivered = num(item.delivered_qty) || 0;
+		return '<div class="mj-small">' + MJ.ui.badgeRaw('Falta entregar ' + MJ.fmt.qty(pending), 'warning') +
+			(delivered > 0.00005 ? ' <span class="mj-muted">se llevó ' + h(MJ.fmt.qty(delivered)) + '</span>' : '') +
+		'</div>';
+	}
+
 	function itemRowHtml(item, sale) {
 		const isConsignment = item.origin === 'consignacion';
 		return '<tr>' +
 			'<td>' +
 				'<div class="mj-strong">' + h(item.name) + '</div>' +
 				(item.sku ? '<div class="mj-small mj-muted">SKU ' + h(item.sku) + '</div>' : '') +
+				itemDeliveryHtml(item, sale) +
 			'</td>' +
 			'<td>' +
 				MJ.ui.badgeRaw(item.origin_label || '', isConsignment ? 'info' : 'neutral') +
@@ -331,6 +353,11 @@
 		rows.push(['Estado', voided ? dash() : helpers.deliveryBadge(sale)]);
 		rows.push(['Cómo', sale.delivery_method_label ? h(sale.delivery_method_label) : dash()]);
 		if (sale.delivery_note) rows.push(['Dónde', h(sale.delivery_note)]);
+		if (!voided && deliverySplit(sale)) {
+			rows.push(['Falta', helpers.deliveryPending(sale).map(function (p) {
+				return h(p.name) + ' ×' + h(MJ.fmt.qty(p.qty));
+			}).join('<br>')]);
+		}
 		if (sale.delivered_at) {
 			rows.push(['Entregada', h(MJ.fmt.datetime(sale.delivered_at)) + (sale.delivered_by_name ? ' · ' + h(sale.delivered_by_name) : '')]);
 		}
@@ -341,7 +368,7 @@
 					? ''
 					: (sale.delivered
 						? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="delivery">' + MJ.icon('edit') + '<span>Cambiar</span></button>'
-						: '<button type="button" class="mj-btn mj-btn--sm mj-btn--primary" data-action="deliver">' + MJ.icon('truck') + '<span>Marcar entregada</span></button>')) +
+						: '<button type="button" class="mj-btn mj-btn--sm mj-btn--primary" data-action="deliver">' + MJ.icon('truck') + '<span>' + (deliverySplit(sale) ? 'Entregar lo que falta' : 'Marcar entregada') + '</span></button>')) +
 			'</div>' +
 			'<div class="mj-card__body"><dl class="mj-deflist">' +
 				rows.map(function (r) {
@@ -350,7 +377,7 @@
 			'</dl>' +
 			(voided || sale.delivered
 				? ''
-				: '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-mt" data-action="delivery">' + MJ.icon('edit') + '<span>Cambiar cómo o dónde</span></button>') +
+				: '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-mt" data-action="delivery">' + MJ.icon('edit') + '<span>' + (helpers.deliveryHasParts(sale) ? 'Entregar una parte o cambiar cómo' : 'Cambiar cómo o dónde') + '</span></button>') +
 			'</div></div>';
 	}
 

@@ -920,6 +920,10 @@ class MJERP_Settings {
 				'label' => __( 'A entregar', 'mj-erp' ),
 				'color' => 'warning',
 			),
+			'parcial'    => array(
+				'label' => __( 'Entregado en parte', 'mj-erp' ),
+				'color' => 'info',
+			),
 			'en_camino'  => array(
 				'label' => __( 'En camino', 'mj-erp' ),
 				'color' => 'info',

@@ -45,6 +45,12 @@ class MJERP_Sales_Repo {
 	const DELIVERY_ON_ROUTE  = 'en_camino';
 	const DELIVERY_DELIVERED = 'entregado';
 
+	/* Se llevó una parte: lo que falta queda con el método y la referencia de la venta. */
+	const DELIVERY_PARTIAL = 'parcial';
+
+	/* Tolerancia para comparar cantidades DECIMAL(18,4). */
+	const QTY_EPSILON = 0.00005;
+
 	const EPSILON = 0.0001;
 
 	const FORMATS = array(
@@ -106,6 +112,7 @@ class MJERP_Sales_Repo {
 		'name'                   => '%s',
 		'sku'                    => '%s',
 		'qty'                    => '%f',
+		'delivered_qty'          => '%f',
 		'unit_price'             => '%f',
 		'discount'               => '%f',
 		'line_total'             => '%f',
@@ -141,7 +148,7 @@ class MJERP_Sales_Repo {
 	 * @return string[]
 	 */
 	public static function delivery_statuses() : array {
-		return array( self::DELIVERY_PENDING, self::DELIVERY_ON_ROUTE, self::DELIVERY_DELIVERED );
+		return array( self::DELIVERY_PENDING, self::DELIVERY_PARTIAL, self::DELIVERY_ON_ROUTE, self::DELIVERY_DELIVERED );
 	}
 
 	/**
@@ -606,6 +613,10 @@ class MJERP_Sales_Repo {
 			$sort++;
 		}
 
+		if ( self::DELIVERY_DELIVERED === $delivery['status'] ) {
+			self::fill_delivered( $sale_id );
+		}
+
 		self::recalculate( $sale_id );
 
 		/**
@@ -660,6 +671,7 @@ class MJERP_Sales_Repo {
 			'name'                   => MJERP_Helpers::text( isset( $data['name'] ) ? $data['name'] : '', 255 ),
 			'sku'                    => MJERP_Helpers::text( isset( $data['sku'] ) ? $data['sku'] : '', 100 ),
 			'qty'                    => $qty,
+			'delivered_qty'          => round( min( $qty, max( 0, MJERP_Helpers::to_float( isset( $data['delivered_qty'] ) ? $data['delivered_qty'] : 0 ) ) ), 4 ),
 			'unit_price'             => $unit_price,
 			'discount'               => $discount,
 			'line_total'             => $line_total,
@@ -719,6 +731,16 @@ class MJERP_Sales_Repo {
 			$wpdb->update( self::table(), $row, array( 'id' => $sale['id'] ), self::formats( $row, self::FORMATS ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		}
 
+		/*
+		 * Las líneas se borran y se vuelven a escribir con ids nuevos. Lo que ya se entregó de cada
+		 * una se lleva a la línea nueva (hasta su cantidad nueva); lo que se agrega nace sin entregar.
+		 * Qué estado toma la venta después lo decide settle_delivery().
+		 */
+		$delivered = array();
+		foreach ( self::items( $sale['id'] ) as $old ) {
+			$delivered[ (int) $old['id'] ] = (float) $old['delivered_qty'];
+		}
+
 		$wpdb->delete( self::items_table(), array( 'sale_id' => $sale['id'] ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
 		$sort = 0;
@@ -726,6 +748,8 @@ class MJERP_Sales_Repo {
 			if ( ! is_array( $item ) ) {
 				continue;
 			}
+			$old_id                = isset( $item['id'] ) ? absint( $item['id'] ) : 0;
+			$item['delivered_qty'] = $old_id && isset( $delivered[ $old_id ] ) ? $delivered[ $old_id ] : 0;
 			unset( $item['id'] );
 			$item['sort_order'] = $sort;
 			$added              = self::add_item( $sale['id'], $item );
@@ -823,6 +847,10 @@ class MJERP_Sales_Repo {
 
 		if ( array_key_exists( 'delivery_status', $data ) && '' !== (string) $data['delivery_status'] ) {
 			$status = self::sanitize_delivery_status( $data['delivery_status'] );
+			// Una venta nueva no nace entregada en parte: eso se registra después, producto por producto.
+			if ( self::DELIVERY_PARTIAL === $status ) {
+				$status = self::DELIVERY_PENDING;
+			}
 		} elseif ( array_key_exists( 'delivered', $data ) ) {
 			$status = MJERP_Helpers::bool( $data['delivered'] ) ? self::DELIVERY_DELIVERED : self::DELIVERY_PENDING;
 		} else {
@@ -849,8 +877,14 @@ class MJERP_Sales_Repo {
 	 * fecha se escribe sola al pasar a «entregado» y se borra si se vuelve atrás, así el dato nunca
 	 * dice que algo se entregó un día en que todavía no había salido.
 	 *
+	 * ENTREGA POR PRODUCTO
+	 *   `items` dice cuánto quedó entregado de cada línea (id de línea => cantidad entregada en
+	 *   total). Sin `items`, «entregado» entrega todo y «a entregar» no deja nada entregado. El
+	 *   estado final sale de las líneas: todo entregado es «entregado», nada es el pedido (a entregar
+	 *   o en camino) y una parte es «entregado en parte», o «en camino» si lo que falta ya salió.
+	 *
 	 * @param int   $id   Sale id.
-	 * @param array $data { status, method, note }.
+	 * @param array $data { status, method, note, items }.
 	 * @return true|WP_Error
 	 */
 	public static function set_delivery( $id, array $data ) {
@@ -873,10 +907,31 @@ class MJERP_Sales_Repo {
 			$row['delivery_note'] = MJERP_Helpers::text( $data['note'], 190 );
 		}
 
-		if ( array_key_exists( 'status', $data ) ) {
-			$status                 = self::sanitize_delivery_status( $data['status'] );
-			$row['delivery_status'] = $status;
+		$moves = array();
+		$lines = self::items( $sale['id'] );
+		$wants = array_key_exists( 'status', $data ) ? self::sanitize_delivery_status( $data['status'] ) : '';
 
+		if ( array_key_exists( 'items', $data ) && is_array( $data['items'] ) ) {
+			$target = array();
+			foreach ( $data['items'] as $item_id => $qty ) {
+				$target[ absint( $item_id ) ] = MJERP_Helpers::to_float( $qty );
+			}
+			$moves = self::set_items_delivered( $lines, $target );
+		} elseif ( self::DELIVERY_DELIVERED === $wants || self::DELIVERY_PENDING === $wants
+			|| ( self::DELIVERY_ON_ROUTE === $wants && self::DELIVERY_DELIVERED === self::derive_delivery_status( $lines, $wants ) ) ) {
+			/* Sin detalle por producto: entregado es todo; a entregar, o en camino de algo que figuraba entregado, es nada. */
+			$all = array();
+			foreach ( $lines as $line ) {
+				$all[ (int) $line['id'] ] = self::DELIVERY_DELIVERED === $wants ? (float) $line['qty'] : 0.0;
+			}
+			$moves = self::set_items_delivered( $lines, $all );
+		}
+
+		if ( '' !== $wants || $moves ) {
+			$lines  = $moves ? self::items( $sale['id'] ) : $lines;
+			$status = self::derive_delivery_status( $lines, '' !== $wants ? $wants : (string) $sale['delivery_status'] );
+
+			$row['delivery_status'] = $status;
 			if ( self::DELIVERY_DELIVERED === $status ) {
 				$row['delivered_at'] = ! empty( $sale['delivered_at'] ) ? $sale['delivered_at'] : current_time( 'mysql' );
 				$row['delivered_by'] = ! empty( $sale['delivered_by'] ) ? (int) $sale['delivered_by'] : get_current_user_id();
@@ -900,12 +955,115 @@ class MJERP_Sales_Repo {
 		/**
 		 * Fires after the delivery of a sale changed.
 		 *
-		 * @param int   $id  Sale id.
-		 * @param array $row Changed columns.
+		 * @param int   $id    Sale id.
+		 * @param array $row   Changed columns.
+		 * @param array $moves Lo que cambió por producto: [{ item_id, name, qty }] (qty < 0 = vuelve a faltar).
 		 */
-		do_action( 'mjerp_sale_delivery_changed', (int) $sale['id'], $row );
+		do_action( 'mjerp_sale_delivery_changed', (int) $sale['id'], $row, $moves );
 
 		return true;
+	}
+
+	/**
+	 * Escribe cuánto se entregó de cada línea.
+	 *
+	 * @param array $lines  Líneas actuales (cast_item).
+	 * @param array $target id de línea => cantidad entregada en total. Las que no están no se tocan.
+	 * @return array Lo que cambió: [{ item_id, name, qty }].
+	 */
+	private static function set_items_delivered( array $lines, array $target ) : array {
+		global $wpdb;
+
+		$moves = array();
+		foreach ( $lines as $line ) {
+			$id = (int) $line['id'];
+			if ( ! array_key_exists( $id, $target ) ) {
+				continue;
+			}
+			$qty  = (float) $line['qty'];
+			$new  = round( min( $qty, max( 0.0, (float) $target[ $id ] ) ), 4 );
+			$diff = round( $new - (float) $line['delivered_qty'], 4 );
+			if ( abs( $diff ) < self::QTY_EPSILON ) {
+				continue;
+			}
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				self::items_table(),
+				array(
+					'delivered_qty' => $new,
+					'updated_at'    => current_time( 'mysql' ),
+				),
+				array( 'id' => $id ),
+				array( '%f', '%s' ),
+				array( '%d' )
+			);
+			$moves[] = array(
+				'item_id' => $id,
+				'name'    => (string) $line['name'],
+				'qty'     => $diff,
+			);
+		}
+		return $moves;
+	}
+
+	/** Marca entregadas todas las líneas de una venta. */
+	private static function fill_delivered( $sale_id ) : void {
+		global $wpdb;
+		$table = self::items_table();
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET delivered_qty = qty WHERE sale_id = %d", absint( $sale_id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	/**
+	 * El estado de entrega que corresponde a lo entregado de cada línea.
+	 *
+	 * @param array  $lines  Líneas (cast_item).
+	 * @param string $wanted Estado pedido o actual: decide entre «a entregar» y «en camino».
+	 * @return string
+	 */
+	private static function derive_delivery_status( array $lines, string $wanted ) : string {
+		if ( empty( $lines ) ) {
+			return in_array( $wanted, self::delivery_statuses(), true ) && self::DELIVERY_PARTIAL !== $wanted ? $wanted : self::DELIVERY_PENDING;
+		}
+		$all  = true;
+		$some = false;
+		foreach ( $lines as $line ) {
+			$delivered = (float) $line['delivered_qty'];
+			if ( $delivered > self::QTY_EPSILON ) {
+				$some = true;
+			}
+			if ( $delivered + self::QTY_EPSILON < (float) $line['qty'] ) {
+				$all = false;
+			}
+		}
+		if ( $all ) {
+			return self::DELIVERY_DELIVERED;
+		}
+		if ( ! $some ) {
+			return self::DELIVERY_ON_ROUTE === $wanted ? self::DELIVERY_ON_ROUTE : self::DELIVERY_PENDING;
+		}
+		return self::DELIVERY_ON_ROUTE === $wanted ? self::DELIVERY_ON_ROUTE : self::DELIVERY_PARTIAL;
+	}
+
+	/**
+	 * Acomoda la entrega después de reescribir las líneas (corrección o devolución).
+	 *
+	 * @param int  $sale_id Sale id.
+	 * @param bool $reopen  Lo agregado queda por entregar (regla «sales_edit_redeliver»). Sin eso,
+	 *                      una venta entregada sigue entregada entera.
+	 * @return void
+	 */
+	public static function settle_delivery( $sale_id, bool $reopen ) : void {
+		$sale = self::find( $sale_id );
+		if ( ! $sale || self::STATUS_VOID === $sale['status'] ) {
+			return;
+		}
+		if ( ! $reopen && self::DELIVERY_DELIVERED === (string) $sale['delivery_status'] ) {
+			self::fill_delivered( $sale['id'] );
+			return;
+		}
+		$status = self::derive_delivery_status( self::items( $sale['id'] ), (string) $sale['delivery_status'] );
+		if ( $status !== (string) $sale['delivery_status'] ) {
+			self::set_delivery( $sale['id'], array( 'status' => $status ) );
+		}
 	}
 
 	/**
@@ -1591,6 +1749,8 @@ class MJERP_Sales_Repo {
 			'delivery_status_color' => isset( $delivery_map[ $delivery_status ]['color'] ) ? (string) $delivery_map[ $delivery_status ]['color'] : 'neutral',
 			'delivery_note'      => (string) self::v( $row, 'delivery_note' ),
 			'delivered'          => self::DELIVERY_DELIVERED === $delivery_status,
+			/* Se llevó algo (todo o una parte): alcanza para que la venta quede firme. */
+			'delivery_started'   => in_array( $delivery_status, array( self::DELIVERY_DELIVERED, self::DELIVERY_PARTIAL ), true ),
 			'delivered_at'       => self::datetime_or_null( self::v( $row, 'delivered_at' ) ),
 			'delivered_by'       => (int) self::v( $row, 'delivered_by', 0 ),
 			'delivered_by_name'  => MJERP_Helpers::user_display_name( self::v( $row, 'delivered_by', 0 ) ),
@@ -1631,6 +1791,8 @@ class MJERP_Sales_Repo {
 			'name'                   => (string) self::v( $row, 'name' ),
 			'sku'                    => (string) self::v( $row, 'sku' ),
 			'qty'                    => $qty,
+			'delivered_qty'          => round( min( $qty, (float) self::v( $row, 'delivered_qty', 0 ) ), 4 ),
+			'pending_qty'            => round( max( 0, $qty - (float) self::v( $row, 'delivered_qty', 0 ) ), 4 ),
 			'unit_price'             => round( (float) self::v( $row, 'unit_price', 0 ), 6 ),
 			'discount'               => round( (float) self::v( $row, 'discount', 0 ), 4 ),
 			'line_total'             => round( (float) self::v( $row, 'line_total', 0 ), 4 ),

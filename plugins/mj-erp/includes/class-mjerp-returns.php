@@ -322,10 +322,8 @@ class MJERP_Returns {
 			}
 		}
 
-		// 7. Lo que se lleva a cambio todavía no se lo llevó.
-		if ( $plan['redeliver'] ) {
-			MJERP_Sales_Repo::set_delivery( $sale_id, array( 'status' => MJERP_Sales_Repo::DELIVERY_PENDING ) );
-		}
+		// 7. Lo que se lleva a cambio todavía no se lo llevó; lo que ya tenía sigue entregado.
+		MJERP_Sales_Repo::settle_delivery( $sale_id, (bool) $plan['redeliver'] );
 
 		// 8. El historial.
 		MJERP_Sale_Log::add(

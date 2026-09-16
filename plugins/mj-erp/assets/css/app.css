@@ -5115,6 +5115,16 @@ th.mj-truncate {
 	white-space: nowrap;
 }
 
+/* --- Entrega por producto (modal de entrega) ------------------------------ */
+
+.mj-delivery-items .mj-table {
+	margin-top: var(--mj-sp-1);
+}
+
+.mj-delivery-items__qty {
+	white-space: nowrap;
+}
+
 /* --- Cantidad (– 1 +) ----------------------------------------------------- */
 
 .mj-qty {
