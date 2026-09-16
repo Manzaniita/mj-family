@@ -144,6 +144,28 @@ y la decisión queda guardada (recargá la página para confirmarlo).
 **Señal de que algo está mal:** aprobás, se ve aprobado, recargás y volvió a
 pendiente. Eso ahora queda anotado en el registro.
 
+### 2.4.1. Ver el archivo y aprobar con importe
+
+1. Con un pedido de $ 28.600 y un comprobante subido, abrí WooCommerce →
+   Comprobantes. La miniatura se tiene que ver, y "Ver" y "Descargar" tienen
+   que abrir el archivo. Lo mismo desde Mi cuenta → el pedido, con el cliente.
+2. Aprobá con **Pagó una parte: 10.000** y un mensaje ("Llegó la primera
+   transferencia").
+
+**Qué tiene que pasar:** el pedido sigue en espera, la bandeja muestra Pagado
+$ 10.000 y Falta abonar $ 18.600, y el cliente ve en su pedido "Pago parcial",
+el mensaje, lo pagado y lo que falta, y puede subir otro comprobante. Le llega
+el mail del pago parcial con los importes.
+
+3. Aprobá el segundo con **Pagó todo lo que falta**.
+
+**Qué tiene que pasar:** el pedido pasa a Procesando, el cliente ve "Pago
+confirmado" con los dos pagos en el historial, y en MJ ERP la venta queda
+cobrada por el total (un solo cobro).
+
+**Señal de que algo está mal:** "Ver" da un error de ruta o de permiso, o el
+total cobrado en el ERP no coincide con el del pedido.
+
 ### 2.5. El link sin cuenta
 
 Si tenés activados los links firmados, probá abrir uno desde otro navegador,

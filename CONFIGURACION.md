@@ -141,7 +141,7 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 | MJ Colegas | Colegas → Ajustes | Nombre del proyecto, etiquetas, comisión, textos. |
 | MJ Dólar | WooCommerce → Dólar | Tipo de cambio, redondeo, cotización de referencia y su proveedor. |
 | MJ Medios de Pago | WooCommerce → Medios de pago | Recargos y descuentos por medio de pago. Con **Editar textos y datos para pagar**, en cada fila: título, descripción, instrucciones, si está activo, y la lista de datos para pagar (alias, CBU, titular, lo que haga falta: la etiqueta la escribe el admin), con su encabezado, cuáles llevan botón de copiar y si se muestran también en el checkout. En Ajustes generales, el encabezado por defecto de esos datos. |
-| MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos, qué pasa al aprobar, quién puede revisarlos, mails y WhatsApp, cuánto se guardan, y las equivalencias con los métodos de MJ ERP. |
+| MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos, qué pasa al aprobar, qué estado toma el pedido con un pago parcial, el mail y el WhatsApp del pago parcial, si los mails suman el resumen del pago (acreditado, pagado, falta abonar y mensaje), quién puede revisarlos, mails y WhatsApp, cuánto se guardan, y las equivalencias con los métodos de MJ ERP. |
 | MJ Envíos | WooCommerce → Envíos | Los métodos de envío (crear, editar, ordenar, apagar, borrar), sus condiciones, qué datos pide cada uno, la tabla propia de códigos postales, las credenciales de cada correo, el origen del despacho, pesos, margen, redondeo, textos del checkout y los avisos de seguimiento. |
 | MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. |
@@ -881,6 +881,8 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Dónde se carga el widget de comprobantes | — | `mjpm_enqueue_uploader` |
 | Contextos que pueden pedir un comprobante | — | `mjpm_receipt_contexts` |
 | Regla del comprobante de un pedido | — | `mjpm_order_receipt_requirement` |
+| Textos del widget de comprobantes (estados, saldo, motivo) | — | `mjpm_uploader_texts` |
+| Resumen del pago al pie del mail al cliente | — | `mjpm_receipt_mail_summary` |
 | Instrucciones y datos para pagar de un medio | — | `mjpm_payment_info` |
 | Estados de pedido en los que el cliente ve cómo pagar | — | `mjpm_payment_info_statuses` |
 | Regla del comprobante de un pago de reventa | — | `mjerp_payment_receipt_requirement` |
