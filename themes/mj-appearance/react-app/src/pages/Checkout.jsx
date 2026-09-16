@@ -15,7 +15,7 @@ import { effectivePrice } from '@/lib/api';
 import { IS_WP, WP, EXCHANGE_RATE, EXPRESS } from '@/lib/config';
 import * as wc from '@/lib/wc';
 import { formatPrice, formatUsd, FREE_SHIPPING_THRESHOLD, isValidCuit, cn } from '@/lib/format';
-import { usePaymentMethod, selectedMethodId, findMethod, resolveAdjustment, usdTotalFor } from '@/lib/payments';
+import { PAY, usePaymentMethod, selectedMethodId, findMethod, resolveAdjustment, usdTotalFor } from '@/lib/payments';
 import { formFields, hasShipping, methodBySlug, missingFor, shippingTexts } from '@/lib/envios';
 
 /* Cómo se llama el paso de envío. Lo decide el plugin; sin plugin, "Envío". */
@@ -376,6 +376,8 @@ export default function Checkout() {
       details: placedMethod?.details || [],
     };
     const hasHowTo = !!howTo.instructions || howTo.details?.length > 0;
+    /* Cómo se llaman el bloque y el botón de copiar: lo configura MJ Medios de Pago. */
+    const howToTexts = { ...(PAY?.texts || {}), ...(howTo.texts || {}) };
     return (
       <Section className="grid min-h-[60vh] place-items-center">
         <motion.div
@@ -404,7 +406,7 @@ export default function Checkout() {
           {hasHowTo && (
             <div className="mj-panel mt-6 rounded-xl2 border border-line glass p-5 text-left">
               <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">
-                Cómo pagar{placedMethod || howTo.title ? ` · ${placedMethod?.short || placedMethod?.title || howTo.title}` : ''}
+                {howToTexts.howTo || 'Cómo pagar'}{placedMethod || howTo.title ? ` · ${placedMethod?.short || placedMethod?.title || howTo.title}` : ''}
               </p>
               {howTo.instructions && (
                 <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{howTo.instructions}</p>
@@ -412,6 +414,7 @@ export default function Checkout() {
               <PaymentDetails
                 title={howTo.detailsTitle}
                 rows={howTo.details}
+                texts={howToTexts}
                 className={howTo.instructions ? 'mt-4 border-t border-line pt-4' : 'mt-4'}
               />
             </div>
@@ -681,6 +684,7 @@ export default function Checkout() {
               <PaymentDetails
                 title={payMethod.detailsTitle}
                 rows={payMethod.details}
+                texts={PAY?.texts}
                 className="mt-4 rounded-xl2 border border-line p-4"
               />
             )}

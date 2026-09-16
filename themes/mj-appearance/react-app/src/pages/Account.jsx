@@ -481,13 +481,14 @@ export function AccountOrderDetail() {
 
       {(order.paymentInstructions || order.paymentDetails?.length > 0) && (
         <div className="mj-panel mt-6 rounded-xl3 border border-line glass p-6">
-          <h3 className="font-display text-lg font-semibold">Cómo pagar{order.paymentMethodTitle ? ` · ${order.paymentMethodTitle}` : ''}</h3>
+          <h3 className="font-display text-lg font-semibold">{order.paymentTexts?.howTo || 'Cómo pagar'}{order.paymentMethodTitle ? ` · ${order.paymentMethodTitle}` : ''}</h3>
           {order.paymentInstructions && (
             <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{order.paymentInstructions}</p>
           )}
           <PaymentDetails
             title={order.paymentDetailsTitle}
             rows={order.paymentDetails}
+            texts={order.paymentTexts}
             className={order.paymentInstructions ? 'mt-5 border-t border-line pt-5' : 'mt-4'}
           />
         </div>
@@ -523,12 +524,14 @@ export function AccountOrderDetail() {
             {order.paymentBalance && (
               <>
                 <div className="flex items-center justify-between">
-                  <dt className="text-ink-soft">Pagado</dt>
+                  <dt className="text-ink-soft">{order.paymentBalance.labels?.paid || 'Pagado'}</dt>
                   <dd className="font-medium text-success">{order.paymentBalance.paidText}</dd>
                 </div>
                 <div className="flex items-center justify-between">
                   <dt className={order.paymentBalance.due > 0 ? 'font-medium text-danger' : 'text-ink-soft'}>
-                    {order.paymentBalance.due > 0 ? 'Falta abonar' : 'Pagado completo'}
+                    {order.paymentBalance.due > 0
+                      ? order.paymentBalance.labels?.due || 'Falta abonar'
+                      : order.paymentBalance.labels?.paidInFull || 'Pagado completo'}
                   </dt>
                   {order.paymentBalance.due > 0 && (
                     <dd className="font-semibold text-danger">{order.paymentBalance.dueText}</dd>
