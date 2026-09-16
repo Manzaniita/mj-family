@@ -271,6 +271,25 @@ class MJERP_Sales_Repo {
 		}
 		$items = self::attach_items_preview( $items );
 
+		/*
+		 * «A revendedores» es lo que vendieron los revendedores en esas fechas, como el «Vendió» de su
+		 * ficha. Sumar solo las líneas de consignación de estas ventas daba cero: lo que un revendedor
+		 * vende desde el portal o su ficha no pasa por la lista de ventas. Los demás filtros (cobro,
+		 * entrega, canal) son de las ventas directas y no se aplican.
+		 */
+		$consignment = class_exists( 'MJERP_Consignment_Sales_Repo' )
+			? MJERP_Consignment_Sales_Repo::sold_totals(
+				array(
+					'consignee_id' => $args['consignee_id'],
+					'date_from'    => $from,
+					'date_to'      => $to,
+				)
+			)
+			: array(
+				'amount_base' => round( (float) MJERP_Helpers::array_get( $sums, 'consignment_base', 0 ), 4 ),
+				'count'       => 0,
+			);
+
 		return array(
 			'items'    => $items,
 			'total'    => $total,
@@ -278,10 +297,11 @@ class MJERP_Sales_Repo {
 			'per_page' => $per_page,
 			'pages'    => (int) ceil( $total / $per_page ),
 			'totals'   => array(
-				'total_base'       => round( (float) MJERP_Helpers::array_get( $sums, 'total_base', 0 ), 4 ),
-				'profit_base'      => round( (float) MJERP_Helpers::array_get( $sums, 'profit_base', 0 ), 4 ),
-				'consignment_base' => round( (float) MJERP_Helpers::array_get( $sums, 'consignment_base', 0 ), 4 ),
-				'paid_base'        => round( (float) MJERP_Helpers::array_get( $sums, 'paid_base', 0 ), 4 ),
+				'total_base'        => round( (float) MJERP_Helpers::array_get( $sums, 'total_base', 0 ), 4 ),
+				'profit_base'       => round( (float) MJERP_Helpers::array_get( $sums, 'profit_base', 0 ), 4 ),
+				'consignment_base'  => $consignment['amount_base'],
+				'consignment_count' => $consignment['count'],
+				'paid_base'         => round( (float) MJERP_Helpers::array_get( $sums, 'paid_base', 0 ), 4 ),
 			),
 		);
 	}

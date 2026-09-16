@@ -216,6 +216,48 @@ class MJERP_Consignment_Sales_Repo {
 	}
 
 	/**
+	 * Lo que vendieron los revendedores, al precio acordado: lo mismo que el «Vendió» de cada uno.
+	 *
+	 * Cuenta las ventas aprobadas, que son las que generan deuda. Vengan del portal, de la ficha del
+	 * revendedor o de un pedido suyo en la tienda.
+	 *
+	 * @param array $args date_from, date_to, consignee_id.
+	 * @return array { amount_base, count }
+	 */
+	public static function sold_totals( array $args = array() ) : array {
+		global $wpdb;
+
+		$table = self::table();
+		$where = array( 'status = %s' );
+		$prep  = array( self::STATUS_APPROVED );
+
+		$consignee_id = absint( MJERP_Helpers::array_get( $args, 'consignee_id', 0 ) );
+		if ( $consignee_id > 0 ) {
+			$where[] = 'consignee_id = %d';
+			$prep[]  = $consignee_id;
+		}
+		$from = MJERP_Helpers::sanitize_date( MJERP_Helpers::array_get( $args, 'date_from', '' ) );
+		if ( $from ) {
+			$where[] = 'sale_date >= %s';
+			$prep[]  = $from;
+		}
+		$to = MJERP_Helpers::sanitize_date( MJERP_Helpers::array_get( $args, 'date_to', '' ) );
+		if ( $to ) {
+			$where[] = 'sale_date <= %s';
+			$prep[]  = $to;
+		}
+
+		$where_sql = implode( ' AND ', $where );
+		$sums_sql  = "SELECT COALESCE(SUM(amount_base),0) AS amount_base, COUNT(*) AS cnt FROM {$table} WHERE {$where_sql}";
+		$row       = $wpdb->get_row( $wpdb->prepare( $sums_sql, $prep ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL, WordPress.DB.DirectDatabaseQuery
+
+		return array(
+			'amount_base' => round( (float) MJERP_Helpers::array_get( $row, 'amount_base', 0 ), 4 ),
+			'count'       => (int) MJERP_Helpers::array_get( $row, 'cnt', 0 ),
+		);
+	}
+
+	/**
 	 * How many sales are waiting for approval (badge in the UI).
 	 *
 	 * @param int $consignee_id 0 = every consignee.

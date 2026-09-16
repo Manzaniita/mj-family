@@ -144,16 +144,18 @@
 
 	function totalsHtml(totals) {
 		if (!totals) return '';
+		const resales = parseInt(totals.consignment_count, 10) || 0;
 		return '<div class="mj-stats mj-mb">' +
 			statCard('Facturado', moneyBase(totals.total_base), 'cash', localToday(totals.total_base)) +
 			statCard('Margen', moneyBase(totals.profit_base), 'chart', localToday(totals.profit_base)) +
-			statCard('A revendedores', moneyBase(totals.consignment_base), 'users', localToday(totals.consignment_base)) +
+			statCard('A revendedores', moneyBase(totals.consignment_base), 'users', localToday(totals.consignment_base),
+				'Lo que vendieron tus revendedores al precio acordado' + (resales ? ' (' + (resales === 1 ? '1 venta' : MJ.fmt.int(resales) + ' ventas') + ')' : '') + ', en las fechas del filtro. Es el «Vendió» de cada uno en Consignaciones.') +
 			statCard('Cobrado', moneyBase(totals.paid_base), 'check-circle', localToday(totals.paid_base)) +
 		'</div>';
 	}
 
-	function statCard(label, value, icon, local) {
-		return '<div class="mj-stat">' +
+	function statCard(label, value, icon, local, hint) {
+		return '<div class="mj-stat"' + (hint ? ' title="' + h(hint) + '"' : '') + '>' +
 			'<div class="mj-stat__icon">' + MJ.icon(icon) + '</div>' +
 			'<div><div class="mj-stat__label mj-small mj-muted">' + h(label) + '</div>' +
 			'<div class="mj-stat__value mj-strong">' + h(value) + '</div>' +
