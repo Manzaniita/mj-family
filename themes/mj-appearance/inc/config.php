@@ -290,8 +290,9 @@ function mj_app_config() {
 			'auto'    => (bool) $options['express_auto'],
 			'label'   => '' !== trim((string) $options['express_label']) ? trim((string) $options['express_label']) : 'Comprar ahora',
 		],
-		/* Presentación (react-app/src/lib/config.js): tema por defecto, skin, animación, intro. */
+		/* Presentación (react-app/src/lib/config.js): tema por defecto, skin, animación, intro, efecto del cambio de tema. */
 		'theme'                 => mj_theme_default(),
+		'themeSwitch'           => $options['theme_switch'],
 		'skin'                  => mj_skin(),
 		'motion'                => $options['motion_level'],
 		'intro'                 => (bool) $options['intro_enabled'],

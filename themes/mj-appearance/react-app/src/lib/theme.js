@@ -9,7 +9,7 @@
  * inline ANTES de cargar CSS, así el primer paint ya sale con el tema
  * correcto y no hay parpadeo. Acá vive lo que pasa después de montar.
  */
-import { THEME_DEFAULT } from './config';
+import { THEME_DEFAULT, THEME_SWITCH } from './config';
 import { REDUCED_MOTION } from './motion';
 
 export const THEME_KEY = 'mj-theme';
@@ -74,21 +74,50 @@ export function applyTheme(theme, { persist = true } = {}) {
   syncThemeColor();
 }
 
+/* Evita que dos clics seguidos encimen dos transiciones. */
+let switching = false;
+
 /**
- * Cambia de tema con una transición circular que nace en `origin` ({x, y} en
- * px de viewport, normalmente el click del botón). Usa View Transitions si el
- * navegador las tiene; si no (o con reduced-motion), fundido corto de colores.
- * `commit` corre dentro de la transición para que el snapshot "nuevo" ya
- * incluya el estado actualizado (ícono del botón, etc.).
+ * Cambia de tema con el efecto elegido en Apariencia → MJ Appearance
+ * ("Efecto al cambiar de tema", THEME_SWITCH):
+ *
+ *   instant — en seco. Mientras se aplica, se apagan TODAS las transiciones
+ *             CSS por un frame: si no, cada elemento con transition-colors
+ *             (cientos en una página de catálogo) arranca su propio fundido y
+ *             el cambio se siente pesado y desparejo.
+ *   fade    — fundido corto del fondo y el texto base.
+ *   circle  — el tema nuevo se revela en círculo desde `origin` ({x, y} en px
+ *             de viewport, normalmente el clic del botón) con View Transitions.
+ *             Sin soporte o con reduced-motion cae a "fade".
+ *
+ * `commit` corre de forma SÍNCRONA dentro del cambio (el store lo envuelve en
+ * flushSync) para que React pinte el ícono nuevo del botón en el mismo frame.
+ * Importante: dentro del callback de startViewTransition el navegador pausa el
+ * render, así que ahí no se puede esperar un requestAnimationFrame: ese frame
+ * nunca llega y el cambio queda colgado hasta el timeout del navegador (varios
+ * segundos con la página congelada). Por eso todo es síncrono.
  */
 export function transitionTheme(theme, origin, commit) {
+  if (switching || typeof document === 'undefined') return Promise.resolve();
   const root = document.documentElement;
   const apply = () => {
     applyTheme(theme);
     commit?.();
   };
 
-  if (REDUCED_MOTION || typeof document.startViewTransition !== 'function') {
+  const effect = REDUCED_MOTION ? 'instant' : THEME_SWITCH;
+
+  if (effect === 'instant') {
+    root.classList.add('mj-theme-cut');
+    apply();
+    // Forzar el recálculo de estilos con las transiciones apagadas; recién
+    // después, en el próximo frame, se vuelven a habilitar.
+    void root.offsetWidth;
+    requestAnimationFrame(() => root.classList.remove('mj-theme-cut'));
+    return Promise.resolve();
+  }
+
+  if (effect === 'fade' || typeof document.startViewTransition !== 'function') {
     root.classList.add('mj-theme-fade');
     apply();
     setTimeout(() => root.classList.remove('mj-theme-fade'), 400);
@@ -102,13 +131,13 @@ export function transitionTheme(theme, origin, commit) {
   root.style.setProperty('--mj-vt-y', `${y}px`);
   root.style.setProperty('--mj-vt-r', `${r}px`);
   root.classList.add('mj-theme-switching');
+  switching = true;
 
-  const transition = document.startViewTransition(async () => {
-    apply();
-    // Dos frames para que React pinte el estado nuevo antes del snapshot.
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const transition = document.startViewTransition(apply);
+  return transition.finished.catch(() => {}).finally(() => {
+    switching = false;
+    root.classList.remove('mj-theme-switching');
   });
-  return transition.finished.catch(() => {}).finally(() => root.classList.remove('mj-theme-switching'));
 }
 
 /**

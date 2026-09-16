@@ -21,7 +21,7 @@ administración, arriba del nombre del sitio.
 
 | Sección | Qué se configura |
 | --- | --- |
-| **Diseño y marca** | Logo (y variante para modo noche), tema de arranque, nivel de animación, intro, paleta completa, tipografías. |
+| **Diseño y marca** | Logo (y variante para modo noche), tema de arranque, efecto al cambiar de tema (instantáneo, fundido o círculo), nivel de animación, intro, paleta completa, tipografías. |
 | **Sesión y acceso** | Quién ve la barra de administración, si la tienda recarga al iniciar sesión, si "Recordarme" viene marcado, cuánto dura la sesión, ruta de "Mi cuenta". |
 | **Skin** | Qué propone el tema hijo activo, si se usan sus propuestas, y sus paletas alternativas (se aplican con un botón). |
 | **Barra de navegación** | Qué ítems tiene el menú, en qué orden, cómo se llaman, a dónde llevan, quién los ve y si van en el menú o como botón del header. |

@@ -105,12 +105,13 @@ export const ACCOUNT_LINKS = (Array.isArray(WP?.accountLinks) ? WP.accountLinks 
   .filter((link) => link.label && link.href);
 
 /* ---------------------------------------------------------------------------
- * Presentación: tema por defecto, skin activa, nivel de animación e intro.
+ * Presentación: tema por defecto, skin activa, nivel de animación, intro y
+ * efecto del cambio de tema.
  *
  * En WordPress vienen de PHP (Apariencia → MJ Appearance → Diseño y marca; la
- * skin la declara el tema hijo). Para previsualizar, cualquiera de los cuatro
+ * skin la declara el tema hijo). Para previsualizar, cualquiera de ellos
  * se puede forzar por query string — también sirve en standalone:
- *   ?theme=light&skin=atelier&motion=cinematic&intro=1
+ *   ?theme=light&skin=atelier&motion=cinematic&intro=1&switch=circle
  * ------------------------------------------------------------------------- */
 const qs = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
 const pick = (value, allowed, fallback) => (allowed.includes(value) ? value : fallback);
@@ -127,6 +128,12 @@ export const SKIN =
 
 /** 'subtle' | 'medium' | 'cinematic' — cuánta animación lleva la tienda. */
 export const MOTION = pick(qs?.get('motion') || WP?.motion, ['subtle', 'medium', 'cinematic'], 'medium');
+
+/**
+ * 'instant' | 'fade' | 'circle' — cómo cambia la tienda de día a noche al tocar el
+ * botón sol/luna. Instantáneo por defecto: el cambio tiene que sentirse al clic.
+ */
+export const THEME_SWITCH = pick(qs?.get('switch') || WP?.themeSwitch, ['instant', 'fade', 'circle'], 'instant');
 
 /** Cortina de intro al cargar el sitio (una vez por sesión). */
 export const INTRO_ENABLED = qs?.has('intro') ? qs.get('intro') === '1' : !!WP?.intro;

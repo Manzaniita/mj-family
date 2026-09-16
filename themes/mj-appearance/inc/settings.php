@@ -55,6 +55,7 @@ function mj_option_defaults() {
 		'nav_items'               => [], // Barra de navegación: filas [{key,label,href,visible,…}] (ver inc/nav.php). Vacío = el menú automático.
 		'design_theme'            => 'dark', // dark | light | system
 		'motion_level'            => 'medium', // subtle | medium | cinematic
+		'theme_switch'            => 'instant', // instant | fade | circle — efecto del botón sol/luna
 		'intro_enabled'           => 0,
 		'color_accent'            => '',
 		'color_bg_dark'           => '',
@@ -126,6 +127,15 @@ function mj_motion_choices() {
 		'subtle'    => 'Sutil — solo fundidos y hovers',
 		'medium'    => 'Media — transiciones de página y reveals al scroll',
 		'cinematic' => 'Cinematográfica — además parallax, reveals por máscara, botones magnéticos y contadores',
+	]);
+}
+
+/* Efectos disponibles para el botón sol/luna (react-app/src/lib/theme.js). */
+function mj_theme_switch_choices() {
+	return (array) apply_filters('mj_theme_switch_choices', [
+		'instant' => 'Instantáneo — cambia al clic, sin animación',
+		'fade'    => 'Fundido — los colores se funden en un tercio de segundo',
+		'circle'  => 'Círculo — el tema nuevo se abre desde el botón (si el navegador lo soporta)',
 	]);
 }
 
@@ -578,6 +588,9 @@ function mj_sanitize_options($input) {
 
 	$motion               = isset($input['motion_level']) ? (string) $input['motion_level'] : 'medium';
 	$out['motion_level']  = isset(mj_motion_choices()[$motion]) ? $motion : 'medium';
+
+	$switch               = isset($input['theme_switch']) ? (string) $input['theme_switch'] : 'instant';
+	$out['theme_switch']  = isset(mj_theme_switch_choices()[$switch]) ? $switch : 'instant';
 	$out['intro_enabled'] = !empty($input['intro_enabled']) ? 1 : 0;
 
 	/* Sesión y acceso. */
@@ -886,6 +899,17 @@ function mj_render_settings_page() {
 							<?php endforeach; ?>
 						</select>
 						<p class="description">Con qué tema se abre la tienda la primera vez. El visitante puede alternarlo con el botón sol/luna del header y su elección queda guardada en su navegador.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="mj_theme_switch">Efecto al cambiar de tema</label></th>
+					<td>
+						<select id="mj_theme_switch" name="mj_options[theme_switch]">
+							<?php foreach (mj_theme_switch_choices() as $mj_value => $mj_label) : ?>
+								<option value="<?php echo esc_attr($mj_value); ?>" <?php selected($o['theme_switch'], $mj_value); ?>><?php echo esc_html($mj_label); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<p class="description">Qué pasa al tocar el botón sol/luna. "Instantáneo" es lo más rápido y lo que se recomienda; con "reducir movimiento" activado en el sistema del visitante siempre es instantáneo.</p>
 					</td>
 				</tr>
 				<tr>

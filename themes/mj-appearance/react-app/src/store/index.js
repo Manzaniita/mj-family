@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { flushSync } from 'react-dom';
 import { persist } from 'zustand/middleware';
 import { effectivePrice } from '@/lib/api';
 import { IS_WP } from '@/lib/config';
@@ -426,10 +427,15 @@ export const useUI = create((set, get) => ({
     applyTheme(theme, { persist });
     set({ theme });
   },
-  /** Alterna día/noche con la transición circular desde `origin` ({x, y} del click). */
+  /**
+   * Alterna día/noche con el efecto configurado (lib/theme.js). El commit va
+   * en flushSync: React pinta el ícono nuevo en el mismo frame que cambia el
+   * tema, sin esperar un render posterior (que dentro de una View Transition
+   * directamente no llega).
+   */
   toggleTheme: (origin) => {
     const theme = get().theme === 'dark' ? 'light' : 'dark';
-    transitionTheme(theme, origin, () => set({ theme }));
+    transitionTheme(theme, origin, () => flushSync(() => set({ theme })));
   },
 }));
 

@@ -150,7 +150,22 @@ body {
   overflow-x: clip;
 }
 
-/* Cambio de tema sin View Transitions: fundido corto de los colores base. */
+/* ---------------------------------------------------------------------------
+   Cambio de tema (lib/theme.js; efecto en Apariencia → MJ Appearance).
+
+   "Instantáneo": mientras cambian los tokens se apagan todas las transiciones
+   CSS. Sin esto, cada elemento con transition-colors (cientos en una grilla)
+   arranca su propio fundido a destiempo y el cambio se siente lento y sucio.
+   La clase dura un solo frame; después cada hover vuelve a animar normal.
+--------------------------------------------------------------------------- */
+html.mj-theme-cut,
+html.mj-theme-cut *,
+html.mj-theme-cut *::before,
+html.mj-theme-cut *::after {
+  transition: none !important;
+}
+
+/* "Fundido": fundido corto de los colores base. */
 html.mj-theme-fade,
 html.mj-theme-fade body,
 html.mj-theme-fade .glass,
@@ -222,6 +237,23 @@ html.mj-theme-fade .mj-header__glass {
   backdrop-filter: blur(var(--mj-glass-blur)) saturate(1.4);
   -webkit-backdrop-filter: blur(var(--mj-glass-blur)) saturate(1.4);
   border: 1px solid var(--mj-line);
+}
+
+/* ---------------------------------------------------------------------------
+   Hover de los botones sólidos con texto.
+
+   Nada de filter (brightness) ni de transform: scale sobre un elemento con
+   texto: Chrome lo pasa a una capa compuesta y lo vuelve a rasterizar, y las
+   letras se ven borrosas o "lavadas" mientras el mouse está encima. El hover
+   se hace con color (el acento mezclado con un poco de blanco) y el "lift"
+   con un translate de píxel entero, que no re-rasteriza.
+   :where() mantiene la especificidad baja (0,2,0): las skins pisan este hover
+   con sus propias reglas, que cargan después.
+--------------------------------------------------------------------------- */
+.mj-btn--primary:where(:not([disabled])):hover,
+.mj-card__cta:where(:not([disabled])):hover,
+.mj-solid:where(:not([disabled])):hover {
+  background-color: color-mix(in srgb, var(--mj-accent) 88%, white);
 }
 
 /* Hairline dividers */
@@ -311,9 +343,9 @@ select:focus-visible {
 }
 
 /* ---------------------------------------------------------------------------
-   Cambio de tema con View Transitions: el tema nuevo se revela en círculo
-   desde el botón sol/luna (lib/theme.js fija --mj-vt-x/y/r en <html>).
-   Sin soporte o con reduced-motion se cambia en seco (con fundido corto).
+   "Círculo" (View Transitions): el tema nuevo se revela en círculo desde el
+   botón sol/luna (lib/theme.js fija --mj-vt-x/y/r en <html>). Sin soporte
+   cae a "fundido"; con reduced-motion, a "instantáneo".
 --------------------------------------------------------------------------- */
 html.mj-theme-switching::view-transition-old(root),
 html.mj-theme-switching::view-transition-new(root) {
