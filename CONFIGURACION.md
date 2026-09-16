@@ -589,7 +589,8 @@ Cómo se usa desde el ERP:
 | --- | --- | --- |
 | Ver el saldo y sus movimientos | Ficha del cliente, y la columna del saldo en la lista de clientes | Cualquiera que use el ERP |
 | Pagar una venta con saldo | *Registrar cobro* → medio **Saldo a favor** (aparece solo si el cliente tiene) | Cualquiera que use el ERP |
-| Sumar o restar a mano | Ficha del cliente → **Ajustar** (motivo obligatorio) | Quien puede corregir ventas |
+| Sumar o restar a mano | Clientes → botón **$** de la fila, o ficha del cliente → **Editar saldo**: *A favor* suma, *En contra* resta (hasta lo que tiene). Con motivo y, si querés, la venta a la que se refiere: el movimiento la enlaza y queda en el historial de la venta | Quien puede corregir ventas |
+| Usar el saldo para pagar lo que debe | La misma ventana → **Uso el saldo para pagar una venta**: elegís una de las ventas que deben y queda como cobro con saldo | Quien puede corregir ventas |
 | Devolverle la plata | Ficha del cliente → **Le di la plata**: medio, caja de la que sale y referencia | Quien puede corregir ventas |
 
 Un cobro con saldo **no entra a ninguna caja** (la plata ya había entrado), no se
@@ -618,6 +619,7 @@ lo que falta. **Si el pedido se cancela, el saldo vuelve.**
 | Llevar el saldo a favor de los clientes | Sí | Apagado, no se muestra ni se puede usar. Necesita la libreta de clientes. |
 | Cómo se llama | Saldo a favor | El nombre del medio de pago y de la sección, en el ERP y en la tienda. |
 | Una ficha con saldo a favor se vincula solo con tu confirmación | Sí | Apagado, sigue la regla general de vinculación. |
+| Pedir el motivo al sumar o restar saldo a mano | Sí | Apagado, el motivo es opcional. Queda en los movimientos del saldo y, si el ajuste va atado a una venta, en su historial. |
 | Que lo vean y lo usen en la tienda | Sí | Apagado, el saldo no aparece en «Mi cuenta» ni en el checkout; se sigue usando desde el ERP. |
 | En el checkout, el saldo viene aplicado | Sí | Apagado, el cliente lo tiene que marcar. En los dos casos lo puede sacar o usar menos. |
 
@@ -831,6 +833,7 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Cuántas anotaciones del historial trae una venta | — | `mjerp_sale_log_limit` |
 | Clave del medio de pago «saldo a favor» | — | `mjerp_credit_method_key` |
 | Cuántos movimientos del saldo a favor trae una ficha | — | `mjerp_customer_credit_movements_limit` |
+| Cuántas ventas recientes ofrece la ventana del saldo para atar un ajuste (las que deben van todas) | — | `mjerp_credit_related_sales_limit` |
 | Cuántos movimientos del saldo a favor ve el cliente en «Mi cuenta» | — | `mjerp_shop_credit_movements_limit` |
 | Cuándo una venta cobrada no acepta devoluciones | — | `mjerp_sale_return_blocker` |
 | A qué proveedor se reclama un producto fallado | — | `mjerp_rma_supplier` |

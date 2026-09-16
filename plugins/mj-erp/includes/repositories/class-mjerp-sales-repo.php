@@ -190,6 +190,7 @@ class MJERP_Sales_Repo {
 			'date_from'        => '',
 			'date_to'          => '',
 			'only_consignment' => false,
+			'unpaid'           => false,
 			'page'             => 1,
 			'per_page'         => 20,
 			'orderby'          => 'sale_date',
@@ -226,6 +227,12 @@ class MJERP_Sales_Repo {
 
 		if ( MJERP_Helpers::bool( $args['only_consignment'] ) ) {
 			$where[] = 'consignment_qty > 0';
+		}
+
+		// Las que tienen algo por cobrar: ni cobradas ni anuladas.
+		if ( MJERP_Helpers::bool( $args['unpaid'] ) ) {
+			$where[] = 'payment_status <> %s AND status <> %s';
+			array_push( $vals, self::PAY_PAID, self::STATUS_VOID );
 		}
 
 		$from = MJERP_Helpers::sanitize_date( $args['date_from'] );

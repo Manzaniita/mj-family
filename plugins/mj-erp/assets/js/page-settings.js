@@ -90,7 +90,7 @@
 		customers_enabled: 'clientes', customers_doc_types: 'clientes', customers_default_doc_type: 'clientes',
 		customers_link_mode: 'clientes', customers_link_match: 'clientes', customers_link_backfill: 'clientes',
 		customers_quick_create: 'clientes', customers_require_on_sale: 'clientes', customers_fields: 'clientes',
-		credit_enabled: 'clientes', credit_label: 'clientes', credit_link_confirm: 'clientes',
+		credit_enabled: 'clientes', credit_label: 'clientes', credit_link_confirm: 'clientes', credit_adjust_require_reason: 'clientes',
 		credit_shop_enabled: 'clientes', credit_shop_auto: 'clientes',
 		portal_permissions: 'consignaciones',
 		consignee_role: 'consignaciones', consignee_role_label: 'consignaciones',
@@ -257,6 +257,7 @@
 		credit_enabled: true,
 		credit_label: 'Saldo a favor',
 		credit_link_confirm: true,
+		credit_adjust_require_reason: true,
 		credit_shop_enabled: true,
 		credit_shop_auto: true,
 		sales_track_cost: true,
@@ -699,6 +700,7 @@
 		m.credit_enabled = toBool(src.credit_enabled, DEFAULTS.credit_enabled);
 		m.credit_label = str(src.credit_label !== undefined ? src.credit_label : m.credit_label).trim() || DEFAULTS.credit_label;
 		m.credit_link_confirm = toBool(src.credit_link_confirm, DEFAULTS.credit_link_confirm);
+		m.credit_adjust_require_reason = toBool(src.credit_adjust_require_reason, DEFAULTS.credit_adjust_require_reason);
 		m.credit_shop_enabled = toBool(src.credit_shop_enabled, DEFAULTS.credit_shop_enabled);
 		m.credit_shop_auto = toBool(src.credit_shop_auto, DEFAULTS.credit_shop_auto);
 
@@ -1058,6 +1060,7 @@
 			credit_enabled: !!m.credit_enabled,
 			credit_label: str(m.credit_label).trim() || DEFAULTS.credit_label,
 			credit_link_confirm: !!m.credit_link_confirm,
+			credit_adjust_require_reason: !!m.credit_adjust_require_reason,
 			credit_shop_enabled: !!m.credit_shop_enabled,
 			credit_shop_auto: !!m.credit_shop_auto,
 
@@ -2215,6 +2218,10 @@
 			checkboxFieldHtml({
 				key: 'credit_shop_auto', label: 'En el checkout, el saldo viene aplicado', checked: !!m.credit_shop_auto,
 				hint: 'Apagado, el cliente lo tiene que marcar. En los dos casos lo puede sacar o usar menos.',
+			}) +
+			checkboxFieldHtml({
+				key: 'credit_adjust_require_reason', label: 'Pedir el motivo al sumar o restar saldo a mano', checked: !!m.credit_adjust_require_reason,
+				hint: 'Queda en los movimientos del saldo y, si el ajuste va atado a una venta, en su historial. Apagado, el motivo es opcional.',
 			}) +
 			checkboxFieldHtml({
 				key: 'credit_link_confirm', label: 'Una ficha con saldo a favor se vincula solo con tu confirmación', checked: !!m.credit_link_confirm,

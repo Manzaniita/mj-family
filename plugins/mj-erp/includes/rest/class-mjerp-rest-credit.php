@@ -81,7 +81,13 @@ class MJERP_REST_Credit extends MJERP_REST_Controller {
 		if ( ! MJERP_Customers_Repo::find( $id, false ) ) {
 			return $this->fail( 'mjerp_not_found', __( 'El cliente no existe.', 'mj-erp' ), 404 );
 		}
-		return $this->ok( $this->statement( $id ) );
+
+		$data = $this->statement( $id );
+		// La ventana del saldo necesita también sus ventas: las últimas y todas las que deben.
+		if ( $this->bool( $this->params( $request ), 'with_sales' ) ) {
+			$data['sales'] = MJERP_Credit::related_sales( $id );
+		}
+		return $this->ok( $data );
 	}
 
 	/**

@@ -151,9 +151,85 @@ class MJERP_Credit {
 			'label'            => self::label(),
 			'method'           => self::method_key(),
 			'currency'         => $shop,
+			'requires_reason'  => self::requires_reason(),
 			'balances'         => self::balances( $customer_id ),
 			'total_equivalent' => self::total_in( $customer_id, $shop ),
 			'movements'        => MJERP_Customer_Credit_Repo::movements( $customer_id ),
+		);
+	}
+
+	/**
+	 * Whether a manual adjustment asks for its reason.
+	 *
+	 * @return bool
+	 */
+	public static function requires_reason() : bool {
+		return MJERP_Helpers::bool( MJERP_Settings::get( 'credit_adjust_require_reason', true ) );
+	}
+
+	/**
+	 * Las ventas de un cliente que la ventana del saldo ofrece: las últimas, para atar un ajuste, y
+	 * todas las que deben, para pagarlas con el saldo. Las que deben van enteras: una deuda vieja no
+	 * puede quedar afuera por un tope.
+	 *
+	 * @param int $customer_id Customer id.
+	 * @return array { recent[], owing[] }
+	 */
+	public static function related_sales( $customer_id ) : array {
+		$customer_id = absint( $customer_id );
+
+		/**
+		 * Cuántas de las últimas ventas de un cliente se ofrecen para atar un ajuste de su saldo.
+		 *
+		 * @param int $limit       Ventas.
+		 * @param int $customer_id Customer id.
+		 */
+		$limit = max( 1, (int) apply_filters( 'mjerp_credit_related_sales_limit', 50, $customer_id ) );
+
+		$recent = array();
+		$page   = 1;
+		do {
+			$result = MJERP_Sales_Repo::query(
+				array(
+					'customer_id' => $customer_id,
+					'page'        => $page,
+					'per_page'    => min( 200, $limit ),
+					'orderby'     => 'sale_date',
+					'order'       => 'DESC',
+				)
+			);
+			foreach ( $result['items'] as $sale ) {
+				if ( MJERP_Sales_Repo::STATUS_VOID !== (string) $sale['status'] && count( $recent ) < $limit ) {
+					$recent[] = $sale;
+				}
+			}
+			$page++;
+		} while ( count( $recent ) < $limit && $page <= (int) $result['pages'] );
+
+		$owing = array();
+		$page  = 1;
+		do {
+			$result = MJERP_Sales_Repo::query(
+				array(
+					'customer_id' => $customer_id,
+					'unpaid'      => true,
+					'page'        => $page,
+					'per_page'    => 200,
+					'orderby'     => 'sale_date',
+					'order'       => 'ASC',
+				)
+			);
+			foreach ( $result['items'] as $sale ) {
+				if ( (float) $sale['due'] > MJERP_Customer_Credit_Repo::EPSILON ) {
+					$owing[] = $sale;
+				}
+			}
+			$page++;
+		} while ( $page <= (int) $result['pages'] );
+
+		return array(
+			'recent' => $recent,
+			'owing'  => $owing,
 		);
 	}
 
@@ -334,7 +410,7 @@ class MJERP_Credit {
 		}
 
 		$reason = MJERP_Helpers::text( $reason, 255 );
-		if ( '' === $reason ) {
+		if ( '' === $reason && self::requires_reason() ) {
 			return new WP_Error( 'mjerp_reason_required', __( 'Contá el motivo del ajuste: queda en los movimientos del saldo.', 'mj-erp' ), array( 'status' => 400, 'field' => 'reason' ) );
 		}
 

@@ -81,10 +81,16 @@
 	const MODE_AGAINST = 'contra';
 	const MODE_PAY = 'pagar';
 
+	/** Los decimales de la plata, los de Configuración. */
+	function decimals() {
+		const d = parseInt(MJ.setting('decimals', 2), 10);
+		return isNaN(d) ? 2 : Math.max(0, Math.min(6, d));
+	}
+
 	/** Un número listo para un campo, escrito como lo vuelve a leer MJ.fmt.toNumber. */
 	function inputNumber(v) {
 		const n = num(v) || 0;
-		return MJ.fmt.number(n, Math.abs(n - Math.round(n)) < 0.005 ? 0 : 2);
+		return MJ.fmt.number(n, Math.abs(n - Math.round(n)) < 0.005 ? 0 : decimals());
 	}
 
 	/**
@@ -94,8 +100,8 @@
 	 * los dos con motivo y, si corresponde, la venta a la que se refieren. Y si tiene saldo y ventas
 	 * que deben, lo usa para pagar una: queda como un cobro de esa venta con el saldo como medio.
 	 *
-	 * REST: GET /customers/{id}/credit, GET /customers/{id}/sales,
-	 *       POST /customers/{id}/credit/adjust, POST /sales/{id}/payments.
+	 * REST: GET /customers/{id}/credit?with_sales=1, POST /customers/{id}/credit/adjust,
+	 *       POST /sales/{id}/payments.
 	 *
 	 * @param {Object} opts { customer, onSaved() }
 	 */
@@ -109,7 +115,8 @@
 		const state = {
 			mode: MODE_FAVOR,
 			statement: null,
-			sales: [],
+			recent: [],
+			owing: [],
 		};
 
 		const modal = MJ.ui.modal({
@@ -126,7 +133,11 @@
 		}
 
 		function owing() {
-			return state.sales.filter(function (s) { return (num(s.due) || 0) > 0.004; });
+			return state.owing.filter(function (s) { return (num(s.due) || 0) > 0.004; });
+		}
+
+		function reasonRequired() {
+			return !state.statement || state.statement.requires_reason !== false;
 		}
 
 		function saleLabel(sale, withDue) {
@@ -193,9 +204,9 @@
 						'<div class="mj-field__hint">El ajuste queda enlazado a esa venta y anotado en su historial.</div>' +
 					'</div>' +
 					'<div class="mj-field mj-grid__full">' +
-						'<label class="mj-field__label" for="mj-cm-reason">Motivo</label>' +
+						'<label class="mj-field__label" for="mj-cm-reason">Motivo' + (reasonRequired() ? '' : ' <span class="mj-muted">(opcional)</span>') + '</label>' +
 						'<textarea class="mj-textarea" id="mj-cm-reason" name="reason" rows="2" maxlength="255" placeholder="Por ejemplo: compensación por la demora del envío"></textarea>' +
-						'<div class="mj-field__hint">Obligatorio: queda en los movimientos del saldo.</div>' +
+						'<div class="mj-field__hint">' + (reasonRequired() ? 'Obligatorio: queda' : 'Queda') + ' en los movimientos del saldo.</div>' +
 					'</div>' +
 				'</div>' +
 
@@ -249,7 +260,8 @@
 
 			const due = num(sale.due) || 0;
 			const reach = C.creditConvert(balance.amount, balance.currency, sale.currency);
-			const amount = reach === null ? due : Math.min(due, Math.floor(reach * 100) / 100);
+			const factor = Math.pow(10, decimals());
+			const amount = reach === null ? due : Math.min(due, Math.floor(reach * factor) / factor);
 			field('pay_amount').value = inputNumber(amount);
 			hint.textContent = 'En ' + String(sale.currency).toUpperCase() + '. Debe ' + MJ.fmt.money(due, sale.currency) +
 				(reach !== null && balance.currency !== String(sale.currency).toUpperCase() ? '; el saldo alcanza para ' + MJ.fmt.money(reach, sale.currency) + ' al dólar de hoy.' : '.');
@@ -276,7 +288,7 @@
 
 			modal.setBody(formHtml());
 
-			MJ.ui.fillSelect(field('sale_id'), state.sales.map(function (s) { return { value: s.id, label: saleLabel(s, true) }; }), '', 'Ninguna');
+			MJ.ui.fillSelect(field('sale_id'), state.recent.map(function (s) { return { value: s.id, label: saleLabel(s, true) }; }), '', 'Ninguna');
 
 			const debts = owing();
 			const balances = positive();
@@ -294,13 +306,13 @@
 			if (first) first.focus();
 		}
 
-		Promise.all([
-			MJ.api.get('customers/' + customer.id + '/credit'),
-			MJ.api.get('customers/' + customer.id + '/sales', { per_page: 50 }),
-		]).then(function (res) {
+		// Las ventas vienen del servidor: las últimas (cuántas, lo decide un filtro) y todas las que deben.
+		MJ.api.get('customers/' + customer.id + '/credit', { with_sales: 1 }).then(function (res) {
 			if (!modal.isOpen()) return;
-			state.statement = res[0] || {};
-			state.sales = ((res[1] && res[1].sales && res[1].sales.items) || []).filter(function (s) { return s.status !== 'anulada'; });
+			state.statement = res || {};
+			const sales = state.statement.sales || {};
+			state.recent = Array.isArray(sales.recent) ? sales.recent : [];
+			state.owing = Array.isArray(sales.owing) ? sales.owing : [];
 			render();
 		}).catch(function (err) {
 			if (!modal.isOpen()) return;
@@ -350,7 +362,7 @@
 				const currency = field('currency').value;
 				const errors = {};
 				if (amount <= 0) errors.amount = 'Escribí cuánto.';
-				if (!reason) errors.reason = 'Contá el motivo: queda en los movimientos del saldo.';
+				if (!reason && reasonRequired()) errors.reason = 'Contá el motivo: queda en los movimientos del saldo.';
 				if (state.mode === MODE_AGAINST) {
 					const row = positive().find(function (b) { return b.currency === currency; });
 					if (row && amount > row.amount + 0.004) errors.amount = 'Tiene ' + MJ.fmt.money(row.amount, row.currency) + ': no puede quedar en negativo.';

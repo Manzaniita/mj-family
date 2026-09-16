@@ -407,6 +407,8 @@ class MJERP_Settings {
 			'credit_label'               => 'Saldo a favor',
 			// Una ficha con saldo no se vincula sola a una cuenta de la tienda: la confirmás vos.
 			'credit_link_confirm'        => true,
+			// Sumar o restar saldo a mano pide el motivo: queda en los movimientos del saldo.
+			'credit_adjust_require_reason' => true,
 
 			/* Precio que ve un revendedor logueado en la tienda. */
 			'shop_price_mode'            => 'publico',
@@ -1597,6 +1599,7 @@ class MJERP_Settings {
 			case 'customers_require_on_sale':
 			case 'credit_enabled':
 			case 'credit_link_confirm':
+			case 'credit_adjust_require_reason':
 				return MJERP_Helpers::bool( $value );
 
 			case 'customers_doc_types':
