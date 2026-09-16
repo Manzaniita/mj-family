@@ -217,7 +217,10 @@ class MJERP_Sale_Payments_Repo {
 			return new WP_Error( 'mjerp_invalid_amount', __( 'El importe del cobro tiene que ser mayor a cero.', 'mj-erp' ), array( 'status' => 400, 'field' => 'amount' ) );
 		}
 
-		$currency = MJERP_Helpers::sanitize_currency( MJERP_Helpers::array_get( $data, 'currency', $sale['currency'] ) );
+		// Sin moneda, el cobro es en la de la venta. sanitize_currency('') devuelve la base (USD), y así
+		// los pesos de un cobro sin moneda se guardaban como dólares.
+		$currency = trim( (string) MJERP_Helpers::array_get( $data, 'currency', '' ) );
+		$currency = MJERP_Helpers::sanitize_currency( '' !== $currency ? $currency : $sale['currency'] );
 		$rate     = MJERP_Helpers::to_float( MJERP_Helpers::array_get( $data, 'rate', 0 ) );
 		$sale_cur = isset( $sale['currency'] ) ? strtoupper( (string) $sale['currency'] ) : '';
 		if ( $rate <= 0 && $currency === $sale_cur && isset( $sale['rate'] ) && (float) $sale['rate'] > 0 ) {
@@ -412,7 +415,7 @@ class MJERP_Sale_Payments_Repo {
 			}
 			$row['amount'] = $amount;
 		}
-		if ( array_key_exists( 'currency', $data ) ) {
+		if ( array_key_exists( 'currency', $data ) && '' !== trim( (string) $data['currency'] ) ) {
 			$row['currency'] = MJERP_Helpers::sanitize_currency( $data['currency'] );
 		}
 		if ( array_key_exists( 'rate', $data ) ) {

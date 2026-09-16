@@ -840,12 +840,24 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 		$payment = $params['payment'];
 
 		$out = array(
-			'method'     => isset( $payment['method'] ) ? sanitize_key( (string) $payment['method'] ) : '',
 			'cashbox_id' => isset( $payment['cashbox_id'] ) ? absint( $payment['cashbox_id'] ) : 0,
-			'currency'   => isset( $payment['currency'] ) ? $this->clean_currency( $payment['currency'] ) : '',
 			'reference'  => isset( $payment['reference'] ) ? sanitize_text_field( (string) $payment['reference'] ) : '',
 			'note'       => isset( $payment['note'] ) ? sanitize_text_field( (string) $payment['note'] ) : '',
 		);
+
+		/*
+		 * Medio y moneda van solo si llegaron: una clave vacía le gana al valor de la venta. La
+		 * pantalla de venta no manda moneda, y ese '' se volvía USD: los $ 24.500 cobrados quedaban
+		 * como US$ 24.500 y el Cobrado sumaba pesos como dólares.
+		 */
+		$method = isset( $payment['method'] ) ? sanitize_key( (string) $payment['method'] ) : '';
+		if ( '' !== $method ) {
+			$out['method'] = $method;
+		}
+		$currency = isset( $payment['currency'] ) ? $this->clean_currency( $payment['currency'] ) : '';
+		if ( '' !== $currency ) {
+			$out['currency'] = $currency;
+		}
 		if ( array_key_exists( 'amount', $payment ) && '' !== $payment['amount'] && null !== $payment['amount'] ) {
 			$out['amount'] = $this->to_float( $payment['amount'] );
 		}

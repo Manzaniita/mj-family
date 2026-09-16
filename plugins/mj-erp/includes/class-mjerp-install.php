@@ -229,6 +229,10 @@ class MJERP_Install {
 			self::migrate_190_sale_payments_base();
 		}
 
+		if ( version_compare( $from, '1.13.0', '<' ) ) {
+			self::migrate_1130_sale_payments_currency();
+		}
+
 		/**
 		 * Fires so other code can run its own migrations.
 		 *
@@ -412,6 +416,48 @@ class MJERP_Install {
 		$wpdb->query( $wpdb->prepare( $fix_rates, $base ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
 
 		$fix_base = "UPDATE {$payments} p INNER JOIN {$sales} s ON s.id = p.sale_id SET p.amount_base = ROUND(p.amount / p.rate, 4) WHERE p.currency = s.currency AND s.rate > 1 AND p.rate > 0 AND {$not_dollars}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tablas propias.
+		$wpdb->query( $wpdb->prepare( $fix_base, $base ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
+
+		$paid_base = "UPDATE {$sales} s SET s.paid_base = ROUND(COALESCE((SELECT SUM(p.amount_base) FROM {$payments} p WHERE p.sale_id = s.id AND p.status = %s), 0), 4)"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tablas propias.
+		$wpdb->query( $wpdb->prepare( $paid_base, 'confirmado' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
+	}
+
+	/**
+	 * 1.13.0 — los cobros de la pantalla de venta que quedaron en dólares.
+	 *
+	 * La causa real de todo el Cobrado mal: una venta cargada con «Cobrado» mandaba su cobro con la
+	 * moneda vacía, y la moneda vacía se volvía USD. Los $ 24.500 quedaban como US$ 24.500. La 1.9.0
+	 * arregló los que había hasta ese día; la fuente seguía abierta y los de después volvieron a
+	 * entrar mal.
+	 *
+	 * Ninguna pantalla cobra una venta en otra moneda que la suya (el cobro en dólares se anota en
+	 * pesos, con su TC), así que un cobro en la moneda base sobre una venta en pesos es este error.
+	 * Igual se pide que el importe no pueda ser dólares: más del doble de lo que vale la venta.
+	 *
+	 * - Esos cobros pasan a la moneda de su venta, con el TC de la venta (el dólar del día en que se
+	 *   vendió) si el suyo no sirve.
+	 * - Los dólares de todo cobro en la moneda de su venta se rehacen dividiendo por su TC, como el
+	 *   total de la venta.
+	 * - Se rehace el Cobrado de cada venta. Lo cobrado en su moneda no cambia: ninguna venta cambia de
+	 *   estado.
+	 *
+	 * @return void
+	 */
+	protected static function migrate_1130_sale_payments_currency() {
+		global $wpdb;
+
+		$payments = self::table( 'sale_payments' );
+		$sales    = self::table( 'sales' );
+		$base     = strtoupper( (string) MJERP_Settings::get( 'base_currency', 'USD' ) );
+
+		// Los nombres de tabla son propios (self::table); los valores van por prepare().
+		$relabel = "UPDATE {$payments} p INNER JOIN {$sales} s ON s.id = p.sale_id SET p.currency = s.currency, p.rate = IF(p.rate * 10 < s.rate, s.rate, p.rate) WHERE p.currency = %s AND s.currency <> %s AND s.rate > 1 AND p.amount > 0 AND ( s.total_base <= 0 OR p.amount > s.total_base * 2 )"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tablas propias.
+		$wpdb->query( $wpdb->prepare( $relabel, $base, $base ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
+
+		$fix_rates = "UPDATE {$payments} p INNER JOIN {$sales} s ON s.id = p.sale_id SET p.rate = s.rate WHERE p.currency = s.currency AND s.currency <> %s AND s.rate > 1 AND p.rate * 10 < s.rate"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tablas propias.
+		$wpdb->query( $wpdb->prepare( $fix_rates, $base ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
+
+		$fix_base = "UPDATE {$payments} p INNER JOIN {$sales} s ON s.id = p.sale_id SET p.amount_base = ROUND(p.amount / p.rate, 4) WHERE p.currency = s.currency AND s.currency <> %s AND p.rate > 0"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tablas propias.
 		$wpdb->query( $wpdb->prepare( $fix_base, $base ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
 
 		$paid_base = "UPDATE {$sales} s SET s.paid_base = ROUND(COALESCE((SELECT SUM(p.amount_base) FROM {$payments} p WHERE p.sale_id = s.id AND p.status = %s), 0), 4)"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tablas propias.
