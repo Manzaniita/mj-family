@@ -8,6 +8,7 @@
  *   GET    /comprobantes/archivo  manda el archivo (?id=&descargar=1)
  *   POST   /comprobantes/{id}/revisar   decisión sobre un archivo (quien revisa)
  *   POST   /comprobantes/revisar-compra decisión sobre la compra (quien revisa)
+ *                                       decision=aprobado|parcial|rechazado, motivo, importe
  *
  * QUIÉN PUEDE QUÉ
  *   Las rutas son públicas a propósito y el permiso se resuelve adentro, porque
@@ -179,13 +180,14 @@ class MJPM_Receipts_REST {
 				'note'      => $row['note'],
 				'date'      => $row['created_at'],
 				'available' => $row['available'],
-				'url'       => $row['available'] ? MJPM_Receipts::file_url($row) . ('' !== $token ? '&token=' . rawurlencode($token) : '') : '',
+				'url'       => $row['available'] ? MJPM_Receipts::file_url($row, false, 'token' === $access ? $token : '') : '',
 				'canDelete' => MJPM_Receipts::STATUS_PENDING === $row['status'] && 'review' !== $access,
 			];
 		}
 
 		$state     = MJPM_Receipts::state($context, $object_id);
 		$remaining = max(0, (int) $req['files'] - count($rows));
+		$balance   = MJPM_Receipts::balance($context, $object_id);
 
 		return [
 			'context'     => $context,
@@ -208,6 +210,10 @@ class MJPM_Receipts_REST {
 			'deadline'    => MJPM_Receipts::deadline($context, $object_id),
 			'state'       => $state,
 			'stateLabel'  => '' !== $state ? MJPM_Receipts::status_label($state) : '',
+			/* Lo que se le dijo con la última decisión (motivo del rechazo o mensaje al aprobar). */
+			'message'     => '' !== $state && MJPM_Receipts::STATUS_PENDING !== $state ? MJPM_Receipts::state_reason($context, $object_id) : '',
+			/* Cuánto pagó y cuánto falta (null donde no se lleva saldo). */
+			'balance'     => $balance,
 			'currency'    => $object ? (string) $object['currency'] : '',
 			'total'       => $object ? (float) $object['total'] : 0,
 			'title'       => $object ? (string) $object['title'] : '',
@@ -435,7 +441,8 @@ class MJPM_Receipts_REST {
 			$t['object_id'],
 			sanitize_key((string) $request->get_param('decision')),
 			(string) $request->get_param('motivo'),
-			null === $request->get_param('cascada') ? true : (bool) $request->get_param('cascada')
+			null === $request->get_param('cascada') ? true : (bool) $request->get_param('cascada'),
+			null === $request->get_param('importe') || '' === (string) $request->get_param('importe') ? null : MJPM_Settings::decimal($request->get_param('importe'))
 		);
 		if (is_wp_error($result)) {
 			return $result;

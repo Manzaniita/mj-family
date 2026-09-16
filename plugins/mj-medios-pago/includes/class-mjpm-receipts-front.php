@@ -123,32 +123,55 @@ class MJPM_Receipts_Front {
 			'rest'  => esc_url_raw(rest_url(MJPM_Receipts_REST::NS . '/comprobantes')),
 			'nonce' => is_user_logged_in() ? wp_create_nonce('wp_rest') : '',
 			'noun'  => MJPM_Receipts::noun(),
-			'texts' => [
-				'pick'        => 'Elegir archivo',
-				'pickMore'    => 'Agregar otro',
-				'drop'        => 'o arrastralo acá',
-				'uploading'   => 'Subiendo…',
-				'sending'     => 'Enviando…',
-				'amount'      => 'Importe que pagaste',
-				'reference'   => 'Nº de operación',
-				'note'        => 'Aclaración (opcional)',
-				'send'        => 'Enviar',
-				'remove'      => 'Quitar',
-				'confirmRemove' => '¿Quitar este archivo?',
-				'limits'      => 'Hasta {tamano} por archivo · {tipos}',
-				'tooBig'      => 'Ese archivo pesa {peso} y el máximo es {tamano}. Probá con una foto más chica.',
-				'maxed'       => 'Ya subiste todo lo que se puede para esta compra.',
-				'deadline'    => 'Tenés hasta el {fecha}.',
-				'required'    => 'Para confirmar el pago necesitamos el {comprobante}.',
-				'optional'    => 'Si querés, podés adjuntar el {comprobante}.',
-				'statePending' => 'Lo estamos revisando y te avisamos.',
-				'stateOk'     => 'Pago confirmado. ¡Gracias!',
-				'stateNo'     => 'No pudimos validarlo.',
-				'error'       => 'No se pudo subir el archivo. Probá de nuevo.',
-				'offline'     => 'No hay conexión con el servidor.',
-				'view'        => 'Ver',
-			],
+			'texts' => self::texts(),
 		];
+	}
+
+	/**
+	 * Textos del widget. Pasan por el filtro mjpm_uploader_texts, así cualquier
+	 * tienda los cambia sin tocar el plugin.
+	 *
+	 * @return array
+	 */
+	public static function texts() {
+		/**
+		 * Textos del widget de comprobantes.
+		 *
+		 * @param array $texts clave => texto (con marcadores entre llaves).
+		 */
+		return (array) apply_filters('mjpm_uploader_texts', [
+			'pick'        => 'Elegir archivo',
+			'pickMore'    => 'Agregar otro',
+			'drop'        => 'o arrastralo acá',
+			'uploading'   => 'Subiendo…',
+			'sending'     => 'Enviando…',
+			'amount'      => 'Importe que pagaste',
+			'reference'   => 'Nº de operación',
+			'note'        => 'Aclaración (opcional)',
+			'send'        => 'Enviar',
+			'remove'      => 'Quitar',
+			'confirmRemove' => '¿Quitar este archivo?',
+			'limits'      => 'Hasta {tamano} por archivo · {tipos}',
+			'tooBig'      => 'Ese archivo pesa {peso} y el máximo es {tamano}. Probá con una foto más chica.',
+			'maxed'       => 'Ya subiste todo lo que se puede para esta compra.',
+			'deadline'    => 'Tenés hasta el {fecha}.',
+			'required'    => 'Para confirmar el pago necesitamos el {comprobante}.',
+			'optional'    => 'Si querés, podés adjuntar el {comprobante}.',
+			'statePending' => 'Lo estamos revisando y te avisamos.',
+			'stateOk'     => 'Pago confirmado. ¡Gracias!',
+			'stateNo'     => 'No pudimos validarlo.',
+			'statePartial' => 'Recibimos una parte del pago. Cuando pagues el resto, subí el {comprobante} acá.',
+			'reason'      => 'Motivo: {texto}',
+			'message'     => 'Mensaje: {texto}',
+			'total'       => 'Total',
+			'paid'        => 'Pagado',
+			'due'         => 'Falta abonar',
+			'paidInFull'  => 'Pagado completo',
+			'history'     => 'Pagos acreditados',
+			'error'       => 'No se pudo subir el archivo. Probá de nuevo.',
+			'offline'     => 'No hay conexión con el servidor.',
+			'view'        => 'Ver',
+		]);
 	}
 
 	/* ------------------------------ Widget -------------------------------- */

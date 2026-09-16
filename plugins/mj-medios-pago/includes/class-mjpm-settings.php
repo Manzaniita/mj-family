@@ -405,6 +405,7 @@ class MJPM_Settings {
 			/* Qué pasa cuando decidís ------------------------------------ */
 			'on_ok'        => 'processing',                         // Estado del pedido al aprobar ('' = no tocar).
 			'on_reject'    => '',                                  // Estado del pedido al rechazar ('' = no tocar).
+			'on_partial'   => '',                                  // Estado del pedido con un pago parcial ('' = no tocar).
 			'attach'       => 0,                                   // Adjuntar el archivo al email del pedido.
 
 			/* Dónde lo ve el cliente ------------------------------------- */
@@ -428,6 +429,11 @@ class MJPM_Settings {
 			'whatsapp'        => 1,                                // Botón de WhatsApp en la bandeja.
 			'whatsapp_ok'     => 'Hola {cliente}! Recibimos el {comprobante} de tu pedido {numero} y confirmamos el pago. ¡Gracias!',
 			'whatsapp_no'     => 'Hola {cliente}! No pudimos validar el {comprobante} del pedido {numero}: {motivo}. ¿Me lo podés mandar de nuevo? {link}',
+			'mail_partial'         => 1,                           // Mail al cliente cuando entra una parte del pago.
+			'mail_partial_subject' => 'Recibimos un pago de tu pedido {numero}: falta abonar {falta}',
+			'mail_partial_body'    => "Hola {cliente},\n\nRecibimos {importe} para tu pedido {numero}. Llevás pagado {pagado} de {total}: falta abonar {falta}.\n\nCuando pagues el resto, subí el {comprobante} acá: {link}\n\n{tienda}",
+			'whatsapp_partial'     => 'Hola {cliente}! Recibimos {importe} de tu pedido {numero}. Falta abonar {falta}. Cuando lo pagues, mandame el {comprobante}: {link}',
+			'mail_summary'         => 1,                           // Sumar al mail el resumen: importe, pagado, falta y mensaje.
 		];
 	}
 
@@ -466,16 +472,16 @@ class MJPM_Settings {
 		$in  = is_array($in) ? $in : [];
 		$out = [];
 
-		foreach (['enabled', 'ask_amount', 'ask_reference', 'ask_note', 'optimize', 'attach', 'show_account', 'guest_links', 'cap_shop', 'cap_erp', 'mail_new', 'mail_ok', 'mail_no', 'whatsapp'] as $flag) {
+		foreach (['enabled', 'ask_amount', 'ask_reference', 'ask_note', 'optimize', 'attach', 'show_account', 'guest_links', 'cap_shop', 'cap_erp', 'mail_new', 'mail_ok', 'mail_no', 'whatsapp', 'mail_partial', 'mail_summary'] as $flag) {
 			$out[$flag] = empty($in[$flag]) ? 0 : 1;
 		}
 
-		foreach (['noun' => 40, 'noun_plural' => 40, 'mail_ok_subject' => 190, 'mail_no_subject' => 190] as $field => $max) {
+		foreach (['noun' => 40, 'noun_plural' => 40, 'mail_ok_subject' => 190, 'mail_no_subject' => 190, 'mail_partial_subject' => 190] as $field => $max) {
 			$value        = isset($in[$field]) ? trim(sanitize_text_field($in[$field])) : '';
 			$out[$field]  = '' !== $value ? mb_substr($value, 0, $max) : $d[$field];
 		}
 
-		foreach (['text', 'mail_ok_body', 'mail_no_body', 'whatsapp_ok', 'whatsapp_no'] as $field) {
+		foreach (['text', 'mail_ok_body', 'mail_no_body', 'whatsapp_ok', 'whatsapp_no', 'mail_partial_body', 'whatsapp_partial'] as $field) {
 			$value       = isset($in[$field]) ? trim(sanitize_textarea_field($in[$field])) : '';
 			$out[$field] = '' !== $value ? $value : $d[$field];
 		}
@@ -503,7 +509,7 @@ class MJPM_Settings {
 		$out['remind_hours'] = max(0, min(8760, absint(isset($in['remind_hours']) ? $in['remind_hours'] : 0)));
 
 		$statuses = self::order_statuses();
-		foreach (['on_ok', 'on_reject'] as $field) {
+		foreach (['on_ok', 'on_reject', 'on_partial'] as $field) {
 			$status        = isset($in[$field]) ? sanitize_key($in[$field]) : $d[$field];
 			$out[$field]   = '' !== $status && (array_key_exists($status, $statuses) || !$statuses) ? $status : '';
 		}

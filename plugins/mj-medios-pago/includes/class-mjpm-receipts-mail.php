@@ -8,6 +8,7 @@
  * marcadores. Los que existen:
  *
  *   {cliente} {numero} {total} {metodo} {comprobante} {motivo} {link} {tienda}
+ *   {importe} {pagado} {falta}   (lo acreditado con esta decisión, el total pagado y el saldo)
  *
  * Cada aviso se puede apagar por separado.
  */
@@ -87,11 +88,15 @@ class MJPM_Receipts_Mail {
 	 * @param string $reason    Motivo del rechazo.
 	 * @return array
 	 */
-	public static function placeholders($context, $object_id, $reason = '') {
-		$object = MJPM_Receipts::object($context, $object_id);
-		$object = is_array($object) ? $object : [];
+	public static function placeholders($context, $object_id, $reason = '', $amount = 0.0) {
+		$object  = MJPM_Receipts::object($context, $object_id);
+		$object  = is_array($object) ? $object : [];
+		$balance = MJPM_Receipts::balance($context, $object_id);
 
 		return [
+			'{importe}'     => (float) $amount > 0 ? MJPM_Receipts::money((float) $amount) : '',
+			'{pagado}'      => $balance ? $balance['paidText'] : '',
+			'{falta}'       => $balance ? $balance['dueText'] : '',
 			'{cliente}'     => isset($object['customer']) ? (string) $object['customer'] : '',
 			'{numero}'      => isset($object['title']) ? (string) $object['title'] : '',
 			'{total}'       => isset($object['total']) && (float) $object['total'] > 0 ? MJPM_Receipts::money((float) $object['total']) : '',
@@ -114,16 +119,21 @@ class MJPM_Receipts_Mail {
 	 *
 	 * @param string $context   Contexto.
 	 * @param int    $object_id Objeto.
-	 * @param string $decision  aprobado | rechazado.
-	 * @param string $reason    Motivo.
+	 * @param string $decision  aprobado | parcial | rechazado.
+	 * @param string $reason    Motivo del rechazo o mensaje para el cliente.
+	 * @param float  $amount    Lo acreditado con esta decisión.
 	 * @return bool
 	 */
-	public static function notify_customer($context, $object_id, $decision, $reason = '') {
-		$approved = MJPM_Receipts::STATUS_OK === $decision;
-		$flag     = $approved ? 'mail_ok' : 'mail_no';
-		if (!MJPM_Settings::receipts($flag)) {
+	public static function notify_customer($context, $object_id, $decision, $reason = '', $amount = 0.0) {
+		$keys = [
+			MJPM_Receipts::STATUS_OK      => 'mail_ok',
+			MJPM_Receipts::STATUS_PARTIAL => 'mail_partial',
+			MJPM_Receipts::STATUS_NO      => 'mail_no',
+		];
+		if (!isset($keys[$decision]) || !MJPM_Settings::receipts($keys[$decision])) {
 			return false;
 		}
+		$key = $keys[$decision];
 
 		$object = MJPM_Receipts::object($context, $object_id);
 		$to     = $object && !empty($object['email']) ? (string) $object['email'] : '';
@@ -131,14 +141,56 @@ class MJPM_Receipts_Mail {
 			return false;
 		}
 
-		$placeholders = self::placeholders($context, $object_id, $reason);
-		$subject      = self::render(MJPM_Settings::receipts($approved ? 'mail_ok_subject' : 'mail_no_subject'), $placeholders);
-		$body         = self::render(MJPM_Settings::receipts($approved ? 'mail_ok_body' : 'mail_no_body'), $placeholders);
+		$placeholders = self::placeholders($context, $object_id, $reason, $amount);
+		$subject      = self::render(MJPM_Settings::receipts($key . '_subject'), $placeholders);
+		$body         = self::render(MJPM_Settings::receipts($key . '_body'), $placeholders);
 
 		if ('' === $subject || '' === $body) {
 			return false;
 		}
+		if (MJPM_Settings::receipts('mail_summary')) {
+			$body .= self::summary($context, $object_id, $decision, $reason, $amount, $body);
+		}
 		return self::send($to, $subject, $body);
+	}
+
+	/**
+	 * Resumen al pie del mail: lo que entró, lo pagado, lo que falta y el mensaje.
+	 *
+	 * Es para que quede todo claro aunque la plantilla guardada no use los
+	 * marcadores nuevos. Lo que el texto ya dice no se repite.
+	 *
+	 * @param string $context   Contexto.
+	 * @param int    $object_id Objeto.
+	 * @param string $decision  Decisión.
+	 * @param string $reason    Motivo o mensaje.
+	 * @param float  $amount    Lo acreditado.
+	 * @param string $body      Cuerpo ya armado.
+	 * @return string
+	 */
+	private static function summary($context, $object_id, $decision, $reason, $amount, $body) {
+		$lines   = [];
+		$balance = MJPM_Receipts::balance($context, $object_id);
+		if ($balance && MJPM_Receipts::STATUS_NO !== $decision) {
+			if ((float) $amount > 0) {
+				$lines[] = 'Acreditado con este pago: ' . MJPM_Receipts::money((float) $amount);
+			}
+			$lines[] = sprintf('Pagado: %s de %s', $balance['paidText'], $balance['totalText']);
+			$lines[] = $balance['due'] > 0 ? 'Falta abonar: ' . $balance['dueText'] : 'Pedido pagado completo';
+		}
+		if ('' !== (string) $reason && false === strpos($body, (string) $reason)) {
+			$lines[] = (MJPM_Receipts::STATUS_NO === $decision ? 'Motivo: ' : 'Mensaje: ') . $reason;
+		}
+		/**
+		 * Líneas del resumen al pie del mail al cliente.
+		 *
+		 * @param string[] $lines     Líneas.
+		 * @param string   $context   Contexto.
+		 * @param int      $object_id Objeto.
+		 * @param string   $decision  Decisión.
+		 */
+		$lines = (array) apply_filters('mjpm_receipt_mail_summary', $lines, $context, (int) $object_id, $decision);
+		return $lines ? "\n\n" . implode("\n", $lines) : '';
 	}
 
 	/** Recordatorio: todavía no subió nada. Usa el texto del rechazo sin motivo. */
@@ -274,11 +326,12 @@ class MJPM_Receipts_Mail {
 	 *
 	 * @param string $context   Contexto.
 	 * @param int    $object_id Objeto.
-	 * @param string $decision  aprobado | rechazado | '' (pendiente).
+	 * @param string $decision  aprobado | parcial | rechazado | '' (pendiente).
 	 * @param string $reason    Motivo.
+	 * @param float  $amount    Lo acreditado (para {importe}).
 	 * @return string '' si no hay teléfono o el botón está apagado.
 	 */
-	public static function whatsapp_url($context, $object_id, $decision = '', $reason = '') {
+	public static function whatsapp_url($context, $object_id, $decision = '', $reason = '', $amount = 0.0) {
 		if (!MJPM_Settings::receipts('whatsapp')) {
 			return '';
 		}
@@ -287,8 +340,9 @@ class MJPM_Receipts_Mail {
 		if ('' === $phone) {
 			return '';
 		}
-		$template = MJPM_Settings::receipts(MJPM_Receipts::STATUS_NO === $decision ? 'whatsapp_no' : 'whatsapp_ok');
-		$text     = self::render($template, self::placeholders($context, $object_id, $reason));
+		$keys     = [MJPM_Receipts::STATUS_NO => 'whatsapp_no', MJPM_Receipts::STATUS_PARTIAL => 'whatsapp_partial'];
+		$template = MJPM_Settings::receipts(isset($keys[$decision]) ? $keys[$decision] : 'whatsapp_ok');
+		$text     = self::render($template, self::placeholders($context, $object_id, $reason, $amount));
 		if ('' === $text) {
 			return '';
 		}

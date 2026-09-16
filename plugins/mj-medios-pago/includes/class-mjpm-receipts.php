@@ -10,6 +10,14 @@
  *   revisa: nunca se deduce de que haya un archivo aprobado, porque un
  *   comprobante por la mitad del monto no debería dar una compra por cobrada.
  *
+ * PAGOS PARCIALES
+ *   En los contextos que llevan saldo (los pedidos), al aprobar se dice cuánto
+ *   entró: todo lo que falta, o una parte. Con todo, la compra queda "aprobado"
+ *   y el pedido pasa al estado de pago confirmado. Con una parte, queda
+ *   "parcial": se anota el importe, el cliente ve cuánto falta abonar y puede
+ *   subir el próximo comprobante. Cada pago acreditado queda en el historial
+ *   del pedido con su importe, su fecha y el mensaje para el cliente.
+ *
  * CONTEXTOS
  *   Este plugin trae el contexto 'order' (pedidos de WooCommerce). Los demás
  *   plugins de la familia registran el suyo con el filtro 'mjpm_receipt_contexts'
@@ -39,6 +47,9 @@ class MJPM_Receipts {
 	const STATUS_OK      = 'aprobado';
 	const STATUS_NO      = 'rechazado';
 
+	/* Solo de la compra, nunca de un archivo: entró plata pero no alcanza. */
+	const STATUS_PARTIAL = 'parcial';
+
 	/** Meta del pedido donde vive la decisión a nivel compra. */
 	const META_STATE  = '_mjpm_receipt_state';
 	const META_REASON = '_mjpm_receipt_reason';
@@ -46,6 +57,8 @@ class MJPM_Receipts {
 	const META_AT     = '_mjpm_receipt_at';
 	const META_ASKED  = '_mjpm_receipt_asked';   // Cuándo se le pidió (para el plazo).
 	const META_REMIND = '_mjpm_receipt_reminded';
+	const META_PAID     = '_mjpm_paid';           // Total acreditado del pedido.
+	const META_PAYMENTS = '_mjpm_payments';       // Historial: importe, tipo, mensaje, fecha y quién.
 
 	private static $contexts = null;
 
@@ -108,8 +121,13 @@ class MJPM_Receipts {
 		];
 	}
 
+	/** Estados de la COMPRA: los de un archivo más el pago parcial. */
+	public static function object_statuses() {
+		return self::statuses() + [self::STATUS_PARTIAL => 'Pago parcial'];
+	}
+
 	public static function status_label($status) {
-		$all = self::statuses();
+		$all = self::object_statuses();
 		return isset($all[$status]) ? $all[$status] : (string) $status;
 	}
 
@@ -129,6 +147,8 @@ class MJPM_Receipts {
 					'state'       => [__CLASS__, 'order_state'],
 					'set_state'   => [__CLASS__, 'order_set_state'],
 					'link'        => [__CLASS__, 'order_link'],
+					'balance'     => [__CLASS__, 'order_balance'],
+					'reason'      => [__CLASS__, 'order_reason'],
 				],
 			];
 			if (!function_exists('wc_get_order')) {
@@ -217,7 +237,74 @@ class MJPM_Receipts {
 	/** Estado de la COMPRA ('' = todavía no se pidió nada). */
 	public static function state($context, $object_id) {
 		$state = (string) self::call($context, 'state', [(int) $object_id], '');
-		return isset(self::statuses()[$state]) ? $state : '';
+		return isset(self::object_statuses()[$state]) ? $state : '';
+	}
+
+	/** El mensaje o motivo de la última decisión sobre la compra ('' si no hay). */
+	public static function state_reason($context, $object_id) {
+		return (string) self::call($context, 'reason', [(int) $object_id], '');
+	}
+
+	/** ¿El contexto lleva saldo? Solo esos aceptan pagos parciales. */
+	public static function supports_amounts($context) {
+		$ctx = self::context($context);
+		return $ctx && isset($ctx['balance']) && is_callable($ctx['balance']);
+	}
+
+	/**
+	 * Cuánto se pagó y cuánto falta, con los textos listos para mostrar.
+	 *
+	 * @param string $context   Contexto.
+	 * @param int    $object_id Objeto.
+	 * @return array|null { total, paid, due, totalText, paidText, dueText, history } o null sin saldo.
+	 */
+	public static function balance($context, $object_id) {
+		if (!self::supports_amounts($context)) {
+			return null;
+		}
+		$raw = self::call($context, 'balance', [(int) $object_id], null);
+		if (!is_array($raw)) {
+			return null;
+		}
+		$total = max(0.0, (float) (isset($raw['total']) ? $raw['total'] : 0));
+		$paid  = max(0.0, (float) (isset($raw['paid']) ? $raw['paid'] : 0));
+		$due   = max(0.0, round($total - $paid, 2));
+
+		$history = [];
+		foreach (isset($raw['history']) && is_array($raw['history']) ? $raw['history'] : [] as $entry) {
+			if (!is_array($entry) || empty($entry['amount'])) {
+				continue;
+			}
+			$history[] = [
+				'amount'     => (float) $entry['amount'],
+				'amountText' => self::money((float) $entry['amount']),
+				'kind'       => isset($entry['kind']) ? (string) $entry['kind'] : '',
+				'kindLabel'  => self::STATUS_OK === (isset($entry['kind']) ? $entry['kind'] : '') ? 'Pago total' : 'Pago parcial',
+				'note'       => isset($entry['note']) ? (string) $entry['note'] : '',
+				'date'       => !empty($entry['at']) ? mysql2date('c', (string) $entry['at']) : '',
+			];
+		}
+
+		return [
+			'total'     => $total,
+			'paid'      => $paid,
+			'due'       => $due,
+			'totalText' => self::money($total),
+			'paidText'  => self::money($paid),
+			'dueText'   => self::money($due),
+			'history'   => $history,
+		];
+	}
+
+	/** Lo que declaró el cliente en los comprobantes que falta revisar. */
+	public static function declared_pending($context, $object_id) {
+		$sum = 0.0;
+		foreach (self::for_object($context, $object_id) as $row) {
+			if (self::STATUS_PENDING === $row['status']) {
+				$sum += (float) $row['amount'];
+			}
+		}
+		return round($sum, 2);
 	}
 
 	/** Dónde sube el cliente el comprobante de ese objeto. */
@@ -285,6 +372,7 @@ class MJPM_Receipts {
 			'hours'     => $hours >= 0 ? $hours : max(0, (int) $g['hours']),
 			'on_ok'     => isset($in['on_ok']) ? (string) $in['on_ok'] : (string) $g['on_ok'],
 			'on_reject' => isset($in['on_reject']) ? (string) $in['on_reject'] : (string) $g['on_reject'],
+			'on_partial' => isset($in['on_partial']) ? (string) $in['on_partial'] : (string) $g['on_partial'],
 			'attach'    => isset($in['attach']) ? (int) $in['attach'] : (int) $g['attach'],
 			'max_bytes' => MJPM_Vault::max_bytes(),
 			'types'     => MJPM_Vault::allowed_types(),
@@ -364,15 +452,40 @@ class MJPM_Receipts {
 		return $order instanceof WC_Order ? (string) $order->get_meta(self::META_STATE) : '';
 	}
 
-	public static function order_set_state($order_id, $decision, $reason = '') {
+	/**
+	 * Anota la decisión en el pedido y, si entró plata, la suma al saldo.
+	 *
+	 * @param int    $order_id Pedido.
+	 * @param string $decision aprobado | parcial | rechazado | pendiente.
+	 * @param string $reason   Mensaje o motivo para el cliente.
+	 * @param float  $amount   Lo que se acredita con esta decisión (aprobado o parcial).
+	 */
+	public static function order_set_state($order_id, $decision, $reason = '', $amount = 0.0) {
 		$order = wc_get_order((int) $order_id);
 		if (!$order instanceof WC_Order) {
 			return;
 		}
+		$reason = (string) $reason;
 		$order->update_meta_data(self::META_STATE, $decision);
-		$order->update_meta_data(self::META_REASON, (string) $reason);
+		$order->update_meta_data(self::META_REASON, $reason);
 		$order->update_meta_data(self::META_BY, (string) get_current_user_id());
 		$order->update_meta_data(self::META_AT, current_time('mysql'));
+
+		$paying   = self::STATUS_OK === $decision || self::STATUS_PARTIAL === $decision;
+		$credited = $paying ? max(0.0, round((float) $amount, 2)) : 0.0;
+		if ($credited > 0) {
+			$history   = $order->get_meta(self::META_PAYMENTS);
+			$history   = is_array($history) ? $history : [];
+			$history[] = [
+				'amount' => $credited,
+				'kind'   => $decision,
+				'note'   => $reason,
+				'at'     => current_time('mysql'),
+				'by'     => get_current_user_id(),
+			];
+			$order->update_meta_data(self::META_PAYMENTS, $history);
+			$order->update_meta_data(self::META_PAID, round((float) $order->get_meta(self::META_PAID) + $credited, 2));
+		}
 		$order->save();
 
 		/*
@@ -380,20 +493,55 @@ class MJPM_Receipts {
 		 * solo se anota el estado, nunca se mueve el pedido ni se deja una nota que
 		 * diga que lo rechazaste.
 		 */
-		if (self::STATUS_OK !== $decision && self::STATUS_NO !== $decision) {
+		if (!$paying && self::STATUS_NO !== $decision) {
 			return;
 		}
 
-		$approved = self::STATUS_OK === $decision;
-		$req      = self::requirement('order', $order_id);
-		$target   = (string) ($approved ? $req['on_ok'] : $req['on_reject']);
-		$what     = sprintf('%s %s', self::ucfirst(self::noun()), $approved ? 'aprobado' : 'rechazado');
+		$req     = self::requirement('order', $order_id);
+		$balance = self::balance('order', $order_id);
+		if (self::STATUS_OK === $decision) {
+			$target = (string) $req['on_ok'];
+			$what   = sprintf('Pago aprobado: %s acreditados, pedido pagado completo.', self::money($credited));
+		} elseif (self::STATUS_PARTIAL === $decision) {
+			$target = (string) $req['on_partial'];
+			$what   = sprintf(
+				'Pago parcial aprobado: %s acreditados. Pagado %s de %s, falta abonar %s.',
+				self::money($credited),
+				$balance ? $balance['paidText'] : '',
+				$balance ? $balance['totalText'] : '',
+				$balance ? $balance['dueText'] : ''
+			);
+		} else {
+			$target = (string) $req['on_reject'];
+			$what   = sprintf('%s rechazado.', self::ucfirst(self::noun()));
+		}
+		if ('' !== $reason) {
+			$what .= sprintf(' %s: %s', self::STATUS_NO === $decision ? 'Motivo' : 'Mensaje al cliente', $reason);
+		}
 
 		if ('' !== $target && $order->get_status() !== $target) {
-			$order->update_status($target, $what . ('' !== (string) $reason ? ': ' . $reason : '.'));
+			$order->update_status($target, $what);
 			return;
 		}
-		$order->add_order_note($what . ('' !== (string) $reason ? ': ' . $reason : '.'));
+		$order->add_order_note($what);
+	}
+
+	/** Saldo de un pedido: el total (descontando reintegros) y lo acreditado. */
+	public static function order_balance($order_id) {
+		$order = wc_get_order((int) $order_id);
+		if (!$order instanceof WC_Order) {
+			return null;
+		}
+		return [
+			'total'   => (float) $order->get_total() - (float) $order->get_total_refunded(),
+			'paid'    => (float) $order->get_meta(self::META_PAID),
+			'history' => $order->get_meta(self::META_PAYMENTS),
+		];
+	}
+
+	public static function order_reason($order_id) {
+		$order = wc_get_order((int) $order_id);
+		return $order instanceof WC_Order ? (string) $order->get_meta(self::META_REASON) : '';
 	}
 
 	public static function order_link($order_id) {
@@ -674,18 +822,22 @@ class MJPM_Receipts {
 	 * Aprueba o rechaza la COMPRA. Es la decisión que mueve el pedido, manda el
 	 * mail y cierra el circuito; los archivos se revisan aparte.
 	 *
-	 * @param string $context    Contexto.
-	 * @param int    $object_id  Objeto.
-	 * @param string $decision   aprobado | rechazado | pendiente.
-	 * @param string $reason     Motivo.
-	 * @param bool   $cascade    Aplicar la misma decisión a los archivos a revisar.
+	 * En los contextos con saldo, aprobar lleva importe: sin importe (o si cubre
+	 * lo que falta) es el pago total; con uno menor, la compra queda "parcial".
+	 *
+	 * @param string     $context    Contexto.
+	 * @param int        $object_id  Objeto.
+	 * @param string     $decision   aprobado | parcial | rechazado | pendiente.
+	 * @param string     $reason     Motivo del rechazo o mensaje para el cliente.
+	 * @param bool       $cascade    Aplicar la decisión a los archivos a revisar.
+	 * @param float|null $amount     Lo que entró con este pago (null = todo lo que falta).
 	 * @return bool|WP_Error
 	 */
-	public static function review_object($context, $object_id, $decision, $reason = '', $cascade = true) {
+	public static function review_object($context, $object_id, $decision, $reason = '', $cascade = true, $amount = null) {
 		if (!self::can_review_context($context)) {
 			return new WP_Error('mjpm_forbidden', 'No tenés permiso para revisar comprobantes.', ['status' => 403]);
 		}
-		if (!isset(self::statuses()[$decision])) {
+		if (!isset(self::object_statuses()[$decision])) {
 			return new WP_Error('mjpm_bad_decision', 'Decisión desconocida.');
 		}
 		$object = self::object($context, $object_id);
@@ -693,12 +845,30 @@ class MJPM_Receipts {
 			return new WP_Error('mjpm_not_found', 'No encontramos eso que querés revisar.');
 		}
 
+		$credited = 0.0;
+		if (self::STATUS_OK === $decision || self::STATUS_PARTIAL === $decision) {
+			$balance = self::balance($context, $object_id);
+			if (!$balance) {
+				if (self::STATUS_PARTIAL === $decision) {
+					return new WP_Error('mjpm_no_partial', 'Acá no se pueden registrar pagos parciales.');
+				}
+			} else {
+				if (self::STATUS_PARTIAL === $decision && (null === $amount || (float) $amount <= 0)) {
+					return new WP_Error('mjpm_no_amount', 'Para un pago parcial poné cuánto entró.');
+				}
+				$credited = null === $amount ? $balance['due'] : max(0.0, round((float) $amount, 2));
+				/* Lo que cubre el saldo es pago total, aunque se haya marcado como parte. */
+				$decision = $credited + 0.005 >= $balance['due'] ? self::STATUS_OK : self::STATUS_PARTIAL;
+			}
+		}
+
 		if ($cascade) {
 			global $wpdb;
 			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 				MJPM_Install::table(),
 				[
-					'status'      => $decision,
+					/* Un archivo no queda "parcial": el comprobante es válido aunque no alcance. */
+					'status'      => self::STATUS_PARTIAL === $decision ? self::STATUS_OK : $decision,
 					'reason'      => substr(sanitize_text_field((string) $reason), 0, 255),
 					'reviewed_by' => get_current_user_id(),
 					'reviewed_at' => self::STATUS_PENDING === $decision ? null : current_time('mysql'),
@@ -712,10 +882,10 @@ class MJPM_Receipts {
 			);
 		}
 
-		self::call($context, 'set_state', [(int) $object_id, $decision, (string) $reason]);
+		self::call($context, 'set_state', [(int) $object_id, $decision, (string) $reason, $credited]);
 
-		if (self::STATUS_OK === $decision || self::STATUS_NO === $decision) {
-			MJPM_Receipts_Mail::notify_customer($context, $object_id, $decision, $reason);
+		if (self::STATUS_PENDING !== $decision) {
+			MJPM_Receipts_Mail::notify_customer($context, $object_id, $decision, $reason, $credited);
 		}
 
 		/**
@@ -723,10 +893,11 @@ class MJPM_Receipts {
 		 *
 		 * @param string $context   Contexto.
 		 * @param int    $object_id Objeto.
-		 * @param string $decision  Decisión.
-		 * @param string $reason    Motivo.
+		 * @param string $decision  Decisión (aprobado | parcial | rechazado | pendiente).
+		 * @param string $reason    Motivo o mensaje.
+		 * @param float  $credited  Lo acreditado con esta decisión (0 si no entró plata).
 		 */
-		do_action('mjpm_receipt_object_reviewed', $context, (int) $object_id, $decision, (string) $reason);
+		do_action('mjpm_receipt_object_reviewed', $context, (int) $object_id, $decision, (string) $reason, $credited);
 
 		return true;
 	}
@@ -916,8 +1087,19 @@ class MJPM_Receipts {
 
 	/* ------------------------------ Helpers ------------------------------- */
 
-	/** URL del archivo (pasa por el endpoint que valida permiso). */
-	public static function file_url($row, $download = false) {
+	/**
+	 * URL del archivo (pasa por el endpoint que valida permiso).
+	 *
+	 * Con sesión lleva el nonce de la REST: un link o un <img> no mandan la
+	 * cabecera X-WP-Nonce, y sin nonce WordPress atiende a la REST como si no
+	 * hubiera nadie logueado, así que el permiso fallaría siempre.
+	 *
+	 * @param array  $row      Comprobante.
+	 * @param bool   $download Descargar en vez de ver.
+	 * @param string $token    Token del link firmado (quien compró sin cuenta).
+	 * @return string
+	 */
+	public static function file_url($row, $download = false, $token = '') {
 		if (!is_array($row) || empty($row['id'])) {
 			return '';
 		}
@@ -925,7 +1107,12 @@ class MJPM_Receipts {
 		if ($download) {
 			$args['descargar'] = 1;
 		}
-		return add_query_arg($args, rest_url(MJPM_Receipts_REST::NS . '/archivo'));
+		if ('' !== (string) $token) {
+			$args['token'] = rawurlencode((string) $token);
+		} elseif (is_user_logged_in()) {
+			$args['_wpnonce'] = wp_create_nonce('wp_rest');
+		}
+		return add_query_arg($args, rest_url(MJPM_Receipts_REST::NS . '/comprobantes/archivo'));
 	}
 
 	/** Fila cruda → fila normalizada para la interfaz. */

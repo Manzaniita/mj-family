@@ -186,6 +186,18 @@ class MJPM_Receipts_Settings_Screen {
 					</td>
 				</tr>
 				<tr>
+					<th scope="row"><label for="mjpm-on-partial">Con un pago parcial</label></th>
+					<td>
+						<select id="mjpm-on-partial" name="receipts[on_partial]">
+							<option value="">No tocar el estado del pedido</option>
+							<?php foreach ($statuses as $slug => $label) : ?>
+								<option value="<?php echo esc_attr($slug); ?>" <?php selected($s['on_partial'], $slug); ?>><?php echo esc_html($label); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<p class="description">Al aprobar decís cuánto entró. Si no cubre lo que falta, el pedido queda con saldo: el cliente ve lo pagado y lo que falta abonar, y puede subir el próximo <?php echo esc_html($noun); ?>. Cuando se completa, pasa al estado de “Al aprobar el pago”.</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="mjpm-on-no">Al rechazar el pago</label></th>
 					<td>
 						<select id="mjpm-on-no" name="receipts[on_reject]">
@@ -260,6 +272,14 @@ class MJPM_Receipts_Settings_Screen {
 					</td>
 				</tr>
 				<tr>
+					<th scope="row">Con un pago parcial</th>
+					<td>
+						<label><input type="checkbox" name="receipts[mail_partial]" value="1" <?php checked($s['mail_partial'], 1); ?>> Mandarle un mail al cliente</label>
+						<p><input type="text" name="receipts[mail_partial_subject]" value="<?php echo esc_attr($s['mail_partial_subject']); ?>" class="large-text" maxlength="190"></p>
+						<p><textarea name="receipts[mail_partial_body]" rows="5" class="large-text"><?php echo esc_textarea($s['mail_partial_body']); ?></textarea></p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row">Al rechazar</th>
 					<td>
 						<label><input type="checkbox" name="receipts[mail_no]" value="1" <?php checked($s['mail_no'], 1); ?>> Mandarle un mail al cliente</label>
@@ -272,8 +292,16 @@ class MJPM_Receipts_Settings_Screen {
 					<td>
 						<label><input type="checkbox" name="receipts[whatsapp]" value="1" <?php checked($s['whatsapp'], 1); ?>> Botón de WhatsApp en la bandeja</label>
 						<p><input type="text" name="receipts[whatsapp_ok]" value="<?php echo esc_attr($s['whatsapp_ok']); ?>" class="large-text" aria-label="Mensaje al aprobar"></p>
+						<p><input type="text" name="receipts[whatsapp_partial]" value="<?php echo esc_attr($s['whatsapp_partial']); ?>" class="large-text" aria-label="Mensaje con un pago parcial"></p>
 						<p><input type="text" name="receipts[whatsapp_no]" value="<?php echo esc_attr($s['whatsapp_no']); ?>" class="large-text" aria-label="Mensaje al rechazar"></p>
-						<p class="description">Abre WhatsApp con el mensaje ya escrito, usando el teléfono de la compra.</p>
+						<p class="description">Abre WhatsApp con el mensaje ya escrito, usando el teléfono de la compra: al aprobar, con un pago parcial y al rechazar, según lo último que decidiste.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">Resumen del pago</th>
+					<td>
+						<label><input type="checkbox" name="receipts[mail_summary]" value="1" <?php checked($s['mail_summary'], 1); ?>> Sumar al final de cada mail lo acreditado, lo pagado, lo que falta abonar y tu mensaje</label>
+						<p class="description">Así el cliente tiene todo claro aunque el texto de arriba no use los marcadores de importes.</p>
 					</td>
 				</tr>
 			</table>
@@ -282,6 +310,8 @@ class MJPM_Receipts_Settings_Screen {
 				<strong>Marcadores</strong> que podés usar en los textos y mensajes:
 				<code>{cliente}</code> <code>{numero}</code> <code>{total}</code> <code>{metodo}</code>
 				<code>{comprobante}</code> <code>{motivo}</code> <code>{link}</code> <code>{tienda}</code>
+				<code>{importe}</code> (lo que entró con ese pago) <code>{pagado}</code> <code>{falta}</code>.
+				<code>{motivo}</code> es el motivo del rechazo o el mensaje que escribiste al aprobar.
 			</p>
 
 			<?php submit_button('Guardar la regla general'); ?>

@@ -213,10 +213,25 @@
 
 		if ('aprobado' === s.state) {
 			card.appendChild(el('p', { class: 'mjpm-uploader__ok', text: T.stateOk }));
+		} else if ('parcial' === s.state) {
+			card.appendChild(el('p', { class: 'mjpm-uploader__partial', text: fill(T.statePartial, { comprobante: s.noun }) }));
 		} else if ('rechazado' === s.state) {
 			card.appendChild(el('p', { class: 'mjpm-uploader__no', text: T.stateNo }));
 		} else if ('pendiente' === s.state && s.files && s.files.length) {
 			card.appendChild(el('p', { class: 'mjpm-uploader__note', text: T.statePending }));
+		}
+
+		/* Lo que se le dijo con la decisión: el motivo del rechazo o el mensaje al aprobar. */
+		if (s.message) {
+			card.appendChild(el('p', {
+				class: 'mjpm-uploader__message' + ('rechazado' === s.state ? ' is-no' : ''),
+				text: fill('rechazado' === s.state ? T.reason : T.message, { texto: s.message })
+			}));
+		}
+
+		/* Cuánto pagó y cuánto falta, en cuanto entró algo de plata. */
+		if (s.balance && (s.balance.paid > 0 || 'parcial' === s.state)) {
+			card.appendChild(this.balance(s.balance));
 		}
 
 		if (s.deadline && 'aprobado' !== s.state) {
@@ -243,6 +258,31 @@
 		}
 
 		node.appendChild(card);
+	};
+
+	Uploader.prototype.balance = function (b) {
+		var rows = el('dl', { class: 'mjpm-uploader__balanceRows' }, [
+			el('div', {}, [el('dt', { text: T.total }), el('dd', { text: b.totalText })]),
+			el('div', {}, [el('dt', { text: T.paid }), el('dd', { text: b.paidText })]),
+			b.due > 0
+				? el('div', { class: 'is-due' }, [el('dt', { text: T.due }), el('dd', { text: b.dueText })])
+				: el('div', { class: 'is-paid' }, [el('dt', { text: T.paidInFull }), el('dd', { text: '' })])
+		]);
+		var box = el('div', { class: 'mjpm-uploader__balance' }, [rows]);
+
+		if (b.history && b.history.length) {
+			var list = el('ul', { class: 'mjpm-uploader__history' });
+			b.history.forEach(function (entry) {
+				var line = [entry.amountText, entry.kindLabel, formatDate(entry.date)].filter(Boolean).join(' · ');
+				list.appendChild(el('li', {}, [
+					el('span', { text: line }),
+					entry.note ? el('span', { class: 'mjpm-uploader__historyNote', text: entry.note }) : null
+				]));
+			});
+			box.appendChild(el('p', { class: 'mjpm-uploader__historyTitle', text: T.history }));
+			box.appendChild(list);
+		}
+		return box;
 	};
 
 	Uploader.prototype.fileList = function (s) {

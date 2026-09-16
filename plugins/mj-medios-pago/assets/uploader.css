@@ -14,6 +14,7 @@
 	--mjpm-ok: #0f7b3f;
 	--mjpm-no: #b42318;
 	--mjpm-wait: #8a5a00;
+	--mjpm-partial: #1d4ed8;
 	--mjpm-radius: 14px;
 	margin: 1.5rem 0;
 	font: inherit;
@@ -28,6 +29,7 @@
 		--mjpm-ok: #4ade80;
 		--mjpm-no: #fca5a5;
 		--mjpm-wait: #fcd34d;
+		--mjpm-partial: #93c5fd;
 	}
 }
 
@@ -80,6 +82,7 @@
 
 .mjpm-uploader__ok,
 .mjpm-uploader__no,
+.mjpm-uploader__partial,
 .mjpm-uploader__error {
 	margin: .6rem 0 0;
 	font-size: .875rem;
@@ -87,6 +90,7 @@
 }
 
 .mjpm-uploader__ok { color: var(--mjpm-ok); }
+.mjpm-uploader__partial { color: var(--mjpm-partial); }
 .mjpm-uploader__no,
 .mjpm-uploader__error { color: var(--mjpm-no); }
 
@@ -106,6 +110,65 @@
 .mjpm-badge.is-pendiente { color: var(--mjpm-wait); }
 .mjpm-badge.is-aprobado  { color: var(--mjpm-ok); }
 .mjpm-badge.is-rechazado { color: var(--mjpm-no); }
+.mjpm-badge.is-parcial   { color: var(--mjpm-partial); }
+
+/* ------------------------- Mensaje y saldo del pago ------------------------ */
+
+.mjpm-uploader__message {
+	margin: .6rem 0 0;
+	font-size: .875rem;
+	line-height: 1.55;
+}
+
+.mjpm-uploader__message.is-no { color: var(--mjpm-no); }
+
+.mjpm-uploader__balance {
+	margin: .9rem 0 0;
+	padding: .75rem .9rem;
+	border: 1px solid var(--mjpm-line);
+	border-radius: calc(var(--mjpm-radius) - 4px);
+}
+
+.mjpm-uploader__balanceRows {
+	margin: 0;
+	display: grid;
+	gap: .3rem;
+	font-size: .875rem;
+}
+
+.mjpm-uploader__balanceRows > div {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.mjpm-uploader__balanceRows dt { color: var(--mjpm-ink-soft); }
+.mjpm-uploader__balanceRows dd { margin: 0; font-weight: 600; }
+.mjpm-uploader__balanceRows .is-due dt,
+.mjpm-uploader__balanceRows .is-due dd { color: var(--mjpm-no); font-weight: 600; }
+.mjpm-uploader__balanceRows .is-paid dt { color: var(--mjpm-ok); font-weight: 600; }
+
+.mjpm-uploader__historyTitle {
+	margin: .7rem 0 .25rem;
+	font-size: .75rem;
+	font-weight: 600;
+	color: var(--mjpm-ink-soft);
+}
+
+.mjpm-uploader__history {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: .8rem;
+}
+
+.mjpm-uploader__history li { padding: .15rem 0; }
+
+.mjpm-uploader__historyNote {
+	display: block;
+	color: var(--mjpm-ink-soft);
+	font-style: italic;
+}
 
 /* --------------------------------- Lista --------------------------------- */
 

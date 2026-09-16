@@ -45,6 +45,8 @@
  *   - Vos aprobás o rechazás cada compra desde WooCommerce → Comprobantes (con
  *     contador en el menú) o desde la pantalla del pedido. Al rechazar, el
  *     motivo es lo que ve el cliente.
+ *   - Al aprobar decís cuánto entró: todo lo que falta o una parte. Con una
+ *     parte el pedido queda con saldo y el cliente ve lo pagado y lo que falta.
  *   - Los archivos NO van a la Biblioteca de Medios: viven en una carpeta
  *     privada con nombre aleatorio y se leen solo por un endpoint que valida
  *     permiso (ver class-mjpm-vault.php).

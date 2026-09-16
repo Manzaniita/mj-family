@@ -126,6 +126,10 @@ class MJPM_Orders {
 
 		$data['receipt'] = self::rest_receipt($order);
 
+		/* Pagos parciales: lo pagado y lo que falta, en cuanto entró algo. */
+		$balance                = MJPM_Receipts::balance('order', $order->get_id());
+		$data['paymentBalance'] = $balance && $balance['paid'] > 0 ? $balance : null;
+
 		return $data;
 	}
 
@@ -160,6 +164,7 @@ class MJPM_Orders {
 			'maxFiles'  => (int) $req['files'],
 			'deadline'  => MJPM_Receipts::deadline('order', $order->get_id()),
 			'reason'    => (string) $order->get_meta(MJPM_Receipts::META_REASON),
+			'balance'   => MJPM_Receipts::balance('order', $order->get_id()),
 		];
 	}
 }

@@ -16,6 +16,14 @@ class MJPM_Receipts_Admin {
 
 	const SLUG = 'mj-comprobantes';
 
+	/**
+	 * @var bool Se está dibujando dentro de la pantalla del pedido. Esa pantalla
+	 *           ya es un <form> y el navegador ignora un <form> adentro de otro:
+	 *           los botones mandarían el pedido. Ahí las cajas van como <div> y
+	 *           receipts-admin.js arma el formulario al apretar.
+	 */
+	private static $nested = false;
+
 	public static function init() {
 		add_action('admin_menu', [__CLASS__, 'menu'], 20);
 		add_action('admin_enqueue_scripts', [__CLASS__, 'assets']);
@@ -99,6 +107,7 @@ class MJPM_Receipts_Admin {
 		wp_localize_script('mjpm-receipts-admin', 'mjpmReceiptsAdmin', [
 			'confirmDelete' => sprintf('¿Borrar este %s? Se borra también el archivo y no se puede deshacer.', MJPM_Receipts::noun()),
 			'needReason'    => 'Escribí el motivo del rechazo: es lo que ve el cliente.',
+			'needAmount'    => 'Poné cuánto entró con este pago.',
 		]);
 	}
 
@@ -144,16 +153,35 @@ class MJPM_Receipts_Admin {
 		self::back_to_origin(['mjpm_msg' => is_wp_error($result) ? 'error' : 'revisado']);
 	}
 
-	/** Decisión sobre la compra. */
+	/** Decisión sobre la compra. Al aprobar con saldo: todo lo que falta o una parte. */
 	public static function handle_object() {
 		self::guard('mjpm_receipt_object');
 		$context   = isset($_POST['context']) ? sanitize_key(wp_unslash($_POST['context'])) : '';
 		$object_id = isset($_POST['objeto']) ? (int) $_POST['objeto'] : 0;
 		$decision  = isset($_POST['decision']) ? sanitize_key(wp_unslash($_POST['decision'])) : '';
 		$reason    = isset($_POST['motivo']) ? sanitize_text_field(wp_unslash($_POST['motivo'])) : '';
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard(), arriba.
+		$pago = isset($_POST['pago']) ? sanitize_key(wp_unslash($_POST['pago'])) : '';
 
-		$result = MJPM_Receipts::review_object($context, $object_id, $decision, $reason);
-		self::back_to_origin(['mjpm_msg' => is_wp_error($result) ? 'error' : ('aprobado' === $decision ? 'aprobada' : 'rechazada')]);
+		$amount = null;
+		if (MJPM_Receipts::STATUS_OK === $decision && 'parcial' === $pago) {
+			$decision = MJPM_Receipts::STATUS_PARTIAL;
+			$amount   = isset($_POST['importe']) ? MJPM_Settings::decimal(sanitize_text_field(wp_unslash($_POST['importe']))) : 0.0;
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		$result = MJPM_Receipts::review_object($context, $object_id, $decision, $reason, true, $amount);
+		if (is_wp_error($result)) {
+			self::back_to_origin(['mjpm_msg' => 'mjpm_no_amount' === $result->get_error_code() ? 'sin_importe' : 'error']);
+		}
+		/* El mensaje sale del estado final: una "parte" que cubre el saldo queda como pago total. */
+		$messages = [
+			MJPM_Receipts::STATUS_OK      => 'aprobada',
+			MJPM_Receipts::STATUS_PARTIAL => 'parcial',
+			MJPM_Receipts::STATUS_NO      => 'rechazada',
+		];
+		$state = MJPM_Receipts::state($context, $object_id);
+		self::back_to_origin(['mjpm_msg' => isset($messages[$state]) ? $messages[$state] : 'revisado']);
 	}
 
 	public static function handle_delete() {
@@ -171,7 +199,7 @@ class MJPM_Receipts_Admin {
 		$in = isset($_POST['receipts']) && is_array($_POST['receipts']) ? wp_unslash($_POST['receipts']) : [];
 
 		/* Las casillas ausentes son ceros explícitos: el formulario manda todo. */
-		foreach (['enabled', 'ask_amount', 'ask_reference', 'ask_note', 'optimize', 'attach', 'show_account', 'guest_links', 'cap_shop', 'cap_erp', 'mail_new', 'mail_ok', 'mail_no', 'whatsapp'] as $flag) {
+		foreach (['enabled', 'ask_amount', 'ask_reference', 'ask_note', 'optimize', 'attach', 'show_account', 'guest_links', 'cap_shop', 'cap_erp', 'mail_new', 'mail_ok', 'mail_no', 'whatsapp', 'mail_partial', 'mail_summary'] as $flag) {
 			$in[$flag] = empty($in[$flag]) ? 0 : 1;
 		}
 		$in['types'] = isset($_POST['receipt_types']) && is_array($_POST['receipt_types'])
@@ -322,7 +350,9 @@ class MJPM_Receipts_Admin {
 
 		$messages = [
 			'revisado'  => 'Decisión guardada.',
-			'aprobada'  => 'Compra aprobada.',
+			'aprobada'  => 'Pago aprobado: el pedido quedó pagado completo.',
+			'parcial'   => 'Pago parcial registrado. El cliente ve cuánto pagó y cuánto falta abonar.',
+			'sin_importe' => 'Para un pago parcial poné cuánto entró.',
 			'rechazada' => 'Compra rechazada. El cliente recibe el aviso con el motivo.',
 			'borrado'   => 'Comprobante borrado.',
 			'ajustes'   => 'Ajustes guardados.',
@@ -467,7 +497,9 @@ class MJPM_Receipts_Admin {
 	 * @return void
 	 */
 	public static function render_object_panel($context, $object_id, array $rows, $inline = false) {
-		$object = MJPM_Receipts::object($context, $object_id);
+		$nested       = self::$nested;
+		self::$nested = (bool) $inline;
+		$object       = MJPM_Receipts::object($context, $object_id);
 		$state  = MJPM_Receipts::state($context, $object_id);
 		$origin = self::current_url();
 		$noun   = MJPM_Receipts::noun();
@@ -595,11 +627,20 @@ class MJPM_Receipts_Admin {
 					<?php printf('¿Entró la plata de est%s %s?', esc_html(MJPM_Receipts::singular_gender($context)), esc_html(MJPM_Receipts::singular($context))); ?>
 				</p>
 				<p class="mjpm-rc-decide__help">Esta es la decisión que mueve la compra y le avisa al cliente. Los archivos de arriba se marcan solos con lo mismo.</p>
+				<?php $balance = MJPM_Receipts::balance($context, $object_id); ?>
+				<?php if ($balance) : ?>
+					<?php self::balance_block($context, $object_id, $balance, $origin); ?>
+				<?php endif; ?>
 				<div class="mjpm-rc-decide__actions">
-					<?php self::action_form('mjpm_receipt_object', ['context' => $context, 'objeto' => $object_id, 'decision' => MJPM_Receipts::STATUS_OK], 'Aprobar el pago', 'button button-primary', $origin); ?>
+					<?php if (!$balance) : ?>
+						<?php self::action_form('mjpm_receipt_object', ['context' => $context, 'objeto' => $object_id, 'decision' => MJPM_Receipts::STATUS_OK], 'Aprobar el pago', 'button button-primary', $origin); ?>
+					<?php endif; ?>
 					<?php self::reject_form('mjpm_receipt_object', ['context' => $context, 'objeto' => $object_id, 'decision' => MJPM_Receipts::STATUS_NO], 'Rechazar el pago', $origin); ?>
 					<?php
-					$whatsapp = MJPM_Receipts_Mail::whatsapp_url($context, $object_id, MJPM_Receipts::STATUS_OK);
+					/* El mensaje de WhatsApp acompaña lo último que se decidió (parcial o rechazo); si no, el de aprobado. */
+					$wa_state = in_array($state, [MJPM_Receipts::STATUS_PARTIAL, MJPM_Receipts::STATUS_NO], true) ? $state : MJPM_Receipts::STATUS_OK;
+					$wa_last  = $balance && $balance['history'] ? end($balance['history']) : null;
+					$whatsapp = MJPM_Receipts_Mail::whatsapp_url($context, $object_id, $wa_state, MJPM_Receipts::state_reason($context, $object_id), $wa_last ? $wa_last['amount'] : 0.0);
 					if ('' !== $whatsapp) :
 						?>
 						<a class="button mjpm-rc-wa" href="<?php echo esc_url($whatsapp); ?>" target="_blank" rel="noopener">WhatsApp</a>
@@ -608,39 +649,162 @@ class MJPM_Receipts_Admin {
 			</div>
 		</div>
 		<?php
+		self::$nested = $nested;
+	}
+
+	/**
+	 * Abre una caja que manda a admin-post.php: <form>, o <div> dentro del pedido.
+	 *
+	 * @param string $class Clases.
+	 * @param array  $data  Atributos data-* (nombre => valor).
+	 */
+	private static function form_open($class, array $data = []) {
+		$attrs = '';
+		foreach ($data as $name => $value) {
+			$attrs .= sprintf(' data-%s="%s"', esc_attr($name), esc_attr($value));
+		}
+		if (self::$nested) {
+			printf('<div class="%s" data-mjpm-post="%s"%s>', esc_attr($class), esc_url(admin_url('admin-post.php')), $attrs); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $attrs sale escapado de arriba.
+			return;
+		}
+		printf('<form method="post" action="%s" class="%s"%s>', esc_url(admin_url('admin-post.php')), esc_attr($class), $attrs); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $attrs sale escapado de arriba.
+	}
+
+	private static function form_close() {
+		echo self::$nested ? '</div>' : '</form>';
+	}
+
+	/**
+	 * Un campo oculto. Dentro del pedido va con data-name: con name viajaría
+	 * también al guardar el pedido y pisaría sus campos (action, _wpnonce, id).
+	 *
+	 * @param string $name  Nombre.
+	 * @param string $value Valor.
+	 */
+	private static function hidden($name, $value) {
+		if (self::$nested) {
+			printf('<input type="hidden" data-name="%s" value="%s">', esc_attr($name), esc_attr($value));
+			return;
+		}
+		printf('<input type="hidden" name="%s" value="%s">', esc_attr($name), esc_attr($value));
+	}
+
+	/** Atributo de nombre de un campo visible: name, o data-name dentro del pedido. */
+	private static function name_attr($name) {
+		if (self::$nested) {
+			printf('data-name="%s"', esc_attr($name));
+			return;
+		}
+		printf('name="%s"', esc_attr($name));
+	}
+
+	/** Lo que necesita cada caja para llegar a admin-post.php: acción, nonce, datos y a dónde volver. */
+	private static function base_fields($action, array $fields, $origin) {
+		self::hidden('action', $action);
+		self::hidden('_wpnonce', wp_create_nonce($action));
+		foreach ($fields as $name => $value) {
+			self::hidden((string) $name, (string) $value);
+		}
+		self::hidden('_mjpm_origin', (string) $origin);
+	}
+
+	/**
+	 * Saldo de la compra y el formulario para aprobar: pagó todo lo que falta o
+	 * una parte, con un mensaje opcional para el cliente.
+	 *
+	 * @param string $context   Contexto.
+	 * @param int    $object_id Objeto.
+	 * @param array  $balance   MJPM_Receipts::balance().
+	 * @param string $origin    A dónde volver.
+	 */
+	private static function balance_block($context, $object_id, array $balance, $origin) {
+		$req      = MJPM_Receipts::requirement($context, $object_id);
+		$declared = MJPM_Receipts::declared_pending($context, $object_id);
+		$move     = function ($status) {
+			return '' !== (string) $status && function_exists('wc_get_order_status_name')
+				? sprintf('pasa a «%s»', wc_get_order_status_name($status))
+				: 'no cambia de estado';
+		};
+		?>
+		<div class="mjpm-rc-balance">
+			<span>Total <strong><?php echo esc_html($balance['totalText']); ?></strong></span>
+			<span>Pagado <strong><?php echo esc_html($balance['paidText']); ?></strong></span>
+			<span class="<?php echo $balance['due'] > 0 ? 'is-due' : 'is-paid'; ?>">
+				<?php echo $balance['due'] > 0 ? 'Falta abonar' : 'Pagado completo'; ?>
+				<?php if ($balance['due'] > 0) : ?>
+					<strong><?php echo esc_html($balance['dueText']); ?></strong>
+				<?php endif; ?>
+			</span>
+			<?php if ($declared > 0) : ?>
+				<span class="mjpm-rc-balance__declared">El cliente declaró <strong><?php echo esc_html(MJPM_Receipts::money($declared)); ?></strong></span>
+			<?php endif; ?>
+		</div>
+
+		<?php if ($balance['history']) : ?>
+			<ul class="mjpm-rc-history">
+				<?php foreach ($balance['history'] as $entry) : ?>
+					<li>
+						<strong><?php echo esc_html($entry['amountText']); ?></strong>
+						· <?php echo esc_html($entry['kindLabel']); ?>
+						<?php if ('' !== $entry['date']) : ?>
+							· <?php echo esc_html(date_i18n('j M Y H:i', strtotime($entry['date']))); ?>
+						<?php endif; ?>
+						<?php if ('' !== $entry['note']) : ?>
+							<span class="mjpm-rc-history__note">“<?php echo esc_html($entry['note']); ?>”</span>
+						<?php endif; ?>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		<?php endif; ?>
+
+		<?php if ($balance['due'] > 0) : ?>
+			<?php
+			self::form_open('mjpm-rc-approve', ['mjpm-approve' => '1']);
+			self::base_fields('mjpm_receipt_object', ['context' => $context, 'objeto' => $object_id, 'decision' => MJPM_Receipts::STATUS_OK], $origin);
+			/* Los radios necesitan un name para excluirse; dentro del pedido, uno propio que no choca con nada. */
+			$group = self::$nested ? 'mjpm_pago_' . $object_id : 'pago';
+			?>
+				<label class="mjpm-rc-approve__option">
+					<input type="radio" name="<?php echo esc_attr($group); ?>" data-name="pago" value="total" checked>
+					Pagó todo lo que falta: <strong><?php echo esc_html($balance['dueText']); ?></strong>
+					<span class="mjpm-rc-approve__hint">El pedido <?php echo esc_html($move($req['on_ok'])); ?>, listo para armar y enviar.</span>
+				</label>
+				<label class="mjpm-rc-approve__option">
+					<input type="radio" name="<?php echo esc_attr($group); ?>" data-name="pago" value="parcial">
+					Pagó una parte:
+					<input type="text" <?php self::name_attr('importe'); ?> inputmode="decimal" class="mjpm-rc-approve__amount" value="<?php echo $declared > 0 && $declared < $balance['due'] ? esc_attr(MJPM_Methods::number($declared)) : ''; ?>" placeholder="Importe" aria-label="Importe que entró" disabled>
+					<span class="mjpm-rc-approve__hint">El pedido <?php echo esc_html($move($req['on_partial'])); ?> y el cliente ve cuánto le falta abonar.</span>
+				</label>
+				<p class="mjpm-rc-approve__row">
+					<input type="text" <?php self::name_attr('motivo'); ?> maxlength="255" class="mjpm-rc-approve__message" placeholder="Mensaje para el cliente (opcional)">
+					<button type="submit" class="button button-primary">Aprobar el pago</button>
+				</p>
+			<?php self::form_close(); ?>
+		<?php endif; ?>
+		<?php
 	}
 
 	/** Formulario de un botón. */
 	private static function action_form($action, array $fields, $label, $class = 'button', $origin = '', $confirm = false) {
 		?>
-		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="mjpm-rc-form">
-			<input type="hidden" name="action" value="<?php echo esc_attr($action); ?>">
-			<?php wp_nonce_field($action); ?>
-			<?php foreach ($fields as $name => $value) : ?>
-				<input type="hidden" name="<?php echo esc_attr($name); ?>" value="<?php echo esc_attr($value); ?>">
-			<?php endforeach; ?>
-			<input type="hidden" name="_mjpm_origin" value="<?php echo esc_attr($origin); ?>">
+		<?php self::form_open('mjpm-rc-form'); ?>
+			<?php self::base_fields($action, $fields, $origin); ?>
 			<button type="submit" class="<?php echo esc_attr($class); ?>" <?php echo $confirm ? 'data-mjpm-confirm="1"' : ''; ?>><?php echo esc_html($label); ?></button>
-		</form>
+		<?php self::form_close(); ?>
 		<?php
 	}
 
 	/** Rechazo: el motivo es obligatorio porque es lo que ve el cliente. */
 	private static function reject_form($action, array $fields, $label, $origin = '') {
 		?>
-		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="mjpm-rc-form mjpm-rc-reject" data-mjpm-reject="1">
-			<input type="hidden" name="action" value="<?php echo esc_attr($action); ?>">
-			<?php wp_nonce_field($action); ?>
-			<?php foreach ($fields as $name => $value) : ?>
-				<input type="hidden" name="<?php echo esc_attr($name); ?>" value="<?php echo esc_attr($value); ?>">
-			<?php endforeach; ?>
-			<input type="hidden" name="_mjpm_origin" value="<?php echo esc_attr($origin); ?>">
+		<?php self::form_open('mjpm-rc-form mjpm-rc-reject', ['mjpm-reject' => '1']); ?>
+			<?php self::base_fields($action, $fields, $origin); ?>
 			<button type="button" class="button mjpm-rc-reject__open"><?php echo esc_html($label); ?></button>
 			<span class="mjpm-rc-reject__box" hidden>
-				<input type="text" name="motivo" maxlength="255" placeholder="Motivo (lo ve el cliente)" class="mjpm-rc-reject__input">
+				<input type="text" <?php self::name_attr('motivo'); ?> maxlength="255" placeholder="Motivo (lo ve el cliente)" class="mjpm-rc-reject__input">
 				<button type="submit" class="button"><?php echo esc_html($label); ?></button>
 			</span>
-		</form>
+		<?php self::form_close(); ?>
 		<?php
 	}
 

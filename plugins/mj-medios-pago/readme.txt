@@ -25,6 +25,7 @@ Descuentos y recargos por medio de pago, con precio distinto en tarjetas, ficha,
 * Elegís medio por medio si pide comprobante: no lo pide, puede subirlo, o tiene que subirlo. Lo que dejás en "Heredar" sigue la regla general, así cambiar el default después alcanza a todos los métodos que nunca tocaste a mano.
 * El cliente lo sube DESPUÉS de comprar, con el pedido en el estado que elegiste: desde la página de gracias, desde Mi cuenta, o con un link firmado que le llega por email si compró sin cuenta.
 * Vos aprobás o rechazás cada compra desde WooCommerce → Comprobantes (con contador en el menú) o desde la pantalla del pedido. Al rechazar, el motivo que escribís es lo que ve el cliente.
+* Al aprobar decís cuánto entró: todo lo que falta (el pedido pasa a preparar) o una parte (queda con saldo). El cliente ve en su pedido lo pagado, lo que falta abonar, el historial de pagos y tu mensaje.
 * Varios archivos por compra, para los pagos en partes: cada uno se revisa por separado y la compra la aprobás vos, nunca se da por cobrada sola.
 * Mails configurables al aprobar y al rechazar (asunto y cuerpo, con marcadores), aviso a la tienda cuando entra uno nuevo, recordatorio si no lo subió, y botón de WhatsApp con el mensaje ya escrito.
 * Los archivos NO van a la Biblioteca de Medios: viven en una carpeta privada con nombre aleatorio y se leen solo por un endpoint que valida permiso. Retención configurable: pasado el plazo se borra el archivo y queda el registro (importe, fecha, referencia y quién aprobó).
@@ -59,6 +60,9 @@ Plugins → MJ Medios de Pago → Desactivar y Borrar, después subís el zip nu
 * Datos para pagar por medio (alias, CBU, titular…), con encabezado propio y botón de copiar, en la confirmación, Mi cuenta, email, link del comprobante y, opcional, el checkout.
 * REST GET /mjpm/v1/como-pagar con la clave del pedido, para la tienda React.
 * Arreglo: guardar la tabla de ajustes ya no borra la regla del comprobante configurada para cada medio.
+* Pagos parciales: al aprobar se elige si pagó todo lo que falta o una parte (con importe y mensaje para el cliente). Con el total, el pedido pasa al estado de pago confirmado; con una parte, queda con saldo (estado configurable) y el cliente ve lo pagado, lo que falta y el historial de pagos, en su pedido y en el mail.
+* Mail y WhatsApp del pago parcial, marcadores {importe} {pagado} {falta}, y resumen del pago al pie de los mails (se puede apagar).
+* Arreglo: "Ver" y la miniatura de un comprobante daban error de ruta (y sin nonce, de permiso).
 
 = 1.1.0 =
 * Comprobantes de pago: configurables por medio de pago, con bandeja de revisión, aprobación o rechazo por compra, mails y WhatsApp.
