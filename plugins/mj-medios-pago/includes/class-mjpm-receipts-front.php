@@ -7,6 +7,7 @@
  *      MJPM_Orders al filtro mj_rest_order_detail).
  *   3. Página propia para quien compró sin cuenta, con el link firmado:
  *      https://tienda.com/?mjpm_comprobante={token}
+ *      Arriba del widget van las instrucciones y los datos para pagar del pedido.
  *
  * El widget es un único JS sin dependencias (assets/uploader.js) y se monta en
  * cualquier `<div data-mjpm-uploader>`. Eso es a propósito: así el portal de
@@ -224,6 +225,29 @@ class MJPM_Receipts_Front {
 
 	/* ------------------------ Página del link firmado ---------------------- */
 
+	/**
+	 * Datos para pagar de un pedido, arriba del widget: quien entra por el link
+	 * casi siempre todavía tiene que transferir.
+	 *
+	 * @param string $context   Contexto.
+	 * @param int    $object_id Objeto.
+	 * @return string
+	 */
+	private static function payment_info($context, $object_id) {
+		if ('order' !== $context || !class_exists('MJPM_Payment_Info') || !function_exists('wc_get_order')) {
+			return '';
+		}
+		$info = MJPM_Payment_Info::for_order(wc_get_order((int) $object_id));
+		if (!$info) {
+			return '';
+		}
+		$html = '';
+		if ('' !== $info['instructions']) {
+			$html .= '<div class="mjpm-page__instructions">' . wp_kses_post(wpautop(esc_html($info['instructions']))) . '</div>';
+		}
+		return $html . MJPM_Payment_Info::html($info);
+	}
+
 	/** ¿La URL trae un token de comprobante? Entonces servimos nuestra página. */
 	public static function maybe_render_page() {
 		$token = isset($_GET[self::QUERY_VAR]) ? sanitize_text_field(wp_unslash($_GET[self::QUERY_VAR])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -310,6 +334,7 @@ class MJPM_Receipts_Front {
 								· <?php echo esc_html(MJPM_Receipts::money((float) $data['object']['total'])); ?>
 							<?php endif; ?>
 						</p>
+						<?php echo self::payment_info($data['context'], $data['object_id']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						<?php echo self::widget($data['context'], $data['object_id'], $data['token']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					</div>
 				<?php endif; ?>

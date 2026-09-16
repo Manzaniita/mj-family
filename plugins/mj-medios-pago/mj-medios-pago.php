@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: MJ Medios de Pago
- * Description: Descuentos y recargos por medio de pago con precio distinto en tarjetas, ficha, carrito y checkout, y comprobantes de pago: elegís en qué medios se pide, el cliente sube la foto o el PDF y vos aprobás o rechazás cada compra. Funciona con cualquier método de pago de la tienda, te deja crear métodos propios (por ejemplo "Pago en dólares en el local") como medios de pago reales de WooCommerce, y comparte los comprobantes con MJ ERP (reventas) y MJ Turnos Online (señas).
- * Version: 1.3.0
+ * Description: Descuentos y recargos por medio de pago con precio distinto en tarjetas, ficha, carrito y checkout, los datos para pagar de cada medio (alias, CBU, titular) editables y visibles en la tienda, y comprobantes de pago: elegís en qué medios se pide, el cliente sube la foto o el PDF y vos aprobás o rechazás cada compra. Funciona con cualquier método de pago de la tienda, te deja crear métodos propios (por ejemplo "Pago en dólares en el local") como medios de pago reales de WooCommerce, y comparte los comprobantes con MJ ERP (reventas) y MJ Turnos Online (señas).
+ * Version: 1.4.0
  * Author: MJ Importaciones
  * Requires Plugins: woocommerce
  * Requires at least: 6.2
@@ -27,6 +27,14 @@
  *     checkout, el email y el admin muestran el total en USD.
  *   - Productos y categorías pueden excluirse del ajuste.
  *
+ * CÓMO PAGAR
+ *   - Cada medio de pago se edita desde la tabla (link "Editar"): título,
+ *     descripción, instrucciones y los datos para pagar (alias, CBU, titular…),
+ *     una lista libre de etiqueta y valor. Los de WooCommerce guardan título,
+ *     descripción e instrucciones en su propia opción, como si se editaran allá.
+ *   - Los datos se ven después de comprar: gracias, Mi cuenta, email y link del
+ *     comprobante. En el checkout, solo si el medio lo tiene marcado.
+ *
  * COMPROBANTES DE PAGO
  *   - Elegís medio por medio si pide comprobante (no / opcional / obligatorio).
  *     Lo que quede en "Heredar" sigue la regla general, así subir un default
@@ -46,7 +54,10 @@
  *   MJPM_Methods::public_payload()                                 config pública (la misma que ve la SPA)
  *   MJPM_Cart::effective_method_id()                               método vigente en la sesión
  *   filtros mjpm_product_eligible ($ok, $product) · mjpm_cart_adjustment ($calc, $cart, $cfg)
+ *   MJPM_Payment_Info::for_method($id) · ::for_order($order)       instrucciones y datos para pagar
+ *   filtros mjpm_payment_info ($info, $id) · mjpm_payment_info_statuses ($estados, $order)
  *   REST    GET /wp-json/mjpm/v1/methods · GET /wp-json/mjpm/v1/price?amount=100000&method=bacs
+ *           GET /wp-json/mjpm/v1/como-pagar?pedido=151&clave=wc_order_xxx
  *
  *   Comprobantes (los usan MJ ERP y MJ Turnos Online):
  *   filtro  mjpm_receipt_contexts                      registrar un contexto propio
@@ -65,7 +76,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJPM_VERSION', '1.3.0');
+define('MJPM_VERSION', '1.4.0');
 define('MJPM_FILE', __FILE__);
 define('MJPM_DIR', plugin_dir_path(__FILE__));
 define('MJPM_URL', plugin_dir_url(__FILE__));
@@ -80,6 +91,7 @@ require_once MJPM_DIR . 'includes/class-mjpm-methods.php';
 require_once MJPM_DIR . 'includes/class-mjpm-cart.php';
 require_once MJPM_DIR . 'includes/class-mjpm-rest.php';
 require_once MJPM_DIR . 'includes/class-mjpm-orders.php';
+require_once MJPM_DIR . 'includes/class-mjpm-payment-info.php';
 require_once MJPM_DIR . 'includes/class-mjpm-admin.php';
 
 /* Comprobantes de pago. */
@@ -119,6 +131,7 @@ final class MJPM_Plugin {
 		MJPM_Cart::init();
 		MJPM_REST::init();
 		MJPM_Orders::init();
+		MJPM_Payment_Info::init();
 		if (is_admin()) {
 			MJPM_Admin::init();
 		}

@@ -1,8 +1,8 @@
 <?php
 /**
- * wp-admin: página WooCommerce → Medios de pago (tabla de ajustes, métodos
- * propios, ajustes generales, vista previa), exclusión por producto y por
- * categoría.
+ * wp-admin: página WooCommerce → Medios de pago (tabla de ajustes, editor de
+ * cada medio con sus textos y datos para pagar, métodos propios, ajustes
+ * generales, vista previa), exclusión por producto y por categoría.
  */
 
 defined('ABSPATH') || exit;
@@ -20,6 +20,7 @@ class MJPM_Admin {
 		add_action('admin_post_mjpm_save_methods', [__CLASS__, 'save_methods']);
 		add_action('admin_post_mjpm_save_settings', [__CLASS__, 'save_settings']);
 		add_action('admin_post_mjpm_save_custom', [__CLASS__, 'save_custom']);
+		add_action('admin_post_mjpm_save_medio', [__CLASS__, 'save_medio']);
 		add_action('admin_post_mjpm_delete_custom', [__CLASS__, 'delete_custom']);
 
 		/* Exclusión por producto. */
@@ -61,6 +62,7 @@ class MJPM_Admin {
 			'symbol'       => html_entity_decode(get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8'),
 			'position'     => get_option('woocommerce_currency_pos', 'left_space'),
 			'confirmDelete' => '¿Borrar este método propio? Los pedidos ya hechos no se tocan.',
+			'detailsMax'    => MJPM_Settings::DETAILS_MAX,
 		]);
 	}
 
@@ -100,7 +102,13 @@ class MJPM_Admin {
 				continue;
 			}
 			$in['show'] = empty($in['show']) ? 0 : 1;
-			$all[$id]   = MJPM_Settings::sanitize_method($in);
+			/*
+			 * Se pisa solo lo que trae la tabla. El comprobante y los datos para
+			 * pagar se guardan en otros formularios sobre la misma opción: sin
+			 * fusionar, guardar la tabla los borraba.
+			 */
+			$current  = isset($all[$id]) ? $all[$id] : MJPM_Settings::method_defaults();
+			$all[$id] = MJPM_Settings::sanitize_method(array_merge($current, array_intersect_key($in, self::table_fields())));
 		}
 		MJPM_Settings::update_methods($all);
 
@@ -112,6 +120,11 @@ class MJPM_Admin {
 		]);
 		MJPM_Settings::flush_caches();
 		self::back(['saved' => 'methods']);
+	}
+
+	/** Lo que se edita en la tabla de ajustes (el resto de la config del medio no se toca ahí). */
+	private static function table_fields() {
+		return array_flip(['kind', 'mode', 'value', 'label', 'badge', 'short', 'show', 'min_amount']);
 	}
 
 	public static function save_settings() {
@@ -127,6 +140,7 @@ class MJPM_Admin {
 			'show_badge'      => empty($in['show_badge']) ? 0 : 1,
 			'show_panel'      => empty($in['show_panel']) ? 0 : 1,
 			'show_list_price' => empty($in['show_list_price']) ? 0 : 1,
+			'details_title'   => isset($in['details_title']) ? sanitize_text_field($in['details_title']) : '',
 		]);
 		MJPM_Settings::flush_caches();
 		self::back(['saved' => 'settings']);
@@ -146,32 +160,138 @@ class MJPM_Admin {
 		return $slug;
 	}
 
+	/** Crea un método propio. Después se edita como cualquier medio, desde su editor. */
 	public static function save_custom() {
 		self::guard('mjpm_save_custom');
-		$in   = isset($_POST['custom']) && is_array($_POST['custom']) ? wp_unslash($_POST['custom']) : [];
-		$slug = isset($in['slug']) ? sanitize_key($in['slug']) : '';
-		$def  = MJPM_Settings::sanitize_custom($in);
+		$in  = isset($_POST['custom']) && is_array($_POST['custom']) ? wp_unslash($_POST['custom']) : [];
+		$def = MJPM_Settings::sanitize_custom($in);
 		if ('' === $def['title']) {
-			self::back(['error' => 'title', 'edit' => $slug]);
+			self::back(['error' => 'title']);
 		}
-		$all = MJPM_Settings::custom();
-		if ('' === $slug) {
-			$slug = self::unique_slug($def['title'], $all);
-		} elseif (!isset($all[$slug])) {
-			self::back(['error' => 'missing']);
-		}
+		$all        = MJPM_Settings::custom();
+		$slug       = self::unique_slug($def['title'], $all);
 		$def['id']  = MJPM_Settings::gateway_id($slug);
 		$all[$slug] = $def;
 		MJPM_Settings::update_custom($all);
-
-		/* "Activar" vive en la opción del gateway de WooCommerce (así funciona su interruptor). */
-		$option = get_option('woocommerce_' . $def['id'] . '_settings', []);
-		$option = is_array($option) ? $option : [];
-		$option['enabled'] = empty($in['enabled']) ? 'no' : 'yes';
-		update_option('woocommerce_' . $def['id'] . '_settings', $option);
+		self::save_enabled($def['id'], !empty($in['enabled']));
 
 		MJPM_Settings::flush_caches();
-		self::back(['saved' => 'custom']);
+		/* Directo a su editor: lo próximo que hace falta son sus datos para pagar. */
+		self::back(['saved' => 'custom', 'medio' => $def['id']]);
+	}
+
+	/** "Activar" de un método propio vive en la opción de su gateway (así funciona el interruptor de WooCommerce). */
+	private static function save_enabled($gateway_id, $on) {
+		$option = get_option(self::option_name($gateway_id), []);
+		$option = is_array($option) ? $option : [];
+
+		$option['enabled'] = $on ? 'yes' : 'no';
+		update_option(self::option_name($gateway_id), $option);
+	}
+
+	/** ¿El gateway tiene el interruptor "Activar" de WooCommerce? */
+	private static function has_enabled($gateway) {
+		$form = method_exists($gateway, 'get_form_fields') ? (array) $gateway->get_form_fields() : [];
+		return isset($form['enabled']);
+	}
+
+	/** Slug del método propio detrás de un gateway, o ''. */
+	private static function custom_slug($gateway_id) {
+		foreach (MJPM_Settings::custom() as $slug => $def) {
+			if ($def['id'] === $gateway_id) {
+				return (string) $slug;
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Textos que un gateway de WooCommerce (o de otro plugin) declara en sus
+	 * ajustes y que se pueden editar desde acá: clave => tipo de campo.
+	 *
+	 * Solo los que el gateway tiene. Si uno no declara instrucciones, no se
+	 * inventan: se editan en sus propios ajustes.
+	 *
+	 * @param WC_Payment_Gateway $gateway Gateway.
+	 * @return array
+	 */
+	private static function native_fields($gateway) {
+		$form = method_exists($gateway, 'get_form_fields') ? (array) $gateway->get_form_fields() : [];
+		$out  = [];
+		foreach (['title', 'description', 'instructions'] as $key) {
+			$type = isset($form[$key]['type']) ? (string) $form[$key]['type'] : '';
+			if (in_array($type, ['text', 'safe_text', 'textarea'], true)) {
+				$out[$key] = $type;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Guarda el editor de un medio: sus textos (en la opción del gateway o del
+	 * método propio, según de quién sea) y sus datos para pagar.
+	 */
+	public static function save_medio() {
+		self::guard('mjpm_save_medio');
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard(), arriba.
+		$id = isset($_POST['medio']) ? sanitize_key(wp_unslash($_POST['medio'])) : '';
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Cada campo se limpia al usarlo (sanitize_custom, sanitize_method, native_fields).
+		$in = isset($_POST['medio_data']) && is_array($_POST['medio_data']) ? wp_unslash($_POST['medio_data']) : [];
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		$gateway = '' !== $id ? MJPM_Methods::gateway($id) : null;
+		if (!$gateway) {
+			self::back(['error' => 'missing']);
+		}
+
+		$slug = self::custom_slug($id);
+		if ('' !== $slug) {
+			$all = MJPM_Settings::custom();
+			$def = MJPM_Settings::sanitize_custom(array_merge($all[$slug], array_intersect_key($in, MJPM_Settings::custom_defaults())));
+			if ('' === $def['title']) {
+				self::back(['error' => 'title', 'medio' => $id]);
+			}
+			$all[$slug] = $def;
+			MJPM_Settings::update_custom($all);
+			self::save_enabled($id, !empty($in['enabled']));
+		} else {
+			/*
+			 * En la opción que el gateway declara, como si se guardara desde
+			 * WooCommerce. Se parte de lo guardado; si nunca se guardó, de sus
+			 * valores por defecto.
+			 */
+			$key    = $gateway->get_option_key();
+			$option = get_option($key, null);
+			$option = is_array($option) ? $option : (is_array($gateway->settings) ? $gateway->settings : []);
+			foreach (self::native_fields($gateway) as $field => $type) {
+				if (!isset($in[$field])) {
+					continue;
+				}
+				$value = 'textarea' === $type ? wp_kses_post(trim((string) $in[$field])) : sanitize_text_field((string) $in[$field]);
+				if ('title' === $field && '' === $value) {
+					self::back(['error' => 'title', 'medio' => $id]);
+				}
+				$option[$field] = $value;
+			}
+			if (self::has_enabled($gateway)) {
+				$option['enabled'] = empty($in['enabled']) ? 'no' : 'yes';
+			}
+			update_option($key, $option);
+		}
+
+		/* Los datos para pagar, sobre la config del medio: el ajuste y el comprobante no se tocan. */
+		$all     = MJPM_Settings::methods();
+		$current = isset($all[$id]) ? $all[$id] : MJPM_Settings::method_defaults();
+
+		$current['details']          = isset($in['details']) ? $in['details'] : [];
+		$current['details_title']    = isset($in['details_title']) ? $in['details_title'] : '';
+		$current['details_checkout'] = empty($in['details_checkout']) ? 0 : 1;
+
+		$all[$id] = MJPM_Settings::sanitize_method($current);
+		MJPM_Settings::update_methods($all);
+
+		MJPM_Settings::flush_caches();
+		self::back(['saved' => 'medio', 'medio' => $id]);
 	}
 
 	public static function delete_custom() {
@@ -248,6 +368,156 @@ class MJPM_Admin {
 		}
 	}
 
+	/* ------------------------------- Editor ------------------------------ */
+
+	/**
+	 * Campos de un método propio. Los usan el alta y el editor, con distinto
+	 * prefijo de nombre.
+	 *
+	 * @param string $prefix  Prefijo del name (custom | medio_data).
+	 * @param array  $d       Definición.
+	 * @param bool   $on      Activo.
+	 * @param bool   $has_mjd MJ Dólar activo.
+	 */
+	private static function custom_fields($prefix, array $d, $on, $has_mjd) {
+		?>
+		<p><label>Título <span class="description">(lo ve el cliente en el checkout)</span><br><input type="text" name="<?php echo esc_attr($prefix); ?>[title]" value="<?php echo esc_attr($d['title']); ?>" class="widefat" required placeholder="Pago en dólares en el local"></label></p>
+		<p><label>Descripción en el checkout<br><textarea name="<?php echo esc_attr($prefix); ?>[description]" rows="2" class="widefat" placeholder="Pagás en efectivo en dólares al retirar tu pedido."><?php echo esc_textarea($d['description']); ?></textarea></label></p>
+		<p><label>Instrucciones <span class="description">(confirmación del pedido, Mi cuenta y email)</span><br><textarea name="<?php echo esc_attr($prefix); ?>[instructions]" rows="3" class="widefat" placeholder="Te esperamos en Av. Siempreviva 123, de lunes a viernes de 9 a 18. Traé el número de pedido."><?php echo esc_textarea($d['instructions']); ?></textarea></label></p>
+		<p><label>Estado del pedido al confirmar<br>
+			<select name="<?php echo esc_attr($prefix); ?>[status]">
+				<?php foreach (MJPM_Settings::statuses() as $value => $label) : ?>
+					<option value="<?php echo esc_attr($value); ?>" <?php selected($d['status'], $value); ?>><?php echo esc_html($label); ?></option>
+				<?php endforeach; ?>
+			</select></label></p>
+		<p><label>Moneda en que se cobra<br>
+			<select name="<?php echo esc_attr($prefix); ?>[currency]">
+				<option value="ARS" <?php selected($d['currency'], 'ARS'); ?>>Pesos (moneda de la tienda)</option>
+				<option value="USD" <?php selected($d['currency'], 'USD'); ?> <?php disabled(!$has_mjd); ?>>Dólares<?php echo $has_mjd ? ' (muestra el total en USD con el TC de MJ Dólar)' : ' (requiere MJ Dólar activo)'; ?></option>
+			</select></label></p>
+		<p><label><input type="checkbox" name="<?php echo esc_attr($prefix); ?>[enabled]" value="1" <?php checked($on); ?>> Activo en el checkout</label></p>
+		<?php
+	}
+
+	/**
+	 * Una fila de la lista de datos para pagar. Con $i = '__i__' sale la
+	 * plantilla que usa el JS para agregar filas.
+	 *
+	 * @param int|string $i   Índice.
+	 * @param array      $row label, value, copy.
+	 */
+	private static function detail_row($i, array $row) {
+		$name = 'medio_data[details][' . $i . ']';
+		?>
+		<tr data-mjpm-detail>
+			<td><input type="text" name="<?php echo esc_attr($name); ?>[label]" value="<?php echo esc_attr($row['label']); ?>" maxlength="60" placeholder="Ej.: Alias" aria-label="Dato"></td>
+			<td><input type="text" name="<?php echo esc_attr($name); ?>[value]" value="<?php echo esc_attr($row['value']); ?>" maxlength="200" placeholder="Ej.: mi.tienda.mp" aria-label="Valor"></td>
+			<td class="mjpm-center"><input type="checkbox" name="<?php echo esc_attr($name); ?>[copy]" value="1" <?php checked(!empty($row['copy'])); ?> aria-label="Botón para copiar"></td>
+			<td class="mjpm-details__actions">
+				<button type="button" class="button-link" data-mjpm-detail-up aria-label="Subir">↑</button>
+				<button type="button" class="button-link" data-mjpm-detail-down aria-label="Bajar">↓</button>
+				<button type="button" class="button-link mjpm-delete-row" data-mjpm-detail-remove aria-label="Quitar">Quitar</button>
+			</td>
+		</tr>
+		<?php
+	}
+
+	/**
+	 * Editor de un medio de pago: sus textos y sus datos para pagar.
+	 *
+	 * Los textos de un método propio viven en MJ Medios de Pago; los de un
+	 * gateway de WooCommerce se escriben en su propia opción, así que da lo
+	 * mismo editarlos acá o en WooCommerce → Ajustes → Pagos.
+	 *
+	 * @param string             $id      Id del gateway.
+	 * @param WC_Payment_Gateway $gateway Gateway.
+	 * @param bool               $has_mjd MJ Dólar activo.
+	 */
+	private static function render_editor($id, $gateway, $has_mjd) {
+		$slug    = self::custom_slug($id);
+		$custom  = '' !== $slug ? MJPM_Settings::custom()[$slug] : null;
+		$cfg     = MJPM_Settings::method($id);
+		$fields  = $custom ? [] : self::native_fields($gateway);
+		$title   = wp_strip_all_tags((string) $gateway->get_title());
+		$on      = 'yes' === $gateway->enabled;
+		$names   = ['title' => 'título', 'description' => 'descripción', 'instructions' => 'instrucciones'];
+		$missing = $custom ? [] : array_values(array_diff_key($names, $fields));
+		$rows    = $cfg['details'] ? $cfg['details'] : [['label' => '', 'value' => '', 'copy' => 1]];
+		$bacs    = 'bacs' === $id ? get_option('woocommerce_bacs_accounts', []) : [];
+		?>
+		<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="mjpm-medio" class="mjpm-card mjpm-editor">
+			<input type="hidden" name="action" value="mjpm_save_medio">
+			<input type="hidden" name="medio" value="<?php echo esc_attr($id); ?>">
+			<?php wp_nonce_field('mjpm_save_medio'); ?>
+
+			<div class="mjpm-editor__head">
+				<h2>Editar “<?php echo esc_html($title); ?>”</h2>
+				<small><?php echo esc_html($id); ?> · <?php echo $custom ? 'método propio' : 'medio de WooCommerce'; ?></small>
+			</div>
+
+			<div class="mjpm-editor__grid">
+				<section>
+					<h3>Cómo se ve en el checkout</h3>
+					<?php if ($custom) : ?>
+						<?php self::custom_fields('medio_data', $custom, $on, $has_mjd); ?>
+					<?php else : ?>
+						<?php if (isset($fields['title'])) : ?>
+							<p><label>Título <span class="description">(lo ve el cliente en el checkout)</span><br><input type="text" name="medio_data[title]" value="<?php echo esc_attr((string) $gateway->get_option('title')); ?>" class="widefat" required></label></p>
+						<?php endif; ?>
+						<?php if (isset($fields['description'])) : ?>
+							<p><label>Descripción en el checkout<br><textarea name="medio_data[description]" rows="2" class="widefat"><?php echo esc_textarea((string) $gateway->get_option('description')); ?></textarea></label></p>
+						<?php endif; ?>
+						<?php if (isset($fields['instructions'])) : ?>
+							<p><label>Instrucciones <span class="description">(confirmación del pedido, Mi cuenta y email)</span><br><textarea name="medio_data[instructions]" rows="3" class="widefat" placeholder="Transferí el total y subí el comprobante. Despachamos cuando se acredita."><?php echo esc_textarea((string) $gateway->get_option('instructions')); ?></textarea></label></p>
+						<?php endif; ?>
+						<?php if (self::has_enabled($gateway)) : ?>
+							<p><label><input type="checkbox" name="medio_data[enabled]" value="1" <?php checked($on); ?>> Activo en el checkout</label></p>
+						<?php endif; ?>
+						<?php if ($missing) : ?>
+							<p class="description">
+								Este medio no tiene <?php echo esc_html(implode(' ni ', $missing)); ?> propios para editar desde acá.
+								<a href="<?php echo esc_url(admin_url('admin.php?page=wc-settings&tab=checkout&section=' . $id)); ?>">Ver sus ajustes en WooCommerce</a>.
+							</p>
+						<?php else : ?>
+							<p class="description">Se guardan en los ajustes del medio en WooCommerce: es lo mismo editarlos acá o allá.</p>
+						<?php endif; ?>
+					<?php endif; ?>
+				</section>
+
+				<section>
+					<h3>Datos para pagar</h3>
+					<p class="description">Lo que el cliente necesita para pagarte: alias, CBU o CVU, titular, CUIT, banco… Cada fila es un dato y la etiqueta la escribís vos. Las filas vacías no se guardan.</p>
+					<p><label>Encabezado<br><input type="text" name="medio_data[details_title]" value="<?php echo esc_attr($cfg['details_title']); ?>" maxlength="80" class="regular-text" placeholder="<?php echo esc_attr((string) MJPM_Settings::get('details_title')); ?>"></label></p>
+
+					<table class="widefat mjpm-details">
+						<thead><tr><th>Dato</th><th>Valor</th><th class="mjpm-center">Copiar</th><th></th></tr></thead>
+						<tbody data-mjpm-details data-next="<?php echo esc_attr((string) count($rows)); ?>">
+							<?php foreach (array_values($rows) as $i => $row) : ?>
+								<?php self::detail_row($i, $row); ?>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+					<template id="mjpm-detail-template"><?php self::detail_row('__i__', ['label' => '', 'value' => '', 'copy' => 1]); ?></template>
+					<p><button type="button" class="button" data-mjpm-detail-add>+ Agregar dato</button></p>
+					<p class="description">“Copiar” le pone al lado un botón para copiarlo con un toque (útil en alias y CBU).</p>
+
+					<p><label><input type="checkbox" name="medio_data[details_checkout]" value="1" <?php checked((int) $cfg['details_checkout'], 1); ?>> Mostrarlos también en el checkout, al elegir este medio</label></p>
+					<p class="description">Después de comprar se ven siempre, mientras el pedido espere el pago: en la confirmación, en Mi cuenta, en el email y en el link para subir el comprobante.</p>
+
+					<?php if (is_array($bacs) && $bacs) : ?>
+						<p class="mjpm-editor__warning">WooCommerce tiene además <?php echo esc_html(1 === count($bacs) ? '1 cuenta cargada' : count($bacs) . ' cuentas cargadas'); ?> en los ajustes de Transferencia. Esas salen solo en el email y en la página de gracias clásica, no en la tienda: conviene pasarlas acá y <a href="<?php echo esc_url(admin_url('admin.php?page=wc-settings&tab=checkout&section=bacs')); ?>">borrarlas allá</a> para que no se vean repetidas.</p>
+					<?php endif; ?>
+				</section>
+			</div>
+
+			<p class="submit">
+				<button type="submit" class="button button-primary">Guardar medio de pago</button>
+				<a class="button" href="<?php echo esc_url(self::page_url()); ?>">Cerrar</a>
+			</p>
+		</form>
+		<?php
+	}
+
 	/* -------------------------------- Página ----------------------------- */
 
 	private static function option_name($id) {
@@ -263,8 +533,7 @@ class MJPM_Admin {
 		$custom   = MJPM_Settings::custom();
 		$saved    = isset($_GET['saved']) ? sanitize_key($_GET['saved']) : '';
 		$error    = isset($_GET['error']) ? sanitize_key($_GET['error']) : '';
-		$edit     = isset($_GET['edit']) ? sanitize_key($_GET['edit']) : '';
-		$editing  = '' !== $edit && isset($custom[$edit]) ? $custom[$edit] : null;
+		$medio    = isset($_GET['medio']) ? sanitize_key($_GET['medio']) : '';
 		$example  = isset($_GET['ejemplo']) ? MJPM_Settings::decimal(wp_unslash($_GET['ejemplo'])) : 100000;
 		if ($example <= 0) {
 			$example = 100000;
@@ -273,7 +542,8 @@ class MJPM_Admin {
 		$messages = [
 			'methods'  => 'Ajustes por medio de pago guardados.',
 			'settings' => 'Ajustes generales guardados.',
-			'custom'   => 'Método propio guardado. Ya aparece en el checkout y en la tabla de ajustes.',
+			'custom'   => 'Método propio creado. Ya aparece en el checkout y en la tabla de ajustes: cargale acá sus datos para pagar.',
+			'medio'    => 'Medio de pago guardado. Los cambios ya se ven en la tienda.',
 			'deleted'  => 'Método propio borrado.',
 		];
 		?>
@@ -285,13 +555,19 @@ class MJPM_Admin {
 				<div class="notice notice-success is-dismissible"><p><?php echo esc_html($messages[$saved]); ?></p></div>
 			<?php endif; ?>
 			<?php if ('title' === $error) : ?>
-				<div class="notice notice-error"><p>El método propio necesita un título.</p></div>
+				<div class="notice notice-error"><p>El medio de pago necesita un título: es lo que ve el cliente en el checkout.</p></div>
 			<?php elseif ('missing' === $error) : ?>
-				<div class="notice notice-error"><p>Ese método propio ya no existe.</p></div>
+				<div class="notice notice-error"><p>Ese medio de pago ya no existe.</p></div>
 			<?php endif; ?>
 			<?php if ('' === $s['base_method']) : ?>
 				<div class="notice notice-warning"><p><strong>Falta elegir el precio base.</strong> Marcá en la tabla qué medio de pago corresponde al precio cargado en WooCommerce.</p></div>
 			<?php endif; ?>
+
+			<?php
+			if ('' !== $medio && isset($gateways[$medio])) {
+				self::render_editor($medio, $gateways[$medio], $has_mjd);
+			}
+			?>
 
 			<!-- ------------------------- Tabla de ajustes ------------------------- -->
 			<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="mjpm-card">
@@ -320,11 +596,13 @@ class MJPM_Admin {
 						$enabled = 'yes' === $gateway->enabled;
 						$is_own  = (bool) MJPM_Settings::custom_by_gateway($id);
 						$name    = 'methods[' . esc_attr($id) . ']';
+						$n_data  = count($cfg['details']);
 						?>
-						<tr class="<?php echo $enabled ? '' : 'mjpm-row--off'; ?>" data-mjpm-row>
+						<tr class="<?php echo $enabled ? '' : 'mjpm-row--off'; ?><?php echo $medio === $id ? ' mjpm-row--editing' : ''; ?>" data-mjpm-row>
 							<td class="mjpm-method">
 								<strong><?php echo esc_html(wp_strip_all_tags((string) $gateway->get_title())); ?></strong>
 								<small><?php echo esc_html($id); ?><?php echo $is_own ? ' · propio' : ''; ?><?php echo $enabled ? '' : ' · desactivado'; ?></small>
+								<small><a class="mjpm-edit-link" href="<?php echo esc_url(self::page_url(['medio' => $id]) . '#mjpm-medio'); ?>">Editar textos y datos para pagar</a><?php echo $n_data ? ' · ' . esc_html(1 === $n_data ? '1 dato' : $n_data . ' datos') : ''; ?></small>
 								<?php if (!$is_own) : ?>
 									<small><a href="<?php echo esc_url(admin_url('admin.php?page=wc-settings&tab=checkout&section=' . $id)); ?>">ajustes en WooCommerce</a></small>
 								<?php endif; ?>
@@ -383,7 +661,7 @@ class MJPM_Admin {
 									<td><?php echo esc_html($def['currency']); ?></td>
 									<td><?php echo $on ? 'Sí' : 'No'; ?></td>
 									<td class="mjpm-actions">
-										<a href="<?php echo esc_url(self::page_url(['edit' => $slug]) . '#mjpm-custom-form'); ?>">Editar</a> ·
+										<a href="<?php echo esc_url(self::page_url(['medio' => $def['id']]) . '#mjpm-medio'); ?>">Editar</a> ·
 										<a class="mjpm-delete" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=mjpm_delete_custom&slug=' . $slug), 'mjpm_delete_' . $slug)); ?>">Borrar</a>
 									</td>
 								</tr>
@@ -397,33 +675,10 @@ class MJPM_Admin {
 					<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="mjpm-custom-form" class="mjpm-custom-form">
 						<input type="hidden" name="action" value="mjpm_save_custom">
 						<?php wp_nonce_field('mjpm_save_custom'); ?>
-						<input type="hidden" name="custom[slug]" value="<?php echo esc_attr($editing ? $edit : ''); ?>">
-						<h3><?php echo $editing ? 'Editar “' . esc_html($editing['title']) . '”' : 'Nuevo método propio'; ?></h3>
-						<?php
-						$d   = $editing ? $editing : MJPM_Settings::custom_defaults();
-						$opt = $editing ? get_option(self::option_name($editing['id']), []) : [];
-						$on  = !$editing || !is_array($opt) || !isset($opt['enabled']) || 'yes' === $opt['enabled'];
-						?>
-						<p><label>Título <span class="description">(lo ve el cliente en el checkout)</span><br><input type="text" name="custom[title]" value="<?php echo esc_attr($d['title']); ?>" class="widefat" required placeholder="Pago en dólares en el local"></label></p>
-						<p><label>Descripción en el checkout<br><textarea name="custom[description]" rows="2" class="widefat" placeholder="Pagás en efectivo en dólares al retirar tu pedido."><?php echo esc_textarea($d['description']); ?></textarea></label></p>
-						<p><label>Instrucciones (página de gracias y email)<br><textarea name="custom[instructions]" rows="3" class="widefat" placeholder="Te esperamos en Av. Siempreviva 123, de lunes a viernes de 9 a 18. Traé el número de pedido."><?php echo esc_textarea($d['instructions']); ?></textarea></label></p>
-						<p><label>Estado del pedido al confirmar<br>
-							<select name="custom[status]">
-								<?php foreach (MJPM_Settings::statuses() as $value => $label) : ?>
-									<option value="<?php echo esc_attr($value); ?>" <?php selected($d['status'], $value); ?>><?php echo esc_html($label); ?></option>
-								<?php endforeach; ?>
-							</select></label></p>
-						<p><label>Moneda en que se cobra<br>
-							<select name="custom[currency]">
-								<option value="ARS" <?php selected($d['currency'], 'ARS'); ?>>Pesos (moneda de la tienda)</option>
-								<option value="USD" <?php selected($d['currency'], 'USD'); ?> <?php disabled(!$has_mjd); ?>>Dólares<?php echo $has_mjd ? ' (muestra el total en USD con el TC de MJ Dólar)' : ' (requiere MJ Dólar activo)'; ?></option>
-							</select></label></p>
-						<p><label><input type="checkbox" name="custom[enabled]" value="1" <?php checked($on); ?>> Activo en el checkout</label></p>
-						<p class="submit">
-							<button type="submit" class="button button-primary"><?php echo $editing ? 'Guardar cambios' : 'Crear método'; ?></button>
-							<?php if ($editing) : ?><a class="button" href="<?php echo esc_url(self::page_url()); ?>">Cancelar</a><?php endif; ?>
-						</p>
-						<p class="description">Después de crearlo, asignale su descuento o recargo en la tabla de arriba.</p>
+						<h3>Nuevo método propio</h3>
+						<?php self::custom_fields('custom', MJPM_Settings::custom_defaults(), true, $has_mjd); ?>
+						<p class="submit"><button type="submit" class="button button-primary">Crear método</button></p>
+						<p class="description">Después de crearlo se abre su editor para cargarle los datos para pagar. El descuento o recargo se asigna en la tabla de arriba.</p>
 					</form>
 				</section>
 
@@ -466,6 +721,13 @@ class MJPM_Admin {
 									<label><input type="checkbox" name="settings[show_panel]" value="1" <?php checked((int) $s['show_panel'], 1); ?>> Panel “Precio según medio de pago” en la ficha</label><br>
 									<label><input type="checkbox" name="settings[show_list_price]" value="1" <?php checked((int) $s['show_list_price'], 1); ?>> Mostrar el precio base tachado cuando el método elegido tiene descuento</label>
 									<p class="description">Requiere el tema MJ Appearance 3.3 o superior.</p>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row"><label for="mjpm_details_title">Datos para pagar</label></th>
+								<td>
+									<input type="text" id="mjpm_details_title" name="settings[details_title]" value="<?php echo esc_attr($s['details_title']); ?>" maxlength="80" class="regular-text">
+									<p class="description">Encabezado de los datos de cada medio (alias, CBU…) en la tienda y el email, salvo que el medio tenga el suyo.</p>
 								</td>
 							</tr>
 						</table>
@@ -516,6 +778,7 @@ class MJPM_Admin {
 					<li><code>MJPM_Methods::config($id)</code> → ajuste del método; <code>MJPM_Methods::price_for($pesos, $cfg)</code> → precio con ese método; <code>MJPM_Methods::public_payload()</code> → config pública.</li>
 					<li><code>MJPM_Cart::effective_method_id()</code> → método vigente en la sesión; <code>MJPM_Methods::calculate_for_cart($cart, $id)</code> → línea del carrito.</li>
 					<li>Filtros: <code>mjpm_product_eligible($ok, $product)</code>, <code>mjpm_cart_adjustment($calc, $cart, $cfg)</code>. Acción: <code>mjpm_flush_caches</code>.</li>
+					<li>Cómo pagar: <code>MJPM_Payment_Info::for_method($id)</code>, <code>MJPM_Payment_Info::for_order($order)</code>. Filtros <code>mjpm_payment_info($info, $id)</code> y <code>mjpm_payment_info_statuses($estados, $order)</code>. REST <code>GET /wp-json/mjpm/v1/como-pagar?pedido=ID&amp;clave=CLAVE</code>.</li>
 					<li>REST: <code>GET /wp-json/mjpm/v1/methods</code>, <code>GET /wp-json/mjpm/v1/price?amount=100000&amp;method=bacs</code>. Store API: <code>extensions.mjpm</code> en producto, ítem y carrito; <code>POST /wc/store/v1/cart/extensions</code> con <code>{namespace:"mjpm", data:{payment_method}}</code>.</li>
 					<li>Meta de pedido: <code>_mjpm_method</code>, <code>_mjpm_kind</code>, <code>_mjpm_value</code>, <code>_mjpm_amount</code>, <code>_mjpm_label</code>, <code>_mjpm_currency</code>, <code>_mjpm_rate</code>. Producto: <code>_mjpm_exclude</code>. Categoría: <code>mjpm_exclude</code>.</li>
 				</ul>

@@ -260,6 +260,8 @@ class MJPM_Methods {
 			$cfg    = self::config($id);
 			$custom = MJPM_Settings::custom_by_gateway($id);
 			$title  = wp_strip_all_tags((string) $gateway->get_title());
+			/* Los datos para pagar son públicos solo si el medio los muestra en el checkout. */
+			$info      = $cfg['details_checkout'] ? MJPM_Payment_Info::for_method($id) : null;
 			$methods[] = [
 				'id'           => $id,
 				'title'        => $title,
@@ -275,6 +277,8 @@ class MJPM_Methods {
 				'custom'       => (bool) $custom,
 				'currency'     => $custom && 'USD' === $custom['currency'] ? 'USD' : get_woocommerce_currency(),
 				'instructions' => $custom ? (string) $custom['instructions'] : '',
+				'detailsTitle' => $info ? (string) $info['detailsTitle'] : '',
+				'details'      => $info ? $info['details'] : [],
 			];
 		}
 		$base    = (string) $s['base_method'];

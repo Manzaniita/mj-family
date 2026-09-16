@@ -41,6 +41,26 @@
 .mjpm-credito { color: #a7aaad; font-size: 12px; margin-top: 16px; }
 .mjpm-order-box p { margin: 6px 0; }
 
+/* Editor de un medio: textos y datos para pagar. */
+.mjpm-method .mjpm-edit-link { font-weight: 600; }
+.mjpm-row--editing td { background: #f0f6fc; }
+.mjpm-editor { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; scroll-margin-top: 48px; }
+.mjpm-editor__head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.mjpm-editor__head small { color: #646970; }
+.mjpm-editor__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 28px; }
+.mjpm-editor__grid p { margin: 10px 0; }
+.mjpm-editor__warning { background: #fcf9e8; border-left: 4px solid #dba617; padding: 8px 12px; }
+.mjpm-details { margin-top: 6px; }
+.mjpm-details th, .mjpm-details td { padding: 6px 8px; vertical-align: middle; }
+.mjpm-details th:nth-child(1) { width: 32%; }
+.mjpm-details th:nth-child(3) { width: 60px; }
+.mjpm-details input[type="text"] { width: 100%; }
+.mjpm-details .mjpm-center { text-align: center; }
+.mjpm-details__actions { white-space: nowrap; text-align: right; }
+.mjpm-details__actions .button-link { padding: 2px 4px; text-decoration: none; }
+.mjpm-details__actions .mjpm-delete-row { color: #b32d2e; }
+
 @media (max-width: 1100px) {
 	.mjpm-grid { grid-template-columns: 1fr; }
+	.mjpm-editor__grid { grid-template-columns: 1fr; }
 }

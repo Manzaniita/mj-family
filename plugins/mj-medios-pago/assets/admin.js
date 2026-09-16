@@ -91,5 +91,45 @@
 		if (!window.confirm(cfg.confirmDelete || '¿Borrar?')) e.preventDefault();
 	});
 
+	/* Datos para pagar: agregar, quitar y ordenar filas. El orden del formulario es el de la tienda. */
+	function syncDetails() {
+		var $body = $('[data-mjpm-details]');
+		var max = parseInt(cfg.detailsMax, 10) || 20;
+		$('[data-mjpm-detail-add]').prop('disabled', $body.children('[data-mjpm-detail]').length >= max);
+	}
+
+	$(document).on('click', '[data-mjpm-detail-add]', function () {
+		var $body = $('[data-mjpm-details]');
+		var tpl = document.getElementById('mjpm-detail-template');
+		if (!$body.length || !tpl) return;
+		var i = parseInt($body.attr('data-next'), 10) || 0;
+		$body.attr('data-next', i + 1);
+		var $row = $(tpl.innerHTML.replace(/__i__/g, String(i)));
+		$body.append($row);
+		$row.find('input[type="text"]').first().trigger('focus');
+		syncDetails();
+	});
+
+	$(document).on('click', '[data-mjpm-detail-remove]', function () {
+		var $row = $(this).closest('[data-mjpm-detail]');
+		if ($row.siblings('[data-mjpm-detail]').length) {
+			$row.remove();
+		} else {
+			$row.find('input[type="text"]').val(''); // La última fila se vacía: así siempre queda dónde escribir.
+		}
+		syncDetails();
+	});
+
+	$(document).on('click', '[data-mjpm-detail-up], [data-mjpm-detail-down]', function () {
+		var $row = $(this).closest('[data-mjpm-detail]');
+		if ($(this).is('[data-mjpm-detail-up]')) {
+			$row.prev('[data-mjpm-detail]').before($row);
+		} else {
+			$row.next('[data-mjpm-detail]').after($row);
+		}
+	});
+
+	$(syncDetails);
+
 	$(updateAll);
 })(jQuery);

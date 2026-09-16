@@ -394,3 +394,44 @@ body.mjpm-page {
 	padding: 0;
 	background: none;
 }
+
+/* ------------- Cómo pagar, en la página del link (alias, CBU…) ------------ */
+
+.mjpm-page__instructions {
+	margin-top: 1rem;
+	font-size: .9rem;
+}
+
+.mjpm-page__instructions p {
+	margin: 0 0 .75rem;
+}
+
+.mjpm-page .mjpm-pay-details {
+	margin: 1.25rem 0;
+	padding: 1rem 1.25rem;
+	border: 1px solid rgba(0, 0, 0, .12);
+	border-radius: 14px;
+}
+
+.mjpm-page .mjpm-pay-details__title {
+	margin: 0 0 .5rem;
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+.mjpm-page .mjpm-pay-details__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.mjpm-page .mjpm-pay-details__list li {
+	padding: .35rem 0;
+	overflow-wrap: anywhere;
+}
+
+@media (prefers-color-scheme: dark) {
+	.mjpm-page .mjpm-pay-details {
+		border-color: rgba(255, 255, 255, .16);
+	}
+}

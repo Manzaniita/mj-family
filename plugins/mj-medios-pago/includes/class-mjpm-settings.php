@@ -22,6 +22,9 @@ class MJPM_Settings {
 	const RECEIPTS = 'mjpm_receipts';
 	const MAPPING  = 'mjpm_mapping';
 
+	/** Tope de datos para pagar por medio de pago. */
+	const DETAILS_MAX = 20;
+
 	private static $cache    = null;
 	private static $methods  = null;
 	private static $custom   = null;
@@ -42,6 +45,7 @@ class MJPM_Settings {
 			'show_badge'      => 1,         // Badge "10% OFF con transferencia" en tarjetas.
 			'show_panel'      => 1,         // Panel de precios por medio de pago en la ficha.
 			'show_list_price' => 1,         // Precio base tachado cuando el método mostrado tiene descuento.
+			'details_title'   => 'Datos para pagar', // Encabezado de los datos de cada medio ('' en el medio = este).
 		];
 	}
 
@@ -98,6 +102,8 @@ class MJPM_Settings {
 		}
 		$label                 = isset($in['selector_label']) ? trim(sanitize_text_field($in['selector_label'])) : $d['selector_label'];
 		$out['selector_label'] = '' !== $label ? $label : $d['selector_label'];
+		$title                 = isset($in['details_title']) ? trim(sanitize_text_field($in['details_title'])) : $d['details_title'];
+		$out['details_title']  = '' !== $title ? mb_substr($title, 0, 80) : $d['details_title'];
 
 		return $out;
 	}
@@ -126,7 +132,50 @@ class MJPM_Settings {
 			'receipt_hours' => -1,        // Plazo en horas para subirlo (-1 general, 0 sin plazo).
 			'receipt_on_ok' => 'heredar', // Estado del pedido al aprobar ('heredar' general, '' no tocar).
 			'receipt_attach' => -1,       // Adjuntar al email del pedido (-1 general, 0 no, 1 sí).
+
+			/*
+			 * Datos para pagar: alias, CBU, titular, lo que haga falta. Es una lista
+			 * libre porque cada medio pide otra cosa y ningún nombre está fijo.
+			 * Se muestran después de comprar (gracias, Mi cuenta, email, link del
+			 * comprobante) y, si se marca, también en el checkout.
+			 */
+			'details'          => [],     // Filas con label (Alias), value (mi.tienda) y copy (1 = botón de copiar).
+			'details_title'    => '',     // Encabezado ('' = el de los ajustes generales).
+			'details_checkout' => 0,      // Mostrarlos también en el checkout, al elegir el medio (van en la config pública).
 		];
+	}
+
+	/**
+	 * Limpia la lista de datos para pagar: descarta las filas vacías y corta
+	 * largos, así lo que llega a la tienda y al email es siempre prolijo.
+	 *
+	 * @param mixed $rows Filas como vienen del formulario o de la base.
+	 * @return array
+	 */
+	public static function sanitize_details($rows) {
+		$out = [];
+		if (!is_array($rows)) {
+			return $out;
+		}
+		foreach ($rows as $row) {
+			if (!is_array($row)) {
+				continue;
+			}
+			$label = isset($row['label']) ? trim(sanitize_text_field($row['label'])) : '';
+			$value = isset($row['value']) ? trim(sanitize_text_field($row['value'])) : '';
+			if ('' === $label && '' === $value) {
+				continue;
+			}
+			$out[] = [
+				'label' => mb_substr($label, 0, 60),
+				'value' => mb_substr($value, 0, 200),
+				'copy'  => empty($row['copy']) ? 0 : 1,
+			];
+			if (count($out) >= self::DETAILS_MAX) {
+				break;
+			}
+		}
+		return $out;
 	}
 
 	/** Modos de exigencia del comprobante. */
@@ -212,6 +261,10 @@ class MJPM_Settings {
 
 		$attach                = isset($in['receipt_attach']) && '' !== (string) $in['receipt_attach'] ? (int) $in['receipt_attach'] : -1;
 		$out['receipt_attach'] = in_array($attach, [0, 1], true) ? $attach : -1;
+
+		$out['details']          = isset($in['details']) ? self::sanitize_details($in['details']) : [];
+		$out['details_title']    = isset($in['details_title']) ? mb_substr(trim(sanitize_text_field($in['details_title'])), 0, 80) : '';
+		$out['details_checkout'] = empty($in['details_checkout']) ? 0 : 1;
 
 		return $out;
 	}

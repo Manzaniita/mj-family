@@ -93,7 +93,7 @@ class MJPM_Orders {
 		echo '</div>';
 	}
 
-	/** Detalle del pedido para la SPA: fees, método, ajuste, total en USD e instrucciones. */
+	/** Detalle del pedido para la SPA: fees, método, ajuste, total en USD, instrucciones y datos para pagar. */
 	public static function rest_order_detail($data, $order) {
 		if (!is_array($data) || !$order instanceof WC_Order) {
 			return $data;
@@ -118,8 +118,11 @@ class MJPM_Orders {
 		$data['usdTotal']          = $usd;
 		$data['usdTotalFormatted'] = null !== $usd ? self::format_usd($usd) : '';
 
-		$custom                      = MJPM_Settings::custom_by_gateway((string) $order->get_payment_method());
-		$data['paymentInstructions'] = $custom && in_array($order->get_status(), ['on-hold', 'pending', 'processing'], true) ? (string) $custom['instructions'] : '';
+		/* Cómo pagar: instrucciones y datos del medio, mientras el pedido espere el pago. */
+		$info                        = MJPM_Payment_Info::for_order($order);
+		$data['paymentInstructions'] = $info ? $info['instructions'] : '';
+		$data['paymentDetailsTitle'] = $info ? $info['detailsTitle'] : '';
+		$data['paymentDetails']      = $info ? $info['details'] : [];
 
 		$data['receipt'] = self::rest_receipt($order);
 

@@ -5,7 +5,7 @@ Tested up to: 6.8
 Requires PHP: 7.4
 WC requires at least: 7.0
 WC tested up to: 9.9
-Stable tag: 1.1.0
+Stable tag: 1.4.0
 License: GPL-2.0-or-later
 
 Descuentos y recargos por medio de pago, con precio distinto en tarjetas, ficha, carrito y checkout. Métodos de pago propios y comprobantes de pago que vos aprobás.
@@ -13,6 +13,7 @@ Descuentos y recargos por medio de pago, con precio distinto en tarjetas, ficha,
 == Qué hace ==
 
 * Tabla con todos los medios de pago de la tienda: marcás cuál tiene el precio base y qué descuento o recargo lleva cada uno (porcentaje por unidad o monto fijo por pedido), con justificación, badge, nombre corto y mínimo de compra.
+* Cada medio se edita desde la misma pantalla: título, descripción, instrucciones, si está activo, y sus datos para pagar (alias, CBU, titular, CUIT… la etiqueta la escribís vos), con botón de copiar. El cliente los ve en la confirmación del pedido, en Mi cuenta, en el email y en el link del comprobante, y si querés también en el checkout.
 * Métodos propios (por ejemplo "Pago en dólares en el local"): se registran como medios de pago reales de WooCommerce, con descripción, instrucciones, estado del pedido y moneda. Con MJ Dólar activo, los cobrados en dólares muestran el total en USD.
 * El ajuste entra al pedido como una línea aparte con su justificación, calculada ítem por ítem con el mismo redondeo que ven las tarjetas.
 * En la tienda (tema MJ Appearance 3.3+): selector "Ver precios con" en header y carrito, precio por método en tarjetas y ficha, panel de precios por medio de pago, totales del carrito y checkout en vivo, instrucciones y total en USD en la confirmación.
@@ -52,6 +53,12 @@ Descuentos y recargos por medio de pago, con precio distinto en tarjetas, ficha,
 Plugins → MJ Medios de Pago → Desactivar y Borrar, después subís el zip nuevo. No se pierde nada.
 
 == Changelog ==
+
+= 1.4.0 =
+* Editor de cada medio de pago (de WooCommerce o propio): título, descripción, instrucciones y activo. Los de WooCommerce se guardan en sus propios ajustes.
+* Datos para pagar por medio (alias, CBU, titular…), con encabezado propio y botón de copiar, en la confirmación, Mi cuenta, email, link del comprobante y, opcional, el checkout.
+* REST GET /mjpm/v1/como-pagar con la clave del pedido, para la tienda React.
+* Arreglo: guardar la tabla de ajustes ya no borra la regla del comprobante configurada para cada medio.
 
 = 1.1.0 =
 * Comprobantes de pago: configurables por medio de pago, con bandeja de revisión, aprobación o rechazo por compra, mails y WhatsApp.
