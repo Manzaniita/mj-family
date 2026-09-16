@@ -3,11 +3,11 @@
         "Slug":  "mj-appearance",
         "Name":  "MJ Appearance",
         "Type":  "theme",
-        "Version":  "3.14.0",
+        "Version":  "3.14.1",
         "Parent":  null,
-        "Zip":  "mj-appearance-3.14.0.zip",
+        "Zip":  "mj-appearance-3.14.1.zip",
         "SizeKB":  474,
-        "Sha256":  "5edaf0d2c2b5a22f7e70818d006ddab19ee4a26c545556f63354ee220057c942"
+        "Sha256":  "2e97ef1199e63543065507a2ab097dc63001e831c0c78efe89d2cdcb223498ca"
     },
     {
         "Slug":  "mj-atelier",
@@ -53,21 +53,21 @@
         "Slug":  "mj-envios",
         "Name":  "MJ Envíos",
         "Type":  "plugin",
-        "Version":  "1.1.0",
+        "Version":  "1.1.1",
         "Parent":  null,
-        "Zip":  "mj-envios-1.1.0.zip",
-        "SizeKB":  91,
-        "Sha256":  "7c0ce18c5d0319d1f5bb346473e0e3933bf4cb27953d83ab4a159b0a31437fba"
+        "Zip":  "mj-envios-1.1.1.zip",
+        "SizeKB":  93,
+        "Sha256":  "4f1d3eadfb6821d3b05661f87324ca3bdd2ba5a81278f833426fbeddc73c6ece"
     },
     {
         "Slug":  "mj-erp",
         "Name":  "MJ ERP",
         "Type":  "plugin",
-        "Version":  "1.19.0",
+        "Version":  "1.19.1",
         "Parent":  null,
-        "Zip":  "mj-erp-1.19.0.zip",
-        "SizeKB":  633,
-        "Sha256":  "468afb05b9e08f23363fe05fcffa8cb4036b93b7fdf23769b14ff931aac1b6ba"
+        "Zip":  "mj-erp-1.19.1.zip",
+        "SizeKB":  634,
+        "Sha256":  "cd3e9f46ed2ef3f2230b2727a85142c8ef85217af3af06b59e1f8ce08cfba584"
     },
     {
         "Slug":  "mj-fotos-rapidas",
