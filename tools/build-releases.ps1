@@ -83,6 +83,19 @@ function Invoke-Native {
     if ($code -ne 0) { throw "$What termino con codigo $code : $Command" }
 }
 
+<#
+    Lo que queda versionado se escribe con LF y sin BOM, que es lo que pide
+    .gitattributes ("* text=auto eol=lf"). Set-Content en Windows PowerShell 5.1
+    escribe CRLF y BOM: git avisaba en cada `git add` que iba a normalizarlo, y
+    ese aviso —que no es un error— cortaba la publicacion.
+#>
+function Write-TextFile {
+    param([string] $Path, [string[]] $Lines)
+
+    $texto = ($Lines -join "`n") + "`n"
+    [System.IO.File]::WriteAllText($Path, $texto, (New-Object System.Text.UTF8Encoding($false)))
+}
+
 if (-not (Test-Path $Config)) { throw "No encuentro la configuracion: $Config" }
 $cfg = Get-Content $Config -Raw -Encoding UTF8 | ConvertFrom-Json
 
@@ -393,10 +406,10 @@ $md += ''
 $md += '```'
 foreach ($r in $results | Sort-Object Slug) { $md += "$($r.Sha256)  $($r.Zip)" }
 $md += '```'
-Set-Content -Path (Join-Path $OutDir 'MANIFEST.md') -Value ($md -join "`r`n") -Encoding utf8
+Write-TextFile -Path (Join-Path $OutDir 'MANIFEST.md') -Lines $md
 
-$results | Sort-Object Slug | ConvertTo-Json -Depth 4 |
-    Set-Content -Path (Join-Path $OutDir 'manifest.json') -Encoding utf8
+$json = $results | Sort-Object Slug | ConvertTo-Json -Depth 4
+Write-TextFile -Path (Join-Path $OutDir 'manifest.json') -Lines ($json -split "`r?`n")
 
 Write-Ok 'releases/MANIFEST.md y releases/manifest.json'
 

@@ -77,6 +77,33 @@ function Invoke-Native {
     if ($code -ne 0) { throw "$What termino con codigo $code : $Command" }
 }
 
+<#
+    git manda a la salida de error cosas que no son errores: el aviso de fin de
+    linea al agregar archivos, el progreso de un push. Por lo mismo de arriba,
+    cualquiera de esos avisos cortaba la publicacion con los zip ya armados y
+    nada subido. Aca se junta la salida y se mira solo el codigo de salida; si
+    de verdad falla, el detalle viaja en el error.
+
+    Los argumentos van directo a git, sin pasar por cmd.exe: asi un mensaje de
+    commit con acentos, comillas o varias lineas llega tal cual.
+#>
+function Invoke-Git {
+    param([Parameter(ValueFromRemainingArguments = $true)][string[]] $Argumentos)
+
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $salida = & git @Argumentos 2>&1
+        $code   = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+    if ($code -ne 0) {
+        throw "git $($Argumentos -join ' ') termino con codigo $code : $(($salida | Out-String).Trim())"
+    }
+    return $salida
+}
+
 try {
     # -----------------------------------------------------------------------
     # 1. Comprobaciones previas
@@ -89,14 +116,14 @@ try {
     Invoke-Native -Command 'gh auth status' -What 'la comprobacion de la sesion de GitHub' -Silencioso
     Write-Ok 'sesion de GitHub activa'
 
-    $rama = (& git rev-parse --abbrev-ref HEAD).Trim()
+    $rama = ((Invoke-Git rev-parse --abbrev-ref HEAD) | Out-String).Trim()
     Write-Ok "rama: $rama"
 
-    $remoto = (& git remote 2>$null)
+    $remoto = @(Invoke-Git remote)
     if (-not $remoto) { throw 'El repositorio no tiene remoto configurado (falta origin).' }
 
     if (-not $Version) { $Version = 'v' + (Get-Date -Format 'yyyy.MM.dd') }
-    if (& git tag --list $Version) {
+    if (@(Invoke-Git tag --list $Version).Count -gt 0) {
         throw "La etiqueta $Version ya existe. Pasá otra con -Version (por ejemplo ${Version}b)."
     }
     Write-Ok "etiqueta a crear: $Version"
@@ -119,7 +146,7 @@ try {
     Write-Host "   etiqueta:  $Version"
     Write-Host "   rama:      $rama"
     Write-Host "   paquetes:  $($zips.Count) zip"
-    $cambios = @(& git status --porcelain)
+    $cambios = @(Invoke-Git status --porcelain)
     Write-Host "   cambios:   $($cambios.Count) archivos"
 
     if (-not $SinConfirmar) {
@@ -132,19 +159,19 @@ try {
     # -----------------------------------------------------------------------
     Write-Step 'Guardando en git'
     if ($cambios.Count -gt 0) {
-        & git add -A
-        & git commit -m $Mensaje | Out-Null
+        Invoke-Git add -A | Out-Null
+        Invoke-Git commit -m $Mensaje | Out-Null
         Write-Ok 'commit creado'
     } else {
         Write-Ok 'no había cambios que comitear'
     }
 
-    & git tag -a $Version -m $Mensaje
+    Invoke-Git tag -a $Version -m $Mensaje | Out-Null
     Write-Ok "etiqueta $Version creada"
 
     Write-Step 'Subiendo a GitHub'
-    Invoke-Native -Command "git push origin $rama" -What 'el envio de la rama' -Silencioso
-    Invoke-Native -Command "git push origin $Version" -What 'el envio de la etiqueta' -Silencioso
+    Invoke-Git push origin $rama | Out-Null
+    Invoke-Git push origin $Version | Out-Null
     Write-Ok 'rama y etiqueta subidas'
 
     # -----------------------------------------------------------------------
@@ -177,7 +204,7 @@ try {
         if ($temporal -and (Test-Path $temporal)) { Remove-Item $temporal -Force }
     }
 
-    $url = (& gh repo view --json url --jq .url).Trim()
+    $url = ((& gh repo view --json url --jq .url 2>$null) | Out-String).Trim()
     Write-Step 'Listo'
     Write-Host "   $url/releases/tag/$Version" -ForegroundColor Green
 }
