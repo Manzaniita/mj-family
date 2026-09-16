@@ -86,9 +86,13 @@ function Invoke-Native {
 
     Los argumentos van directo a git, sin pasar por cmd.exe: asi un mensaje de
     commit con acentos, comillas o varias lineas llega tal cual.
+
+    Sin bloque param a proposito: con un parametro declarado, PowerShell toma
+    el -A de "add -A" o el -a de "tag -a" como una abreviatura de ese
+    parametro y corta antes de llamar a git. En $args llega todo tal cual.
 #>
 function Invoke-Git {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]] $Argumentos)
+    $Argumentos = $args
 
     $previous = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
