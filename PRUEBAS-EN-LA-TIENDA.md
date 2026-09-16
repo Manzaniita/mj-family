@@ -152,6 +152,30 @@ sin estar logueado.
 **Qué tiene que pasar:** se puede subir el comprobante de ese pedido y **de
 ninguno otro**. Probá cambiarle el número al link: tiene que rechazarlo.
 
+### 2.6. Los datos para pagar
+
+1. En WooCommerce → Medios de pago, en la fila de Transferencia, entrá a
+   **Editar textos y datos para pagar**. Cargá alias, CBU y titular, marcá
+   "Copiar" en alias y CBU, y guardá.
+2. Comprá con transferencia desde una ventana de incógnito.
+
+**Qué tiene que pasar:** la confirmación del pedido muestra "Cómo pagar" con los
+tres datos, y los botones copian el valor exacto (pegalo en una nota para
+comprobarlo, también desde el celular). Los mismos datos llegan en el email del
+pedido y en el link para subir el comprobante.
+
+**Probá también:**
+
+- Guardá la tabla de ajustes de arriba y volvé al editor: los datos siguen ahí.
+  Antes, guardar la tabla borraba lo configurado aparte (la regla del
+  comprobante de cada medio).
+- Marcá "Mostrarlos también en el checkout": aparecen al elegir transferencia,
+  y desaparecen al elegir otro medio.
+- Aprobá el comprobante y abrí el pedido en Mi cuenta: los datos ya no se ven.
+
+**Señal de que algo está mal:** el cliente ve los datos de otro medio, o un dato
+viejo después de cambiarlo (vaciá la caché de la página y volvé a mirar).
+
 ---
 
 ## 3. MJ Envíos
