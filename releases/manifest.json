@@ -3,11 +3,11 @@
         "Slug":  "mj-appearance",
         "Name":  "MJ Appearance",
         "Type":  "theme",
-        "Version":  "3.13.0",
+        "Version":  "3.14.0",
         "Parent":  null,
-        "Zip":  "mj-appearance-3.13.0.zip",
-        "SizeKB":  473,
-        "Sha256":  "72d9ed6a9ebe054db5d04ad13e49f0d2b02e6fe61b896765cfefe0afdfedecbe"
+        "Zip":  "mj-appearance-3.14.0.zip",
+        "SizeKB":  474,
+        "Sha256":  "5edaf0d2c2b5a22f7e70818d006ddab19ee4a26c545556f63354ee220057c942"
     },
     {
         "Slug":  "mj-atelier",
@@ -63,11 +63,11 @@
         "Slug":  "mj-erp",
         "Name":  "MJ ERP",
         "Type":  "plugin",
-        "Version":  "1.16.2",
+        "Version":  "1.18.0",
         "Parent":  null,
-        "Zip":  "mj-erp-1.16.2.zip",
-        "SizeKB":  532,
-        "Sha256":  "8a7b508ff8b4b3f46107082a7fcd60e4ff00f25c54b862a72f6bd2b3c652281a"
+        "Zip":  "mj-erp-1.18.0.zip",
+        "SizeKB":  626,
+        "Sha256":  "a80db307925a138eb12a77252f95e26602938479b916be47dd0f947c1c744bf4"
     },
     {
         "Slug":  "mj-fotos-rapidas",
