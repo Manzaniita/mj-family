@@ -654,6 +654,7 @@ lo que falta. **Si el pedido se cancela, el saldo vuelve.**
 | Pedir el motivo al sumar o restar saldo a mano | Sí | Apagado, el motivo es opcional. Queda en los movimientos del saldo y, si el ajuste va atado a una venta, en su historial. |
 | Que lo vean y lo usen en la tienda | Sí | Apagado, el saldo no aparece en «Mi cuenta» ni en el checkout; se sigue usando desde el ERP. |
 | En el checkout, el saldo viene aplicado | Sí | Apagado, el cliente lo tiene que marcar. En los dos casos lo puede sacar o usar menos. |
+| Mostrarle al cliente el motivo de un ajuste | Sí | En «Mi cuenta» el ajuste dice «Ajuste de saldo: el motivo». Apagado, dice solo «Ajuste de saldo» y el motivo queda para vos. |
 
 ---
 

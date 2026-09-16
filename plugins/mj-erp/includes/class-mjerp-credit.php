@@ -152,6 +152,8 @@ class MJERP_Credit {
 			'method'           => self::method_key(),
 			'currency'         => $shop,
 			'requires_reason'  => self::requires_reason(),
+			// El cliente lee el motivo de un ajuste en «Mi cuenta»: la ventana del saldo lo avisa.
+			'reason_public'    => MJERP_Helpers::bool( MJERP_Settings::get( 'credit_shop_enabled', true ) ) && MJERP_Helpers::bool( MJERP_Settings::get( 'credit_shop_show_reason', true ) ),
 			'balances'         => self::balances( $customer_id ),
 			'total_equivalent' => self::total_in( $customer_id, $shop ),
 			'movements'        => MJERP_Customer_Credit_Repo::movements( $customer_id ),

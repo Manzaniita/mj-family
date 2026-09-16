@@ -206,7 +206,8 @@
 					'<div class="mj-field mj-grid__full">' +
 						'<label class="mj-field__label" for="mj-cm-reason">Motivo' + (reasonRequired() ? '' : ' <span class="mj-muted">(opcional)</span>') + '</label>' +
 						'<textarea class="mj-textarea" id="mj-cm-reason" name="reason" rows="2" maxlength="255" placeholder="Por ejemplo: compensación por la demora del envío"></textarea>' +
-						'<div class="mj-field__hint">' + (reasonRequired() ? 'Obligatorio: queda' : 'Queda') + ' en los movimientos del saldo.</div>' +
+						'<div class="mj-field__hint">' + (reasonRequired() ? 'Obligatorio: queda' : 'Queda') + ' en los movimientos del saldo' +
+							(state.statement && state.statement.reason_public ? ', y el cliente lo lee en «Mi cuenta».' : '.') + '</div>' +
 					'</div>' +
 				'</div>' +
 

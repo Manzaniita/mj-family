@@ -317,6 +317,8 @@ class MJERP_Settings {
 			'credit_shop_enabled'        => true,
 			// En el checkout el saldo viene aplicado; si no, el cliente lo marca.
 			'credit_shop_auto'           => true,
+			// En «Mi cuenta» el cliente ve por qué se le sumó o restó saldo a mano.
+			'credit_shop_show_reason'    => true,
 
 			/* Emisión de la orden de WooCommerce (la que dispara la notificación de la app). */
 			'sales_create_order'         => true,
@@ -1515,6 +1517,7 @@ class MJERP_Settings {
 			case 'returns_update_order':
 			case 'rma_enabled':
 			case 'credit_shop_enabled':
+			case 'credit_shop_show_reason':
 			case 'credit_shop_auto':
 			case 'shop_price_notice':
 				return MJERP_Helpers::bool( $value );

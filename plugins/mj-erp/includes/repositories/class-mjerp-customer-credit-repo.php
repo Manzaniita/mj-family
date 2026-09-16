@@ -404,8 +404,8 @@ class MJERP_Customer_Credit_Repo {
 	/**
 	 * The movement in words.
 	 *
-	 * Con `$public` queda afuera lo interno —el motivo de un ajuste, el medio con que se devolvió la
-	 * plata—: es lo que ve el cliente en «Mi cuenta».
+	 * Con `$public` es lo que ve el cliente en «Mi cuenta»: queda afuera lo interno —el medio con que
+	 * se devolvió la plata— y el motivo de un ajuste solo si está apagado `credit_shop_show_reason`.
 	 *
 	 * @param array $entry  Cast movement.
 	 * @param bool  $public Whether the customer reads it.
@@ -423,10 +423,17 @@ class MJERP_Customer_Credit_Repo {
 					: __( 'Devolución', 'mj-erp' );
 
 			case self::KIND_ADJUST:
-				return ( $public || '' === (string) $entry['reason'] )
-					? __( 'Ajuste de saldo', 'mj-erp' )
-					/* translators: %s: reason */
-					: sprintf( __( 'Ajuste: %s', 'mj-erp' ), $entry['reason'] );
+				if ( '' === (string) $entry['reason'] ) {
+					return __( 'Ajuste de saldo', 'mj-erp' );
+				}
+				if ( $public ) {
+					return MJERP_Helpers::bool( MJERP_Settings::get( 'credit_shop_show_reason', true ) )
+						/* translators: %s: reason */
+						? sprintf( __( 'Ajuste de saldo: %s', 'mj-erp' ), $entry['reason'] )
+						: __( 'Ajuste de saldo', 'mj-erp' );
+				}
+				/* translators: %s: reason */
+				return sprintf( __( 'Ajuste: %s', 'mj-erp' ), $entry['reason'] );
 
 			case self::KIND_USE:
 				if ( '' !== $order ) {
