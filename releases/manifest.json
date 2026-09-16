@@ -1,4 +1,4 @@
-﻿[
+[
     {
         "Slug":  "mj-appearance",
         "Name":  "MJ Appearance",
@@ -63,11 +63,11 @@
         "Slug":  "mj-erp",
         "Name":  "MJ ERP",
         "Type":  "plugin",
-        "Version":  "1.18.0",
+        "Version":  "1.18.1",
         "Parent":  null,
-        "Zip":  "mj-erp-1.18.0.zip",
-        "SizeKB":  626,
-        "Sha256":  "a80db307925a138eb12a77252f95e26602938479b916be47dd0f947c1c744bf4"
+        "Zip":  "mj-erp-1.18.1.zip",
+        "SizeKB":  627,
+        "Sha256":  "1ae1b366c9ae8124d0053bdaaad146ee74c6edeec1007692a2268b2b5b8d25f7"
     },
     {
         "Slug":  "mj-fotos-rapidas",
@@ -117,7 +117,7 @@
         "Parent":  null,
         "Zip":  "mj-turnos-online-1.2.0.zip",
         "SizeKB":  235,
-        "Sha256":  "d82a98e6028e0c216212d3fb57f6338fa55db86a187fca7b023ac537ff37ae24"
+        "Sha256":  "7935ab9a7cad26ff0ea7d39bfb7b7731f5548c5936eb4760f56c0391b0d42b96"
     },
     {
         "Slug":  "mj-yamana",
