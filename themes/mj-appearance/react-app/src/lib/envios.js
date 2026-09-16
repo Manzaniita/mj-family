@@ -43,6 +43,25 @@ export const addressField = (method, key) => fieldsOf(method).find((f) => f.key 
 export const extraFields = (method) =>
   fieldsOf(method).filter((f) => !ADDRESS_KEYS.includes(f.key) && !CONTACT_KEYS.includes(f.key) && f.key !== 'branch');
 
+/**
+ * El contacto y la dirección del formulario, con las claves de MJ Envíos.
+ *
+ * Se preguntan en el paso 1 y en el bloque de dirección, pero el plugin los valida en el servidor
+ * junto con los datos del método: si no viajan, el paso de envío dice «Falta completar "Nombre"»
+ * aunque el nombre esté escrito. Por eso van en cada envío de los datos, sumados a los del método.
+ */
+export const formFields = (form) => ({
+  first_name: form?.firstName || '',
+  last_name: form?.lastName || '',
+  email: form?.email || '',
+  phone: form?.phone || '',
+  postcode: form?.postcode || '',
+  state: form?.state || '',
+  city: form?.city || '',
+  address_1: form?.address || '',
+  address_2: form?.address2 || '',
+});
+
 /** El campo de la sucursal, si este método entrega en una. */
 export const branchField = (method) => fieldsOf(method).find((f) => f.key === 'branch') ?? null;
 

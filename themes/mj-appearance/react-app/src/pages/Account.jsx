@@ -660,10 +660,12 @@ export function AccountOrderDetail() {
   );
 }
 
+/* Los mismos datos que pide el checkout: lo que se guarda acá lo completa en la próxima compra. */
 const ADDRESS_FIELDS = [
   ['first_name', 'Nombre'],
   ['last_name', 'Apellido'],
-  ['address_1', 'Dirección', true],
+  ['address_1', 'Calle y número', true],
+  ['address_2', 'Piso, departamento o referencia', true],
   ['city', 'Ciudad'],
   ['state', 'Provincia'],
   ['postcode', 'Código postal'],

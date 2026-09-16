@@ -16,6 +16,7 @@ import {
   branchField,
   cpLooksValid,
   debounce,
+  formFields,
 } from '@/lib/envios';
 
 /**
@@ -143,25 +144,35 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra }) 
     };
   }, [selected?.slug, method?.needsBranch, form.postcode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* Lo que el cliente escribe en los datos del envío viaja al servidor con calma. */
+  /*
+   * Lo que el cliente escribe viaja al servidor con calma. Siempre con el contacto y la dirección:
+   * MJ Envíos valida todo junto, y cada envío reemplaza lo anterior.
+   */
   const pushFields = useRef(debounce((fields) => syncShipping({ fields }), 600)).current;
+  const allFields = (extraValues = extra) => ({ ...formFields(form), ...extraValues });
 
   const setExtraValue = (key, value) => {
     const next = { ...extra, [key]: value };
     setExtra(next);
     /* La sucursal cambia el precio: esa va sin esperar. */
     if (key === 'branch') {
-      syncShipping({ branch: value, fields: next });
+      syncShipping({ branch: value, fields: allFields(next) });
       return;
     }
-    pushFields(next);
+    pushFields(allFields(next));
   };
+
+  /* Escribir el nombre, el teléfono o la dirección también le avisa al servidor. */
+  useEffect(() => {
+    if (!IS_WP) return;
+    pushFields(allFields());
+  }, [form.firstName, form.lastName, form.email, form.phone, form.postcode, form.state, form.city, form.address, form.address2]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Elegir una forma de envío. */
   const chooseRate = async (rate) => {
     setBusy(true);
     await selectRate(rate.rate_id);
-    if (rate.slug) await syncShipping({ method: rate.slug });
+    if (rate.slug) await syncShipping({ method: rate.slug, fields: allFields() });
     setBusy(false);
   };
 

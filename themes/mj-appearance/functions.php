@@ -14,7 +14,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_VERSION', '3.14.0');
+define('MJ_VERSION', '3.14.1');
 
 /*
  * Versión de la librería de íconos que usa el panel de ajustes. Se puede fijar

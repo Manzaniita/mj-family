@@ -15,7 +15,7 @@ import { IS_WP, WP, EXCHANGE_RATE, EXPRESS } from '@/lib/config';
 import * as wc from '@/lib/wc';
 import { formatPrice, formatUsd, FREE_SHIPPING_THRESHOLD, isValidCuit, cn } from '@/lib/format';
 import { usePaymentMethod, selectedMethodId, findMethod, resolveAdjustment, usdTotalFor } from '@/lib/payments';
-import { hasShipping, methodBySlug, missingFor, shippingTexts } from '@/lib/envios';
+import { formFields, hasShipping, methodBySlug, missingFor, shippingTexts } from '@/lib/envios';
 
 /* Cómo se llama el paso de envío. Lo decide el plugin; sin plugin, "Envío". */
 const SHIPPING_TITLE = shippingTexts().stepTitle || 'Envío';
@@ -489,7 +489,7 @@ export default function Checkout() {
       }
       /* Lo último que escribió puede estar esperando su turno: se manda ahora. */
       await useCart.getState().syncShipping({
-        fields: extra,
+        fields: { ...formFields(form), ...extra },
         branch: extra.branch || '',
         city: form.city || '',
       });
