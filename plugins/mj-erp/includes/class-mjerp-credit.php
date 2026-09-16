@@ -187,6 +187,7 @@ class MJERP_Credit {
 		$limit = max( 1, (int) apply_filters( 'mjerp_credit_related_sales_limit', 50, $customer_id ) );
 
 		$recent = array();
+		$taken  = 0;
 		$page   = 1;
 		do {
 			$result = MJERP_Sales_Repo::query(
@@ -199,12 +200,13 @@ class MJERP_Credit {
 				)
 			);
 			foreach ( $result['items'] as $sale ) {
-				if ( MJERP_Sales_Repo::STATUS_VOID !== (string) $sale['status'] && count( $recent ) < $limit ) {
+				if ( MJERP_Sales_Repo::STATUS_VOID !== (string) $sale['status'] && $taken < $limit ) {
 					$recent[] = $sale;
+					$taken++;
 				}
 			}
 			$page++;
-		} while ( count( $recent ) < $limit && $page <= (int) $result['pages'] );
+		} while ( $taken < $limit && $page <= (int) $result['pages'] );
 
 		$owing = array();
 		$page  = 1;
