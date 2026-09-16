@@ -140,8 +140,8 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 | MJ Turnos Online | Turnos → Ajustes | Servicios, horarios, seña, textos de la reserva, plantillas de aviso, slug de la página. |
 | MJ Colegas | Colegas → Ajustes | Nombre del proyecto, etiquetas, comisión, textos. |
 | MJ Dólar | WooCommerce → Dólar | Tipo de cambio, redondeo, cotización de referencia y su proveedor. |
-| MJ Medios de Pago | WooCommerce → Medios de pago | Recargos y descuentos por medio de pago. Con **Editar textos y datos para pagar**, en cada fila: título, descripción, instrucciones, si está activo, y la lista de datos para pagar (alias, CBU, titular, lo que haga falta: la etiqueta la escribe el admin), con su encabezado, cuáles llevan botón de copiar y si se muestran también en el checkout. En Ajustes generales, el encabezado por defecto de esos datos. |
-| MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos, qué pasa al aprobar, qué estado toma el pedido con un pago parcial, el mail y el WhatsApp del pago parcial, si los mails suman el resumen del pago (acreditado, pagado, falta abonar y mensaje), quién puede revisarlos, mails y WhatsApp, cuánto se guardan, y las equivalencias con los métodos de MJ ERP. |
+| MJ Medios de Pago | WooCommerce → Medios de pago | Recargos y descuentos por medio de pago. Con **Editar textos y datos para pagar**, en cada fila: título, descripción, instrucciones, si está activo, y la lista de datos para pagar (alias, CBU, titular, lo que haga falta: la etiqueta la escribe el admin), con su encabezado, cuáles llevan botón de copiar y si se muestran también en el checkout. En Ajustes generales → *Cómo pagar*: el título del bloque («Cómo pagar»), el encabezado por defecto de los datos, el texto del botón de copiar y el de después de copiar, y en qué estados del pedido los ve el cliente. |
+| MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos, qué pasa al aprobar, qué estado toma el pedido con un pago parcial, el mail y el WhatsApp del pago parcial, si los mails suman el resumen del pago (acreditado, pagado, falta abonar y mensaje), quién puede revisarlos, mails y WhatsApp, cuánto se guardan, las equivalencias con los métodos de MJ ERP, y **todos los textos que ve el cliente**: nombres de los estados, mensajes de cada estado, lo pagado y lo que falta, el historial de pagos, el resumen de los mails y los botones y avisos del widget de subida. |
 | MJ Envíos | WooCommerce → Envíos | Los métodos de envío (crear, editar, ordenar, apagar, borrar), sus condiciones, qué datos pide cada uno, la tabla propia de códigos postales, las credenciales de cada correo, el origen del despacho, pesos, margen, redondeo, textos del checkout y los avisos de seguimiento. |
 | MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. |
@@ -343,6 +343,9 @@ llevar aparece hasta que lo marques.
 | Usar el paso de entrega | Sí | Apagado, las ventas no piden ni muestran entrega en ninguna pantalla. |
 | Forma por defecto | Entregado en el momento | Con la que arranca la pantalla de venta nueva. |
 | Forma de los pedidos de la tienda | Envío | Con esta nacen las ventas que entran solas por WooCommerce: todavía no salieron de acá. |
+| Permitir entregar una parte | Sí | Apagado, la entrega es de la venta entera y el detalle no lista productos. |
+| Entregar una parte cuenta como entrega | Sí | Para *Cuándo se emite y baja el stock*: prendido, la venta queda firme en cuanto se lleva algo; apagado, espera a que se entregue todo. |
+| Cómo se llama cada estado | A entregar · Entregado en parte · En camino · Entregado | Los nombres que se ven en la lista, el detalle, los filtros y el historial. Vacío vuelve al de fábrica. |
 
 **Cómo se usa:**
 
@@ -365,7 +368,7 @@ parte** (o *En camino*, si lo que falta ya salió), el detalle muestra qué falt
 cada vez.
 
 - Entregar una parte cuenta como entrega para *Cuándo se emite y baja el
-  stock*: la mercadería ya salió.
+  stock*, salvo que apagues *Entregar una parte cuenta como entrega*.
 - El pedido de WooCommerce no pasa a completado hasta que se entregue todo.
 - Corregir los productos o hacer un cambio respeta lo ya entregado: lo nuevo
   queda por entregar (si *Si una venta entregada suma productos, lo nuevo queda
@@ -897,10 +900,10 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Dónde se carga el widget de comprobantes | — | `mjpm_enqueue_uploader` |
 | Contextos que pueden pedir un comprobante | — | `mjpm_receipt_contexts` |
 | Regla del comprobante de un pedido | — | `mjpm_order_receipt_requirement` |
-| Textos del widget de comprobantes (estados, saldo, motivo) | — | `mjpm_uploader_texts` |
+| Textos del widget de comprobantes, después de los del panel | — | `mjpm_uploader_texts` |
 | Resumen del pago al pie del mail al cliente | — | `mjpm_receipt_mail_summary` |
 | Instrucciones y datos para pagar de un medio | — | `mjpm_payment_info` |
-| Estados de pedido en los que el cliente ve cómo pagar | — | `mjpm_payment_info_statuses` |
+| Estados de pedido en los que el cliente ve cómo pagar, después de los del panel | — | `mjpm_payment_info_statuses` |
 | Regla del comprobante de un pago de reventa | — | `mjerp_payment_receipt_requirement` |
 | Regla del comprobante de una seña | — | `mjto_receipt_requirement` |
 | Repositorio de donde salen las actualizaciones | `MJ_CORE_REPO` | `mjc_ajustes` |
