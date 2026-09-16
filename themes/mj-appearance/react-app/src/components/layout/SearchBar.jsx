@@ -238,7 +238,7 @@ export function SearchBar() {
                             title={p.type === 'variable' ? 'Elegir opciones' : 'Añadir al carrito'}
                             className={`grid size-9 shrink-0 place-items-center rounded-full transition-all ${
                               stock.ok
-                                ? 'bg-accent text-white shadow-glow hover:brightness-110'
+                                ? 'mj-solid bg-accent text-white shadow-glow'
                                 : 'cursor-not-allowed bg-surface text-ink-faint'
                             }`}
                           >

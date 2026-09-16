@@ -71,11 +71,16 @@ export function Hero() {
         </div>
       )}
 
-      {/* glow ambiental (solo sin fotos de fondo) */}
+      {/*
+        Glow ambiental (solo sin fotos de fondo). Es un degradado radial y no un
+        filter: blur(120px): el blur sobre un círculo de 600 px se recalcula en
+        cada repintado (scroll, hover, cambio de tema) y era lo más caro de la
+        portada. El degradado se ve igual y no cuesta nada.
+      */}
       {!hasImages && (
         <div
-          className="mj-hero__glow pointer-events-none absolute left-1/2 top-1/3 h-150 w-150 -translate-x-1/2 rounded-full opacity-30 blur-[120px]"
-          style={{ background: 'var(--mj-accent)' }}
+          className="mj-hero__glow pointer-events-none absolute left-1/2 top-1/3 h-150 w-150 -translate-x-1/2 rounded-full opacity-30"
+          style={{ background: 'radial-gradient(closest-side, var(--mj-accent) 0%, color-mix(in srgb, var(--mj-accent) 45%, transparent) 45%, transparent 100%)' }}
           aria-hidden="true"
         />
       )}

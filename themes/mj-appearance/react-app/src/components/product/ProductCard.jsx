@@ -145,7 +145,7 @@ export function ProductCard({ product, asStaggerItem = true, highlight }) {
           <Price product={product} className="mt-2" />
 
           <motion.button
-            whileHover={out ? undefined : { scale: 1.02 }}
+            whileHover={out ? undefined : { y: -1 }}
             whileTap={out ? undefined : { scale: 0.97 }}
             onClick={handleBuy}
             disabled={out}
@@ -153,7 +153,7 @@ export function ProductCard({ product, asStaggerItem = true, highlight }) {
               'mj-card__cta mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-(--mj-radius-btn) text-sm font-medium transition-all duration-300 select-none',
               out
                 ? 'cursor-not-allowed bg-surface text-ink-faint'
-                : 'bg-accent text-white shadow-glow hover:brightness-110'
+                : 'bg-accent text-white shadow-glow'
             )}
           >
             <ShoppingBag size={15} />

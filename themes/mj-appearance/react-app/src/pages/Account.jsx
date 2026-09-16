@@ -677,7 +677,7 @@ export function AccountOrderDetail() {
             <button
               onClick={cancel}
               disabled={cancelling}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-danger px-4 text-sm font-medium text-white transition-all hover:brightness-110 disabled:opacity-40"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-danger px-4 text-sm font-medium text-white transition-all hover:bg-danger/85 disabled:opacity-40"
             >
               {cancelling && <Loader2 size={15} className="animate-spin" />}
               Sí, cancelar pedido

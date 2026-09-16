@@ -209,7 +209,7 @@ export function FloatingContact() {
               </div>
               <div className="mt-6 space-y-3">
                 <button
-                  className="mj-btn inline-flex h-13 w-full items-center justify-center gap-2.5 rounded-(--mj-radius-btn) bg-[#25D366] px-8 font-medium text-white transition-all duration-300 hover:brightness-110"
+                  className="mj-btn inline-flex h-13 w-full items-center justify-center gap-2.5 rounded-(--mj-radius-btn) bg-[#25D366] px-8 font-medium text-white transition-all duration-300 hover:bg-[#25D366]/90"
                   onClick={() => window.open(whatsappUrl(seller.number, message), '_blank', 'noopener')}
                 >
                   <MessageCircle size={16} /> Consultar por WhatsApp

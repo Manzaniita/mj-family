@@ -115,7 +115,7 @@ export function QuoteModal({ open, onClose, items, total, adjustment = null }) {
                 </div>
               )}
               <button
-                className="mj-btn inline-flex h-11 w-full items-center justify-center gap-2 rounded-(--mj-radius-btn) bg-[#25D366] px-6 text-sm font-medium text-white transition-all duration-300 hover:brightness-110"
+                className="mj-btn inline-flex h-11 w-full items-center justify-center gap-2 rounded-(--mj-radius-btn) bg-[#25D366] px-6 text-sm font-medium text-white transition-all duration-300 hover:bg-[#25D366]/90"
                 onClick={() => window.open(whatsappUrl(seller.number, message), '_blank', 'noopener')}
               >
                 <MessageCircle size={16} /> Enviar por WhatsApp{seller?.name ? ` a ${seller.name}` : ''}

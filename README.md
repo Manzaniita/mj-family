@@ -18,7 +18,7 @@ piel: paleta, tipografías y textos.
 
 | Tema | Versión | Qué es |
 | --- | --- | --- |
-| **MJ Appearance** | 3.15.0 | El motor. Tienda completa en React (una sola página) sobre la Store API de WooCommerce: catálogo, carrito, checkout con compra rápida, cuenta y turnos. Con MJ ERP, el cliente ve su saldo a favor en «Mi cuenta» y lo usa al pagar. Con MJ Medios de Pago, la confirmación y «Mi cuenta» muestran los datos para pagar (alias, CBU…) con botón de copiar. Modo día/noche, niveles de animación, barra de navegación armada ítem por ítem, paso de envío con validación de código postal y **todo** configurable desde Apariencia → MJ Appearance. |
+| **MJ Appearance** | 3.16.0 | El motor. Tienda completa en React (una sola página) sobre la Store API de WooCommerce: catálogo, carrito, checkout con compra rápida, cuenta y turnos. Con MJ ERP, el cliente ve su saldo a favor en «Mi cuenta» y lo usa al pagar. Con MJ Medios de Pago, la confirmación y «Mi cuenta» muestran los datos para pagar (alias, CBU…) con botón de copiar. Modo día/noche, niveles de animación, barra de navegación armada ítem por ítem, paso de envío con validación de código postal y **todo** configurable desde Apariencia → MJ Appearance. |
 | **GlossyHair** | 1.1.0 | Salón de alisados que además vende productos. Blanco y fucsia, Urbanist + Manrope. Portada pensada para turnos. |
 | **Yamana** | 1.1.0 | Tejidos artesanales y cursos. Lino y terracota, Fraunces + Nunito. Incluye el proyecto colectivo "Entre Hilos". |
 | **MJ Atelier** | 1.1.0 | Tienda editorial de lujo. Marfil y bronce, Fraunces + Manrope, movimiento cinematográfico. |

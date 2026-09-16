@@ -8,7 +8,7 @@ import { cn } from '@/lib/format';
  */
 const variants = {
   primary:
-    'mj-btn--primary bg-accent text-white shadow-glow hover:brightness-110',
+    'mj-btn--primary bg-accent text-white shadow-glow',
   secondary:
     'mj-btn--secondary glass text-ink hover:bg-surface-2',
   ghost:
@@ -32,7 +32,9 @@ export function Button({
     sizes[size],
     className
   );
-  const motionProps = { whileHover: { scale: 1.02 }, whileTap: { scale: 0.97 } };
+  // Hover con translate de píxel entero y no con scale: el scale re-rasteriza el
+  // texto y las letras se ven borrosas mientras el mouse está encima (globals.css).
+  const motionProps = { whileHover: { y: -1 }, whileTap: { scale: 0.97 } };
 
   if (to) {
     return (
