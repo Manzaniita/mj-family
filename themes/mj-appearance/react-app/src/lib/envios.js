@@ -62,6 +62,12 @@ export const formFields = (form) => ({
   address_2: form?.address2 || '',
 });
 
+/**
+ * El nombre de un dato del cliente como está en MJ Envíos → Datos del cliente, o el que se pasa si
+ * el plugin no está. Así «Mi cuenta» dice lo mismo que el checkout.
+ */
+export const fieldLabel = (key, fallback) => SHIPPING?.labels?.[key] || fallback;
+
 /** El campo de la sucursal, si este método entrega en una. */
 export const branchField = (method) => fieldsOf(method).find((f) => f.key === 'branch') ?? null;
 

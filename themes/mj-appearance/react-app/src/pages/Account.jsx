@@ -14,6 +14,7 @@ import * as wc from '@/lib/wc';
 import { whatsappUrl } from '@/lib/consult';
 import { IS_WP, SITE, CONTACT, WHATSAPP_NUMBERS, ACCOUNT_LINKS } from '@/lib/config';
 import { formatPrice, formatUsd, isValidCuit, cn } from '@/lib/format';
+import { fieldLabel } from '@/lib/envios';
 
 const nav = [
   { to: '/cuenta', end: true, icon: LayoutDashboard, label: 'Resumen' },
@@ -660,7 +661,10 @@ export function AccountOrderDetail() {
   );
 }
 
-/* Los mismos datos que pide el checkout: lo que se guarda acá lo completa en la próxima compra. */
+/*
+ * Los mismos datos que pide el checkout: lo que se guarda acá lo completa en la próxima compra. Los
+ * nombres salen de MJ Envíos (Datos del cliente) cuando está; estos son los de respaldo.
+ */
 const ADDRESS_FIELDS = [
   ['first_name', 'Nombre'],
   ['last_name', 'Apellido'],
@@ -698,7 +702,7 @@ function AddressForm({ title, initial, withContact = false, onSave }) {
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {ADDRESS_FIELDS.map(([k, label, wide]) => (
           <div key={k} className={wide ? 'sm:col-span-2' : undefined}>
-            <Input label={label} value={form[k] ?? ''} onChange={set(k)} />
+            <Input label={fieldLabel(k, label)} value={form[k] ?? ''} onChange={set(k)} />
           </div>
         ))}
         {withContact && (
