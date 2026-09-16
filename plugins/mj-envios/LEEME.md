@@ -74,6 +74,23 @@ Cada método puede pedir más o menos desde su propia ficha. Lo que queda en
 **Heredar** sigue al general: si mañana subís una regla general, alcanza a todos
 los métodos que nunca tocaste a mano.
 
+**Lo que el cliente ya cargó cuenta.** El nombre, el teléfono, el email y la
+dirección se escriben en el paso de contacto y en el bloque de dirección de la
+tienda, y viajan con los datos del envío. Al confirmar vale también lo que trae
+el pedido, y lo que el cliente tiene guardado en su cuenta completa lo que la
+tienda no mandó (si lo mandó vacío, es que lo borró). Así nunca aparece
+«Falta completar "Nombre"» con el nombre escrito.
+
+**WooCommerce pide la dirección que pide el método.** WooCommerce exige calle,
+localidad, provincia y código postal en todo pedido con envío, aunque se retire
+en el local. El plugin afloja esos campos cuando el método elegido no los pide
+como obligatorios: el retiro en el local se confirma sin calle. Nunca exige algo
+que el método no pide, y en wp-admin la ficha del pedido sigue como siempre.
+
+Lo que el cliente carga al comprar queda guardado en su cuenta (lo hace
+WooCommerce) y la próxima compra arranca completa; lo corrige en **Mi cuenta →
+Direcciones**.
+
 ---
 
 ## Código postal, provincia y localidad

@@ -37,6 +37,11 @@ class MJE_Cart {
 
 		/* La localidad que eligió el cliente entra a la dirección del carrito. */
 		add_action('woocommerce_customer_save_address', [__CLASS__, 'forget'], 10, 1);
+
+		/* WooCommerce exige la dirección que exige el método elegido: retirar en el local no pide calle. */
+		add_filter('woocommerce_get_country_locale', [__CLASS__, 'relax_locale'], 50);
+		add_filter('woocommerce_get_country_locale_default', [__CLASS__, 'relax_locale_fields'], 50);
+		add_filter('woocommerce_get_country_locale_base', [__CLASS__, 'relax_locale_fields'], 50);
 	}
 
 	public static function register_update_callback() {
@@ -100,7 +105,8 @@ class MJE_Cart {
 		if (!function_exists('WC') || !WC()->session) {
 			return;
 		}
-		$data = self::session_data();
+		$data   = self::session_data();
+		$before = [$data['method'], $data['branch'], $data['city']];
 		foreach (['method', 'branch', 'city'] as $key) {
 			if (array_key_exists($key, $in)) {
 				$data[$key] = (string) $in[$key];
@@ -125,7 +131,13 @@ class MJE_Cart {
 		}
 		WC()->session->set(self::SESSION_KEY, $data);
 		self::$cache = $data;
-		self::invalidate_rates();
+		/*
+		 * El precio depende del método, la sucursal y la localidad. Escribir el nombre o el teléfono
+		 * no lo cambia: recalcular ahí sería pedirle al correo una cotización por cada pausa al tipear.
+		 */
+		if ([$data['method'], $data['branch'], $data['city']] !== $before) {
+			self::invalidate_rates();
+		}
 	}
 
 	public static function forget() {
@@ -214,9 +226,10 @@ class MJE_Cart {
 	/**
 	 * ¿Falta algo para poder cerrar el pedido con este método?
 	 *
+	 * @param array $known Direcciones del pedido que se está confirmando ([shipping_address, billing_address]).
 	 * → lista de textos para mostrar. Vacía = todo en orden.
 	 */
-	public static function problems() {
+	public static function problems(array $known = []) {
 		if (!MJE_Settings::get('enabled')) {
 			return [];
 		}
@@ -228,13 +241,117 @@ class MJE_Cart {
 			return []; // Sin método propio elegido no hay nada nuestro que exigir.
 		}
 		$data   = self::session_data();
-		$result = MJE_Fields::validate($def, isset($data['fields']) ? $data['fields'] : []);
+		$values = self::with_known_values(isset($data['fields']) && is_array($data['fields']) ? $data['fields'] : [], $known);
+		$result = MJE_Fields::validate($def, $values);
 		$errors = $result['errors'];
 
 		if ('sucursal' === (string) $def['destination'] && '' === trim((string) $data['branch']) && !isset($result['clean']['branch'])) {
 			$errors[] = sprintf('Elegí la %s.', strtolower((string) MJE_Settings::get('branch_label')));
 		}
 		return $errors;
+	}
+
+	/**
+	 * Los datos del envío, con lo que ya se sabe del cliente.
+	 *
+	 * El nombre, el teléfono y la dirección se cargan en el paso de contacto y viajan con el pedido,
+	 * o ya están en la cuenta del cliente. Exigirlos de nuevo porque no llegaron en los datos del envío
+	 * es decirle «Falta completar "Nombre"» con el nombre escrito.
+	 *
+	 * - La dirección del pedido que se confirma completa lo que falte: es lo que va a quedar escrito.
+	 * - La cuenta (o la sesión) solo completa un dato que la tienda no mandó: si lo mandó vacío, lo
+	 *   borró el cliente, y eso vale.
+	 */
+	private static function with_known_values(array $fields, array $known = []) {
+		$keys     = ['first_name', 'last_name', 'company', 'phone', 'email', 'postcode', 'state', 'city', 'address_1', 'address_2'];
+		$customer = (function_exists('WC') && WC()->customer) ? WC()->customer : null;
+
+		foreach ($keys as $key) {
+			$sent = array_key_exists($key, $fields);
+			if ($sent && '' !== trim((string) $fields[$key])) {
+				continue;
+			}
+
+			$value = '';
+			foreach ($known as $address) {
+				if (is_array($address) && isset($address[$key]) && '' !== trim((string) $address[$key])) {
+					$value = trim((string) $address[$key]);
+					break;
+				}
+			}
+			if ('' === $value && !$sent && $customer) {
+				foreach (['shipping', 'billing'] as $type) {
+					$getter = 'get_' . $type . '_' . $key;
+					if (is_callable([$customer, $getter]) && '' !== trim((string) $customer->$getter())) {
+						$value = trim((string) $customer->$getter());
+						break;
+					}
+				}
+			}
+			if ('' !== $value) {
+				$fields[$key] = $value;
+			}
+		}
+		return $fields;
+	}
+
+	/* ------------------------- La dirección en WooCommerce ------------------------ */
+
+	/**
+	 * WooCommerce exige la dirección que exige el método elegido, no más.
+	 *
+	 * WooCommerce valida la dirección de todo pedido que lleva envío, aunque se retire en el local:
+	 * sin esto, un retiro se frena al confirmar con «Calle es obligatorio», y la tienda ni muestra la
+	 * calle para ese método. Solo se aflojan los campos de dirección que el método no pide como
+	 * obligatorios; nunca se endurece nada.
+	 */
+	public static function relax_locale($locale) {
+		$keys = self::optional_address_keys();
+		if (!$keys || !is_array($locale)) {
+			return $locale;
+		}
+		foreach ($locale as $country => $fields) {
+			if (is_array($fields)) {
+				$locale[$country] = self::relax_locale_fields($fields, $keys);
+			}
+		}
+		return $locale;
+	}
+
+	/** Lo mismo, para la dirección por defecto y la del país de la tienda. */
+	public static function relax_locale_fields($fields, $keys = null) {
+		$keys = is_array($keys) ? $keys : self::optional_address_keys();
+		if (!$keys || !is_array($fields)) {
+			return $fields;
+		}
+		foreach ($keys as $key) {
+			if (isset($fields[$key]) && is_array($fields[$key])) {
+				$fields[$key]['required'] = false;
+			}
+		}
+		return $fields;
+	}
+
+	/** Los campos de dirección que el método propio elegido no exige ([] si no hay uno elegido). */
+	private static function optional_address_keys() {
+		/* La ficha de un pedido en wp-admin sigue como siempre. */
+		if (is_admin() && !wp_doing_ajax()) {
+			return [];
+		}
+		if (!MJE_Settings::get('enabled') || !function_exists('WC') || !WC()->session || !WC()->cart || !WC()->cart->needs_shipping()) {
+			return [];
+		}
+		$def = self::chosen_method();
+		if (!$def) {
+			return [];
+		}
+		$required = [];
+		foreach (MJE_Fields::resolve($def) as $field) {
+			if ($field['required']) {
+				$required[] = $field['key'];
+			}
+		}
+		return array_values(array_diff(['address_1', 'address_2', 'city', 'state', 'postcode'], $required));
 	}
 
 	/** Checkout clásico: los campos viajan serializados en el review del pedido. */
@@ -281,13 +398,25 @@ class MJE_Cart {
 	 * obligatorio.
 	 */
 	public static function validate_store_api($order, $request) {
+		$known = [];
 		if ($request instanceof WP_REST_Request) {
 			$extensions = $request->get_param('extensions');
 			if (is_array($extensions) && isset($extensions['mje']) && is_array($extensions['mje'])) {
 				self::update_callback($extensions['mje']);
 			}
+			/* Lo que viaja en el pedido cuenta: es la dirección que va a quedar escrita. */
+			$known = [$request->get_param('shipping_address'), $request->get_param('billing_address')];
 		}
-		$problems = self::problems();
+
+		/*
+		 * WooCommerce guarda la lista de campos de dirección la primera vez que la arma. Se rearma
+		 * ahora, con el método elegido del pedido, antes de que valide la dirección.
+		 */
+		if (function_exists('WC') && WC()->countries && property_exists(WC()->countries, 'locale')) {
+			WC()->countries->locale = [];
+		}
+
+		$problems = self::problems($known);
 		if (!$problems) {
 			return;
 		}
