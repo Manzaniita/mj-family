@@ -362,6 +362,27 @@ saldo».
 **Señal de que algo está mal:** el saldo baja dos veces para el mismo pedido, o no
 vuelve al cancelar. Anotá el pedido y el cliente.
 
+### 5.6. Editar el saldo desde Clientes
+
+1. En **Clientes**, en la fila del cliente de prueba, el botón **$**. Elegí «A favor»,
+   $ 1.000, una venta suya en «Venta relacionada» y un motivo.
+
+**Qué tiene que pasar:** la columna del saldo sube $ 1.000; en su ficha el movimiento
+dice «Ajuste: el motivo» con el enlace a la venta, y el **Historial** de esa venta lo
+tiene anotado.
+
+2. Otra vez **$** → «En contra»: probá restar más de lo que tiene.
+
+**Qué tiene que pasar:** no te deja (el saldo no queda en negativo). «Restar todo»
+completa lo justo.
+
+3. Cargale una venta **sin cobrar** y volvé a **$** → «Uso el saldo para pagar una
+   venta».
+
+**Qué tiene que pasar:** propone lo que debe (o lo que alcance el saldo). Al
+guardar, la venta tiene un cobro «Saldo a favor», el «Debe» del cliente baja y el
+saldo también.
+
 ---
 
 ## Cuando termines

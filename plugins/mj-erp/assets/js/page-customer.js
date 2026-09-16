@@ -5,7 +5,7 @@
  *
  * REST: GET /customers/{id}, GET /customers/{id}/credit, GET /customers/{id}/sales,
  *       DELETE /customers/{id}/link.
- * Los movimientos a mano del saldo: MJ.components.creditAdjustModal y creditPayoutModal.
+ * Los movimientos a mano del saldo: MJ.components.creditModal y creditPayoutModal.
  */
 (function () {
 	'use strict';
@@ -90,7 +90,7 @@
 				'<h3 class="mj-card__title">' + h(label) + '</h3>' +
 				(credit.can_manage
 					? '<div class="mj-btn-group">' +
-						'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="credit-adjust">' + MJ.icon('edit') + '<span>Ajustar</span></button>' +
+						'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="credit-adjust">' + MJ.icon('edit') + '<span>Editar saldo</span></button>' +
 						'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="credit-payout"' + (positive ? '' : ' disabled') + '>' + MJ.icon('cash') + '<span>Le di la plata</span></button>' +
 					'</div>'
 					: '') +
@@ -330,7 +330,16 @@
 
 			offs.push(MJ.ui.on(container, 'click', '[data-action="credit-adjust"]', function () {
 				if (!state.customer) return;
-				C().creditAdjustModal({ customer: state.customer, balances: state.credit && state.credit.balances, onSaved: onCredit });
+				// Usar el saldo para pagar una venta mueve lo que debe y sus ventas: se recarga todo.
+				C().creditModal({
+					customer: state.customer,
+					onSaved() {
+						if (state.disposed) return;
+						loadCredit();
+						loadCustomer();
+						loadSales();
+					},
+				});
 			}));
 
 			offs.push(MJ.ui.on(container, 'click', '[data-action="credit-payout"]', function () {

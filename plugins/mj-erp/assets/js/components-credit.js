@@ -1,12 +1,14 @@
 /**
  * MJ ERP — components-credit.js
- * El saldo a favor de un cliente: cómo se lee y los dos movimientos a mano, ajustar y
+ * El saldo a favor de un cliente: cómo se lee y lo que se hace a mano con él. MJ.components.creditModal
+ * le suma (a favor), le resta (en contra) o lo usa para pagar una venta; creditPayoutModal es
  * «le di la plata».
  *
  * El saldo no se convierte: queda en la moneda en que el cliente pagó. Cuando hace falta una
  * referencia en la otra moneda se muestra al dólar de hoy, y solo como referencia.
  *
- * REST: POST /customers/{id}/credit/adjust, POST /customers/{id}/credit/payout.
+ * REST: GET /customers/{id}/credit, GET /customers/{id}/sales, POST /customers/{id}/credit/adjust,
+ *       POST /customers/{id}/credit/payout, POST /sales/{id}/payments.
  */
 (function () {
 	'use strict';
@@ -72,86 +74,307 @@
 	}
 
 	/* ------------------------------------------------------------------ */
-	/* creditAdjustModal                                                   */
+	/* creditModal                                                         */
 	/* ------------------------------------------------------------------ */
 
+	const MODE_FAVOR = 'favor';
+	const MODE_AGAINST = 'contra';
+	const MODE_PAY = 'pagar';
+
+	/** Un número listo para un campo, escrito como lo vuelve a leer MJ.fmt.toNumber. */
+	function inputNumber(v) {
+		const n = num(v) || 0;
+		return MJ.fmt.number(n, Math.abs(n - Math.round(n)) < 0.005 ? 0 : 2);
+	}
+
 	/**
-	 * Sumar o restar saldo a mano, con motivo.
-	 * @param {Object} opts { customer, balances, onSaved(statement) }
+	 * El saldo de un cliente, a mano.
+	 *
+	 * A favor le suma, en contra le resta (nunca por debajo de cero: lo que debe sale de sus ventas),
+	 * los dos con motivo y, si corresponde, la venta a la que se refieren. Y si tiene saldo y ventas
+	 * que deben, lo usa para pagar una: queda como un cobro de esa venta con el saldo como medio.
+	 *
+	 * REST: GET /customers/{id}/credit, GET /customers/{id}/sales,
+	 *       POST /customers/{id}/credit/adjust, POST /sales/{id}/payments.
+	 *
+	 * @param {Object} opts { customer, onSaved() }
 	 */
-	C.creditAdjustModal = function (opts) {
+	C.creditModal = function (opts) {
 		opts = opts || {};
 		const customer = opts.customer || {};
-		const balances = C.creditBalancesList(opts.balances);
 		const local = String(MJ.setting('local_currency', 'ARS')).toUpperCase();
-		const currencies = (MJ.setting('currencies', []) || []).map(function (c) { return String(c).toUpperCase(); });
+		const configured = (MJ.setting('currencies', []) || []).map(function (c) { return String(c).toUpperCase(); });
+		const currencies = configured.length ? configured : [local];
 
-		const body =
-			'<form class="mj-form" data-form novalidate autocomplete="off">' +
-				(balances.length
-					? '<div class="mj-alert mj-alert--info mj-mb">Hoy tiene ' + h(C.creditBalancesText(balances)) + '.</div>'
-					: '') +
+		const state = {
+			mode: MODE_FAVOR,
+			statement: null,
+			sales: [],
+		};
+
+		const modal = MJ.ui.modal({
+			title: C.creditLabel() + ' · ' + (customer.name || ''),
+			size: 'md',
+			body: '<div class="mj-loading">' + MJ.ui.spinner() + '<span>Cargando el saldo y las ventas…</span></div>',
+			footer:
+				'<button type="button" class="mj-btn mj-btn--ghost" data-modal-close>Cancelar</button>' +
+				'<button type="button" class="mj-btn mj-btn--primary" data-action="save" disabled>' + MJ.icon('check') + '<span data-save-label>Guardar</span></button>',
+		});
+
+		function positive() {
+			return C.creditBalancesList(state.statement && state.statement.balances).filter(function (b) { return b.amount > 0.004; });
+		}
+
+		function owing() {
+			return state.sales.filter(function (s) { return (num(s.due) || 0) > 0.004; });
+		}
+
+		function saleLabel(sale, withDue) {
+			const due = num(sale.due) || 0;
+			return sale.code + ' · ' + MJ.fmt.date(sale.sale_date) + ' · ' + MJ.fmt.money(sale.total, sale.currency) +
+				(withDue && due > 0.004 ? ' · debe ' + MJ.fmt.money(due, sale.currency) : '');
+		}
+
+		/** "Debe $ 16.830": cada moneda por su lado, como el saldo. */
+		function debtText() {
+			const byCurrency = {};
+			owing().forEach(function (s) {
+				const cur = String(s.currency || local).toUpperCase();
+				byCurrency[cur] = (byCurrency[cur] || 0) + (num(s.due) || 0);
+			});
+			return Object.keys(byCurrency).map(function (cur) { return MJ.fmt.money(byCurrency[cur], cur); }).join(' · ');
+		}
+
+		function summaryHtml() {
+			const balances = positive();
+			const debts = owing();
+			const parts = [
+				balances.length ? 'Tiene ' + h(C.creditBalancesText(balances)) + ' a favor.' : 'No tiene saldo a favor.',
+				debts.length
+					? 'Debe ' + h(debtText()) + (debts.length === 1 ? ' en 1 venta.' : ' en ' + MJ.fmt.int(debts.length) + ' ventas.')
+					: 'No debe nada.',
+			];
+			return '<div class="mj-alert mj-alert--info mj-mb">' + parts.join(' ') + '</div>';
+		}
+
+		function radio(value, label, disabled) {
+			return '<label class="mj-checkbox"><input type="radio" name="mode" value="' + value + '"' +
+				(state.mode === value ? ' checked' : '') + (disabled ? ' disabled' : '') + '> <span>' + h(label) + '</span></label>';
+		}
+
+		function formHtml() {
+			const canPay = positive().length > 0 && owing().length > 0;
+
+			return '<form class="mj-form" data-form novalidate autocomplete="off">' +
+				summaryHtml() +
 				'<div class="mj-field">' +
 					'<span class="mj-field__label">Qué hacés</span>' +
 					'<div class="mj-row mj-row--wrap">' +
-						'<label class="mj-checkbox"><input type="radio" name="direction" value="sumar" checked> <span>Sumar al saldo</span></label>' +
-						'<label class="mj-checkbox"><input type="radio" name="direction" value="restar"> <span>Restar del saldo</span></label>' +
+						radio(MODE_FAVOR, 'A favor: le sumo saldo') +
+						radio(MODE_AGAINST, 'En contra: le resto saldo', !positive().length) +
+						(canPay ? radio(MODE_PAY, 'Uso el saldo para pagar una venta') : '') +
 					'</div>' +
+					(!positive().length ? '<div class="mj-field__hint">Para restar tiene que tener saldo a favor. Lo que debe sale de sus ventas.</div>' : '') +
 				'</div>' +
-				'<div class="mj-grid mj-grid--2">' +
+
+				'<div class="mj-grid mj-grid--2" data-section="adjust">' +
 					'<div class="mj-field">' +
-						'<label class="mj-field__label" for="mj-ca-amount">Importe</label>' +
-						'<input class="mj-input" id="mj-ca-amount" name="amount" type="text" inputmode="decimal" autofocus>' +
+						'<label class="mj-field__label" for="mj-cm-amount">Importe</label>' +
+						'<input class="mj-input" id="mj-cm-amount" name="amount" type="text" inputmode="decimal">' +
 					'</div>' +
 					'<div class="mj-field">' +
-						'<label class="mj-field__label" for="mj-ca-currency">Moneda</label>' +
-						'<select class="mj-select" id="mj-ca-currency" name="currency"></select>' +
-						'<div class="mj-field__hint">El saldo queda en esta moneda y no se convierte.</div>' +
+						'<label class="mj-field__label" for="mj-cm-currency">Moneda</label>' +
+						'<select class="mj-select" id="mj-cm-currency" name="currency"></select>' +
+					'</div>' +
+					'<div class="mj-field__hint mj-grid__full" data-adjust-hint></div>' +
+					'<div class="mj-field mj-grid__full">' +
+						'<label class="mj-field__label" for="mj-cm-sale">Venta relacionada <span class="mj-muted">(opcional)</span></label>' +
+						'<select class="mj-select" id="mj-cm-sale" name="sale_id"></select>' +
+						'<div class="mj-field__hint">El ajuste queda enlazado a esa venta y anotado en su historial.</div>' +
 					'</div>' +
 					'<div class="mj-field mj-grid__full">' +
-						'<label class="mj-field__label" for="mj-ca-reason">Motivo</label>' +
-						'<textarea class="mj-textarea" id="mj-ca-reason" name="reason" rows="2" maxlength="255" placeholder="Por ejemplo: compensación por la demora del envío"></textarea>' +
+						'<label class="mj-field__label" for="mj-cm-reason">Motivo</label>' +
+						'<textarea class="mj-textarea" id="mj-cm-reason" name="reason" rows="2" maxlength="255" placeholder="Por ejemplo: compensación por la demora del envío"></textarea>' +
 						'<div class="mj-field__hint">Obligatorio: queda en los movimientos del saldo.</div>' +
 					'</div>' +
 				'</div>' +
+
+				'<div class="mj-grid mj-grid--2 mj-hidden" data-section="pay">' +
+					'<div class="mj-field mj-grid__full">' +
+						'<label class="mj-field__label" for="mj-cm-pay-sale">Qué venta paga</label>' +
+						'<select class="mj-select" id="mj-cm-pay-sale" name="pay_sale_id"></select>' +
+					'</div>' +
+					'<div class="mj-field">' +
+						'<label class="mj-field__label" for="mj-cm-pay-currency">De qué saldo</label>' +
+						'<select class="mj-select" id="mj-cm-pay-currency" name="credit_currency"></select>' +
+					'</div>' +
+					'<div class="mj-field">' +
+						'<label class="mj-field__label" for="mj-cm-pay-amount">Importe</label>' +
+						'<input class="mj-input" id="mj-cm-pay-amount" name="pay_amount" type="text" inputmode="decimal">' +
+						'<div class="mj-field__hint" data-pay-hint></div>' +
+					'</div>' +
+					'<div class="mj-field__hint mj-grid__full">Queda como un cobro de la venta con «' + h(C.creditLabel()) + '»: baja lo que debe y baja el saldo.</div>' +
+				'</div>' +
+
 				'<div class="mj-form__errors mj-hidden" data-errors></div>' +
 			'</form>';
+		}
 
-		const modal = MJ.ui.modal({
-			title: 'Ajustar el saldo · ' + (customer.name || ''),
-			size: 'md',
-			body: body,
-			footer:
-				'<button type="button" class="mj-btn mj-btn--ghost" data-modal-close>Cancelar</button>' +
-				'<button type="button" class="mj-btn mj-btn--primary" data-action="save">' + MJ.icon('check') + '<span>Guardar ajuste</span></button>',
+		function field(name) { return qs('[name="' + name + '"]', modal.el); }
+
+		/** La moneda del ajuste: a favor, cualquiera; en contra, solo las que tienen saldo. */
+		function syncAdjust() {
+			const select = field('currency');
+			const hint = qs('[data-adjust-hint]', modal.el);
+			if (state.mode === MODE_AGAINST) {
+				const balances = positive();
+				const current = balances.some(function (b) { return b.currency === select.value; }) ? select.value : (balances[0] && balances[0].currency);
+				MJ.ui.fillSelect(select, balances.map(function (b) { return { value: b.currency, label: b.currency + ' · tiene ' + MJ.fmt.money(b.amount, b.currency) }; }), current);
+				const row = balances.find(function (b) { return b.currency === select.value; });
+				hint.innerHTML = row
+					? 'Puede restarle hasta ' + h(MJ.fmt.money(row.amount, row.currency)) + ': el saldo no queda en negativo. <button type="button" class="mj-link" data-action="all">Restar todo</button>'
+					: '';
+			} else {
+				MJ.ui.fillSelect(select, currencyOptions(currencies), currencies.indexOf(select.value) >= 0 ? select.value : local);
+				hint.textContent = 'Queda en esta moneda y no se convierte.';
+			}
+		}
+
+		/** Lo que paga: lo que debe la venta, o lo que alcance el saldo elegido. */
+		function syncPay() {
+			const sale = owing().find(function (s) { return String(s.id) === field('pay_sale_id').value; });
+			const balance = positive().find(function (b) { return b.currency === field('credit_currency').value; });
+			const hint = qs('[data-pay-hint]', modal.el);
+			if (!sale || !balance) { hint.textContent = ''; return; }
+
+			const due = num(sale.due) || 0;
+			const reach = C.creditConvert(balance.amount, balance.currency, sale.currency);
+			const amount = reach === null ? due : Math.min(due, Math.floor(reach * 100) / 100);
+			field('pay_amount').value = inputNumber(amount);
+			hint.textContent = 'En ' + String(sale.currency).toUpperCase() + '. Debe ' + MJ.fmt.money(due, sale.currency) +
+				(reach !== null && balance.currency !== String(sale.currency).toUpperCase() ? '; el saldo alcanza para ' + MJ.fmt.money(reach, sale.currency) + ' al dólar de hoy.' : '.');
+		}
+
+		function paintMode() {
+			const pay = state.mode === MODE_PAY;
+			qs('[data-section="adjust"]', modal.el).classList.toggle('mj-hidden', pay);
+			qs('[data-section="pay"]', modal.el).classList.toggle('mj-hidden', !pay);
+			const labels = {};
+			labels[MODE_FAVOR] = 'Sumar saldo';
+			labels[MODE_AGAINST] = 'Restar saldo';
+			labels[MODE_PAY] = 'Cobrar con el saldo';
+			qs('[data-save-label]', modal.el).textContent = labels[state.mode];
+			if (pay) syncPay();
+			else syncAdjust();
+		}
+
+		function render() {
+			if (!state.statement.can_manage) {
+				modal.setBody(summaryHtml() + MJ.ui.alert('Mover el saldo a mano lo hace solo quien puede corregir ventas.', 'warning'));
+				return;
+			}
+
+			modal.setBody(formHtml());
+
+			MJ.ui.fillSelect(field('sale_id'), state.sales.map(function (s) { return { value: s.id, label: saleLabel(s, true) }; }), '', 'Ninguna');
+
+			const debts = owing();
+			const balances = positive();
+			if (debts.length && balances.length) {
+				MJ.ui.fillSelect(field('pay_sale_id'), debts.map(function (s) { return { value: s.id, label: saleLabel(s, true) }; }), debts[0].id);
+				const own = balances.find(function (b) { return b.currency === String(debts[0].currency || '').toUpperCase(); });
+				MJ.ui.fillSelect(field('credit_currency'), balances.map(function (b) {
+					return { value: b.currency, label: b.currency + ' · ' + MJ.fmt.money(b.amount, b.currency) };
+				}), (own || balances[0]).currency);
+			}
+
+			paintMode();
+			qs('[data-action="save"]', modal.el).disabled = false;
+			const first = field('amount');
+			if (first) first.focus();
+		}
+
+		Promise.all([
+			MJ.api.get('customers/' + customer.id + '/credit'),
+			MJ.api.get('customers/' + customer.id + '/sales', { per_page: 50 }),
+		]).then(function (res) {
+			if (!modal.isOpen()) return;
+			state.statement = res[0] || {};
+			state.sales = ((res[1] && res[1].sales && res[1].sales.items) || []).filter(function (s) { return s.status !== 'anulada'; });
+			render();
+		}).catch(function (err) {
+			if (!modal.isOpen()) return;
+			modal.setBody(MJ.ui.alert(MJ.api.message(err, 'No se pudo cargar el saldo del cliente.'), 'danger'));
 		});
 
-		MJ.ui.fillSelect(qs('#mj-ca-currency', modal.el), currencyOptions(currencies.length ? currencies : [local]), local);
+		MJ.ui.on(modal.el, 'change', '[name="mode"]', function (e, input) {
+			state.mode = input.value;
+			MJ.ui.clearErrors(qs('[data-form]', modal.el));
+			paintMode();
+		});
+		MJ.ui.on(modal.el, 'change', '[name="currency"]', function () { if (state.mode === MODE_AGAINST) syncAdjust(); });
+		MJ.ui.on(modal.el, 'change', '[name="pay_sale_id"], [name="credit_currency"]', syncPay);
+		MJ.ui.on(modal.el, 'click', '[data-action="all"]', function () {
+			const row = positive().find(function (b) { return b.currency === field('currency').value; });
+			if (row) field('amount').value = inputNumber(row.amount);
+		});
 
 		MJ.ui.on(modal.el, 'click', '[data-action="save"]', function (e, btn) {
 			const form = qs('[data-form]', modal.el);
-			const data = MJ.ui.formData(form);
+			if (!form) return;
 			MJ.ui.clearErrors(form);
 
-			const amount = num(data.amount) || 0;
-			const errors = {};
-			if (amount <= 0) errors.amount = 'Escribí cuánto.';
-			if (!String(data.reason || '').trim()) errors.reason = 'Contá el motivo del ajuste.';
-			if (Object.keys(errors).length) { MJ.ui.showErrors(form, errors); return; }
+			let request;
+			let done;
+
+			if (state.mode === MODE_PAY) {
+				const saleId = field('pay_sale_id').value;
+				const sale = owing().find(function (s) { return String(s.id) === saleId; });
+				const amount = num(field('pay_amount').value) || 0;
+				const errors = {};
+				if (!sale) errors.pay_sale_id = 'Elegí qué venta paga.';
+				if (amount <= 0) errors.pay_amount = 'Escribí cuánto.';
+				else if (sale && amount > (num(sale.due) || 0) + 0.004) errors.pay_amount = 'Debe ' + MJ.fmt.money(sale.due, sale.currency) + ': no puede pagar más que eso.';
+				if (Object.keys(errors).length) { MJ.ui.showErrors(form, errors); return; }
+
+				request = MJ.api.post('sales/' + saleId + '/payments', {
+					amount: amount,
+					method: C.creditMethod(),
+					credit_currency: field('credit_currency').value,
+					payment_date: MJ.config.today || undefined,
+				});
+				done = 'Cobrado con el saldo: ' + sale.code + '.';
+			} else {
+				const amount = num(field('amount').value) || 0;
+				const reason = String(field('reason').value || '').trim();
+				const currency = field('currency').value;
+				const errors = {};
+				if (amount <= 0) errors.amount = 'Escribí cuánto.';
+				if (!reason) errors.reason = 'Contá el motivo: queda en los movimientos del saldo.';
+				if (state.mode === MODE_AGAINST) {
+					const row = positive().find(function (b) { return b.currency === currency; });
+					if (row && amount > row.amount + 0.004) errors.amount = 'Tiene ' + MJ.fmt.money(row.amount, row.currency) + ': no puede quedar en negativo.';
+				}
+				if (Object.keys(errors).length) { MJ.ui.showErrors(form, errors); return; }
+
+				request = MJ.api.post('customers/' + customer.id + '/credit/adjust', {
+					amount: state.mode === MODE_AGAINST ? -amount : amount,
+					currency: currency,
+					reason: reason,
+					sale_id: parseInt(field('sale_id').value, 10) || 0,
+				});
+				done = state.mode === MODE_AGAINST ? 'Saldo restado.' : 'Saldo sumado.';
+			}
 
 			MJ.ui.setLoading(btn, true);
-			MJ.api.post('customers/' + customer.id + '/credit/adjust', {
-				amount: data.direction === 'restar' ? -amount : amount,
-				currency: data.currency,
-				reason: data.reason,
-			}).then(function (statement) {
-				MJ.ui.toast('Saldo ajustado.', 'success');
+			request.then(function () {
+				MJ.ui.toast(done, 'success');
 				modal.close();
-				if (typeof opts.onSaved === 'function') opts.onSaved(statement);
+				if (typeof opts.onSaved === 'function') opts.onSaved();
 			}).catch(function (err) {
 				MJ.ui.setLoading(btn, false);
 				MJ.ui.showErrors(form, err);
-				MJ.ui.toastError(err, 'No se pudo ajustar el saldo.');
+				MJ.ui.toastError(err, 'No se pudo guardar.');
 			});
 		});
 

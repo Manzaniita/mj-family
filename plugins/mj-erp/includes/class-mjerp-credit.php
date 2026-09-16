@@ -307,13 +307,17 @@ class MJERP_Credit {
 	/**
 	 * A manual adjustment, with its reason.
 	 *
+	 * Puede ir atado a una venta del mismo cliente: el movimiento la enlaza y la venta lo anota en su
+	 * historial, así el ajuste se explica desde los dos lados.
+	 *
 	 * @param int    $customer_id Customer id.
 	 * @param float  $amount      Signed amount (+ suma, − resta).
 	 * @param string $currency    Currency.
 	 * @param string $reason      Reason (required).
+	 * @param int    $sale_id     Related sale (0 = none).
 	 * @return int|WP_Error
 	 */
-	public static function adjust( $customer_id, $amount, $currency, $reason ) {
+	public static function adjust( $customer_id, $amount, $currency, $reason, $sale_id = 0 ) {
 		$check = self::check_customer( $customer_id );
 		if ( is_wp_error( $check ) ) {
 			return $check;
@@ -334,10 +338,37 @@ class MJERP_Credit {
 			return new WP_Error( 'mjerp_reason_required', __( 'Contá el motivo del ajuste: queda en los movimientos del saldo.', 'mj-erp' ), array( 'status' => 400, 'field' => 'reason' ) );
 		}
 
-		$context = array( 'reason' => $reason );
+		$sale    = null;
+		$sale_id = absint( $sale_id );
+		if ( $sale_id > 0 ) {
+			$sale = MJERP_Sales_Repo::find( $sale_id );
+			if ( ! $sale || (int) $sale['customer_id'] !== (int) $customer_id ) {
+				return new WP_Error( 'mjerp_credit_sale', __( 'Esa venta no es de este cliente.', 'mj-erp' ), array( 'status' => 400, 'field' => 'sale_id' ) );
+			}
+		}
+
+		$context = array(
+			'reason'  => $reason,
+			'sale_id' => $sale_id,
+		);
 		$id      = $amount > 0
 			? self::credit( $customer_id, $currency, $amount, MJERP_Customer_Credit_Repo::KIND_ADJUST, $context )
 			: self::debit( $customer_id, $currency, -1 * $amount, MJERP_Customer_Credit_Repo::KIND_ADJUST, $context );
+
+		if ( ! is_wp_error( $id ) && $sale ) {
+			MJERP_Sale_Log::add(
+				array(
+					'sale_id' => $sale_id,
+					'action'  => MJERP_Sale_Log::ACTION_CREDIT,
+					'summary' => $amount > 0
+						/* translators: 1: credit name, 2: amount */
+						? sprintf( __( '%1$s: se le sumaron %2$s.', 'mj-erp' ), self::label(), MJERP_Sale_Log::money( $amount, $currency ) )
+						/* translators: 1: credit name, 2: amount */
+						: sprintf( __( '%1$s: se le restaron %2$s.', 'mj-erp' ), self::label(), MJERP_Sale_Log::money( -1 * $amount, $currency ) ),
+					'reason'  => $reason,
+				)
+			);
+		}
 
 		if ( ! is_wp_error( $id ) ) {
 			/**

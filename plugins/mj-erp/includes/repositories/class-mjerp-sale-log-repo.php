@@ -28,6 +28,7 @@ class MJERP_Sale_Log {
 	const ACTION_ORDER             = 'pedido';
 	const ACTION_VOIDED            = 'anulada';
 	const ACTION_RETURN            = 'devolucion';
+	const ACTION_CREDIT            = 'saldo';
 
 	/**
 	 * Columnas de la venta que se actualizan sin que nadie las haya cambiado: las mueve el propio

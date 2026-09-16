@@ -43,6 +43,7 @@ class MJERP_REST_Credit extends MJERP_REST_Controller {
 						'amount'   => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'currency' => array( 'sanitize_callback' => array( $this, 'arg_currency' ) ),
 						'reason'   => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+						'sale_id'  => array( 'sanitize_callback' => array( $this, 'arg_int' ) ),
 					)
 				),
 			)
@@ -101,7 +102,8 @@ class MJERP_REST_Credit extends MJERP_REST_Controller {
 			$id,
 			$this->float( $params, 'amount' ),
 			$this->currency( $params, 'currency', MJERP_Sales_Repo::shop_currency() ),
-			$this->str( $params, 'reason', '', 255 )
+			$this->str( $params, 'reason', '', 255 ),
+			$this->int( $params, 'sale_id' )
 		);
 
 		return is_wp_error( $result ) ? $result : $this->ok( $this->statement( $id ), 201 );

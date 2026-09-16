@@ -117,6 +117,7 @@
 			'<td class="is-actions">' +
 				'<div class="mj-btn-group">' +
 					'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="sale" title="Nueva venta" aria-label="' + h('Nueva venta a ' + row.name) + '">' + MJ.icon('cash') + '</button>' +
+					(creditOn() ? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="credit" title="' + h(MJ.components.creditLabel()) + ': sumar, restar o pagar una venta" aria-label="' + h('Editar el saldo de ' + row.name) + '">' + MJ.icon('dollar') + '</button>' : '') +
 					'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="edit" title="Editar" aria-label="' + h('Editar ' + row.name) + '">' + MJ.icon('edit') + '</button>' +
 					(row.is_linked ? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="unlink" title="Desvincular la cuenta" aria-label="' + h('Desvincular ' + row.name) + '">' + MJ.icon('unlink') + '</button>' : '') +
 					'<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon mj-danger-text" data-action="delete" title="Eliminar" aria-label="' + h('Eliminar ' + row.name) + '">' + MJ.icon('trash') + '</button>' +
@@ -526,6 +527,7 @@
 				else if (action === 'unlink') unlink(found.row);
 				else if (action === 'delete') remove(found.row);
 				else if (action === 'sale') MJ.router.navigate('/ventas/nueva?cliente=' + encodeURIComponent(found.row.id));
+				else if (action === 'credit') MJ.components.creditModal({ customer: found.row, onSaved() { if (!state.disposed) load(); } });
 			});
 
 			load();
