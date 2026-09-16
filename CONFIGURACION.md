@@ -508,9 +508,9 @@ entrega, venga el pedido del ERP o de la tienda:
 
 **Dónde se configura:** MJ ERP → Configuración → Ventas → *Corregir ventas*.
 
-Cuando el cliente cambia de idea antes de pagar —se lleva tres en vez de dos, cambia
-un producto por otro— no hace falta anular y cargar de nuevo: en el detalle de la
-venta, **Editar productos** cambia la misma venta, con su código, su fecha y su pedido.
+Cuando el cliente cambia de idea —se lleva tres en vez de dos, cambia un producto por
+otro— o la venta se cargó mal, no hace falta anular y cargar de nuevo: en el detalle de
+la venta, **Editar productos** cambia la misma venta, con su código, su fecha y su pedido.
 
 Se pueden cambiar cantidades, precios, el descuento de cada línea, el descuento de la
 venta y el envío, sacar productos y agregar otros. Antes de guardar, la pantalla
@@ -527,12 +527,24 @@ Lo que hace al guardar:
   una nota que lo cuenta.
 - **Si estaba entregada y suma productos, vuelve a «A entregar»**: lo nuevo todavía no
   se lo llevó.
+- **Los cobros no se tocan.** Si la venta ya tenía cobros, el saldo se recalcula con el
+  total nuevo: queda debiendo, o avisa que se cobró de más para corregir el cobro.
 - **Queda en el historial** de la venta: qué cambió, quién, cuándo y por qué.
+
+**Corregir un cobro.** En la tabla de cobros, el lápiz de cada cobro deja cambiar el
+medio, el importe, la caja, la fecha y la referencia, con un motivo opcional. El estado
+de pago (sin cobrar, en parte, cobrada) se recalcula solo y queda en el historial. Lo
+hace solo quien puede corregir ventas. No se corrigen así: lo pagado con saldo a favor
+(se borra y se carga de nuevo), lo cobrado online en la tienda ni lo que es parte de
+una devolución.
 
 Lo que **no** se edita, a propósito:
 
-- **Una venta con cobros.** Cambiar lo que ya se pagó es una devolución, con su plata:
-  ver *Devoluciones, cambios y garantías*, más abajo.
+- **Una venta con cobros, si está apagado** *También las ventas que ya tienen cobros*.
+  Ahí cambiar lo que ya se pagó va por devolución: ver *Devoluciones, cambios y
+  garantías*, más abajo.
+- **Una venta cobrada online en la tienda**, porque la plata está en la pasarela, ni
+  **una con devoluciones o cambios**: esas siguen por *Devolución o cambio*.
 - **Una venta con productos de la consignación de un revendedor**, porque toca su
   cuenta corriente. Tampoco se le puede agregar algo que el revendedor tiene en
   consignación. Esas se anulan y se cargan de nuevo.
@@ -544,7 +556,8 @@ Si no se puede, el detalle de la venta dice por qué en lugar del botón.
 | --- | --- | --- |
 | Llevar el historial de cada venta | Sí | Anota quién cargó, cobró, entregó, corrigió o anuló cada venta, y cuándo. Se ve en el detalle, abajo de los cobros. |
 | Quién puede corregir ventas y ver el historial | Administrador | Roles que, además de entrar al ERP, pueden corregir ventas y ver su historial. El administrador siempre puede. Este ajuste lo cambia solo un administrador. |
-| Dejar editar los productos de una venta sin cobrar | Sí | Apagado, el botón no aparece y el servidor rechaza cualquier corrección. |
+| Dejar editar los productos de una venta | Sí | Apagado, el botón no aparece y el servidor rechaza cualquier corrección. |
+| También las ventas que ya tienen cobros | Sí | Deja corregir productos de ventas cobradas (menos las cobradas online en la tienda y las que tienen devoluciones). Apagado, una venta con cobros solo cambia por devolución. |
 | Pedir el motivo de cada corrección | No | Obliga a escribir por qué se cambió. Queda en el historial y en la nota del pedido. |
 | Si una venta entregada suma productos, vuelve a «A entregar» | Sí | Apagado, la entrega queda como estaba. |
 
@@ -887,6 +900,7 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Cuántas ventas revisa la puesta al día de estados de pedido (una vez, al actualizar) | — | `mjerp_order_status_resync_limit` |
 | Quién puede corregir ventas y ver su historial | — | `mjerp_can_manage_sales` |
 | Cuándo una venta no se puede editar | — | `mjerp_sale_edit_blocker` |
+| Cuándo un cobro de una venta no se puede corregir | — | `mjerp_sale_payment_edit_blocker` |
 | Cuántas anotaciones del historial trae una venta | — | `mjerp_sale_log_limit` |
 | Clave del medio de pago «saldo a favor» | — | `mjerp_credit_method_key` |
 | Cuántos movimientos del saldo a favor trae una ficha | — | `mjerp_customer_credit_movements_limit` |
