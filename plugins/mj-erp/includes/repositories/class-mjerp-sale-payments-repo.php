@@ -390,7 +390,7 @@ class MJERP_Sale_Payments_Repo {
 	 * Updates a payment.
 	 *
 	 * @param int   $id   Payment id.
-	 * @param array $data Editable fields.
+	 * @param array $data Editable fields, and `reason` (only for the history).
 	 * @return true|WP_Error
 	 */
 	public static function update( $id, array $data ) {
@@ -401,9 +401,12 @@ class MJERP_Sale_Payments_Repo {
 			return new WP_Error( 'mjerp_not_found', __( 'El cobro no existe.', 'mj-erp' ), array( 'status' => 404 ) );
 		}
 
-		// Un cobro con saldo a favor movió el saldo del cliente: se borra y se carga de nuevo, no se edita.
-		if ( class_exists( 'MJERP_Credit' ) && ( MJERP_Credit::is_method( $payment['method'] ) || ( array_key_exists( 'method', $data ) && MJERP_Credit::is_method( $data['method'] ) ) ) ) {
-			return new WP_Error( 'mjerp_credit_payment_locked', __( 'Un cobro con saldo a favor no se edita: borralo y cargalo de nuevo.', 'mj-erp' ), array( 'status' => 409 ) );
+		$blocker = self::edit_blocker( $payment );
+		if ( ! $blocker && array_key_exists( 'method', $data ) && class_exists( 'MJERP_Credit' ) && MJERP_Credit::is_method( $data['method'] ) ) {
+			$blocker = new WP_Error( 'mjerp_credit_payment_locked', __( 'Un cobro no se pasa a saldo a favor: borralo y cargalo de nuevo con ese medio.', 'mj-erp' ), array( 'status' => 409 ) );
+		}
+		if ( $blocker ) {
+			return $blocker;
 		}
 
 		$row = array();
@@ -467,7 +470,50 @@ class MJERP_Sale_Payments_Repo {
 
 		MJERP_Sales_Repo::sync_payments( (int) $payment['sale_id'] );
 
+		/**
+		 * Fires after a payment of a sale was edited.
+		 *
+		 * @param int    $id      Payment id.
+		 * @param int    $sale_id Sale id.
+		 * @param array  $before  Payment before the edit.
+		 * @param string $reason  Why it was edited (may be empty).
+		 */
+		do_action( 'mjerp_sale_payment_updated', (int) $payment['id'], (int) $payment['sale_id'], $payment, MJERP_Helpers::text( MJERP_Helpers::array_get( $data, 'reason', '' ), 255 ) );
+
 		return true;
+	}
+
+	/**
+	 * Why a payment cannot be edited, or null when it can.
+	 *
+	 * La pantalla lo recibe en cada cobro (`editable`), así la regla vive en un solo lugar.
+	 *
+	 * @param array $payment Payment.
+	 * @return WP_Error|null
+	 */
+	public static function edit_blocker( array $payment ) : ?WP_Error {
+		$error = null;
+
+		if ( class_exists( 'MJERP_Credit' ) && MJERP_Credit::is_method( (string) $payment['method'] ) ) {
+			// Movió el saldo del cliente: se borra (el saldo vuelve) y se carga de nuevo.
+			$error = new WP_Error( 'mjerp_credit_payment_locked', __( 'Un cobro con saldo a favor no se edita: borralo y cargalo de nuevo.', 'mj-erp' ), array( 'status' => 409 ) );
+		} elseif ( self::SOURCE_RETURN === (string) $payment['source'] ) {
+			// La plata de una devolución ya está en el saldo del cliente o en su mano.
+			$error = new WP_Error( 'mjerp_return_payment_locked', __( 'Esto es parte de una devolución: no se edita suelto.', 'mj-erp' ), array( 'status' => 409 ) );
+		} elseif ( self::SOURCE_SHOP === (string) $payment['source'] ) {
+			// Lo cobrado online en la tienda es lo que dice la pasarela.
+			$error = new WP_Error( 'mjerp_shop_payment_locked', __( 'Este cobro entró online por la tienda: se corrige desde el pedido de WooCommerce.', 'mj-erp' ), array( 'status' => 409 ) );
+		}
+
+		/**
+		 * Filters why a payment of a sale cannot be edited.
+		 *
+		 * @param WP_Error|null $error   Error, or null when it can be edited.
+		 * @param array         $payment Payment.
+		 */
+		$error = apply_filters( 'mjerp_sale_payment_edit_blocker', $error, $payment );
+
+		return $error instanceof WP_Error ? $error : null;
 	}
 
 	/**
@@ -650,7 +696,7 @@ class MJERP_Sale_Payments_Repo {
 	private static function cast( array $row ) : array {
 		$status = (string) self::v( $row, 'status', self::STATUS_CONFIRMED );
 
-		return array(
+		$out = array(
 			'id'            => (int) $row['id'],
 			'sale_id'       => (int) self::v( $row, 'sale_id', 0 ),
 			'payment_date'  => self::date_or_null( self::v( $row, 'payment_date', null ) ),
@@ -673,6 +719,11 @@ class MJERP_Sale_Payments_Repo {
 			'confirmed_at'  => self::datetime_or_null( self::v( $row, 'confirmed_at' ) ),
 			'created_at'    => self::datetime_or_null( self::v( $row, 'created_at' ) ),
 		);
+
+		// Si se puede corregir (sin mirar permisos: eso lo decide quién lo pide).
+		$out['editable'] = null === self::edit_blocker( $out );
+
+		return $out;
 	}
 
 	private static function v( array $row, string $key, $default = '' ) {

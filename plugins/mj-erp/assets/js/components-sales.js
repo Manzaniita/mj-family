@@ -566,29 +566,38 @@
 	/* ------------------------------------------------------------------ */
 
 	/**
-	 * Registrar un cobro contra una venta.
-	 * @param {Object} opts { sale, onSaved(sale) }
+	 * Registrar un cobro contra una venta o, con `payment`, corregir uno que ya está: el medio, el
+	 * importe, la caja, la fecha o la referencia que se cargaron mal.
+	 * @param {Object} opts { sale, payment?, onSaved(sale) }
 	 */
 	C.salePaymentModal = function (opts) {
 		opts = opts || {};
 		const sale = opts.sale || {};
+		const payment = opts.payment || null;
 		const due = MJ.fmt.toNumber(sale.due) || 0;
 		const cashboxes = cashboxOptions();
 
+		const intro = payment
+			? '<div class="mj-alert mj-alert--info mj-mb">Se corrige este cobro; el saldo de la venta se recalcula solo.</div>'
+			: (due > 0
+				? '<div class="mj-alert mj-alert--info mj-mb">Falta cobrar ' + h(money(due, sale.currency)) + ' de esta venta.</div>'
+				: '<div class="mj-alert mj-alert--success mj-mb">Esta venta ya está cobrada. Podés registrar un cobro igual si hace falta.</div>');
+		const amountValue = payment
+			? MJ.fmt.number(MJ.fmt.toNumber(payment.amount) || 0, 2)
+			: (due > 0 ? MJ.fmt.number(due, 2) : '');
+
 		const body =
 			'<form class="mj-form" data-form novalidate autocomplete="off">' +
-				(due > 0
-					? '<div class="mj-alert mj-alert--info mj-mb">Falta cobrar ' + h(money(due, sale.currency)) + ' de esta venta.</div>'
-					: '<div class="mj-alert mj-alert--success mj-mb">Esta venta ya está cobrada. Podés registrar un cobro igual si hace falta.</div>') +
+				intro +
 				'<div class="mj-grid mj-grid--2">' +
 					'<div class="mj-field">' +
-						'<label class="mj-field__label" for="mj-sp-amount">Importe</label>' +
-						'<input class="mj-input" id="mj-sp-amount" name="amount" type="text" inputmode="decimal" value="' + h(due > 0 ? MJ.fmt.number(due, 2) : '') + '" autofocus>' +
-						'<div class="mj-field__hint mj-small mj-muted">Dejalo vacío para cobrar todo lo que falta.</div>' +
+						'<label class="mj-field__label" for="mj-sp-amount">Importe' + (payment ? ' (' + h(payment.currency || sale.currency || '') + ')' : '') + '</label>' +
+						'<input class="mj-input" id="mj-sp-amount" name="amount" type="text" inputmode="decimal" value="' + h(amountValue) + '" autofocus>' +
+						(payment ? '' : '<div class="mj-field__hint mj-small mj-muted">Dejalo vacío para cobrar todo lo que falta.</div>') +
 					'</div>' +
 					'<div class="mj-field">' +
 						'<label class="mj-field__label" for="mj-sp-date">Fecha</label>' +
-						'<input class="mj-input" id="mj-sp-date" name="payment_date" type="date" value="' + h(MJ.config.today || '') + '">' +
+						'<input class="mj-input" id="mj-sp-date" name="payment_date" type="date" value="' + h(payment ? (payment.payment_date || '') : (MJ.config.today || '')) + '">' +
 					'</div>' +
 					'<div class="mj-field">' +
 						'<label class="mj-field__label" for="mj-sp-method">Medio de pago</label>' +
@@ -605,27 +614,41 @@
 					'</div>' +
 					'<div class="mj-field mj-grid__full">' +
 						'<label class="mj-field__label" for="mj-sp-ref">Referencia</label>' +
-						'<input class="mj-input" id="mj-sp-ref" name="reference" type="text" placeholder="Nº de operación, últimos dígitos…">' +
+						'<input class="mj-input" id="mj-sp-ref" name="reference" type="text" value="' + h(payment ? (payment.reference || '') : '') + '" placeholder="Nº de operación, últimos dígitos…">' +
 					'</div>' +
+					(payment
+						? '<div class="mj-field mj-grid__full">' +
+							'<label class="mj-field__label" for="mj-sp-reason">Motivo <span class="mj-muted">(opcional)</span></label>' +
+							'<input class="mj-input" id="mj-sp-reason" name="reason" type="text" maxlength="255" placeholder="Se cargó con otro medio, otro importe…">' +
+							'<div class="mj-field__hint mj-small mj-muted">Queda en el historial de la venta.</div>' +
+						'</div>'
+						: '') +
 				'</div>' +
 				'<div class="mj-form__errors mj-hidden" data-errors></div>' +
 			'</form>';
 
 		const modal = MJ.ui.modal({
-			title: 'Registrar cobro',
+			title: payment ? 'Corregir cobro' : 'Registrar cobro',
 			size: 'md',
 			body: body,
 			footer:
 				'<button type="button" class="mj-btn mj-btn--ghost" data-modal-close>Cancelar</button>' +
-				'<button type="button" class="mj-btn mj-btn--primary" data-action="save">' + MJ.icon('cash') + '<span>Registrar</span></button>',
+				'<button type="button" class="mj-btn mj-btn--primary" data-action="save">' + MJ.icon(payment ? 'save' : 'cash') + '<span>' + (payment ? 'Guardar' : 'Registrar') + '</span></button>',
 		});
 
 		const methodSelect = qs('#mj-sp-method', modal.el);
 		const cashboxSelect = qs('#mj-sp-cashbox', modal.el);
-		const initialMethod = sale.payment_method || defaults().payment_method;
+		const initialMethod = payment ? payment.method : (sale.payment_method || defaults().payment_method);
+		const initialCashbox = payment ? payment.cashbox_id : (sale.cashbox_id || cashboxForMethod(initialMethod));
 
-		MJ.ui.fillSelect(methodSelect, methodOptions(), initialMethod);
-		MJ.ui.fillSelect(cashboxSelect, cashboxes, sale.cashbox_id || cashboxForMethod(initialMethod), 'Sin caja');
+		// Un medio que ya no está en la lista sigue apareciendo en el cobro que lo usó: si no, se cambiaría sin querer.
+		const methods = methodOptions();
+		if (payment && payment.method && !methods.some(function (m) { return m.value === payment.method; })) {
+			methods.push({ value: payment.method, label: payment.method_label || payment.method });
+		}
+
+		MJ.ui.fillSelect(methodSelect, methods, initialMethod);
+		MJ.ui.fillSelect(cashboxSelect, cashboxes, initialCashbox, 'Sin caja');
 
 		/*
 		 * Saldo a favor: aparece como un medio más solo si el cliente tiene. No entra a ninguna caja,
@@ -657,7 +680,7 @@
 			if (on) paintCreditHint();
 		}
 
-		if (creditKey && sale.customer_id && C.creditEnabled && C.creditEnabled()) {
+		if (!payment && creditKey && sale.customer_id && C.creditEnabled && C.creditEnabled()) {
 			MJ.api.get('customers/' + sale.customer_id + '/credit').then(function (res) {
 				if (!modal.isOpen()) return;
 				creditBalances = C.creditBalancesList(res && res.balances).filter(function (b) { return b.amount > 0.004; });
@@ -687,14 +710,18 @@
 			MJ.ui.setLoading(btn, true);
 			MJ.ui.clearErrors(form);
 
-			MJ.api.post('sales/' + sale.id + '/payments', data).then(function (updated) {
-				MJ.ui.toast('Cobro registrado.', 'success');
+			const request = payment
+				? MJ.api.put('sale-payments/' + payment.id, data)
+				: MJ.api.post('sales/' + sale.id + '/payments', data);
+
+			request.then(function (updated) {
+				MJ.ui.toast(payment ? 'Cobro corregido.' : 'Cobro registrado.', 'success');
 				modal.close();
 				if (typeof opts.onSaved === 'function') opts.onSaved(updated);
 			}).catch(function (err) {
 				MJ.ui.setLoading(btn, false);
 				MJ.ui.showErrors(form, err);
-				MJ.ui.toastError(err, 'No se pudo registrar el cobro.');
+				MJ.ui.toastError(err, payment ? 'No se pudo corregir el cobro.' : 'No se pudo registrar el cobro.');
 			});
 		});
 

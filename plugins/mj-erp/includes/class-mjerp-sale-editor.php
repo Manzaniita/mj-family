@@ -1,8 +1,9 @@
 <?php
 /**
- * Corregir los productos de una venta que todavía no se cobró.
+ * Corregir los productos de una venta, cobrada o no.
  *
- * Al cliente se le ocurre llevarse tres en vez de dos, o cambiar uno por otro, antes de pagar. Anular
+ * Al cliente se le ocurre llevarse tres en vez de dos, o cambiar uno por otro. O se cargó mal: otro
+ * precio, otro producto, un cobro que no era. Anular
  * y cargar de nuevo pierde el código, la fecha y el pedido que ya le llegó al celular; esto cambia la
  * misma venta y deja todo lo que cuelga de ella en regla:
  *
@@ -12,10 +13,14 @@
  *     pedido de WooCommerce si lo hay, el ERP si no. Si la venta todavía no bajó stock, no se toca.
  *   - **El pedido** de WooCommerce se reescribe para que diga lo mismo que la venta.
  *   - **La entrega**: si estaba entregada y suma productos, vuelve a «A entregar» (configurable).
+ *   - **Los cobros** no se tocan: el saldo se recalcula solo y, si ya no cierra, la venta queda
+ *     debiendo o cobrada de más a la vista, para corregir el cobro aparte.
  *   - **El historial** anota qué cambió, quién y por qué.
  *
- * Lo que no se edita, a propósito: una venta con cobros (eso es una devolución, con su plata), una
- * con productos de la consignación de un revendedor (toca su cuenta corriente) y una anulada.
+ * Lo que no se edita, a propósito: una venta con cobros si el ajuste está apagado, una cobrada online
+ * en la tienda (la plata está en la pasarela), una con devoluciones (ya movieron plata y stock sobre
+ * esas líneas), una con productos de la consignación de un revendedor (toca su cuenta corriente) y
+ * una anulada.
  *
  * @package MJ_ERP
  */
@@ -48,6 +53,15 @@ class MJERP_Sale_Editor {
 	 */
 	public static function enabled() : bool {
 		return MJERP_Helpers::bool( MJERP_Settings::get( 'sales_edit_enabled', true ) );
+	}
+
+	/**
+	 * Whether sales that already have payments can be corrected too.
+	 *
+	 * @return bool
+	 */
+	public static function paid_enabled() : bool {
+		return MJERP_Helpers::bool( MJERP_Settings::get( 'sales_edit_paid', true ) );
 	}
 
 	/**
@@ -94,8 +108,12 @@ class MJERP_Sale_Editor {
 			$error = new WP_Error( 'mjerp_edit_disabled', __( 'Editar ventas está apagado en Configuración → Ventas → Corregir ventas.', 'mj-erp' ), array( 'status' => 409 ) );
 		} elseif ( MJERP_Sales_Repo::STATUS_VOID === (string) $sale['status'] ) {
 			$error = new WP_Error( 'mjerp_sale_void', __( 'La venta está anulada: no hay nada que editar.', 'mj-erp' ), array( 'status' => 409 ) );
-		} elseif ( (float) $sale['paid_total'] > MJERP_Sales_Repo::EPSILON ) {
+		} elseif ( (float) $sale['paid_total'] > MJERP_Sales_Repo::EPSILON && ! self::paid_enabled() ) {
 			$error = new WP_Error( 'mjerp_sale_paid', __( 'La venta ya tiene cobros: para cambiar lo que se llevó, registrá una devolución o cambio.', 'mj-erp' ), array( 'status' => 409 ) );
+		} elseif ( self::has_shop_payment( (int) $sale['id'] ) ) {
+			$error = new WP_Error( 'mjerp_sale_shop_paid', __( 'Se cobró online en la tienda: esa plata está en la pasarela. Para cambiar lo que se llevó, registrá una devolución o cambio.', 'mj-erp' ), array( 'status' => 409 ) );
+		} elseif ( class_exists( 'MJERP_Returns_Repo' ) && ! empty( MJERP_Returns_Repo::for_sale( (int) $sale['id'] ) ) ) {
+			$error = new WP_Error( 'mjerp_sale_returned', __( 'La venta ya tiene devoluciones o cambios: para seguir cambiándola, registrá otra devolución o cambio.', 'mj-erp' ), array( 'status' => 409 ) );
 		} elseif ( (float) $sale['consignment_qty'] > MJERP_Sales_Repo::EPSILON ) {
 			$error = new WP_Error( 'mjerp_sale_consignment', __( 'Tiene productos de la consignación de un revendedor: para cambiarla, anulala y cargala de nuevo.', 'mj-erp' ), array( 'status' => 409 ) );
 		} elseif ( ! empty( $sale['order_id'] ) && function_exists( 'wc_get_order' ) ) {
@@ -114,6 +132,24 @@ class MJERP_Sale_Editor {
 		$error = apply_filters( 'mjerp_sale_edit_blocker', $error, $sale );
 
 		return $error instanceof WP_Error ? $error : null;
+	}
+
+	/**
+	 * Whether the sale has a payment that came from the shop's checkout.
+	 *
+	 * @param int $sale_id Sale id.
+	 * @return bool
+	 */
+	private static function has_shop_payment( int $sale_id ) : bool {
+		if ( ! class_exists( 'MJERP_Sale_Payments_Repo' ) ) {
+			return false;
+		}
+		foreach ( MJERP_Sale_Payments_Repo::for_sale( $sale_id ) as $payment ) {
+			if ( MJERP_Sale_Payments_Repo::SOURCE_SHOP === (string) $payment['source'] ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/* ------------------------------------------------------------------
@@ -145,6 +181,7 @@ class MJERP_Sale_Editor {
 			'changes'   => $plan['changes'],
 			'stock'     => $plan['stock'],
 			'redeliver' => $plan['redeliver'],
+			'paid'      => round( (float) $sale['paid_total'], 4 ),
 			'order'     => $sale['order_id'] ? (string) ( '' !== (string) $sale['order_number'] ? $sale['order_number'] : $sale['order_id'] ) : '',
 		);
 	}

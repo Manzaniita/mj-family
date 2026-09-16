@@ -87,7 +87,7 @@
 		sales_delivery_partial: 'ventas', sales_partial_delivery_commits: 'ventas',
 		sales_delivery_label_pendiente: 'ventas', sales_delivery_label_parcial: 'ventas', sales_delivery_label_en_camino: 'ventas', sales_delivery_label_entregado: 'ventas',
 		sales_admin_roles: 'ventas', sales_log_enabled: 'ventas',
-		sales_edit_enabled: 'ventas', sales_edit_require_reason: 'ventas', sales_edit_redeliver: 'ventas',
+		sales_edit_enabled: 'ventas', sales_edit_paid: 'ventas', sales_edit_require_reason: 'ventas', sales_edit_redeliver: 'ventas',
 		returns_enabled: 'ventas', returns_require_reason: 'ventas', returns_default_settlement: 'ventas',
 		returns_update_order: 'ventas', returns_code_prefix: 'ventas', rma_enabled: 'ventas', rma_code_prefix: 'ventas',
 		customers_enabled: 'clientes', customers_doc_types: 'clientes', customers_default_doc_type: 'clientes',
@@ -239,6 +239,7 @@
 		sales_admin_roles: ['administrator'],
 		sales_log_enabled: true,
 		sales_edit_enabled: true,
+		sales_edit_paid: true,
 		sales_edit_require_reason: false,
 		sales_edit_redeliver: true,
 		returns_enabled: true,
@@ -759,6 +760,7 @@
 		m.sales_admin_roles = roleKeys(src.sales_admin_roles, DEFAULTS.sales_admin_roles);
 		m.sales_log_enabled = toBool(src.sales_log_enabled, DEFAULTS.sales_log_enabled);
 		m.sales_edit_enabled = toBool(src.sales_edit_enabled, DEFAULTS.sales_edit_enabled);
+		m.sales_edit_paid = toBool(src.sales_edit_paid, DEFAULTS.sales_edit_paid);
 		m.sales_edit_require_reason = toBool(src.sales_edit_require_reason, DEFAULTS.sales_edit_require_reason);
 		m.sales_edit_redeliver = toBool(src.sales_edit_redeliver, DEFAULTS.sales_edit_redeliver);
 		m.returns_enabled = toBool(src.returns_enabled, DEFAULTS.returns_enabled);
@@ -1066,6 +1068,7 @@
 			sales_admin_roles: payloadRoles(m.sales_admin_roles),
 			sales_log_enabled: !!m.sales_log_enabled,
 			sales_edit_enabled: !!m.sales_edit_enabled,
+			sales_edit_paid: !!m.sales_edit_paid,
 			sales_edit_require_reason: !!m.sales_edit_require_reason,
 			sales_edit_redeliver: !!m.sales_edit_redeliver,
 			returns_enabled: !!m.returns_enabled,
@@ -2289,8 +2292,12 @@
 				hint: 'Anota quién cargó, cobró, entregó, corrigió o anuló cada venta, y cuándo. Se ve en el detalle de la venta, abajo de los cobros.',
 			}) +
 			checkboxFieldHtml({
-				key: 'sales_edit_enabled', label: 'Dejar editar los productos de una venta sin cobrar', checked: !!m.sales_edit_enabled,
-				hint: 'Cambiar cantidades, precios, descuento y envío, sacar productos o agregar otros, sin anular. Solo mientras la venta no tenga cobros ni productos de la consignación de un revendedor. El stock y el pedido de WooCommerce se acomodan solos.',
+				key: 'sales_edit_enabled', label: 'Dejar editar los productos de una venta', checked: !!m.sales_edit_enabled,
+				hint: 'Cambiar cantidades, precios, descuento y envío, sacar productos o agregar otros, sin anular. No se puede si tiene productos de la consignación de un revendedor. El stock y el pedido de WooCommerce se acomodan solos.',
+			}) +
+			checkboxFieldHtml({
+				key: 'sales_edit_paid', label: 'También las ventas que ya tienen cobros', checked: !!m.sales_edit_paid,
+				hint: 'Para corregir lo que se cargó mal. Los cobros no se tocan: el saldo se recalcula y, si sobra plata, la venta lo avisa para corregir el cobro. No aplica a lo cobrado online en la tienda ni a ventas con devoluciones. Cada cobro se puede corregir aparte (medio, importe, caja, fecha).',
 			}) +
 			checkboxFieldHtml({
 				key: 'sales_edit_require_reason', label: 'Pedir el motivo de cada corrección', checked: !!m.sales_edit_require_reason,

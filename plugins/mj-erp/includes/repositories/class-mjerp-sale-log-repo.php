@@ -24,6 +24,7 @@ class MJERP_Sale_Log {
 	const ACTION_DELIVERY          = 'entrega';
 	const ACTION_PAYMENT           = 'cobro';
 	const ACTION_PAYMENT_CONFIRMED = 'cobro_confirmado';
+	const ACTION_PAYMENT_UPDATED   = 'cobro_editado';
 	const ACTION_PAYMENT_DELETED   = 'cobro_borrado';
 	const ACTION_ORDER             = 'pedido';
 	const ACTION_VOIDED            = 'anulada';
@@ -73,6 +74,7 @@ class MJERP_Sale_Log {
 		add_action( 'mjerp_sale_delivery_changed', array( __CLASS__, 'on_delivery' ), 5, 3 );
 		add_action( 'mjerp_sale_payment_created', array( __CLASS__, 'on_payment_created' ), 20, 3 );
 		add_action( 'mjerp_sale_payment_confirmed', array( __CLASS__, 'on_payment_confirmed' ), 20, 2 );
+		add_action( 'mjerp_sale_payment_updated', array( __CLASS__, 'on_payment_updated' ), 20, 4 );
 		add_action( 'mjerp_sale_payment_deleted', array( __CLASS__, 'on_payment_deleted' ), 20, 3 );
 		add_action( 'mjerp_sale_order_created', array( __CLASS__, 'on_order_created' ), 20, 2 );
 		add_action( 'mjerp_sale_voided', array( __CLASS__, 'on_voided' ), 20, 3 );
@@ -379,6 +381,62 @@ class MJERP_Sale_Log {
 	}
 
 	/**
+	 * Se corrigió un cobro: qué tenía y qué tiene.
+	 *
+	 * @param int    $payment_id Payment id.
+	 * @param int    $sale_id    Sale id.
+	 * @param array  $before     Payment before the edit.
+	 * @param string $reason     Why.
+	 * @return void
+	 */
+	public static function on_payment_updated( $payment_id, $sale_id, $before = null, $reason = '' ) : void {
+		$after = MJERP_Sale_Payments_Repo::find( $payment_id );
+		if ( ! $after || ! is_array( $before ) ) {
+			return;
+		}
+
+		$changes = array();
+		if ( abs( (float) $before['amount'] - (float) $after['amount'] ) > 0.004 || (string) $before['currency'] !== (string) $after['currency'] ) {
+			/* translators: 1: previous amount, 2: new amount */
+			$changes[] = sprintf( __( 'Importe: %1$s → %2$s.', 'mj-erp' ), self::money( $before['amount'], $before['currency'] ), self::money( $after['amount'], $after['currency'] ) );
+		}
+		if ( (string) $before['method'] !== (string) $after['method'] ) {
+			/* translators: 1: previous method, 2: new method */
+			$changes[] = sprintf( __( 'Medio: %1$s → %2$s.', 'mj-erp' ), self::or_dash( $before['method_label'] ), self::or_dash( $after['method_label'] ) );
+		}
+		if ( (int) $before['cashbox_id'] !== (int) $after['cashbox_id'] ) {
+			/* translators: 1: previous cashbox, 2: new cashbox */
+			$changes[] = sprintf( __( 'Caja: %1$s → %2$s.', 'mj-erp' ), self::cashbox_name( $before['cashbox_id'] ), self::cashbox_name( $after['cashbox_id'] ) );
+		}
+		if ( (string) $before['payment_date'] !== (string) $after['payment_date'] ) {
+			/* translators: 1: previous date, 2: new date */
+			$changes[] = sprintf( __( 'Fecha: %1$s → %2$s.', 'mj-erp' ), self::date_label( $before['payment_date'] ), self::date_label( $after['payment_date'] ) );
+		}
+		if ( (string) $before['reference'] !== (string) $after['reference'] ) {
+			/* translators: 1: previous reference, 2: new reference */
+			$changes[] = sprintf( __( 'Referencia: %1$s → %2$s.', 'mj-erp' ), self::or_dash( $before['reference'] ), self::or_dash( $after['reference'] ) );
+		}
+		if ( empty( $changes ) ) {
+			return;
+		}
+
+		self::add(
+			array(
+				'sale_id' => (int) $sale_id,
+				'action'  => self::ACTION_PAYMENT_UPDATED,
+				/* translators: 1: amount, 2: payment method */
+				'summary' => sprintf( __( 'Se corrigió el cobro: quedó en %1$s (%2$s).', 'mj-erp' ), self::money( $after['amount'], $after['currency'] ), $after['method_label'] ),
+				'reason'  => (string) $reason,
+				'detail'  => array(
+					'changes' => $changes,
+					'before'  => self::payment_snapshot( $before ),
+					'after'   => self::payment_snapshot( $after ),
+				),
+			)
+		);
+	}
+
+	/**
 	 * Se borró un cobro.
 	 *
 	 * @param int        $payment_id Payment id.
@@ -556,6 +614,16 @@ class MJERP_Sale_Log {
 			'method'     => (string) $payment['method'],
 			'reference'  => (string) $payment['reference'],
 		);
+	}
+
+	private static function cashbox_name( $id ) : string {
+		$id = absint( $id );
+		if ( ! $id ) {
+			return __( 'Sin caja', 'mj-erp' );
+		}
+		$cashbox = class_exists( 'MJERP_Cashboxes_Repo' ) ? MJERP_Cashboxes_Repo::find( $id ) : null;
+		/* translators: %d: cashbox id */
+		return $cashbox && '' !== (string) $cashbox['name'] ? (string) $cashbox['name'] : sprintf( __( 'Caja #%d', 'mj-erp' ), $id );
 	}
 
 	private static function date_label( $value ) : string {

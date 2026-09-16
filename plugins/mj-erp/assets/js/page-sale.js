@@ -4,7 +4,7 @@
  * un revendedor, qué se cobró y qué falta.
  *
  * REST: GET /sales/{id}, PUT /sales/{id}, POST /sales/{id}/void, POST /sales/{id}/order,
- *       POST /sales/{id}/payments, POST /sales/{id}/delivery, DELETE /sale-payments/{id},
+ *       POST /sales/{id}/payments, POST /sales/{id}/delivery, PUT|DELETE /sale-payments/{id},
  *       GET /sales/{id}/log. Editar productos: MJ.components.saleItemsModal (components-sale-edit.js).
  *       Devolución o cambio y anular una venta cobrada: components-returns.js.
  */
@@ -138,19 +138,22 @@
 	}
 
 	/**
-	 * Editar productos (sin cobros) o, si ya se cobró, «Devolución o cambio»: solo para quien corrige
-	 * ventas. Si no se puede ninguna, se dice por qué en vez de esconder el botón sin explicación.
+	 * «Editar productos» y, si ya se cobró, «Devolución o cambio»: solo para quien corrige ventas.
+	 * Editar corrige lo que se cargó mal; la devolución registra lo que el cliente trajo, con su plata.
+	 * Si no se puede ninguna, se dice por qué en vez de esconder el botón sin explicación.
 	 */
 	function editItemsHtml(sale) {
 		const edit = sale.edit || {};
 		const ret = sale.return_state || {};
 		if (!(edit.can_manage || ret.can_manage) || sale.status === 'anulada') return '';
+		const buttons = [];
 		if (edit.can_edit && MJ.components.saleItemsModal) {
-			return '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="edit-items">' + MJ.icon('edit') + '<span>Editar productos</span></button>';
+			buttons.push('<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="edit-items">' + MJ.icon('edit') + '<span>Editar productos</span></button>');
 		}
 		if (ret.can_return && MJ.components.saleReturnModal) {
-			return '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="return">' + MJ.icon('undo') + '<span>Devolución o cambio</span></button>';
+			buttons.push('<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost" data-action="return">' + MJ.icon('undo') + '<span>Devolución o cambio</span></button>');
 		}
+		if (buttons.length) return '<div class="mj-btn-group">' + buttons.join('') + '</div>';
 		const reason = (num(sale.paid_total) || 0) > 0.004 ? (ret.reason || edit.reason) : (edit.reason || ret.reason);
 		return reason
 			? '<span class="mj-small mj-muted" title="' + h(reason) + '">' + MJ.icon('info') + ' No se puede cambiar</span>'
@@ -246,9 +249,18 @@
 			'</div></div>';
 	}
 
+	/**
+	 * Corregir un cobro: solo quien corrige ventas, y solo si el servidor lo marca `editable` (qué
+	 * cobros no se corrigen sueltos lo decide MJERP_Sale_Payments_Repo::edit_blocker()).
+	 */
+	function canEditPayment(p, sale) {
+		return !!info().can_manage && sale.status !== 'anulada' && !!p.editable;
+	}
+
 	function paymentsHtml(sale) {
 		const payments = sale.payments || [];
 		const voided = sale.status === 'anulada';
+		const overpaid = voided ? 0 : (num(sale.paid_total) || 0) - (num(sale.collectable) || 0);
 
 		return '<div class="mj-card"><div class="mj-card__header">' +
 				'<h3 class="mj-card__title">Cobros</h3>' +
@@ -275,6 +287,7 @@
 								? MJ.ui.badgeRaw('Devolución', 'info')
 								: (p.is_declared ? MJ.ui.badgeRaw(p.status_label, 'warning') : MJ.ui.badgeRaw(p.status_label, 'success'))) + '</td>' +
 							'<td class="is-actions"><div class="mj-btn-group">' +
+								(canEditPayment(p, sale) ? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="edit-payment" title="Corregir" aria-label="Corregir cobro">' + MJ.icon('edit') + '</button>' : '') +
 								(p.is_declared ? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon" data-action="confirm-payment" title="Confirmar" aria-label="Confirmar cobro">' + MJ.icon('check') + '</button>' : '') +
 								(isReturn ? '' : '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon mj-danger-text" data-action="delete-payment" title="Borrar" aria-label="Borrar cobro">' + MJ.icon('trash') + '</button>') +
 							'</div></td>' +
@@ -282,6 +295,10 @@
 					}).join('') +
 					'</tbody></table></div>'
 				: '<div class="mj-card__body mj-muted">Todavía no registraste cobros de esta venta.</div>') +
+			// Pasa al corregir una venta cobrada que quedó por menos: se ve, y se arregla corrigiendo el cobro.
+			(overpaid > 0.004
+				? '<div class="mj-card__body">' + MJ.ui.alert('Se cobró ' + money(overpaid, sale) + ' más que el total de la venta. Corregí o borrá el cobro que sobra.', 'warning') + '</div>'
+				: '') +
 		'</div>';
 	}
 
@@ -600,6 +617,23 @@
 					MJ.ui.toast('Cobro confirmado.', 'success');
 					MJ.events.emit('sales:changed', {});
 				}).catch(function (err) { toastError(err, 'No se pudo confirmar el cobro.'); });
+			}));
+
+			offs.push(MJ.ui.on(container, 'click', '[data-action="edit-payment"]', function (e, el) {
+				const tr = el.closest('tr');
+				const id = tr ? parseInt(tr.getAttribute('data-payment'), 10) : 0;
+				const payment = state.sale && (state.sale.payments || []).find(function (p) { return p.id === id; });
+				if (!payment) return;
+				MJ.components.salePaymentModal({
+					sale: state.sale,
+					payment: payment,
+					onSaved(updated) {
+						if (state.disposed) return;
+						state.sale = updated;
+						paint();
+						MJ.events.emit('sales:changed', {});
+					},
+				});
 			}));
 
 			offs.push(MJ.ui.on(container, 'click', '[data-action="delete-payment"]', function (e, el) {

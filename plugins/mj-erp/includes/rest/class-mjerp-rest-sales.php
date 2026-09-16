@@ -260,6 +260,7 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 						'payment_date' => array( 'sanitize_callback' => array( $this, 'arg_date' ) ),
 						'reference'    => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 						'note'         => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
+						'reason'       => array( 'sanitize_callback' => array( $this, 'arg_text' ) ),
 					)
 				),
 				$this->endpoint( WP_REST_Server::DELETABLE, 'delete_payment' ),
@@ -714,6 +715,11 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function update_payment( $request ) {
+		// Corregir un cobro es cambiar plata que ya entró: lo hace solo quien corrige ventas.
+		if ( ! MJERP_Capabilities::can_manage_sales() ) {
+			return $this->fail( 'mjerp_forbidden', __( 'No tenés permiso para corregir cobros.', 'mj-erp' ), 403 );
+		}
+
 		$id      = $this->route_id( $request );
 		$params  = $this->params( $request );
 		$payment = MJERP_Sale_Payments_Repo::find( $id );
@@ -722,7 +728,7 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 		}
 
 		$data = array();
-		foreach ( array( 'amount', 'currency', 'rate', 'method', 'cashbox_id', 'payment_date', 'reference', 'note' ) as $key ) {
+		foreach ( array( 'amount', 'currency', 'rate', 'method', 'cashbox_id', 'payment_date', 'reference', 'note', 'reason' ) as $key ) {
 			if ( $this->has( $params, $key ) ) {
 				$data[ $key ] = $params[ $key ];
 			}

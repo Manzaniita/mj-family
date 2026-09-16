@@ -311,6 +311,8 @@ class MJERP_Settings {
 			'sales_log_enabled'          => true,
 			// Editar los productos de una venta que todavía no se cobró.
 			'sales_edit_enabled'         => true,
+			// También las que ya tienen cobros: el cobro se corrige aparte y el saldo se recalcula solo.
+			'sales_edit_paid'            => true,
 			'sales_edit_require_reason'  => false,
 			// Una venta entregada que suma productos vuelve a «A entregar»: lo nuevo no se lo llevó.
 			'sales_edit_redeliver'       => true,
@@ -1526,6 +1528,7 @@ class MJERP_Settings {
 			case 'sales_delivery_enabled':
 			case 'sales_log_enabled':
 			case 'sales_edit_enabled':
+			case 'sales_edit_paid':
 			case 'sales_edit_require_reason':
 			case 'sales_edit_redeliver':
 			case 'sales_delivery_partial':

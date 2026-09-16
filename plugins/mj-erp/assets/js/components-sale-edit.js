@@ -205,6 +205,18 @@
 				parts.push('<div class="mj-mt">' + MJ.ui.alert('La venta estaba entregada y suma productos: vuelve a «A entregar».', 'warning') + '</div>');
 			}
 
+			// Con cobros: los cobros no se tocan, así que se avisa cómo queda el saldo con el total nuevo.
+			const paid = num(p.paid) || 0;
+			if (paid > 0.004) {
+				const left = (num((p.totals || {}).total) || 0) - paid;
+				const text = left > 0.004
+					? 'Ya se cobraron ' + money(paid) + ': con el total nuevo queda debiendo ' + money(left) + '.'
+					: (left < -0.004
+						? 'Ya se cobraron ' + money(paid) + ': con el total nuevo sobran ' + money(-left) + '. Después corregí o borrá el cobro.'
+						: 'Ya se cobraron ' + money(paid) + ': con el total nuevo queda justo.');
+				parts.push('<div class="mj-mt">' + MJ.ui.alert(text, Math.abs(left) > 0.004 ? 'warning' : 'info') + '</div>');
+			}
+
 			return parts.join('');
 		}
 
