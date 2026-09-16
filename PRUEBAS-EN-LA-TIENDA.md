@@ -195,7 +195,24 @@ que lo esconde.
 Poné el mínimo en un número que puedas superar con el producto de prueba.
 Probá justo debajo y justo encima.
 
-### 3.6. Los correos en vivo — **con cuidado**
+### 3.6. Los datos del cliente, con cuenta
+
+1. Entrá con una cuenta que tenga nombre pero no teléfono. En el checkout, elegí
+   **Retiro en el local**.
+
+**Qué tiene que pasar:** el paso de envío avisa solo «Falta completar "Teléfono"».
+Apenas escribís el teléfono en Contacto, el aviso se va (tarda un segundo).
+
+2. Confirmá la compra sin calle.
+
+**Qué tiene que pasar:** el pedido se hace. En **Mi cuenta → Direcciones** queda
+guardado el teléfono, y la próxima compra arranca con los datos completos.
+
+3. Repetí con **Envío a domicilio** y dejá la calle vacía.
+
+**Qué tiene que pasar:** avisa que falta la calle y no deja pagar hasta cargarla.
+
+### 3.7. Los correos en vivo — **con cuidado**
 
 > **Esto no se probó nunca contra una cuenta real.** Vía Cargo, Andreani y
 > Correo Argentino están escritos contra la documentación de cada uno, sin
@@ -216,7 +233,7 @@ dependen de que el servidor de nadie esté arriba.
 así que si algo no cotiza vas a poder ver si fue el usuario, la clave, un
 tiempo de espera agotado o una respuesta rara.
 
-### 3.7. Qué pasa si el correo no responde
+### 3.8. Qué pasa si el correo no responde
 
 Esto es lo más importante de todo, y se prueba fácil: poné mal la clave del
 correo a propósito.
