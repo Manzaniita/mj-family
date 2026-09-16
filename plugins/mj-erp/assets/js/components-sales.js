@@ -158,12 +158,13 @@
 		if (!sale) return false;
 		return commitsNow({
 			paid: String(sale.payment_status || '') === 'pagada',
-			delivered: !!(sale.delivered || sale.delivery_started),
+			delivered: !!(sale.delivered || (sale.delivery_started && MJ.setting('sales_partial_delivery_commits', true) !== false)),
 		});
 	}
 
-	/** ¿La venta tiene más de una unidad? Solo ahí tiene sentido entregar una parte. */
+	/** ¿Se puede entregar una parte? Tiene que estar permitido y la venta tener más de una unidad. */
 	function deliveryHasParts(sale) {
+		if (MJ.setting('sales_delivery_partial', true) === false) return false;
 		const items = (sale && sale.items) || [];
 		if (items.length > 1) return true;
 		return items.length === 1 && (MJ.fmt.toNumber(items[0].qty) || 0) > 1;
@@ -243,7 +244,6 @@
 		}
 		const statuses = deliveryStatuses();
 		const parts = deliveryHasParts(sale);
-		const step = function (qty) { return Math.abs(qty - Math.round(qty)) < 0.00005 ? 1 : 0.5; };
 
 		const itemsHtml = !parts ? '' :
 			'<div class="mj-field mj-grid__full mj-delivery-items">' +
@@ -252,7 +252,7 @@
 					sale.items.map(function (item) {
 						const qty = MJ.fmt.toNumber(item.qty) || 0;
 						const delivered = Math.min(qty, MJ.fmt.toNumber(item.delivered_qty) || 0);
-						return '<tr data-delivery-item data-qty="' + h(qty) + '" data-step="' + h(step(qty)) + '">' +
+						return '<tr data-delivery-item data-qty="' + h(qty) + '">' +
 							'<td>' +
 								'<div class="mj-strong">' + h(item.name) + '</div>' +
 								(item.sku ? '<div class="mj-small mj-muted">SKU ' + h(item.sku) + '</div>' : '') +
@@ -338,7 +338,8 @@
 
 		MJ.ui.on(modal.el, 'click', '[data-action="delivered-down"], [data-action="delivered-up"]', function (e, btn) {
 			const row = btn.closest('[data-delivery-item]');
-			const delta = (parseFloat(row.getAttribute('data-step')) || 1) * (btn.getAttribute('data-action') === 'delivered-up' ? 1 : -1);
+			/* De a una unidad; una cantidad con decimales se escribe a mano. */
+			const delta = btn.getAttribute('data-action') === 'delivered-up' ? 1 : -1;
 			clampRow(row, (MJ.fmt.toNumber(rowInput(row).value) || 0) + delta);
 			statusFromItems();
 		});

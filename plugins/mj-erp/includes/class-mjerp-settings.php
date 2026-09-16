@@ -233,6 +233,19 @@ class MJERP_Settings {
 			),
 			'sales_default_delivery_method' => 'mostrador',
 			'sales_shop_delivery_method'    => 'envio',
+
+			/*
+			 * Entrega por partes: si se puede registrar cuánto se llevó de cada producto, y si eso
+			 * ya cuenta como entrega para «Cuándo se emite y baja el stock».
+			 */
+			'sales_delivery_partial'         => true,
+			'sales_partial_delivery_commits' => true,
+
+			/* Cómo se llama cada estado de entrega en todas las pantallas. */
+			'sales_delivery_label_pendiente' => 'A entregar',
+			'sales_delivery_label_parcial' => 'Entregado en parte',
+			'sales_delivery_label_en_camino' => 'En camino',
+			'sales_delivery_label_entregado' => 'Entregado',
 			'sales_shop_channel'         => 'tienda',
 			'sales_payment_methods'      => array(
 				array(
@@ -910,29 +923,28 @@ class MJERP_Settings {
 	}
 
 	/**
-	 * Delivery status catalogue of a sale (labels/colors only; keys are fixed).
+	 * Delivery status catalogue of a sale (keys are fixed; labels come from the settings).
+	 *
+	 * Los nombres se cambian en Configuración → Ventas → Entrega; los colores solo con el filtro.
 	 *
 	 * @return array
 	 */
 	public static function sale_delivery_statuses() {
-		$statuses = array(
-			'pendiente'  => array(
-				'label' => __( 'A entregar', 'mj-erp' ),
-				'color' => 'warning',
-			),
-			'parcial'    => array(
-				'label' => __( 'Entregado en parte', 'mj-erp' ),
-				'color' => 'info',
-			),
-			'en_camino'  => array(
-				'label' => __( 'En camino', 'mj-erp' ),
-				'color' => 'info',
-			),
-			'entregado'  => array(
-				'label' => __( 'Entregado', 'mj-erp' ),
-				'color' => 'success',
-			),
+		$colors   = array(
+			'pendiente' => 'warning',
+			'parcial'   => 'info',
+			'en_camino' => 'info',
+			'entregado' => 'success',
 		);
+		$defaults = self::defaults();
+		$statuses = array();
+		foreach ( $colors as $key => $color ) {
+			$label            = (string) self::get( 'sales_delivery_label_' . $key, $defaults[ 'sales_delivery_label_' . $key ] );
+			$statuses[ $key ] = array(
+				'label' => '' !== trim( $label ) ? $label : $defaults[ 'sales_delivery_label_' . $key ],
+				'color' => $color,
+			);
+		}
 
 		/**
 		 * Filters the delivery status catalogue.
@@ -1516,6 +1528,8 @@ class MJERP_Settings {
 			case 'sales_edit_enabled':
 			case 'sales_edit_require_reason':
 			case 'sales_edit_redeliver':
+			case 'sales_delivery_partial':
+			case 'sales_partial_delivery_commits':
 			case 'returns_enabled':
 			case 'returns_require_reason':
 			case 'returns_update_order':
@@ -1582,6 +1596,13 @@ class MJERP_Settings {
 					);
 				}
 				return $rows;
+
+			case 'sales_delivery_label_pendiente':
+			case 'sales_delivery_label_parcial':
+			case 'sales_delivery_label_en_camino':
+			case 'sales_delivery_label_entregado':
+				$label = self::text( $value, 60 );
+				return '' === $label ? $default : $label;
 
 			case 'sales_default_channel':
 			case 'sales_shop_channel':

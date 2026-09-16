@@ -84,6 +84,8 @@
 		sales_pos_per_page: 'ventas', sales_pos_images: 'ventas', sales_pos_steps_width: 'ventas',
 		sales_delivery_enabled: 'ventas', sales_delivery_methods: 'ventas',
 		sales_default_delivery_method: 'ventas', sales_shop_delivery_method: 'ventas',
+		sales_delivery_partial: 'ventas', sales_partial_delivery_commits: 'ventas',
+		sales_delivery_label_pendiente: 'ventas', sales_delivery_label_parcial: 'ventas', sales_delivery_label_en_camino: 'ventas', sales_delivery_label_entregado: 'ventas',
 		sales_admin_roles: 'ventas', sales_log_enabled: 'ventas',
 		sales_edit_enabled: 'ventas', sales_edit_require_reason: 'ventas', sales_edit_redeliver: 'ventas',
 		returns_enabled: 'ventas', returns_require_reason: 'ventas', returns_default_settlement: 'ventas',
@@ -228,6 +230,12 @@
 		],
 		sales_default_delivery_method: 'mostrador',
 		sales_shop_delivery_method: 'envio',
+		sales_delivery_partial: true,
+		sales_partial_delivery_commits: true,
+		sales_delivery_label_pendiente: 'A entregar',
+		sales_delivery_label_parcial: 'Entregado en parte',
+		sales_delivery_label_en_camino: 'En camino',
+		sales_delivery_label_entregado: 'Entregado',
 		sales_admin_roles: ['administrator'],
 		sales_log_enabled: true,
 		sales_edit_enabled: true,
@@ -689,6 +697,13 @@
 		const deliveryKeys = m.sales_delivery_methods.map(function (d) { return d.key; });
 		m.sales_default_delivery_method = pickKey(src.sales_default_delivery_method, deliveryKeys, DEFAULTS.sales_default_delivery_method);
 		m.sales_shop_delivery_method = pickKey(src.sales_shop_delivery_method, deliveryKeys, DEFAULTS.sales_shop_delivery_method);
+		m.sales_delivery_partial = toBool(src.sales_delivery_partial, DEFAULTS.sales_delivery_partial);
+		m.sales_partial_delivery_commits = toBool(src.sales_partial_delivery_commits, DEFAULTS.sales_partial_delivery_commits);
+		/* Nombres de los estados de entrega: vacío vuelve al de fábrica, como en el servidor. */
+		m.sales_delivery_label_pendiente = str(src.sales_delivery_label_pendiente).trim() || DEFAULTS.sales_delivery_label_pendiente;
+		m.sales_delivery_label_parcial = str(src.sales_delivery_label_parcial).trim() || DEFAULTS.sales_delivery_label_parcial;
+		m.sales_delivery_label_en_camino = str(src.sales_delivery_label_en_camino).trim() || DEFAULTS.sales_delivery_label_en_camino;
+		m.sales_delivery_label_entregado = str(src.sales_delivery_label_entregado).trim() || DEFAULTS.sales_delivery_label_entregado;
 
 		/* --- Clientes -------------------------------------------------------- */
 		m.customers_enabled = toBool(src.customers_enabled, DEFAULTS.customers_enabled);
@@ -1042,6 +1057,12 @@
 			sales_delivery_methods: deliveryMethods,
 			sales_default_delivery_method: inList(m.sales_default_delivery_method, deliveryKeys, DEFAULTS.sales_default_delivery_method),
 			sales_shop_delivery_method: inList(m.sales_shop_delivery_method, deliveryKeys, DEFAULTS.sales_shop_delivery_method),
+			sales_delivery_partial: !!m.sales_delivery_partial,
+			sales_partial_delivery_commits: !!m.sales_partial_delivery_commits,
+			sales_delivery_label_pendiente: str(m.sales_delivery_label_pendiente).trim() || DEFAULTS.sales_delivery_label_pendiente,
+			sales_delivery_label_parcial: str(m.sales_delivery_label_parcial).trim() || DEFAULTS.sales_delivery_label_parcial,
+			sales_delivery_label_en_camino: str(m.sales_delivery_label_en_camino).trim() || DEFAULTS.sales_delivery_label_en_camino,
+			sales_delivery_label_entregado: str(m.sales_delivery_label_entregado).trim() || DEFAULTS.sales_delivery_label_entregado,
 			sales_admin_roles: payloadRoles(m.sales_admin_roles),
 			sales_log_enabled: !!m.sales_log_enabled,
 			sales_edit_enabled: !!m.sales_edit_enabled,
@@ -2418,6 +2439,21 @@
 					key: 'sales_shop_delivery_method', label: 'Forma de los pedidos de la tienda', value: str(m.sales_shop_delivery_method), options: deliveryOptionsFrom(m),
 					hint: 'Con esta nacen las ventas que entran solas por WooCommerce, que todavía no salieron de acá.',
 				}) +
+			'</div>' +
+			checkboxFieldHtml({
+				key: 'sales_delivery_partial', label: 'Permitir entregar una parte', checked: !!m.sales_delivery_partial,
+				hint: 'En una venta con más de una unidad, la entrega lista los productos para marcar cuánto se llevó de cada uno. Lo que falta queda con su forma de entrega y su referencia.',
+			}) +
+			checkboxFieldHtml({
+				key: 'sales_partial_delivery_commits', label: 'Entregar una parte cuenta como entrega', checked: !!m.sales_partial_delivery_commits,
+				hint: 'Para «Cuándo se emite y baja el stock»: prendido, la venta queda firme en cuanto se lleva algo. Apagado, espera a que se entregue todo.',
+			}) +
+			'<div class="mj-field"><span class="mj-field__label">Cómo se llama cada estado</span></div>' +
+			'<div class="mj-form-row">' +
+				textFieldHtml({ key: 'sales_delivery_label_pendiente', label: 'A entregar', value: str(m.sales_delivery_label_pendiente), maxlength: 60, placeholder: DEFAULTS.sales_delivery_label_pendiente }) +
+				textFieldHtml({ key: 'sales_delivery_label_parcial', label: 'Entregado en parte', value: str(m.sales_delivery_label_parcial), maxlength: 60, placeholder: DEFAULTS.sales_delivery_label_parcial }) +
+				textFieldHtml({ key: 'sales_delivery_label_en_camino', label: 'En camino', value: str(m.sales_delivery_label_en_camino), maxlength: 60, placeholder: DEFAULTS.sales_delivery_label_en_camino }) +
+				textFieldHtml({ key: 'sales_delivery_label_entregado', label: 'Entregado', value: str(m.sales_delivery_label_entregado), maxlength: 60, placeholder: DEFAULTS.sales_delivery_label_entregado }) +
 			'</div>'
 		) +
 		sectionHtml('Pedido en WooCommerce', 'Es lo que hace que la venta exista para la tienda: aparece en los informes de Woo y te llega la notificación en la app del celular.',

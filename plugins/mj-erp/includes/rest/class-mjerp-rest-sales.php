@@ -503,8 +503,8 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 		if ( $this->has( $params, 'note' ) ) {
 			$data['note'] = $this->str( $params, 'note', '', 190 );
 		}
-		// Entrega por producto: { id de línea: cantidad entregada en total }.
-		if ( $this->has( $params, 'items' ) && is_array( $params['items'] ) ) {
+		// Entrega por producto: { id de línea: cantidad entregada en total }. Solo si está permitida.
+		if ( $this->has( $params, 'items' ) && is_array( $params['items'] ) && MJERP_Helpers::bool( MJERP_Settings::get( 'sales_delivery_partial', true ) ) ) {
 			$data['items'] = array();
 			foreach ( $params['items'] as $item_id => $qty ) {
 				if ( absint( $item_id ) > 0 && is_scalar( $qty ) ) {
