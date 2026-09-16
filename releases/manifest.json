@@ -3,11 +3,11 @@
         "Slug":  "mj-appearance",
         "Name":  "MJ Appearance",
         "Type":  "theme",
-        "Version":  "3.14.1",
+        "Version":  "3.15.0",
         "Parent":  null,
-        "Zip":  "mj-appearance-3.14.1.zip",
-        "SizeKB":  474,
-        "Sha256":  "2e97ef1199e63543065507a2ab097dc63001e831c0c78efe89d2cdcb223498ca"
+        "Zip":  "mj-appearance-3.15.0.zip",
+        "SizeKB":  476,
+        "Sha256":  "5803409cf326a41b05bc80445ca791e8b5a0fc641a0913d683e625265830429a"
     },
     {
         "Slug":  "mj-atelier",
@@ -63,11 +63,11 @@
         "Slug":  "mj-erp",
         "Name":  "MJ ERP",
         "Type":  "plugin",
-        "Version":  "1.19.1",
+        "Version":  "1.20.0",
         "Parent":  null,
-        "Zip":  "mj-erp-1.19.1.zip",
-        "SizeKB":  634,
-        "Sha256":  "cd3e9f46ed2ef3f2230b2727a85142c8ef85217af3af06b59e1f8ce08cfba584"
+        "Zip":  "mj-erp-1.20.0.zip",
+        "SizeKB":  639,
+        "Sha256":  "b159f9c0e5efa0d570cb2a639542d0d25315177a4cb5cfc93ee91c80acf299e6"
     },
     {
         "Slug":  "mj-fotos-rapidas",
@@ -93,11 +93,11 @@
         "Slug":  "mj-medios-pago",
         "Name":  "MJ Medios de Pago",
         "Type":  "plugin",
-        "Version":  "1.3.0",
+        "Version":  "1.4.0",
         "Parent":  null,
-        "Zip":  "mj-medios-pago-1.3.0.zip",
-        "SizeKB":  92,
-        "Sha256":  "7a9d15507031beb26cfeeed454ffe2c1d0d52b75fe9ec46615ec9f94289eb187"
+        "Zip":  "mj-medios-pago-1.4.0.zip",
+        "SizeKB":  111,
+        "Sha256":  "f256251bbf6a8b4048742f5313a2aab3cfe221d12118a6dd91b93829cbd43d16"
     },
     {
         "Slug":  "mj-optimizador-imagenes",
