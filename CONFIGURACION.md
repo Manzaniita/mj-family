@@ -355,9 +355,25 @@ llevar aparece hasta que lo marques.
 3. **Desde el detalle de la venta**, en la tarjeta *Entrega*: el mismo botón, y
    además queda registrado cuándo se entregó y quién la marcó.
 
+**Entregar una parte.** Si la venta tiene más de una unidad, el botón
+*Entregar una parte o cambiar cómo* de la tarjeta *Entrega* (y el del camión, en
+una venta ya entregada) lista los productos con cuánto se llevó de cada uno. Se
+marca lo que se llevó, se elige cómo se entrega lo que falta —envío, retira en el
+local, lo que tengas configurado— y se anota dónde. La venta queda **Entregado en
+parte** (o *En camino*, si lo que falta ya salió), el detalle muestra qué falta, y
+*Entregar lo que falta* la termina de un toque. El historial anota qué se llevó
+cada vez.
+
+- Entregar una parte cuenta como entrega para *Cuándo se emite y baja el
+  stock*: la mercadería ya salió.
+- El pedido de WooCommerce no pasa a completado hasta que se entregue todo.
+- Corregir los productos o hacer un cambio respeta lo ya entregado: lo nuevo
+  queda por entregar (si *Si una venta entregada suma productos, lo nuevo queda
+  por entregar* está prendido) y lo demás sigue entregado.
+
 El filtro **Entrega** de la lista de ventas deja ver de una lo que falta
-entregar, y el número del menú **Ventas** suma —además de lo que falta cobrar—
-las entregas pendientes.
+entregar (también lo entregado en parte), y el número del menú **Ventas** suma
+—además de lo que falta cobrar— las entregas pendientes y las parciales.
 
 ### La lista de ventas
 

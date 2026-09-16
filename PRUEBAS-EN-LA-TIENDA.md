@@ -467,6 +467,31 @@ prendido en WooCommerce).
 
 ---
 
+## 6. MJ ERP: entregar una parte
+
+1. Cargá una venta con tres productos (uno con cantidad 2) y forma de entrega
+   *Envío*.
+2. En el detalle, *Entregar una parte o cambiar cómo*: marcá dos productos
+   entregados, dejá el tercero en 0, elegí *Retira en el local* y anotá "Pasa el
+   jueves".
+
+**Qué tiene que pasar:** la venta queda *Entregado en parte*; en Productos, los
+dos primeros dicen *Entregado* y el tercero *Falta entregar 1*; la tarjeta
+Entrega muestra qué falta, la forma y la nota; el historial dice qué se llevó.
+Si la regla es "se confirma al cobrar o entregar", el pedido de WooCommerce se
+emite, pero no pasa a completado.
+
+3. *Entregar lo que falta*.
+
+**Qué tiene que pasar:** queda *Entregado*, con fecha, y el historial anota solo
+el tercer producto. El pedido pasa a completado si ya estaba cobrada.
+
+4. Probá también, en otra venta entregada: *Editar productos* agregando uno.
+
+**Señal de que algo está mal:** lo que ya se había entregado vuelve a figurar
+pendiente, o la venta no sale de la lista de entregas pendientes después de
+entregar todo.
+
 ## Cuando termines
 
 1. Volvé los registros a **Solo los errores**.
