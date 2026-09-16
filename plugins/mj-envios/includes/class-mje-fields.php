@@ -378,6 +378,15 @@ class MJE_Fields {
 		return $out;
 	}
 
+	/** El nombre de cada campo tal como está en «Datos del cliente» (lo usa «Mi cuenta» de la tienda). */
+	public static function labels() {
+		$out = [];
+		foreach (array_keys(self::catalog()) as $key) {
+			$out[$key] = self::label($key);
+		}
+		return $out;
+	}
+
 	/** Etiqueta de un campo para el admin y los emails. */
 	public static function label($key, array $def = []) {
 		foreach (self::resolve($def ? $def : ['destination' => 'domicilio']) as $field) {

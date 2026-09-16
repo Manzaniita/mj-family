@@ -87,6 +87,12 @@ en el local. El plugin afloja esos campos cuando el método elegido no los pide
 como obligatorios: el retiro en el local se confirma sin calle. Nunca exige algo
 que el método no pide, y en wp-admin la ficha del pedido sigue como siempre.
 
+Los dos se pueden cambiar con filtros: `mje_fill_from_account` (en `false`, la
+cuenta no completa nada), `mje_known_fields` (qué datos se completan) y
+`mje_relaxed_address_fields` (qué campos de dirección se aflojan; `[]` deja que
+WooCommerce exija los suyos siempre). Los nombres de los datos que se ven en
+**Mi cuenta → Direcciones** de la tienda son los de esta pestaña.
+
 Lo que el cliente carga al comprar queda guardado en su cuenta (lo hace
 WooCommerce) y la próxima compra arranca completa; lo corrige en **Mi cuenta →
 Direcciones**.
@@ -206,7 +212,8 @@ MJE_Geo::resolve_cp($cp)               provincia y localidades de un CP
 MJE_Orders::shipment($order)           el envío guardado en un pedido
 
 filtros  mje_carriers · mje_method_available · mje_quote · mje_fields ·
-         mje_package_weight · mje_geo_cp
+         mje_package_weight · mje_geo_cp · mje_known_fields ·
+         mje_fill_from_account · mje_relaxed_address_fields
 REST     /wp-json/mje/v1/config · /geo/cp · /geo/localidades · /provincias ·
          /sucursales · /cotizar · /seguimiento
 Store API  extensions.mje en el carrito · cart/extensions namespace "mje"

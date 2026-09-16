@@ -862,6 +862,9 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Datos extra de «Mi cuenta» (`GET /mj/v1/account`) | — | `mj_rest_account` |
 | Caja de ingreso de un medio de pago | — | `mjerp_cashbox_for_method` |
 | Estados de pedido que el ERP mueve para seguir a la venta | — | `mjerp_order_sync_statuses` |
+| Si la cuenta del cliente completa los datos de envío que la tienda no mandó | — | `mje_fill_from_account` |
+| Qué datos de envío se completan con el pedido o la cuenta | — | `mje_known_fields` |
+| Qué campos de dirección deja de exigir WooCommerce cuando el método no los pide | — | `mje_relaxed_address_fields` |
 | Cuántas ventas revisa la puesta al día de estados de pedido (una vez, al actualizar) | — | `mjerp_order_status_resync_limit` |
 | Quién puede corregir ventas y ver su historial | — | `mjerp_can_manage_sales` |
 | Cuándo una venta no se puede editar | — | `mjerp_sale_edit_blocker` |

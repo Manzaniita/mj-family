@@ -768,6 +768,7 @@ class MJE_Methods {
 			'country'   => MJE_Geo::country(),
 			'states'    => MJE_Geo::states(),
 			'methods'   => $methods,
+			'labels'    => MJE_Fields::labels(),
 			'cp'        => [
 				'label'    => (string) $s['cp_label'],
 				'help'     => (string) $s['cp_help'],

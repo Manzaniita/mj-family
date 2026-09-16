@@ -263,8 +263,27 @@ class MJE_Cart {
 	 *   borró el cliente, y eso vale.
 	 */
 	private static function with_known_values(array $fields, array $known = []) {
-		$keys     = ['first_name', 'last_name', 'company', 'phone', 'email', 'postcode', 'state', 'city', 'address_1', 'address_2'];
-		$customer = (function_exists('WC') && WC()->customer) ? WC()->customer : null;
+		/* Los datos de contacto y dirección del catálogo: los que van al pedido de WooCommerce. */
+		$keys = [];
+		foreach (MJE_Fields::catalog() as $key => $meta) {
+			if (isset($meta['target']) && in_array($meta['target'], ['shipping', 'billing'], true)) {
+				$keys[] = $key;
+			}
+		}
+		/**
+		 * Qué datos del envío se completan con la dirección del pedido o con la cuenta del cliente.
+		 *
+		 * @param string[] $keys Claves del catálogo de campos.
+		 */
+		$keys = (array) apply_filters('mje_known_fields', $keys);
+
+		/**
+		 * Si la cuenta del cliente completa los datos que la tienda no mandó.
+		 *
+		 * @param bool $fill Sí por defecto.
+		 */
+		$from_account = (bool) apply_filters('mje_fill_from_account', true);
+		$customer     = ($from_account && function_exists('WC') && WC()->customer) ? WC()->customer : null;
 
 		foreach ($keys as $key) {
 			$sent = array_key_exists($key, $fields);
@@ -351,7 +370,21 @@ class MJE_Cart {
 				$required[] = $field['key'];
 			}
 		}
-		return array_values(array_diff(['address_1', 'address_2', 'city', 'state', 'postcode'], $required));
+		/* Los campos de dirección del catálogo: los de destino (CP, provincia, localidad) y los de domicilio. */
+		$address = [];
+		foreach (MJE_Fields::catalog() as $key => $meta) {
+			if (isset($meta['target']) && 'shipping' === $meta['target'] && (!empty($meta['geo']) || !empty($meta['home']))) {
+				$address[] = $key;
+			}
+		}
+		/**
+		 * Qué campos de dirección deja de exigir WooCommerce porque el método elegido no los pide.
+		 * Devolver [] hace que WooCommerce exija los suyos siempre.
+		 *
+		 * @param string[] $keys Campos que se aflojan.
+		 * @param array    $def  Método elegido.
+		 */
+		return array_values((array) apply_filters('mje_relaxed_address_fields', array_diff($address, $required), $def));
 	}
 
 	/** Checkout clásico: los campos viajan serializados en el review del pedido. */
