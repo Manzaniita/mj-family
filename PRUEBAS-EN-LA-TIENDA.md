@@ -1,7 +1,8 @@
 # Pruebas en la tienda real
 
-Para MJ Dólar, MJ Medios de Pago, MJ Envíos y la corrección de ventas de MJ ERP,
-que todavía no se probaron con una tienda funcionando.
+Para MJ Dólar, MJ Medios de Pago, MJ Envíos y, de MJ ERP, la corrección de
+ventas, las devoluciones con su RMA y el saldo a favor: todo eso todavía no se
+probó con una tienda funcionando.
 
 Esto es lo que no se puede hacer desde el código: todos tocan plata, stock o el
 checkout, y ahí el único que sabe si está bien sos vos mirándolo.
@@ -363,7 +364,7 @@ vuelve al cancelar. Anotá el pedido y el cliente.
 
 Para que no lo pruebes de nuevo al pedo:
 
-- Los 139 archivos PHP compilan, en PHP 7.4 y en 8.3.
+- Los 156 archivos PHP compilan, en PHP 7.4 y en 8.3.
 - No hay sintaxis que rompa en un servidor con PHP 7.4.
 - Las dos apps de React compilan, y lo compilado coincide con lo que está
   subido en `dist/`.
