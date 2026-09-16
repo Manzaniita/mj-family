@@ -233,6 +233,10 @@ class MJERP_Install {
 			self::migrate_1130_sale_payments_currency();
 		}
 
+		if ( version_compare( $from, '1.14.0', '<' ) ) {
+			self::migrate_1140_order_statuses();
+		}
+
 		/**
 		 * Fires so other code can run its own migrations.
 		 *
@@ -462,6 +466,20 @@ class MJERP_Install {
 
 		$paid_base = "UPDATE {$sales} s SET s.paid_base = ROUND(COALESCE((SELECT SUM(p.amount_base) FROM {$payments} p WHERE p.sale_id = s.id AND p.status = %s), 0), 4)"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tablas propias.
 		$wpdb->query( $wpdb->prepare( $paid_base, 'confirmado' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
+	}
+
+	/**
+	 * 1.14.0 — los pedidos que quedaron «En espera» con la venta ya cobrada y entregada.
+	 *
+	 * Hasta acá el estado del pedido se decidía una sola vez, al emitirlo, y cobrar o entregar
+	 * después no lo movía. No se hace ahora: el upgrade corre antes de que WooCommerce termine de
+	 * arrancar. Se deja pedido y lo hace MJERP_Orders::maybe_resync_statuses() en `wp_loaded`, sin
+	 * mails a los clientes.
+	 *
+	 * @return void
+	 */
+	protected static function migrate_1140_order_statuses() {
+		update_option( class_exists( 'MJERP_Orders' ) ? MJERP_Orders::OPTION_RESYNC : 'mjerp_order_status_resync', 1, false );
 	}
 
 	/**

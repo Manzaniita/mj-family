@@ -73,6 +73,7 @@
 		sales_payment_methods: 'ventas', sales_default_payment_method: 'ventas', sales_default_cashbox: 'ventas',
 		sales_price_list: 'ventas', sales_track_cost: 'ventas', sales_allow_discount: 'ventas', sales_allow_oversell: 'ventas',
 		sales_create_order: 'ventas', sales_commit_when: 'ventas', sales_order_status_paid: 'ventas', sales_order_status_unpaid: 'ventas',
+		sales_order_status_undelivered: 'ventas', sales_order_sync_status: 'ventas',
 		sales_order_created_via: 'ventas', sales_order_note: 'ventas', sales_reduce_stock: 'ventas',
 		sales_capture_shop_orders: 'ventas', sales_capture_manual_orders: 'ventas', sales_capture_payment: 'ventas',
 		sales_capture_on: 'ventas', sales_capture_statuses: 'ventas', sales_void_statuses: 'ventas',
@@ -267,6 +268,8 @@
 		sales_commit_when: 'pago_o_entrega',
 		sales_order_status_paid: 'completed',
 		sales_order_status_unpaid: 'on-hold',
+		sales_order_status_undelivered: 'processing',
+		sales_order_sync_status: true,
 		sales_order_created_via: 'mj-erp',
 		sales_order_note: 'Venta registrada desde MJ ERP',
 		sales_reduce_stock: 'auto',
@@ -712,6 +715,8 @@
 		m.sales_commit_when = pickEnum(src.sales_commit_when, COMMIT_WHEN_VALUES, DEFAULTS.sales_commit_when);
 		m.sales_order_status_paid = orderStatus(src.sales_order_status_paid, m.sales_order_status_paid);
 		m.sales_order_status_unpaid = orderStatus(src.sales_order_status_unpaid, m.sales_order_status_unpaid);
+		m.sales_order_status_undelivered = orderStatus(src.sales_order_status_undelivered, m.sales_order_status_undelivered);
+		m.sales_order_sync_status = toBool(src.sales_order_sync_status, DEFAULTS.sales_order_sync_status);
 		m.sales_order_created_via = str(src.sales_order_created_via !== undefined ? src.sales_order_created_via : m.sales_order_created_via).trim() || DEFAULTS.sales_order_created_via;
 		m.sales_order_note = str(src.sales_order_note !== undefined ? src.sales_order_note : m.sales_order_note);
 		m.sales_reduce_stock = pickEnum(src.sales_reduce_stock, ['auto', 'siempre', 'nunca'], DEFAULTS.sales_reduce_stock);
@@ -1071,6 +1076,8 @@
 			sales_commit_when: pickEnum(m.sales_commit_when, COMMIT_WHEN_VALUES, DEFAULTS.sales_commit_when),
 			sales_order_status_paid: orderStatus(m.sales_order_status_paid, DEFAULTS.sales_order_status_paid),
 			sales_order_status_unpaid: orderStatus(m.sales_order_status_unpaid, DEFAULTS.sales_order_status_unpaid),
+			sales_order_status_undelivered: orderStatus(m.sales_order_status_undelivered, DEFAULTS.sales_order_status_undelivered),
+			sales_order_sync_status: !!m.sales_order_sync_status,
 			sales_order_created_via: str(m.sales_order_created_via).trim() || DEFAULTS.sales_order_created_via,
 			sales_order_note: str(m.sales_order_note),
 			sales_reduce_stock: pickEnum(m.sales_reduce_stock, ['auto', 'siempre', 'nunca'], DEFAULTS.sales_reduce_stock),
@@ -2419,12 +2426,21 @@
 			}) +
 			'<div class="mj-form-row">' +
 				selectFieldHtml({
-					key: 'sales_order_status_paid', label: 'Estado si está cobrada', value: str(m.sales_order_status_paid), options: orderStatusOptions(),
-				}) +
-				selectFieldHtml({
 					key: 'sales_order_status_unpaid', label: 'Estado si queda a cobrar', value: str(m.sales_order_status_unpaid), options: orderStatusOptions(),
 				}) +
+				selectFieldHtml({
+					key: 'sales_order_status_undelivered', label: 'Estado si está cobrada y falta entregar', value: str(m.sales_order_status_undelivered), options: orderStatusOptions(),
+				}) +
+				selectFieldHtml({
+					key: 'sales_order_status_paid', label: 'Estado si está cobrada y entregada', value: str(m.sales_order_status_paid), options: orderStatusOptions(),
+					hint: 'Sin el paso de entrega, una venta cobrada va con este.',
+				}) +
 			'</div>' +
+			checkboxFieldHtml({
+				key: 'sales_order_sync_status', label: 'El pedido sigue a la venta', checked: !!m.sales_order_sync_status,
+				hint: 'Cuando registrás el cobro o marcás la entrega, el pedido de WooCommerce pasa a «cobrada y falta entregar» o a «cobrada y entregada», con los mails de WooCommerce de ese estado. ' +
+					'Nunca lo vuelve a «a cobrar» solo, y un pedido cancelado, reembolsado o con un estado propio no se toca. Apagado, el estado se decide solo al emitir el pedido.',
+			}) +
 			selectFieldHtml({
 				key: 'sales_reduce_stock', label: 'Stock del pedido', value: str(m.sales_reduce_stock), options: SALES_STOCK_OPTIONS,
 				hint: 'WooCommerce descuenta solo según el estado del pedido. Cambiá esto únicamente si en tu tienda no lo está haciendo.',

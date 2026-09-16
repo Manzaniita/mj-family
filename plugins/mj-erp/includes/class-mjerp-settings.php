@@ -330,6 +330,10 @@ class MJERP_Settings {
 			'sales_commit_when'          => 'pago_o_entrega',
 			'sales_order_status_paid'    => 'completed',
 			'sales_order_status_unpaid'  => 'on-hold',
+			// Cobrada pero todavía sin entregar: el pedido espera a que salga.
+			'sales_order_status_undelivered' => 'processing',
+			// El pedido sigue a la venta: cobrarla y entregarla le cambian el estado.
+			'sales_order_sync_status'    => true,
 			'sales_order_created_via'    => 'mj-erp',
 			'sales_order_note'           => 'Venta registrada desde MJ ERP',
 			'sales_reduce_stock'         => 'auto',
@@ -1494,6 +1498,7 @@ class MJERP_Settings {
 			case 'sales_allow_discount':
 			case 'sales_allow_oversell':
 			case 'sales_create_order':
+			case 'sales_order_sync_status':
 			case 'sales_capture_shop_orders':
 			case 'sales_capture_manual_orders':
 			case 'sales_capture_payment':
@@ -1644,6 +1649,7 @@ class MJERP_Settings {
 
 			case 'sales_order_status_paid':
 			case 'sales_order_status_unpaid':
+			case 'sales_order_status_undelivered':
 				$status = self::order_status( $value );
 				return '' === $status ? $default : $status;
 

@@ -39,6 +39,11 @@ class MJERP_Orders {
 	private static $handled = array();
 
 	/**
+	 * Option que pide pasar una vez por todos los pedidos con el estado atrasado.
+	 */
+	const OPTION_RESYNC = 'mjerp_order_status_resync';
+
+	/**
 	 * Hooks everything.
 	 *
 	 * @return void
@@ -60,6 +65,158 @@ class MJERP_Orders {
 
 		// Consignment units the ERP already took out are not discounted again by the order.
 		add_filter( 'woocommerce_order_item_quantity', array( __CLASS__, 'stock_quantity_of_item' ), 10, 3 );
+
+		// El pedido sigue a la venta: después de maybe_commit (10), que es el que lo emite.
+		add_action( 'mjerp_sale_payments_synced', array( __CLASS__, 'sync_status' ), 20, 1 );
+		add_action( 'mjerp_sale_delivery_changed', array( __CLASS__, 'sync_status' ), 20, 1 );
+
+		// Los pedidos que quedaron atrasados antes de que el pedido siguiera a la venta (base 1.14.0).
+		add_action( 'wp_loaded', array( __CLASS__, 'maybe_resync_statuses' ), 20 );
+	}
+
+	/* ------------------------------------------------------------------
+	 * ERP → estado del pedido
+	 * ---------------------------------------------------------------- */
+
+	/**
+	 * Lleva el estado de la venta a su pedido: cobrarla y entregarla lo completan.
+	 *
+	 * Solo para adelante: a «cobrada y falta entregar» o a «cobrada y entregada» (y entre esas dos, si
+	 * la entrega se desmarca). Nunca lo baja a «a cobrar»: un pedido de la tienda esperando la
+	 * pasarela, o uno que WooCommerce cobró y el ERP no anotó, lo sabe mejor WooCommerce.
+	 *
+	 * Tampoco toca un pedido cancelado, reembolsado o con un estado propio: ahí decidió alguien a mano.
+	 *
+	 * @param int $sale_id Sale id.
+	 * @return bool Whether the order changed.
+	 */
+	public static function sync_status( $sale_id ) : bool {
+		if ( self::$emitting || ! function_exists( 'wc_get_order' ) ) {
+			return false;
+		}
+		if ( ! MJERP_Helpers::bool( MJERP_Settings::get( 'sales_order_sync_status', true ) ) ) {
+			return false;
+		}
+
+		$sale = MJERP_Sales_Repo::find( $sale_id );
+		if ( ! $sale || MJERP_Sales_Repo::STATUS_VOID === (string) $sale['status'] || empty( $sale['order_id'] ) ) {
+			return false;
+		}
+
+		$order = wc_get_order( (int) $sale['order_id'] );
+		if ( ! $order instanceof WC_Order ) {
+			return false;
+		}
+
+		$current = self::short_status( $order->get_status() );
+		$target  = self::status_for_sale( $sale );
+		$unpaid  = self::short_status( (string) MJERP_Settings::get( 'sales_order_status_unpaid', 'on-hold' ) );
+		if ( $current === $target || $target === $unpaid || in_array( $target, self::void_statuses(), true ) ) {
+			return false;
+		}
+		if ( ! in_array( $current, self::managed_statuses(), true ) ) {
+			return false;
+		}
+
+		self::$emitting = true;
+		try {
+			$order->update_status(
+				$target,
+				sprintf(
+					/* translators: %s: sale code */
+					__( 'Estado actualizado desde MJ ERP: así está la venta %s.', 'mj-erp' ),
+					$sale['code']
+				),
+				true
+			);
+		} catch ( Throwable $e ) {
+			self::$emitting = false;
+			MJ_Log::error(
+				'erp',
+				'No se pudo actualizar el estado del pedido de una venta',
+				array(
+					'venta'  => (int) $sale['id'],
+					'pedido' => (int) $sale['order_id'],
+					'motivo' => $e->getMessage(),
+				)
+			);
+			return false;
+		}
+		self::$emitting = false;
+
+		MJERP_Sales_Repo::update( (int) $sale['id'], array( 'order_status' => $order->get_status() ) );
+
+		return true;
+	}
+
+	/**
+	 * Estados de pedido que el ERP puede mover.
+	 *
+	 * @return string[]
+	 */
+	public static function managed_statuses() : array {
+		$statuses = array(
+			'pending',
+			(string) MJERP_Settings::get( 'sales_order_status_unpaid', 'on-hold' ),
+			(string) MJERP_Settings::get( 'sales_order_status_undelivered', 'processing' ),
+			(string) MJERP_Settings::get( 'sales_order_status_paid', 'completed' ),
+		);
+
+		/**
+		 * Filters the order statuses the ERP may move to follow its sale.
+		 *
+		 * @param string[] $statuses Short statuses (no `wc-` prefix).
+		 */
+		$statuses = (array) apply_filters( 'mjerp_order_sync_statuses', $statuses );
+
+		return array_values( array_unique( array_filter( array_map( array( __CLASS__, 'short_status' ), $statuses ) ) ) );
+	}
+
+	/**
+	 * Pone al día, una sola vez, los pedidos que quedaron con el estado atrasado.
+	 *
+	 * Sin mails a los clientes: son ventas de otros días, y un «tu pedido está completo» de una compra
+	 * que ya retiraron confunde más de lo que avisa.
+	 *
+	 * @return void
+	 */
+	public static function maybe_resync_statuses() : void {
+		if ( ! get_option( self::OPTION_RESYNC ) || ! function_exists( 'wc_get_order' ) || ! MJERP_Sales::is_enabled() ) {
+			return;
+		}
+		// Se borra antes de empezar: dos pedidos a la vez no lo corren dos veces.
+		delete_option( self::OPTION_RESYNC );
+
+		global $wpdb;
+
+		/**
+		 * Cuántas ventas con pedido se revisan al poner al día los estados.
+		 *
+		 * @param int $limit Sales.
+		 */
+		$limit = max( 1, (int) apply_filters( 'mjerp_order_status_resync_limit', 500 ) );
+		$table = MJERP_Install::table( 'sales' );
+		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE order_id > 0 AND status <> %s ORDER BY id DESC LIMIT %d", MJERP_Sales_Repo::STATUS_VOID, $limit ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+
+		$quiet = array( 'new_order', 'customer_processing_order', 'customer_completed_order', 'customer_on_hold_order' );
+		foreach ( $quiet as $email ) {
+			add_filter( 'woocommerce_email_enabled_' . $email, '__return_false', 999 );
+		}
+
+		$changed = 0;
+		foreach ( (array) $ids as $sale_id ) {
+			if ( self::sync_status( (int) $sale_id ) ) {
+				$changed++;
+			}
+		}
+
+		foreach ( $quiet as $email ) {
+			remove_filter( 'woocommerce_email_enabled_' . $email, '__return_false', 999 );
+		}
+
+		if ( $changed ) {
+			MJ_Log::info( 'erp', 'Pedidos puestos al día con el estado de su venta', array( 'pedidos' => $changed ) );
+		}
 	}
 
 	/**
@@ -758,17 +915,24 @@ class MJERP_Orders {
 	}
 
 	/**
-	 * Status the emitted order starts in.
+	 * The status the order of a sale has to be in: when it is emitted and every time it changes.
+	 *
+	 * Queda a cobrar → el de «a cobrar». Cobrada y falta entregar → el de «falta entregar». Cobrada
+	 * y entregada (o sin el paso de entrega) → el de «cobrada».
 	 *
 	 * @param array $sale Sale.
 	 * @return string
 	 */
-	protected static function status_for_sale( array $sale ) : string {
+	public static function status_for_sale( array $sale ) : string {
 		$due = round( MJERP_Sales_Repo::amount_due( $sale ) - (float) $sale['paid_total'], 4 );
 
-		$status = $due <= 0.0001
-			? (string) MJERP_Settings::get( 'sales_order_status_paid', 'completed' )
-			: (string) MJERP_Settings::get( 'sales_order_status_unpaid', 'on-hold' );
+		if ( $due > 0.0001 ) {
+			$status = (string) MJERP_Settings::get( 'sales_order_status_unpaid', 'on-hold' );
+		} elseif ( MJERP_Settings::delivery_enabled() && MJERP_Sales_Repo::DELIVERY_DELIVERED !== (string) $sale['delivery_status'] ) {
+			$status = (string) MJERP_Settings::get( 'sales_order_status_undelivered', 'processing' );
+		} else {
+			$status = (string) MJERP_Settings::get( 'sales_order_status_paid', 'completed' );
+		}
 
 		/**
 		 * Filters the status an ERP-emitted order starts in.

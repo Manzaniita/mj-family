@@ -383,6 +383,25 @@ completa lo justo.
 guardar, la venta tiene un cobro «Saldo a favor», el «Debe» del cliente baja y el
 saldo también.
 
+### 5.7. El pedido sigue a la venta
+
+1. Apenas actualizás: en WooCommerce → Pedidos, los que estaban «En espera» con la
+   venta cobrada y entregada en el ERP (el #135, por ejemplo) pasan a «Completado».
+
+**Qué tiene que pasar:** ningún cliente recibe mail por esos pedidos viejos, y los
+que siguen sin cobrar quedan «En espera».
+
+2. Cargá una venta sin cobrar, con pedido y «A entregar». Registrá el cobro.
+
+**Qué tiene que pasar:** el pedido pasa a «Procesando». Marcá la entrega: pasa a
+«Completado», y el cliente recibe el mail de pedido completado (si ese mail está
+prendido en WooCommerce).
+
+3. Hacé una compra de prueba en la tienda con transferencia y no la pagues.
+
+**Qué tiene que pasar:** el pedido queda como lo deja WooCommerce («En espera» o
+«Pendiente de pago»): el ERP no lo mueve hasta que registres el cobro.
+
 ---
 
 ## Cuando termines

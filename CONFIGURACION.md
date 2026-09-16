@@ -447,6 +447,38 @@ carrito, antes de confirmar ("Queda anotada sin tocar el stock: el pedido se
 emite y el stock baja cuando la cobres o la entregues"), y arriba del detalle de
 la venta.
 
+### El estado del pedido sigue a la venta
+
+**Dónde:** MJ ERP → Configuración → Ventas → *Pedido en WooCommerce*.
+
+El pedido nace con el estado que le toca a la venta y, mientras **El pedido sigue
+a la venta** esté marcado, cambia solo cuando registrás un cobro o marcás la
+entrega, venga el pedido del ERP o de la tienda:
+
+| La venta | Ajuste | Default |
+| --- | --- | --- |
+| Queda a cobrar | Estado si queda a cobrar | En espera |
+| Cobrada y falta entregar | Estado si está cobrada y falta entregar | Procesando |
+| Cobrada y entregada (o cobrada, sin el paso de entrega) | Estado si está cobrada y entregada | Completado |
+
+- **Solo para adelante.** Nunca vuelve un pedido a «a cobrar» por su cuenta: un
+  pedido de la tienda esperando la pasarela, o uno que WooCommerce cobró y el ERP no
+  anotó, lo decide WooCommerce. Entre *falta entregar* y *entregada* sí va y
+  vuelve, si desmarcás la entrega.
+- **No pisa lo que hiciste a mano.** Un pedido cancelado, reembolsado o con un
+  estado propio no se toca. Los que mueve son los de esos tres estados y los
+  pendientes de pago (filtro `mjerp_order_sync_statuses`).
+- **Los mails son los de WooCommerce** para ese estado (por ejemplo, «pedido
+  completado» al cliente). Se prenden y apagan en WooCommerce → Ajustes →
+  Correos electrónicos.
+- Al actualizar a MJ ERP 1.19.0, los pedidos que habían quedado atrasados (en
+  espera con la venta cobrada y entregada) se ponen al día **una sola vez y sin
+  mails** a los clientes.
+
+| Ajuste | Default | Para qué |
+| --- | --- | --- |
+| El pedido sigue a la venta | Sí | Apagado, el estado se decide solo al emitir el pedido, como antes. |
+
 > **Deshacer.** Emitir el pedido es un acto real, así que no se revierte solo: si
 > marcaste una entrega por error, la vuelta atrás de la mercadería es **anular la
 > venta**, que cancela el pedido y repone el stock.
@@ -828,6 +860,8 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Accesos extra en «Mi cuenta» de la tienda | — | `mj_account_links` |
 | Datos extra de «Mi cuenta» (`GET /mj/v1/account`) | — | `mj_rest_account` |
 | Caja de ingreso de un medio de pago | — | `mjerp_cashbox_for_method` |
+| Estados de pedido que el ERP mueve para seguir a la venta | — | `mjerp_order_sync_statuses` |
+| Cuántas ventas revisa la puesta al día de estados de pedido (una vez, al actualizar) | — | `mjerp_order_status_resync_limit` |
 | Quién puede corregir ventas y ver su historial | — | `mjerp_can_manage_sales` |
 | Cuándo una venta no se puede editar | — | `mjerp_sale_edit_blocker` |
 | Cuántas anotaciones del historial trae una venta | — | `mjerp_sale_log_limit` |
