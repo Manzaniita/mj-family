@@ -519,6 +519,23 @@ export function AccountOrderDetail() {
               <dt className="font-medium">Total</dt>
               <dd className="font-display text-lg font-semibold">{formatPrice(t.total || 0)}</dd>
             </div>
+            {/* Pagos parciales (plugin MJ Medios de Pago): lo que ya se acreditó y lo que falta. */}
+            {order.paymentBalance && (
+              <>
+                <div className="flex items-center justify-between">
+                  <dt className="text-ink-soft">Pagado</dt>
+                  <dd className="font-medium text-success">{order.paymentBalance.paidText}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className={order.paymentBalance.due > 0 ? 'font-medium text-danger' : 'text-ink-soft'}>
+                    {order.paymentBalance.due > 0 ? 'Falta abonar' : 'Pagado completo'}
+                  </dt>
+                  {order.paymentBalance.due > 0 && (
+                    <dd className="font-semibold text-danger">{order.paymentBalance.dueText}</dd>
+                  )}
+                </div>
+              </>
+            )}
           </dl>
         </div>
 
