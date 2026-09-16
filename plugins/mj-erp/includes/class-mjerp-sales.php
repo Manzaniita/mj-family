@@ -145,6 +145,10 @@ class MJERP_Sales {
 		if ( $sale['order_id'] || $sale['stock_applied'] ) {
 			return;
 		}
+		// Una venta que devolvió todo no tiene nada que emitir ni que sacar del stock.
+		if ( (int) $sale['items_count'] <= 0 ) {
+			return;
+		}
 		if ( ! self::is_committed( $sale ) ) {
 			return;
 		}

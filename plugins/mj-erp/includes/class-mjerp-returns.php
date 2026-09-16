@@ -669,9 +669,11 @@ class MJERP_Returns {
 			$lines[]            = $line;
 		}
 
-		if ( empty( $lines ) && empty( $new_lines ) ) {
-			return new WP_Error( 'mjerp_return_all', __( 'Vuelve todo lo que se llevó: anulá la venta, y ahí elegís qué pasa con la plata.', 'mj-erp' ), array( 'status' => 409, 'field' => 'items' ) );
-		}
+		/*
+		 * Puede volver todo sin llevarse nada: la venta queda sin productos y la plata sale como en
+		 * cualquier devolución, a favor o devuelta. Anular no es lo mismo: devolvería al stock lo que
+		 * vino fallado y no abriría su RMA.
+		 */
 
 		$discount_after = $subtotal > self::EPSILON ? round( $discount * $remaining_subtotal / $subtotal, 4 ) : 0.0;
 		$lines          = array_merge( $lines, $new_lines );

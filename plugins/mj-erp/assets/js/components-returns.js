@@ -345,6 +345,8 @@
 		function totalsHtml() {
 			const p = state.preview;
 			if (!p) {
+				// Si el cálculo falló, el aviso ya lo dice al lado: no quedarse «calculando» para siempre.
+				if (state.error) return '';
 				return hasSomething()
 					? '<div class="mj-muted mj-small">' + MJ.ui.spinner('sm') + ' Calculando…</div>'
 					: '<div class="mj-muted mj-small">Marcá qué vuelve o qué se lleva a cambio.</div>';

@@ -319,7 +319,20 @@ compra de ese producto.
 **Qué tiene que pasar:** «Pérdida por garantías · mes» sube por el costo de esa unidad.
 Probá otro con **Al stock**: el stock sube 1 y no es pérdida.
 
-### 5.3. Anular una venta cobrada
+### 5.3. Devuelve todo, sin llevarse nada
+
+1. Cargá y cobrá una venta de 1 unidad a ese cliente, con pedido. Stock: baja 1.
+2. **Devolución o cambio**: vuelve esa unidad, «Vino fallado (RMA)», **sin** tildar
+   «Le doy otro igual» y sin agregar nada a cambio.
+
+**Qué tiene que pasar:** calcula enseguida (no se queda en «Calculando…»), el total
+nuevo es $ 0 y pregunta qué pasa con la plata. Con «Queda como saldo a favor»: la
+venta queda sin productos y cobrada, el saldo del cliente sube por lo que pagó, el
+fallado aparece en RMA, el stock **no** vuelve (está fallado) y el pedido de
+WooCommerce queda sin productos. Repetilo con «Le di la plata» y «Vuelve al stock»:
+el stock vuelve y en Cobros queda el renglón «Devolución».
+
+### 5.4. Anular una venta cobrada
 
 1. Cargá y cobrá otra venta a ese cliente. **Anular**.
 
@@ -327,7 +340,7 @@ Probá otro con **Al stock**: el stock sube 1 y no es pérdida.
 medio y caja; en Cobros queda el renglón «Devolución» y el saldo del cliente no
 cambia.
 
-### 5.4. El saldo en la tienda
+### 5.5. El saldo en la tienda
 
 1. Entrá a la tienda con la cuenta del cliente: **Mi cuenta → Resumen** muestra el
    saldo y sus movimientos.
