@@ -727,10 +727,10 @@ class MJPM_Receipts_Admin {
 		};
 		?>
 		<div class="mjpm-rc-balance">
-			<span>Total <strong><?php echo esc_html($balance['totalText']); ?></strong></span>
-			<span>Pagado <strong><?php echo esc_html($balance['paidText']); ?></strong></span>
+			<span><?php echo esc_html($balance['labels']['total']); ?> <strong><?php echo esc_html($balance['totalText']); ?></strong></span>
+			<span><?php echo esc_html($balance['labels']['paid']); ?> <strong><?php echo esc_html($balance['paidText']); ?></strong></span>
 			<span class="<?php echo $balance['due'] > 0 ? 'is-due' : 'is-paid'; ?>">
-				<?php echo $balance['due'] > 0 ? 'Falta abonar' : 'Pagado completo'; ?>
+				<?php echo esc_html($balance['due'] > 0 ? $balance['labels']['due'] : $balance['labels']['paidInFull']); ?>
 				<?php if ($balance['due'] > 0) : ?>
 					<strong><?php echo esc_html($balance['dueText']); ?></strong>
 				<?php endif; ?>

@@ -113,17 +113,18 @@ class MJPM_Receipts {
 		return false;
 	}
 
+	/** Estados de un archivo, con los nombres del panel (Comprobantes → Ajustes → Textos). */
 	public static function statuses() {
 		return [
-			self::STATUS_PENDING => 'A revisar',
-			self::STATUS_OK      => 'Aprobado',
-			self::STATUS_NO      => 'Rechazado',
+			self::STATUS_PENDING => MJPM_Settings::receipt_text('statusPending'),
+			self::STATUS_OK      => MJPM_Settings::receipt_text('statusOk'),
+			self::STATUS_NO      => MJPM_Settings::receipt_text('statusNo'),
 		];
 	}
 
 	/** Estados de la COMPRA: los de un archivo más el pago parcial. */
 	public static function object_statuses() {
-		return self::statuses() + [self::STATUS_PARTIAL => 'Pago parcial'];
+		return self::statuses() + [self::STATUS_PARTIAL => MJPM_Settings::receipt_text('statusPartial')];
 	}
 
 	public static function status_label($status) {
@@ -279,7 +280,7 @@ class MJPM_Receipts {
 				'amount'     => (float) $entry['amount'],
 				'amountText' => self::money((float) $entry['amount']),
 				'kind'       => isset($entry['kind']) ? (string) $entry['kind'] : '',
-				'kindLabel'  => self::STATUS_OK === (isset($entry['kind']) ? $entry['kind'] : '') ? 'Pago total' : 'Pago parcial',
+				'kindLabel'  => MJPM_Settings::receipt_text(self::STATUS_OK === (isset($entry['kind']) ? $entry['kind'] : '') ? 'kindTotal' : 'kindPartial'),
 				'note'       => isset($entry['note']) ? (string) $entry['note'] : '',
 				'date'       => !empty($entry['at']) ? mysql2date('c', (string) $entry['at']) : '',
 			];
@@ -293,6 +294,14 @@ class MJPM_Receipts {
 			'paidText'  => self::money($paid),
 			'dueText'   => self::money($due),
 			'history'   => $history,
+			/* Cómo se llama cada cosa en la tienda. */
+			'labels'    => [
+				'total'      => MJPM_Settings::receipt_text('total'),
+				'paid'       => MJPM_Settings::receipt_text('paid'),
+				'due'        => MJPM_Settings::receipt_text('due'),
+				'paidInFull' => MJPM_Settings::receipt_text('paidInFull'),
+				'history'    => MJPM_Settings::receipt_text('history'),
+			],
 		];
 	}
 

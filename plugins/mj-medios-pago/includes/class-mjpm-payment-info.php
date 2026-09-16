@@ -62,6 +62,7 @@ class MJPM_Payment_Info {
 			'detailsTitle' => '' !== $title ? $title : (string) MJPM_Settings::get('details_title'),
 			'details'      => array_map([__CLASS__, 'public_row'], (array) $cfg['details']),
 			'checkout'     => (bool) $cfg['details_checkout'],
+			'texts'        => self::texts(),
 		];
 
 		/**
@@ -71,6 +72,15 @@ class MJPM_Payment_Info {
 		 * @param string $gateway_id Id del gateway.
 		 */
 		return (array) apply_filters('mjpm_payment_info', $info, $gateway_id);
+	}
+
+	/** Cómo se llaman el bloque y el botón de copiar en la tienda (MJ Medios de Pago → Ajustes generales). */
+	public static function texts() {
+		return [
+			'howTo'  => (string) MJPM_Settings::get('howto_title'),
+			'copy'   => (string) MJPM_Settings::get('copy_label'),
+			'copied' => (string) MJPM_Settings::get('copied_label'),
+		];
 	}
 
 	private static function public_row($row) {
@@ -95,12 +105,12 @@ class MJPM_Payment_Info {
 			return false;
 		}
 		/**
-		 * Estados de pedido en los que el cliente ve cómo pagar.
+		 * Estados de pedido en los que el cliente ve cómo pagar (los de Ajustes generales → Cómo pagar).
 		 *
 		 * @param string[] $statuses Sin el prefijo wc-.
 		 * @param WC_Order $order    Pedido.
 		 */
-		$statuses = (array) apply_filters('mjpm_payment_info_statuses', ['on-hold', 'pending', 'processing'], $order);
+		$statuses = (array) apply_filters('mjpm_payment_info_statuses', (array) MJPM_Settings::get('howto_statuses'), $order);
 		if (!in_array($order->get_status(), $statuses, true)) {
 			return false;
 		}

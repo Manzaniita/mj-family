@@ -123,6 +123,7 @@ class MJPM_Orders {
 		$data['paymentInstructions'] = $info ? $info['instructions'] : '';
 		$data['paymentDetailsTitle'] = $info ? $info['detailsTitle'] : '';
 		$data['paymentDetails']      = $info ? $info['details'] : [];
+		$data['paymentTexts']        = MJPM_Payment_Info::texts();
 
 		$data['receipt'] = self::rest_receipt($order);
 

@@ -295,6 +295,7 @@ class MJPM_Methods {
 			'showBadge'      => (bool) $s['show_badge'],
 			'showPanel'      => (bool) $s['show_panel'],
 			'showListPrice'  => (bool) $s['show_list_price'],
+			'texts'          => MJPM_Payment_Info::texts(),
 			'methods'        => $methods,
 		];
 	}

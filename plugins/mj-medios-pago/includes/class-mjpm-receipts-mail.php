@@ -171,15 +171,24 @@ class MJPM_Receipts_Mail {
 	private static function summary($context, $object_id, $decision, $reason, $amount, $body) {
 		$lines   = [];
 		$balance = MJPM_Receipts::balance($context, $object_id);
+		$values  = [
+			'{importe}' => (float) $amount > 0 ? MJPM_Receipts::money((float) $amount) : '',
+			'{pagado}'  => $balance ? $balance['paidText'] : '',
+			'{total}'   => $balance ? $balance['totalText'] : '',
+			'{falta}'   => $balance ? $balance['dueText'] : '',
+			'{texto}'   => (string) $reason,
+		];
 		if ($balance && MJPM_Receipts::STATUS_NO !== $decision) {
 			if ((float) $amount > 0) {
-				$lines[] = 'Acreditado con este pago: ' . MJPM_Receipts::money((float) $amount);
+				$lines[] = self::render(MJPM_Settings::receipt_text('summaryCredited'), $values);
 			}
-			$lines[] = sprintf('Pagado: %s de %s', $balance['paidText'], $balance['totalText']);
-			$lines[] = $balance['due'] > 0 ? 'Falta abonar: ' . $balance['dueText'] : 'Pedido pagado completo';
+			$lines[] = self::render(MJPM_Settings::receipt_text('summaryPaid'), $values);
+			$lines[] = $balance['due'] > 0
+				? self::render(MJPM_Settings::receipt_text('summaryDue'), $values)
+				: MJPM_Settings::receipt_text('paidInFull');
 		}
 		if ('' !== (string) $reason && false === strpos($body, (string) $reason)) {
-			$lines[] = (MJPM_Receipts::STATUS_NO === $decision ? 'Motivo: ' : 'Mensaje: ') . $reason;
+			$lines[] = self::render(MJPM_Settings::receipt_text(MJPM_Receipts::STATUS_NO === $decision ? 'reason' : 'message'), $values);
 		}
 		/**
 		 * Líneas del resumen al pie del mail al cliente.

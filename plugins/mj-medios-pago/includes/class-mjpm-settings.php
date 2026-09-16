@@ -46,6 +46,10 @@ class MJPM_Settings {
 			'show_panel'      => 1,         // Panel de precios por medio de pago en la ficha.
 			'show_list_price' => 1,         // Precio base tachado cuando el método mostrado tiene descuento.
 			'details_title'   => 'Datos para pagar', // Encabezado de los datos de cada medio ('' en el medio = este).
+			'howto_title'     => 'Cómo pagar',       // Título del bloque de instrucciones y datos en la tienda.
+			'copy_label'      => 'Copiar',           // Botón para copiar un dato.
+			'copied_label'    => 'Copiado',          // Lo que dice el botón después de copiar.
+			'howto_statuses'  => ['on-hold', 'pending', 'processing'], // Estados del pedido en los que el cliente ve cómo pagar.
 		];
 	}
 
@@ -102,8 +106,14 @@ class MJPM_Settings {
 		}
 		$label                 = isset($in['selector_label']) ? trim(sanitize_text_field($in['selector_label'])) : $d['selector_label'];
 		$out['selector_label'] = '' !== $label ? $label : $d['selector_label'];
-		$title                 = isset($in['details_title']) ? trim(sanitize_text_field($in['details_title'])) : $d['details_title'];
-		$out['details_title']  = '' !== $title ? mb_substr($title, 0, 80) : $d['details_title'];
+		$statuses              = isset($in['howto_statuses']) && is_array($in['howto_statuses']) ? array_map('sanitize_key', $in['howto_statuses']) : $d['howto_statuses'];
+		$known                 = self::order_statuses();
+		$out['howto_statuses'] = array_values(array_unique($known ? array_intersect($statuses, array_keys($known)) : $statuses));
+
+		foreach (['details_title', 'howto_title', 'copy_label', 'copied_label'] as $field) {
+			$text        = isset($in[$field]) ? trim(sanitize_text_field($in[$field])) : $d[$field];
+			$out[$field] = '' !== $text ? mb_substr($text, 0, 80) : $d[$field];
+		}
 
 		return $out;
 	}
@@ -434,7 +444,79 @@ class MJPM_Settings {
 			'mail_partial_body'    => "Hola {cliente},\n\nRecibimos {importe} para tu pedido {numero}. Llevás pagado {pagado} de {total}: falta abonar {falta}.\n\nCuando pagues el resto, subí el {comprobante} acá: {link}\n\n{tienda}",
 			'whatsapp_partial'     => 'Hola {cliente}! Recibimos {importe} de tu pedido {numero}. Falta abonar {falta}. Cuando lo pagues, mandame el {comprobante}: {link}',
 			'mail_summary'         => 1,                           // Sumar al mail el resumen: importe, pagado, falta y mensaje.
+
+			/* Textos que ve el cliente: solo los que se cambiaron (clave => texto). Ver receipt_texts(). */
+			'texts'                => [],
 		];
+	}
+
+	/**
+	 * Textos que ve el cliente en el widget de comprobantes, en su pedido y en el resumen de los
+	 * mails: clave => [ qué es (para el panel), texto de fábrica ]. Todos se cambian en
+	 * Comprobantes → Ajustes; lo que queda vacío usa el de fábrica.
+	 *
+	 * @return array
+	 */
+	public static function receipt_texts() {
+		return [
+			/* Estados. */
+			'statusPending'   => ['Estado: falta revisar', 'A revisar'],
+			'statusOk'        => ['Estado: aprobado', 'Aprobado'],
+			'statusPartial'   => ['Estado: pago parcial', 'Pago parcial'],
+			'statusNo'        => ['Estado: rechazado', 'Rechazado'],
+			'statePending'    => ['Mientras lo revisás', 'Lo estamos revisando y te avisamos.'],
+			'stateOk'         => ['Al aprobar el pago', 'Pago confirmado. ¡Gracias!'],
+			'statePartial'    => ['Con un pago parcial ({comprobante})', 'Recibimos una parte del pago. Cuando pagues el resto, subí el {comprobante} acá.'],
+			'stateNo'         => ['Al rechazar', 'No pudimos validarlo.'],
+			'reason'          => ['Motivo del rechazo ({texto})', 'Motivo: {texto}'],
+			'message'         => ['Tu mensaje al aprobar ({texto})', 'Mensaje: {texto}'],
+
+			/* Saldo e historial. */
+			'total'           => ['Saldo: total', 'Total'],
+			'paid'            => ['Saldo: pagado', 'Pagado'],
+			'due'             => ['Saldo: falta', 'Falta abonar'],
+			'paidInFull'      => ['Saldo: sin deuda', 'Pagado completo'],
+			'history'         => ['Título del historial', 'Pagos acreditados'],
+			'kindTotal'       => ['Historial: pago total', 'Pago total'],
+			'kindPartial'     => ['Historial: pago parcial', 'Pago parcial'],
+
+			/* Resumen al pie de los mails. */
+			'summaryCredited' => ['Mail: lo acreditado ({importe})', 'Acreditado con este pago: {importe}'],
+			'summaryPaid'     => ['Mail: lo pagado ({pagado} {total})', 'Pagado: {pagado} de {total}'],
+			'summaryDue'      => ['Mail: lo que falta ({falta})', 'Falta abonar: {falta}'],
+
+			/* Subida. */
+			'required'        => ['Si es obligatorio ({comprobante})', 'Para confirmar el pago necesitamos el {comprobante}.'],
+			'optional'        => ['Si es opcional ({comprobante})', 'Si querés, podés adjuntar el {comprobante}.'],
+			'deadline'        => ['Plazo ({fecha})', 'Tenés hasta el {fecha}.'],
+			'pick'            => ['Botón de elegir', 'Elegir archivo'],
+			'pickMore'        => ['Botón de elegir otro', 'Agregar otro'],
+			'drop'            => ['Debajo del botón', 'o arrastralo acá'],
+			'amount'          => ['Campo: importe', 'Importe que pagaste'],
+			'reference'       => ['Campo: referencia', 'Nº de operación'],
+			'note'            => ['Campo: aclaración', 'Aclaración (opcional)'],
+			'send'            => ['Botón de enviar', 'Enviar'],
+			'sending'         => ['Mientras se envía', 'Enviando…'],
+			'uploading'       => ['Mientras carga', 'Subiendo…'],
+			'view'            => ['Link para ver el archivo', 'Ver'],
+			'remove'          => ['Botón de quitar', 'Quitar'],
+			'confirmRemove'   => ['Confirmación al quitar', '¿Quitar este archivo?'],
+			'limits'          => ['Límites ({tamano} {tipos})', 'Hasta {tamano} por archivo · {tipos}'],
+			'tooBig'          => ['Archivo muy pesado ({peso} {tamano})', 'Ese archivo pesa {peso} y el máximo es {tamano}. Probá con una foto más chica.'],
+			'maxed'           => ['Sin lugar para más', 'Ya subiste todo lo que se puede para esta compra.'],
+			'error'           => ['Error al subir', 'No se pudo subir el archivo. Probá de nuevo.'],
+			'offline'         => ['Sin conexión', 'No hay conexión con el servidor.'],
+		];
+	}
+
+	/** Un texto del cliente: el que se cargó en el panel o el de fábrica. */
+	public static function receipt_text($key) {
+		$all   = self::receipt_texts();
+		$saved = self::receipts('texts');
+		if (is_array($saved) && isset($saved[$key]) && '' !== trim((string) $saved[$key])) {
+			return (string) $saved[$key];
+		}
+		return isset($all[$key]) ? $all[$key][1] : '';
 	}
 
 	/** Opciones de retención para el selector. */
@@ -516,6 +598,16 @@ class MJPM_Settings {
 
 		$to               = isset($in['mail_new_to']) ? trim((string) $in['mail_new_to']) : '';
 		$out['mail_new_to'] = is_email($to) ? sanitize_email($to) : '';
+
+		/* Solo se guarda lo que difiere del texto de fábrica: así mejorar un default alcanza a todos. */
+		$out['texts'] = [];
+		$given        = isset($in['texts']) && is_array($in['texts']) ? $in['texts'] : [];
+		foreach (self::receipt_texts() as $key => $def) {
+			$value = isset($given[$key]) ? trim(sanitize_text_field((string) $given[$key])) : '';
+			if ('' !== $value && $value !== $def[1]) {
+				$out['texts'][$key] = mb_substr($value, 0, 255);
+			}
+		}
 
 		return $out;
 	}

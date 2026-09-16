@@ -397,3 +397,10 @@
 	color: #b42318;
 	font-size: 12px;
 }
+
+/* Textos que ve el cliente. */
+.mjpm-rc-texts th {
+	width: 16rem;
+	vertical-align: middle;
+	font-weight: 400;
+}

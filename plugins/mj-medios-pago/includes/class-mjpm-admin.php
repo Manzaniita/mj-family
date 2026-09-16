@@ -141,6 +141,11 @@ class MJPM_Admin {
 			'show_panel'      => empty($in['show_panel']) ? 0 : 1,
 			'show_list_price' => empty($in['show_list_price']) ? 0 : 1,
 			'details_title'   => isset($in['details_title']) ? sanitize_text_field($in['details_title']) : '',
+			'howto_title'     => isset($in['howto_title']) ? sanitize_text_field($in['howto_title']) : '',
+			'copy_label'      => isset($in['copy_label']) ? sanitize_text_field($in['copy_label']) : '',
+			'copied_label'    => isset($in['copied_label']) ? sanitize_text_field($in['copied_label']) : '',
+			/* Casillas: sin ninguna marcada viaja una lista vacía, no la de fábrica. */
+			'howto_statuses'  => isset($in['howto_statuses']) && is_array($in['howto_statuses']) ? array_map('sanitize_key', $in['howto_statuses']) : [],
 		]);
 		MJPM_Settings::flush_caches();
 		self::back(['saved' => 'settings']);
@@ -724,10 +729,18 @@ class MJPM_Admin {
 								</td>
 							</tr>
 							<tr>
-								<th scope="row"><label for="mjpm_details_title">Datos para pagar</label></th>
+								<th scope="row">Cómo pagar</th>
 								<td>
-									<input type="text" id="mjpm_details_title" name="settings[details_title]" value="<?php echo esc_attr($s['details_title']); ?>" maxlength="80" class="regular-text">
-									<p class="description">Encabezado de los datos de cada medio (alias, CBU…) en la tienda y el email, salvo que el medio tenga el suyo.</p>
+									<label class="mjpm-block-label">Título del bloque <input type="text" name="settings[howto_title]" value="<?php echo esc_attr($s['howto_title']); ?>" maxlength="80" class="regular-text"></label>
+									<label class="mjpm-block-label">Encabezado de los datos <input type="text" id="mjpm_details_title" name="settings[details_title]" value="<?php echo esc_attr($s['details_title']); ?>" maxlength="80" class="regular-text"></label>
+									<label class="mjpm-block-label">Botón para copiar <input type="text" name="settings[copy_label]" value="<?php echo esc_attr($s['copy_label']); ?>" maxlength="80"></label>
+									<label class="mjpm-block-label">Después de copiar <input type="text" name="settings[copied_label]" value="<?php echo esc_attr($s['copied_label']); ?>" maxlength="80"></label>
+									<p class="description">Cómo se llaman las instrucciones y los datos de cada medio (alias, CBU…) en la tienda. El encabezado se usa también en el email, salvo que el medio tenga el suyo.</p>
+									<p class="mjpm-block-label">Se muestran mientras el pedido está en:</p>
+									<?php foreach (MJPM_Settings::order_statuses() as $status_key => $status_label) : ?>
+										<label class="mjpm-inline-check"><input type="checkbox" name="settings[howto_statuses][]" value="<?php echo esc_attr($status_key); ?>" <?php checked(in_array($status_key, (array) $s['howto_statuses'], true)); ?>> <?php echo esc_html($status_label); ?></label>
+									<?php endforeach; ?>
+									<p class="description">Con el comprobante aprobado dejan de verse aunque el pedido siga en uno de estos estados: el pago ya está confirmado.</p>
 								</td>
 							</tr>
 						</table>

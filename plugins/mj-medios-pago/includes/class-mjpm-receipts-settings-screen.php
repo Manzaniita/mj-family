@@ -314,6 +314,22 @@ class MJPM_Receipts_Settings_Screen {
 				<code>{motivo}</code> es el motivo del rechazo o el mensaje que escribiste al aprobar.
 			</p>
 
+			<h3>Textos que ve el cliente</h3>
+			<p class="mjpm-rc-bajada">En su pedido, en la página de gracias, en el link sin cuenta y en el resumen de los mails. Vacío = el texto de fábrica (el que se ve en gris). Lo que está entre llaves se reemplaza solo: dejalo como está.</p>
+			<table class="widefat striped mjpm-rc-texts" role="presentation">
+				<tbody>
+					<?php
+					$saved_texts = is_array($s['texts']) ? $s['texts'] : [];
+					foreach (MJPM_Settings::receipt_texts() as $key => $def) :
+						?>
+						<tr>
+							<th scope="row"><label for="mjpm-text-<?php echo esc_attr($key); ?>"><?php echo esc_html($def[0]); ?></label></th>
+							<td><input type="text" id="mjpm-text-<?php echo esc_attr($key); ?>" name="receipts[texts][<?php echo esc_attr($key); ?>]" value="<?php echo esc_attr(isset($saved_texts[$key]) ? $saved_texts[$key] : ''); ?>" placeholder="<?php echo esc_attr($def[1]); ?>" class="large-text" maxlength="255"></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+
 			<?php submit_button('Guardar la regla general'); ?>
 		</form>
 		<?php
