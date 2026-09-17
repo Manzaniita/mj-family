@@ -82,6 +82,18 @@ const hueFromSlug = (slug) => {
 
 const toAmount = (value, minorUnit) => Number(value || 0) / 10 ** (minorUnit ?? 2);
 
+/*
+ * Una imagen de la Store API con lo que hace falta para que el navegador
+ * elija el tamaño justo: la grilla del celular no tiene por qué bajar la foto
+ * de 2000 px. `srcset` y `sizes` los arma WooCommerce con sus tamaños.
+ */
+const mapImage = (i) => ({
+  src: i?.src ?? null,
+  srcset: i?.srcset || '',
+  sizes: i?.sizes || '',
+  alt: i?.alt || '',
+});
+
 function findBrand(p) {
   const attr = (p.attributes || []).find((a) => /marca|brand/i.test(a.name || ''));
   const term = attr?.terms?.[0];
@@ -138,7 +150,9 @@ export function mapProduct(p) {
     colegaName: p.extensions?.mjc?.name || null,
     hue: hueFromSlug(p.slug),
     image: p.images?.[0]?.src ?? null,
+    imageSet: mapImage(p.images?.[0]),
     gallery: (p.images || []).map((i) => i.src),
+    galleryImages: (p.images || []).map(mapImage),
     permalink: p.permalink,
     type: p.type,
     // Variaciones (productos variables): opciones + combinaciones válidas
@@ -170,7 +184,9 @@ export function mapCartItemProduct(it) {
     stock_status: 'instock',
     hue: hueFromSlug(it.name),
     image: it.images?.[0]?.src ?? null,
+    imageSet: mapImage(it.images?.[0]),
     gallery: (it.images || []).map((i) => i.src),
+    galleryImages: (it.images || []).map(mapImage),
     rating: 0,
     rating_count: 0,
     specs: [],

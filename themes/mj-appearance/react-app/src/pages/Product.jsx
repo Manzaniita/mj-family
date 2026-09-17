@@ -27,13 +27,15 @@ import { COLEGAS, colegaOf, colegaPath } from '@/lib/colegas';
 import { iconByName } from '@/components/ui/DynamicIcon';
 import { useDialog } from '@/lib/a11y';
 import { cn, EASE } from '@/lib/format';
+import { usePageMeta } from '@/lib/seo';
+import { LoadError } from '@/components/ui/LoadError';
 
 /**
  * Foto principal con lupa: una capa con la misma imagen ampliada sigue al
  * puntero (solo hover con puntero fino; ver .mj-zoom en globals.css).
  * La posición se escribe directo en el DOM: sin re-render por cada movimiento.
  */
-function ZoomImage({ product, src, className }) {
+function ZoomImage({ product, src, image, className }) {
   const lens = useRef(null);
   const onMove = (e) => {
     const el = lens.current;
@@ -45,7 +47,7 @@ function ZoomImage({ product, src, className }) {
   };
   return (
     <div className={cn('mj-zoom', className)} onPointerMove={onMove}>
-      <ProductImage product={product} src={src} className="aspect-square" />
+      <ProductImage product={product} src={src} image={image} sizes="(min-width: 1024px) 50vw, 100vw" priority className="aspect-square" />
       {src && (
         <div
           ref={lens}
@@ -60,6 +62,8 @@ function ZoomImage({ product, src, className }) {
 
 function Gallery({ product }) {
   const images = product.gallery?.length ? product.gallery : [product.image];
+  // Con srcset (Store API): el navegador baja el tamaño justo para la foto grande y para las miniaturas.
+  const sets = product.galleryImages?.length ? product.galleryImages : [product.imageSet ?? { src: product.image }];
   const [active, setActive] = useState(0);
   const [zoom, setZoom] = useState(false);
   const lightbox = useRef(null);
@@ -88,7 +92,7 @@ function Gallery({ product }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.4, ease: EASE }}
             >
-              <ZoomImage product={product} src={images[active]} />
+              <ZoomImage product={product} src={images[active]} image={sets[active]} />
             </motion.div>
           </AnimatePresence>
           <span className="mj-gallery__zoom absolute bottom-4 right-4 grid size-10 place-items-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-md transition-opacity duration-300 group-hover:opacity-100">
@@ -110,7 +114,7 @@ function Gallery({ product }) {
               )}
               aria-label={`Imagen ${i + 1}`}
             >
-              <ProductImage product={product} src={src} className="size-20" />
+              <ProductImage product={product} src={src} image={sets[i]} sizes="80px" className="size-20" />
             </button>
           ))}
         </div>
@@ -235,6 +239,9 @@ export default function Product() {
   }, [product?.id]);
 
   const allProducts = useCatalog((s) => s.products);
+  const catalogReady = useCatalog((s) => s.ready);
+  const catalogError = useCatalog((s) => s.error);
+  usePageMeta(product?.name || '', product?.shortDesc || product?.tagline || undefined);
   const catalogCategories = useCatalog((s) => s.categories);
   const isDemo = useCatalog((s) => s.demo || !window.MJ);
   const recentProducts = allProducts.filter(
@@ -255,6 +262,26 @@ export default function Product() {
   }, [product, selection, stockData]);
 
   if (!product) {
+    /* El catálogo llegó y el producto no está: se dice, no se deja el esqueleto girando. */
+    if (catalogReady) {
+      return (
+        <Section className="grid min-h-[50vh] place-items-center">
+          {catalogError ? (
+            <LoadError
+              title="No pudimos cargar el producto"
+              onRetry={() => useCatalog.getState().init(true)}
+              className="w-full max-w-xl"
+            />
+          ) : (
+            <div className="mj-empty w-full max-w-xl rounded-(--mj-radius-2xl) border border-line glass p-12 text-center">
+              <p className="display text-3xl">Este producto ya no está</p>
+              <p className="mt-3 text-ink-soft">Puede que se haya agotado o que el enlace esté vencido.</p>
+              <Button className="mt-8" to="/tienda">Ver la tienda</Button>
+            </div>
+          )}
+        </Section>
+      );
+    }
     return (
       <Section>
         <div className="grid gap-12 lg:grid-cols-2">

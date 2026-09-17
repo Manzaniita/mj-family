@@ -7,10 +7,22 @@ import { cn } from '@/lib/format';
  * degradado basado en el hue del producto (.mj-img en globals.css, que se
  * adapta al tema claro/oscuro) — nunca un ícono roto.
  */
-export function ProductImage({ product, src, className, imgClassName }) {
+/** Ancho que ocupa una card en cada corte de pantalla (para que el navegador elija el tamaño). */
+export const CARD_SIZES = '(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw';
+
+/*
+ * `image` puede ser un objeto { src, srcset, sizes, alt } (galleryImages) o
+ * nada: entonces va la foto principal del producto con su srcset. `sizes`
+ * dice cuánto ancho ocupa la imagen en pantalla; sin eso el navegador asume
+ * 100vw y baja la foto más grande aunque la card mida 200 px.
+ * `priority`: la foto principal de la ficha carga primero, sin lazy.
+ */
+export function ProductImage({ product, src, image, sizes = CARD_SIZES, priority = false, className, imgClassName }) {
   const [failed, setFailed] = useState(false);
   const hue = product?.hue ?? 250;
-  const url = src ?? product?.image;
+  const set = image ?? (src ? null : product?.imageSet);
+  const url = image?.src ?? src ?? product?.image;
+  const srcSet = set?.srcset || undefined;
   // Si el caller ya fija la posición (p. ej. `absolute inset-0` en la card),
   // no imponer `relative`: en la cascada de Tailwind `.relative` pisa a
   // `.absolute` y colapsa el contenedor a alto 0 (imagen invisible).
@@ -24,8 +36,12 @@ export function ProductImage({ product, src, className, imgClassName }) {
       {!failed && url && (
         <img
           src={url}
-          alt={product?.name ?? ''}
-          loading="lazy"
+          srcSet={srcSet}
+          sizes={srcSet ? sizes : undefined}
+          alt={image?.alt || product?.name || ''}
+          loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : undefined}
+          decoding="async"
           onError={() => setFailed(true)}
           className={cn('absolute inset-0 h-full w-full object-cover', imgClassName)}
         />
