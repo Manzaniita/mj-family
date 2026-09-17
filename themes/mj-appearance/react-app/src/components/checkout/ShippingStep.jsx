@@ -31,7 +31,11 @@ import {
  * completa provincia y localidad solo), después las formas de envío con su
  * precio real, y al final los datos que pida la que eligió.
  */
-export default function ShippingStep({ title, form, setForm, extra, setExtra }) {
+/*
+ * `errors` ({ campo: mensaje }) y `onTouch(campo)` vienen del checkout, que
+ * valida el formulario entero: acá solo se muestran al lado de cada campo.
+ */
+export default function ShippingStep({ title, form, setForm, extra, setExtra, errors = {}, onTouch }) {
   const texts = shippingTexts();
   const cpCfg = cpConfig();
   const states = useMemo(provinces, []);
@@ -193,8 +197,11 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra }) 
   ).current;
 
   const field = (key) => ({
+    name: key,
     value: form[key] ?? '',
     onChange: (e) => setForm((f) => ({ ...f, [key]: e.target.value })),
+    onBlur: () => onTouch?.(key),
+    error: errors[key] || '',
   });
 
   const required = (key, fallback = true) => {
@@ -213,18 +220,20 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra }) 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div>
           <Input
+            name="postcode"
             label={cpCfg.label || 'Código postal'}
             required={cpCfg.required !== false}
             inputMode="numeric"
             autoComplete="postal-code"
             placeholder="1425"
+            error={errors.postcode || (cp.status === 'invalid' ? cpCfg.invalid : '')}
             value={form.postcode ?? ''}
             onChange={(e) => {
               const value = e.target.value;
               setForm((f) => ({ ...f, postcode: value }));
               lookupDebounced(value);
             }}
-            onBlur={() => lookup(form.postcode).then(pushAddress)}
+            onBlur={() => { onTouch?.('postcode'); lookup(form.postcode).then(pushAddress); }}
           />
           <p className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-faint">
             {cp.status === 'loading' && <Loader2 size={12} className="animate-spin" />}
@@ -257,17 +266,19 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra }) 
             </Select>
             <div className="relative">
               <Input
+                name="city"
                 label={labelOf('city', 'Localidad')}
                 required={required('city')}
                 autoComplete="address-level2"
                 placeholder="Tu localidad"
+                error={errors.city || ''}
                 value={form.city ?? ''}
                 onChange={(e) => {
                   const value = e.target.value;
                   setForm((f) => ({ ...f, city: value }));
                   searchCities(value, form.state);
                 }}
-                onBlur={() => setTimeout(() => setSuggestions([]), 150)}
+                onBlur={() => { onTouch?.('city'); setTimeout(() => setSuggestions([]), 150); }}
               />
               {suggestions.length > 0 && (
                 <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl2 border border-line bg-surface shadow-lg">
@@ -303,7 +314,7 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra }) 
               className="sm:col-span-2"
               autoComplete="street-address"
               {...field('address')}
-              onBlur={pushAddress}
+              onBlur={() => { onTouch?.('address'); pushAddress(); }}
             />
             {(!method || addressField(method, 'address_2')) && (
               <Input

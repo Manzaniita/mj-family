@@ -17,6 +17,9 @@ import * as wc from '@/lib/wc';
 import { formatPrice, formatUsd, FREE_SHIPPING_THRESHOLD, isValidCuit, cn } from '@/lib/format';
 import { PAY, usePaymentMethod, selectedMethodId, findMethod, resolveAdjustment, usdTotalFor } from '@/lib/payments';
 import { formFields, hasShipping, methodBySlug, missingFor, shippingTexts } from '@/lib/envios';
+import { usePageMeta } from '@/lib/seo';
+import { validateAll, focusFirstError } from '@/lib/validate';
+import { t as tCopy } from '@/lib/copy';
 
 /* Cómo se llama el paso de envío. Lo decide el plugin; sin plugin, "Envío". */
 const SHIPPING_TITLE = shippingTexts().stepTitle || 'Envío';
@@ -199,6 +202,7 @@ function CreditBox({ credit }) {
 
 /** Checkout de una sola página, minimalista — crea la orden real en WooCommerce. */
 export default function Checkout() {
+  usePageMeta(tCopy('seo_title_checkout'));
   const { items, clear, syncing, server } = useCart();
   const cartShipping = useCart((s) => s.shipping);
   // Medio de pago: arranca con el que el visitante eligió para ver precios (plugin MJ Medios de Pago) si está disponible.
@@ -332,9 +336,32 @@ export default function Checkout() {
   const cbteLetra = { 1: 'A', 6: 'B', 11: 'C' }[cbteTipo];
   const esA = cbteTipo === 1;
 
+  /*
+   * Validación en vivo. Cada campo se valida siempre, pero el mensaje recién
+   * aparece cuando el cliente salió del campo (touched) o intentó enviar: un
+   * formulario que grita "completá esto" antes de empezar a escribir molesta.
+   */
+  const schema = {
+    firstName: ['required', 'name'],
+    lastName: ['required', 'name'],
+    email: ['required', 'email'],
+    phone: ['required', 'phone'],
+    address: ['required'],
+    city: ['required'],
+    postcode: ['required', 'postcode'],
+    ...(hasShipping() ? { state: ['required'] } : {}),
+  };
+  const [touched, setTouched] = useState({});
+  const errors = validateAll(form, schema);
+  const shownErrors = Object.fromEntries(Object.entries(errors).filter(([key]) => touched[key]));
+  const touch = (key) => setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
+
   const field = (key) => ({
+    name: key,
     value: form[key],
     onChange: (e) => setForm((f) => ({ ...f, [key]: e.target.value })),
+    onBlur: () => touch(key),
+    error: shownErrors[key] || '',
   });
 
   /**
@@ -447,6 +474,14 @@ export default function Checkout() {
   const submit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    // Datos de contacto y envío: se avisa al lado de cada campo y se lleva el foco al primero.
+    if (!express && Object.keys(errors).length > 0) {
+      setTouched(Object.fromEntries(Object.keys(schema).map((key) => [key, true])));
+      setError('Revisá los campos marcados en rojo.');
+      focusFirstError(errors, e.currentTarget);
+      return;
+    }
 
     if (!IS_WP) {
       setPlaced(true);
@@ -612,6 +647,8 @@ export default function Checkout() {
                 setForm={setForm}
                 extra={extra}
                 setExtra={setExtra}
+                errors={shownErrors}
+                onTouch={touch}
               />
             </Reveal>
           ) : (
@@ -620,7 +657,7 @@ export default function Checkout() {
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <Input label="Dirección" required placeholder="Calle y número" className="sm:col-span-2" autoComplete="street-address" {...field('address')} />
                 <Input label="Ciudad" required placeholder="Ciudad" autoComplete="address-level2" {...field('city')} />
-                <Input label="Código postal" required placeholder="CP" autoComplete="postal-code" {...field('postcode')} onBlur={() => syncShippingRates()} />
+                <Input label="Código postal" required placeholder="CP" autoComplete="postal-code" {...field('postcode')} onBlur={() => { touch('postcode'); syncShippingRates(); }} />
               </div>
             </Reveal>
           )}
@@ -640,6 +677,8 @@ export default function Checkout() {
                 setForm={setForm}
                 extra={extra}
                 setExtra={setExtra}
+                errors={shownErrors}
+                onTouch={touch}
               />
             </Reveal>
           )}

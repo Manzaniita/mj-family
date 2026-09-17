@@ -4,31 +4,55 @@ const labelCls = 'mj-field__label mb-1.5 block text-xs font-medium uppercase tra
 const fieldCls =
   'mj-input w-full rounded-(--mj-radius-input) border border-line bg-surface px-4 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-accent/60 focus:bg-surface-2 outline-none';
 
-export function Input({ label, className, id, ...rest }) {
+/* Mensaje de error bajo el campo: los lectores de pantalla lo leen por aria-describedby. */
+function FieldError({ id, error }) {
+  if (!error) return null;
+  return (
+    <span id={id} role="alert" className="mj-field__error mt-1.5 block text-xs font-medium text-danger">
+      {error}
+    </span>
+  );
+}
+
+const errorCls = 'border-danger/60 bg-danger/5 focus:border-danger';
+const errIdOf = (id, name, error) => (error ? `${id || name || 'field'}-error` : undefined);
+
+/**
+ * `error`: texto del problema. Marca el campo (aria-invalid + borde rojo) y
+ * lo muestra debajo; vacío = campo sano. `name` identifica el campo para
+ * poder llevarle el foco desde la validación del formulario.
+ */
+export function Input({ label, className, id, error, name, ...rest }) {
+  const errId = errIdOf(id, name, error);
   return (
     <label className="mj-field block">
       {label && <span className={labelCls}>{label}</span>}
-      <input id={id} className={cn(fieldCls, 'h-11', className)} {...rest} />
+      <input id={id} name={name} aria-invalid={error ? true : undefined} aria-describedby={errId} className={cn(fieldCls, 'h-11', error && errorCls, className)} {...rest} />
+      <FieldError id={errId} error={error} />
     </label>
   );
 }
 
-export function Select({ label, className, id, children, ...rest }) {
+export function Select({ label, className, id, error, name, children, ...rest }) {
+  const errId = errIdOf(id, name, error);
   return (
     <label className="mj-field block">
       {label && <span className={labelCls}>{label}</span>}
-      <select id={id} className={cn(fieldCls, 'h-11 disabled:opacity-50', className)} {...rest}>
+      <select id={id} name={name} aria-invalid={error ? true : undefined} aria-describedby={errId} className={cn(fieldCls, 'h-11 disabled:opacity-50', error && errorCls, className)} {...rest}>
         {children}
       </select>
+      <FieldError id={errId} error={error} />
     </label>
   );
 }
 
-export function Textarea({ label, className, ...rest }) {
+export function Textarea({ label, className, id, error, name, ...rest }) {
+  const errId = errIdOf(id, name, error);
   return (
     <label className="mj-field block">
       {label && <span className={labelCls}>{label}</span>}
-      <textarea className={cn(fieldCls, 'min-h-32 py-3', className)} {...rest} />
+      <textarea id={id} name={name} aria-invalid={error ? true : undefined} aria-describedby={errId} className={cn(fieldCls, 'min-h-32 py-3', error && errorCls, className)} {...rest} />
+      <FieldError id={errId} error={error} />
     </label>
   );
 }
