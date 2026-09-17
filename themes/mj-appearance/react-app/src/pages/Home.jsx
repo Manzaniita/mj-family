@@ -10,8 +10,11 @@ import { ServicesShowcase, BookingCTA } from '@/components/home/Turnos';
 import { AboutTeaser } from '@/components/home/AboutTeaser';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ProductGrid } from '@/components/product/ProductGrid';
+import { LoadError } from '@/components/ui/LoadError';
 import { Section } from '@/components/layout/Layout';
+import { useCatalog } from '@/store/catalog';
 import { getProducts } from '@/lib/api';
+import { usePageMeta } from '@/lib/seo';
 import { SOCIAL, HOME_ORDER } from '@/lib/config';
 import { t, homeSectionVisible as visible } from '@/lib/copy';
 
@@ -24,15 +27,21 @@ import { t, homeSectionVisible as visible } from '@/lib/copy';
  * se saltean.
  */
 export default function Home() {
+  usePageMeta('');
   const [featured, setFeatured] = useState([]);
   const [latest, setLatest] = useState([]);
   const [recommended, setRecommended] = useState([]);
+  const ready = useCatalog((s) => s.ready);
+  const catalogError = useCatalog((s) => s.error);
 
   useEffect(() => {
     getProducts({ featured: true, limit: 4 }).then(setFeatured);
     getProducts({ onlyNew: true, limit: 4 }).then(setLatest);
     getProducts({ sort: 'rating', limit: 4 }).then(setRecommended);
-  }, []);
+  }, [ready]);
+
+  // Mientras no llegó el catálogo, las grillas muestran su esqueleto.
+  const loading = !ready;
 
   const instagram = SOCIAL?.instagram;
   const igHandle = instagram?.match(/instagram\.com\/([^/?#]+)/)?.[1];
@@ -52,7 +61,7 @@ export default function Home() {
           subtitle={t('home_featured_subtitle')}
           linkTo="/tienda"
         />
-        <ProductGrid products={featured} />
+        <ProductGrid products={featured} loading={loading} />
       </Section>
     ),
     categories: (
@@ -73,7 +82,7 @@ export default function Home() {
           title={t('home_latest_title')}
           linkTo="/tienda?filtro=novedades"
         />
-        <ProductGrid products={latest} />
+        <ProductGrid products={latest} loading={loading} />
       </Section>
     ),
     // Plugin MJ Colegas: se oculta solo si el plugin no está o no hay colegas con productos.
@@ -85,7 +94,7 @@ export default function Home() {
           title={t('home_recommended_title')}
           subtitle={t('home_recommended_subtitle')}
         />
-        <ProductGrid products={recommended} />
+        <ProductGrid products={recommended} loading={loading} />
       </Section>
     ),
     brands: <BrandsMarquee />,
@@ -111,6 +120,15 @@ export default function Home() {
   return (
     <>
       <Hero />
+      {/* El catálogo no respondió: se dice una vez, arriba, con reintento; las secciones vacías no se dibujan. */}
+      {catalogError && (
+        <Section className="pb-0 md:pb-0">
+          <LoadError
+            title="No pudimos cargar los productos"
+            onRetry={() => useCatalog.getState().init(true)}
+          />
+        </Section>
+      )}
       {HOME_ORDER.map((key) =>
         visible(key) && sections[key] ? <Fragment key={key}>{sections[key]}</Fragment> : null
       )}

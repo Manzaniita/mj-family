@@ -16,6 +16,8 @@ import { formatPrice, cn, EASE } from '@/lib/format';
 import { REVIEWS_ENABLED } from '@/lib/config';
 import { t, BRAND_LABEL } from '@/lib/copy';
 import { COLEGAS, isValidMaker, makerLabel } from '@/lib/colegas';
+import { usePageMeta } from '@/lib/seo';
+import { LoadError } from '@/components/ui/LoadError';
 
 const sortOptions = [
   ['relevance', 'Relevancia'],
@@ -75,6 +77,23 @@ export default function Shop({ mode }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mobileFilters, setMobileFilters] = useState(false);
+  const catalogError = useCatalog((s) => s.error);
+
+  // Título de la pestaña según la vista: categoría, marca, búsqueda, ofertas, novedades o la tienda.
+  const lockedCat = lockedCategory ? categories.find((c) => c.slug === lockedCategory) : null;
+  const lockedBr = lockedBrand ? brands.find((b) => b.slug === lockedBrand) : null;
+  const pageTitle = lockedCat
+    ? lockedCat.name
+    : lockedBr
+      ? lockedBr.name
+      : mode === 'search'
+        ? `${t('seo_title_search')}: ${searchQuery}`
+        : preset === 'ofertas'
+          ? t('shop_sale_title')
+          : preset === 'novedades'
+            ? t('shop_new_title')
+            : t('seo_title_shop') || t('shop_title');
+  usePageMeta(pageTitle, lockedCat?.description || t('seo_desc_shop'));
 
   useEffect(() => {
     setFilters((f) => ({ ...f, onlyNew: preset === 'novedades', onlySale: preset === 'ofertas' }));
@@ -258,7 +277,12 @@ export default function Shop({ mode }) {
           </div>
 
           {/* Resultados */}
-          {loading ? (
+          {catalogError && items.length === 0 ? (
+            <LoadError
+              title="No pudimos cargar los productos"
+              onRetry={() => useCatalog.getState().init(true)}
+            />
+          ) : loading ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="aspect-4/5 animate-pulse rounded-xl3 bg-surface-2" />

@@ -20,22 +20,30 @@ export const useCatalog = create((set, get) => ({
   brands: [],
   ready: false,
   demo: false,
+  /*
+   * Mensaje cuando la Store API no respondió (red caída, servidor lento).
+   * Distinto de "no hay productos": eso es ready sin error. Las pantallas lo
+   * muestran con un botón de reintentar, que llama a init(true).
+   */
+  error: null,
 
-  init: async () => {
-    if (get().ready) return;
+  init: async (retry = false) => {
+    if (get().ready && !retry) return;
     if (IS_WP) {
+      set({ error: null, ready: retry ? false : get().ready });
       try {
         const { products, categories, brands } = await fetchStoreCatalog();
-        if (products.length > 0) {
-          set({ products, categories, brands, ready: true, demo: false });
-          return;
-        }
-        console.warn('[mj] WooCommerce no tiene productos publicados.');
+        if (products.length === 0) console.warn('[mj] WooCommerce no tiene productos publicados.');
+        set({ products, categories, brands, ready: true, demo: false, error: null });
+        return;
       } catch (e) {
         console.warn('[mj] Store API no disponible.', e);
+        set({
+          products: [], categories: [], brands: [], ready: true, demo: false,
+          error: e?.message || 'No se pudo cargar el catálogo.',
+        });
+        return;
       }
-      set({ products: [], categories: [], brands: [], ready: true, demo: false });
-      return;
     }
     set({
       products: demo.products,

@@ -12,6 +12,9 @@ import { ProductImage } from '@/components/ui/ProductImage';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { Reveal } from '@/components/motion/Reveal';
+import { LoadError } from '@/components/ui/LoadError';
+import { usePageMeta } from '@/lib/seo';
+import { t } from '@/lib/copy';
 import { useCart, useCatalog } from '@/store';
 import { effectivePrice } from '@/lib/api';
 import { WP } from '@/lib/config';
@@ -19,7 +22,8 @@ import { formatPrice, FREE_SHIPPING_THRESHOLD } from '@/lib/format';
 import { useSelectedMethod, resolveAdjustment } from '@/lib/payments';
 
 export default function CartPage() {
-  const { items, setQty, remove, syncing, server } = useCart();
+  usePageMeta(t('seo_title_cart'));
+  const { items, setQty, remove, syncing, server, hydrated, loadError } = useCart();
   const cartShipping = useCart((s) => s.shipping);
   const products = useCatalog((s) => s.products);
   const [quoteOpen, setQuoteOpen] = useState(false);
@@ -48,7 +52,30 @@ export default function CartPage() {
           <h1 className="display text-4xl md:text-6xl">Tu carrito</h1>
         </Reveal>
 
-        {items.length === 0 ? (
+        {!hydrated && items.length === 0 ? (
+          /* Esperando la sesión de WooCommerce: filas grises con la forma de un ítem. */
+          <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_380px]" aria-busy="true" aria-label="Cargando el carrito">
+            <div className="space-y-4">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="flex gap-5 rounded-xl3 border border-line glass p-4 md:p-5">
+                  <div className="size-24 shrink-0 animate-pulse rounded-xl2 bg-surface-2 md:size-32" />
+                  <div className="flex-1 space-y-3 py-1">
+                    <div className="h-3 w-1/4 animate-pulse rounded bg-surface-2" />
+                    <div className="h-5 w-2/3 animate-pulse rounded bg-surface-2" />
+                    <div className="h-9 w-32 animate-pulse rounded-(--mj-radius-pill) bg-surface-2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="h-72 animate-pulse rounded-xl3 bg-surface-2" />
+          </div>
+        ) : loadError && items.length === 0 ? (
+          <LoadError
+            className="mt-12"
+            title="No pudimos leer tu carrito"
+            onRetry={() => useCart.getState().init()}
+          />
+        ) : items.length === 0 ? (
           <Reveal className="mj-empty mt-12 rounded-(--mj-radius-2xl) border border-line glass p-16 text-center">
             <span className="mx-auto grid size-16 place-items-center rounded-full bg-surface-2 text-ink-faint">
               <ShoppingBag size={26} strokeWidth={1.5} />

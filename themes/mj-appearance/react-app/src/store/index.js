@@ -179,18 +179,24 @@ export const useCart = create(
         server: { fees: [], totals: null, payment: null, shipping: null, credit: null },
         error: null,
         syncing: false,
+        // Fuera de WP el carrito es local y está listo desde el arranque.
+        hydrated: !IS_WP,
+        // La carga inicial falló (sin red, servidor caído): la página del carrito ofrece reintentar.
+        loadError: null,
 
         /** Hidrata desde la sesión de WooCommerce (llamado al montar la app). */
         init: async () => {
           if (!IS_WP) return;
+          set({ loadError: null });
           try {
             const cart = await wc.getCart();
-            set(serverCartState(cart));
+            set({ ...serverCartState(cart), hydrated: true, loadError: null });
             // El servidor debe usar el mismo medio de pago que el visitante eligió para ver precios.
             const wanted = selectedMethodId();
             if (wanted && cart?.extensions?.mjpm?.method !== wanted) get().syncPaymentMethod(wanted);
           } catch (e) {
             console.warn('[mj] No se pudo leer el carrito del servidor.', e);
+            set({ hydrated: true, loadError: e?.message || 'No se pudo leer el carrito.' });
           }
         },
 

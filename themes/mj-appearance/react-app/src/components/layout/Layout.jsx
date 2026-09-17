@@ -1,5 +1,5 @@
 import { useLocation, useOutlet } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Header } from './Header';
 import { Footer } from './Footer';
@@ -8,6 +8,7 @@ import { CartDrawer } from './CartDrawer';
 import { MobileMenu } from './MobileMenu';
 import { QuickView } from './QuickView';
 import { CartToast } from '@/components/ui/CartToast';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { FloatingContact } from './FloatingContact';
 import { Intro } from '@/components/motion/Intro';
 import { PageTransition } from '@/components/motion/PageTransition';
@@ -23,6 +24,25 @@ import { watchSystemTheme, syncThemeColor } from '@/lib/theme';
 const pageKey = (pathname) => (pathname.startsWith('/cuenta') ? '/cuenta' : pathname);
 
 const scrollTop = () => window.scrollTo({ top: 0, behavior: 'instant' });
+
+/*
+ * Mientras baja el código de una pantalla que se carga bajo demanda (cuenta,
+ * checkout, turnos): un bloque gris con la forma de un encabezado. Dura lo
+ * que tarda el archivo, normalmente menos de un segundo.
+ */
+function PageFallback() {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-24" aria-busy="true" aria-label="Cargando">
+      <div className="h-4 w-24 animate-pulse rounded bg-surface-2" />
+      <div className="mt-4 h-12 w-2/3 max-w-md animate-pulse rounded bg-surface-2" />
+      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-40 animate-pulse rounded-xl3 bg-surface-2" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function Layout() {
   const { pathname } = useLocation();
@@ -55,13 +75,18 @@ export function Layout() {
       <div className="mj-ambient" aria-hidden="true" />
       <Header />
       <main id="main" className="min-h-screen" tabIndex={-1}>
-        {TRANSITIONS ? (
-          <AnimatePresence mode="wait" initial={false} onExitComplete={scrollTop}>
-            <PageTransition key={key}>{outlet}</PageTransition>
-          </AnimatePresence>
-        ) : (
-          outlet
-        )}
+        {/* Si una página revienta, cae solo ella: header, carrito y menú siguen. Se reinicia al navegar. */}
+        <ErrorBoundary scope="page" resetKey={pathname}>
+          <Suspense fallback={<PageFallback />}>
+            {TRANSITIONS ? (
+              <AnimatePresence mode="wait" initial={false} onExitComplete={scrollTop}>
+                <PageTransition key={key}>{outlet}</PageTransition>
+              </AnimatePresence>
+            ) : (
+              outlet
+            )}
+          </Suspense>
+        </ErrorBoundary>
       </main>
       <Footer />
       {/* Espacio para que la barra inferior fija no tape el final del footer. */}
