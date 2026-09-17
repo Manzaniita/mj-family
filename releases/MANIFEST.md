@@ -1,6 +1,6 @@
 # Versiones publicadas
 
-Generado por `tools/build-releases.ps1` el 2026-09-16 20:29.
+Generado por `tools/build-releases.ps1` el 2026-09-16 22:01.
 En `releases/` queda un solo zip por paquete: el de la versión que está
 hoy en el código. Los de versiones anteriores se borran — las que ya se
 publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
@@ -9,7 +9,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 
 | Tema | Versión | Archivo | Tamaño | SHA-256 |
 | --- | --- | --- | ---: | --- |
-| MJ Appearance | 3.15.0 | `mj-appearance-3.15.0.zip` | 476 KB | `ac1e8075cae29122…` |
+| MJ Appearance | 3.17.0 | `mj-appearance-3.17.0.zip` | 504 KB | `bb95eecc9d8d528d…` |
 | MJ Atelier | 1.1.0 | `mj-atelier-1.1.0.zip` | 607 KB | `1570442b044d212b…` |
 | GlossyHair | 1.1.0 | `mj-glossyhair-1.1.0.zip` | 90 KB | `24ae83d4719bab5d…` |
 | Yamana | 1.1.0 | `mj-yamana-1.1.0.zip` | 328 KB | `aba8c916fd9641e1…` |
@@ -31,7 +31,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 ## SHA-256 completos
 
 ```
-ac1e8075cae29122d6a76f6655f828929b2a0d08e82c7dba6b50aa5e9c437544  mj-appearance-3.15.0.zip
+bb95eecc9d8d528d333fad2ac8b057a77301391f9f191c4e9e1323ba474c1195  mj-appearance-3.17.0.zip
 1570442b044d212b4455cb3186a180545aa3e38334ad8bda8a49f1e0f4d6702b  mj-atelier-1.1.0.zip
 7f2e1255b1414098c4461e16d27587516f4890a7dfba7b3c9db6763d941f6e9b  mj-colegas-1.0.0.zip
 54b4573c08f5221873f73d3078fcbbf75e222266552e990d1535e7b405fb1c0b  mj-core-1.0.1.zip
