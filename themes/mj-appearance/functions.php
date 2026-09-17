@@ -14,7 +14,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_VERSION', '3.16.0');
+define('MJ_VERSION', '3.17.0');
 
 /*
  * Versión de la librería de íconos que usa el panel de ajustes. Se puede fijar
@@ -33,6 +33,7 @@ require_once get_template_directory() . '/inc/session.php';  // Sesión, nonces 
 require_once get_template_directory() . '/inc/skins.php';    // API de temas hijo (skins) y sus presets.
 require_once get_template_directory() . '/inc/config.php';   // window.MJ (mj_app_config).
 require_once get_template_directory() . '/inc/rest.php';     // Endpoints REST mj/v1.
+require_once get_template_directory() . '/inc/seo.php';      // Título, meta, Open Graph, JSON-LD, sitemap y errores del navegador.
 
 /* -------------------------------------------------------------------------
  * Migración por el renombre (Yamana Theme → MJ Appearance).

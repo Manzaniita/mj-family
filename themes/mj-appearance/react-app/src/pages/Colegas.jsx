@@ -12,6 +12,7 @@ import { NotFound } from '@/pages/Misc';
 import { useCatalog } from '@/store/catalog';
 import { COLEGAS, projectPath, paragraphsOf } from '@/lib/colegas';
 import { cn } from '@/lib/format';
+import { usePageMeta } from '@/lib/seo';
 
 /* Avatar de colega: foto o inicial sobre el color de acento. */
 function Avatar({ name, image, className }) {
@@ -57,6 +58,7 @@ function Segment({ value, onChange, options }) {
  */
 export function ProjectPage() {
   const { project, house, labels } = COLEGAS;
+  usePageMeta(project.menuLabel || project.name || '');
   const colegas = useColegasWithProducts();
   const products = useCatalog((s) => s.products);
   const [view, setView] = useState('all'); // all | house | colegas
@@ -180,6 +182,7 @@ export function ColegaPage() {
 
   const isHouse = slug === house.slug;
   const colega = isHouse ? { ...house, house: true } : COLEGAS.list.find((c) => c.slug === slug) ?? null;
+  usePageMeta(colega?.name || '', colega?.description || undefined);
 
   if (!colega) return ready ? <NotFound /> : null;
 

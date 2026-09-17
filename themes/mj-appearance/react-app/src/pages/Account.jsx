@@ -16,6 +16,8 @@ import { whatsappUrl } from '@/lib/consult';
 import { IS_WP, SITE, CONTACT, WHATSAPP_NUMBERS, ACCOUNT_LINKS } from '@/lib/config';
 import { formatPrice, formatUsd, isValidCuit, cn } from '@/lib/format';
 import { fieldLabel } from '@/lib/envios';
+import { usePageMeta } from '@/lib/seo';
+import { t as tCopy } from '@/lib/copy';
 
 const nav = [
   { to: '/cuenta', end: true, icon: LayoutDashboard, label: 'Resumen' },
@@ -75,6 +77,7 @@ function FormMessage({ msg }) {
 }
 
 export function AccountLayout() {
+  usePageMeta(tCopy('seo_title_account'));
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [account, setAccount] = useState(IS_WP ? null : EMPTY_ACCOUNT);

@@ -56,6 +56,8 @@ function mj_option_defaults() {
 		'design_theme'            => 'dark', // dark | light | system
 		'motion_level'            => 'medium', // subtle | medium | cinematic
 		'theme_switch'            => 'instant', // instant | fade | circle — efecto del botón sol/luna
+		'seo_description'         => '',  // Descripción para Google del sitio (vacío = la descripción corta de WP).
+		'seo_share_image'         => 0,   // Adjunto: foto al compartir una URL sin foto propia (vacío = el logo).
 		'intro_enabled'           => 0,
 		'color_accent'            => '',
 		'color_bg_dark'           => '',
@@ -262,6 +264,33 @@ function mj_copy_fields() {
 		'contact_eyebrow'           => ['Páginas', 'Contacto — antetítulo', 'Hablemos', 'text'],
 		'contact_title'             => ['Páginas', 'Contacto — título', 'Contacto', 'text'],
 		'contact_subtitle'          => ['Páginas', 'Contacto — subtítulo', 'Escribinos y te respondemos a la brevedad.', 'text'],
+		// SEO: título de la pestaña y descripción para Google de cada pantalla (inc/seo.php).
+		'seo_title_shop'            => ['SEO', 'Tienda — título', '', 'text', 'Vacío = el título de la tienda.'],
+		'seo_desc_shop'             => ['SEO', 'Tienda — descripción', 'Todo el catálogo con precios, stock y envíos a todo el país.', 'text'],
+		'seo_desc_category'         => ['SEO', 'Categoría sin descripción — plantilla', 'Comprá {nombre} en {sitio}: precios, stock y envíos a todo el país.', 'text', 'Cuando la categoría no tiene descripción en WooCommerce. {nombre} y {sitio} se reemplazan.'],
+		'seo_desc_brand'            => ['SEO', 'Marca — plantilla', 'Todos los productos {nombre} en {sitio}, con precios y stock al día.', 'text', '{nombre} y {sitio} se reemplazan.'],
+		'seo_title_brands'          => ['SEO', 'Marcas — título', '', 'text', 'Vacío = el nombre en plural de "marcas".'],
+		'seo_desc_brands'           => ['SEO', 'Marcas — descripción', 'Las marcas con las que trabajamos, con todos sus productos.', 'text'],
+		'seo_title_contact'         => ['SEO', 'Contacto — título', 'Contacto', 'text'],
+		'seo_desc_contact'          => ['SEO', 'Contacto — descripción', 'Escribinos por WhatsApp, mail o teléfono y te respondemos a la brevedad.', 'text'],
+		'seo_title_about'           => ['SEO', 'Nosotros — título', 'Nosotros', 'text'],
+		'seo_desc_about'            => ['SEO', 'Nosotros — descripción', 'Quiénes somos, cómo trabajamos y por qué comprar con nosotros.', 'text'],
+		'seo_title_faq'             => ['SEO', 'Preguntas frecuentes — título', 'Preguntas frecuentes', 'text'],
+		'seo_desc_faq'              => ['SEO', 'Preguntas frecuentes — descripción', 'Envíos, pagos, cambios y garantías: las respuestas a lo que más nos preguntan.', 'text'],
+		'seo_title_terms'           => ['SEO', 'Términos — título', 'Términos y condiciones', 'text'],
+		'seo_title_privacy'         => ['SEO', 'Privacidad — título', 'Política de privacidad', 'text'],
+		'seo_title_sitemap'         => ['SEO', 'Mapa del sitio — título', 'Mapa del sitio', 'text'],
+		'seo_title_search'          => ['SEO', 'Buscador — título', 'Buscar', 'text'],
+		'seo_title_cart'            => ['SEO', 'Carrito — título', 'Tu carrito', 'text'],
+		'seo_title_checkout'        => ['SEO', 'Checkout — título', 'Finalizar compra', 'text'],
+		'seo_title_account'         => ['SEO', 'Mi cuenta — título', 'Mi cuenta', 'text'],
+		'seo_title_login'           => ['SEO', 'Iniciar sesión — título', 'Iniciar sesión', 'text'],
+		'seo_title_register'        => ['SEO', 'Crear cuenta — título', 'Crear cuenta', 'text'],
+		'seo_title_recover'         => ['SEO', 'Recuperar contraseña — título', 'Recuperar contraseña', 'text'],
+		'seo_title_wishlist'        => ['SEO', 'Favoritos — título', 'Favoritos', 'text'],
+		'seo_title_compare'         => ['SEO', 'Comparar — título', 'Comparar productos', 'text'],
+		'seo_title_recent'          => ['SEO', 'Vistos recientemente — título', 'Vistos recientemente', 'text'],
+		'seo_title_notfound'        => ['SEO', 'Página no encontrada — título', 'Página no encontrada', 'text'],
 		'faq_subtitle'              => ['Páginas', 'Preguntas frecuentes — subtítulo', 'Todo lo que necesitás saber antes de comprar.', 'text'],
 	];
 	return apply_filters('mj_copy_fields', $fields);
@@ -562,6 +591,10 @@ function mj_sanitize_options($input) {
 
 	// 3.5 — "Nosotros": foto (adjunto único), puntos destacados y cifras.
 	$out['about_image']      = isset($input['about_image']) ? absint(strtok((string) $input['about_image'], ',')) : 0;
+
+	/* SEO. */
+	$out['seo_description'] = isset($input['seo_description']) ? sanitize_textarea_field($input['seo_description']) : '';
+	$out['seo_share_image'] = isset($input['seo_share_image']) ? absint(strtok((string) $input['seo_share_image'], ',')) : 0;
 	$out['about_highlights'] = isset($input['about_highlights']) ? sanitize_textarea_field($input['about_highlights']) : '';
 	$out['about_stats']      = isset($input['about_stats']) ? sanitize_textarea_field($input['about_stats']) : '';
 
@@ -1367,6 +1400,24 @@ function mj_render_settings_page() {
 					<td>
 						<input type="number" id="mj_free_shipping_override" name="mj_options[free_shipping_override]" value="<?php echo esc_attr($o['free_shipping_override']); ?>" min="0" step="1" class="small-text" />
 						<p class="description">Monto mínimo de compra para envío gratis. <code>0</code> = automático: se calcula desde los métodos de envío gratis configurados en WooCommerce.</p>
+					</td>
+				</tr>
+			</table>
+
+			<h2>SEO</h2>
+			<p>Lo que Google y WhatsApp ven de cada URL: título, descripción y foto al compartir. Cada producto y categoría usa su propio nombre, descripción corta y foto; los títulos de las demás pantallas se editan en <strong>Textos de la tienda → SEO</strong>. Con Rank Math o Yoast activos, el plugin manda en productos, categorías y portada, y el tema completa las pantallas que el plugin no conoce.</p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="mj_seo_description">Descripción del sitio</label></th>
+					<td>
+						<textarea id="mj_seo_description" name="mj_options[seo_description]" rows="2" class="large-text" placeholder="<?php echo esc_attr(get_bloginfo('description')); ?>"><?php echo esc_textarea($o['seo_description']); ?></textarea>
+						<p class="description">Va en la portada y en las pantallas sin descripción propia. Ideal: una o dos frases, hasta 160 caracteres, que digan qué vendés y a dónde. Vacío = la descripción corta de Ajustes → Generales.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">Foto al compartir</th>
+					<td>
+						<?php mj_render_media_picker('seo_share_image', $o['seo_share_image'], 'Elegir foto…', 'La imagen de la tarjeta de WhatsApp, Instagram y Facebook cuando la URL no tiene foto propia (portada, contacto, tienda). Ideal: 1200 × 630 px. Vacío = el logo.', false); ?>
 					</td>
 				</tr>
 			</table>

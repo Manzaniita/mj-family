@@ -7,6 +7,7 @@ import { ServiceCard } from '@/components/turnos/ServiceCard';
 import { NotFound } from '@/pages/Misc';
 import { TURNOS, tcopy, bookingPath } from '@/lib/turnos';
 import { cn } from '@/lib/format';
+import { usePageMeta } from '@/lib/seo';
 
 /** Cabecera de página (misma forma que la de Misc.jsx) — la usan Servicios y Turnos. */
 export function PageHeader({ eyebrow, title, subtitle, className }) {
@@ -26,6 +27,7 @@ export function PageHeader({ eyebrow, title, subtitle, className }) {
  * Textos: Turnos → Ajustes → Textos (services_*, booking_*, header_cta).
  */
 export function ServicesPage() {
+  usePageMeta(TURNOS ? TURNOS.menu.servicesLabel : '');
   if (!TURNOS) return <NotFound />;
 
   const services = TURNOS.services

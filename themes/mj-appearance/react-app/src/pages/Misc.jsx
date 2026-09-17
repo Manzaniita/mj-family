@@ -23,6 +23,7 @@ import { sendContact } from '@/lib/wc';
 import { formatPrice, cn } from '@/lib/format';
 import { effectivePrice } from '@/lib/api';
 import { displayPrice } from '@/lib/payments';
+import { usePageMeta } from '@/lib/seo';
 
 function PageHeader({ eyebrow, title, subtitle }) {
   return (
@@ -36,6 +37,7 @@ function PageHeader({ eyebrow, title, subtitle }) {
 
 /* ------------------------------- Favoritos ------------------------------- */
 export function Wishlist() {
+  usePageMeta(t('seo_title_wishlist'));
   const ids = useWishlist((s) => s.ids);
   const products = useCatalog((s) => s.products);
   const items = products.filter((p) => ids.includes(p.id));
@@ -58,6 +60,7 @@ export function Wishlist() {
 
 /* ------------------------------- Comparador ------------------------------ */
 export function Compare() {
+  usePageMeta(t('seo_title_compare'));
   const { ids, toggle } = useCompare();
   const products = useCatalog((s) => s.products);
   const items = products.filter((p) => ids.includes(p.id));
@@ -133,6 +136,7 @@ export function Compare() {
 
 /* --------------------------- Vistos recientemente ------------------------ */
 export function RecentlyViewed() {
+  usePageMeta(t('seo_title_recent'));
   const ids = useRecentlyViewed((s) => s.ids);
   const products = useCatalog((s) => s.products);
   const items = ids.map((id) => products.find((p) => p.id === id)).filter(Boolean);
@@ -153,6 +157,7 @@ export function RecentlyViewed() {
 
 /* --------------------------------- Marcas -------------------------------- */
 export function Brands() {
+  usePageMeta(t('seo_title_brands') || BRAND_LABEL.plural, t('seo_desc_brands'));
   const { brands, products } = useCatalog();
   return (
     <Section className="md:py-16">
@@ -180,6 +185,7 @@ export function Brands() {
 
 /* -------------------------------- Contacto ------------------------------- */
 export function Contact() {
+  usePageMeta(t('seo_title_contact') || t('contact_title'), t('seo_desc_contact'));
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -306,6 +312,7 @@ const gridCols = (count) =>
  * automáticas del catálogo.
  */
 export function About() {
+  usePageMeta(t('seo_title_about'), t('seo_desc_about'));
   const { products, categories } = useCatalog();
   const paragraphs = paragraphsOf(WP?.aboutText);
   const image = ABOUT.image;
@@ -414,6 +421,7 @@ export function About() {
 
 /* ---------------------------------- FAQ ---------------------------------- */
 export function FAQ() {
+  usePageMeta(t('seo_title_faq'), t('seo_desc_faq'));
   // En WordPress se usan las FAQ configuradas en el sitio; en standalone, las demo.
   const items = IS_WP ? (WP?.faqs ?? []) : faqs;
   return (
@@ -459,6 +467,7 @@ function LegalPage({ title, sections }) {
 }
 
 export function Privacy() {
+  usePageMeta(t('seo_title_privacy'));
   const contact = CONTACT.email ? `escribiendo a ${CONTACT.email}` : 'desde nuestra página de contacto';
   const fallback = [
     { h: '1. Datos que recopilamos', body: 'Recopilamos únicamente los datos necesarios para procesar tu compra: nombre, email, teléfono y dirección de envío. Nunca almacenamos datos de tarjetas — el pago se procesa a través de pasarelas de pago seguras.' },
@@ -470,6 +479,7 @@ export function Privacy() {
 }
 
 export function Terms() {
+  usePageMeta(t('seo_title_terms'));
   const fallback = [
     { h: '1. Productos y precios', body: 'Los precios están expresados en pesos argentinos e incluyen IVA. Pueden modificarse sin previo aviso.' },
     { h: '2. Compra y pago', body: 'La compra queda confirmada al acreditarse el pago. Aceptamos los medios de pago habilitados al momento de la compra.' },
@@ -481,6 +491,7 @@ export function Terms() {
 
 /* ------------------------------ Mapa del sitio --------------------------- */
 export function Sitemap() {
+  usePageMeta(t('seo_title_sitemap'));
   const { categories, products } = useCatalog();
   const colegas = COLEGAS ? COLEGAS.list.filter((c) => products.some((p) => p.colega === c.slug)) : [];
   // "Nosotros" siempre figura en el mapa: con el texto del menú si lo hay, si no con el eyebrow de la página.
@@ -543,6 +554,7 @@ export function Sitemap() {
 
 /* ---------------------------------- 404 ---------------------------------- */
 export function NotFound() {
+  usePageMeta(t('seo_title_notfound'));
   return (
     <Section className="grid min-h-[65vh] place-items-center text-center">
       <div>

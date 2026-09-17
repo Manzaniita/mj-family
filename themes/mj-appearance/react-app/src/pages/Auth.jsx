@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { Reveal } from '@/components/motion/Reveal';
 import { useAuth, finishAuth } from '@/store';
 import { WP, IS_WP, SESSION } from '@/lib/config';
+import { usePageMeta } from '@/lib/seo';
+import { t } from '@/lib/copy';
 
 function AuthShell({ title, subtitle, children, footer }) {
   return (
@@ -54,6 +56,7 @@ function safeRedirect(value) {
 }
 
 export function Login() {
+  usePageMeta(t('seo_title_login'));
   const { login, loading, error } = useAuth();
   useClearAuthError();
   const navigate = useNavigate();
@@ -126,6 +129,7 @@ export function Login() {
 }
 
 export function Register() {
+  usePageMeta(t('seo_title_register'));
   const { register, loading, error } = useAuth();
   useClearAuthError();
   const navigate = useNavigate();
@@ -216,6 +220,7 @@ export function Register() {
 }
 
 export function Recover() {
+  usePageMeta(t('seo_title_recover'));
   const { recover, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);

@@ -18,6 +18,7 @@ import { NotFound } from '@/pages/Misc';
 import { useAuth } from '@/store/auth';
 import { TRANSITIONS } from '@/lib/motion';
 import { EASE, formatPrice, cn } from '@/lib/format';
+import { usePageMeta } from '@/lib/seo';
 import {
   TURNOS, tcopy, statusLabel, bookingPath, statusPath, bookingLoginPath, serviceBySlug, serviceDeposit,
   formatDuration, fillTemplate, todayISO, lastBookableISO, formatDateLong,
@@ -681,6 +682,7 @@ function BookingWizard() {
 
 /** Reserva pública (/{slug}). */
 export function BookingPage() {
+  usePageMeta(TURNOS ? tcopy('booking_title') : '');
   if (!TURNOS) return <NotFound />;
   return (
     <Section className="mj-booking-page md:py-16">
@@ -863,6 +865,7 @@ function StatusView({ token }) {
 /** Estado de una reserva (/{slug}/t/:token) — siempre pública. */
 export function BookingStatusPage() {
   const { token } = useParams();
+  usePageMeta(TURNOS ? tcopy('booking_status_title') : '');
   if (!TURNOS || !token) return <NotFound />;
   return (
     <Section className="mj-booking-page mj-booking-page--status md:py-16">
