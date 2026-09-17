@@ -35,6 +35,7 @@ administración, arriba del nombre del sitio.
 | **Contacto / Redes sociales** | Mail, teléfono, WhatsApp, dirección, mapa, redes. |
 | **Contenido** | "Nosotros" con foto, puntos destacados, cifras y preguntas frecuentes. |
 | **Legales** | Términos y privacidad. |
+| **SEO** | Descripción del sitio para Google y foto por defecto al compartir. Los títulos y descripciones de cada pantalla van en Textos de la tienda → SEO. |
 | **Envíos** | Umbral de envío gratis. |
 | **Avanzado** | Servicio de mapas e íconos del panel. |
 
@@ -80,6 +81,50 @@ pegadas junto al resto del header, como siempre.
 > está en el ERP: **Configuración → General → Acceso a la tienda**.
 
 ---
+
+### SEO, en detalle
+
+Lo que Google, WhatsApp e Instagram ven de cada URL lo arma `inc/seo.php` en
+el servidor, antes de que corra React:
+
+- **Productos:** nombre, descripción corta (o la larga, recortada a 160
+  caracteres), foto principal, precio, moneda y disponibilidad. Van como
+  `<title>`, `description`, Open Graph, Twitter y un JSON-LD `Product`.
+- **Categorías y marcas:** nombre, descripción del término (si está vacía, la
+  plantilla de Textos → SEO con `{nombre}` y `{sitio}`) y la foto de la
+  categoría.
+- **Portada:** nombre del sitio, "Descripción del sitio" de esta sección (o la
+  descripción corta de Ajustes → Generales), foto al compartir y JSON-LD
+  `WebSite` + `Organization` con las redes cargadas en Redes sociales.
+- **Las demás pantallas** (tienda, contacto, nosotros, preguntas frecuentes…):
+  título y descripción de Textos de la tienda → SEO.
+- **Fuera de Google:** carrito, checkout, cuenta, acceso, favoritos, comparar,
+  vistos recientemente, buscador y mapa del sitio van con `noindex`. La lista
+  se cambia con el filtro `mj_seo_noindex_routes`.
+
+Para que todo eso funcione, `/producto/{slug}` y `/categoria/{slug}` son para
+WordPress un producto y una categoría de verdad (reglas de reescritura propias),
+y los enlaces que genera WordPress (sitemap, canonical) usan esas rutas y no las
+de WooCommerce. Las bases de URL se cambian con el filtro `mj_seo_bases`, junto
+con las rutas de React.
+
+**Con un plugin de SEO.** El tema detecta Rank Math, Yoast, AIOSEO y SEOPress.
+Con uno activo, el plugin manda en productos, categorías y portada (título,
+meta, Open Graph, sitemap) y el tema no imprime nada ahí, para no duplicar; en
+las pantallas que solo existen en React (contacto, nosotros, marcas, tienda…)
+el tema le pasa al plugin título, descripción, canonical y robots por sus
+propios filtros (Rank Math y Yoast). El JSON-LD de producto lo emite el tema
+salvo con Rank Math, que ya lo trae. El recomendado es **Rank Math** (gratis):
+incluye datos estructurados de producto, sitemap con imágenes y conexión con
+Search Console.
+
+**Sin plugin.** El sitemap es el de WordPress (`/wp-sitemap.xml`), acotado a
+productos, categorías y marcas; `robots.txt` lo anuncia solo.
+
+**Errores del navegador.** Si algo revienta en la tienda de un cliente, la
+pantalla muestra "Algo salió mal" con un botón de recargar y el error queda en
+WooCommerce → Estado → Registros (archivo `mj-appearance`), con la URL y el
+navegador. Se limita a diez avisos por IP cada diez minutos.
 
 ### Sesión y acceso, en detalle
 

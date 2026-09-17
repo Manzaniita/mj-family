@@ -23,7 +23,9 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       output: {
         entryFileNames: 'assets/app.js',
-        chunkFileNames: 'assets/[name].js',
+        // Con hash: al actualizar el tema, el navegador no puede reusar un chunk viejo
+        // (app.js ya cambia de versión por filemtime; los chunks tienen que acompañar).
+        chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/app[extname]',
       },
     },
