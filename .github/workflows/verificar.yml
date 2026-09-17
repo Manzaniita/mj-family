@@ -20,10 +20,23 @@
 
 name: Verificar
 
+# Cuándo NO corre: al publicar (el commit de publicar.ps1 solo cambia los zip
+# de releases/ y el manifiesto) ni cuando solo cambia documentación. Y tampoco
+# por la etiqueta de la versión: el push de la rama ya lo verificó. Sin esto,
+# cada publicación disparaba dos corridas de cinco trabajos sobre código que
+# ya estaba verificado, y los minutos de Actions de una cuenta privada son
+# contados.
 on:
   push:
     branches: [main]
+    tags-ignore: ['**']
+    paths-ignore:
+      - 'releases/**'
+      - '**.md'
   pull_request:
+    paths-ignore:
+      - 'releases/**'
+      - '**.md'
   workflow_dispatch:
 
 permissions:
