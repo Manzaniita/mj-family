@@ -12,15 +12,19 @@ import { cn } from '@/lib/format';
  * Appearance → Contenido → Nosotros) + eyebrow, título, un texto corto y el
  * enlace a /nosotros. El texto es `home_about_text`; vacío → primer párrafo
  * del texto de la página Nosotros. Sin foto ni texto, la sección no aparece.
+ *
+ * `override`: lo escrito en el bloque "Nosotros" (adelanto); cada campo con
+ * valor pisa al del panel.
  */
-export function AboutTeaser() {
-  const image = ABOUT.image;
-  const text = t('home_about_text').trim() || paragraphsOf(WP?.aboutText)[0] || '';
+export function AboutTeaser({ override } = {}) {
+  const o = override || {};
+  const image = o.image || ABOUT.image;
+  const text = (o.text || '').trim() || t('home_about_text').trim() || paragraphsOf(WP?.aboutText)[0] || '';
   if (!image && !text) return null;
 
-  const eyebrow = t('home_about_eyebrow');
-  const title = t('home_about_title');
-  const linkLabel = t('home_about_link').trim();
+  const eyebrow = o.eyebrow || t('home_about_eyebrow');
+  const title = o.title || t('home_about_title');
+  const linkLabel = (o.linkLabel || t('home_about_link')).trim();
 
   return (
     <Section className="mj-about-teaser">
@@ -36,7 +40,7 @@ export function AboutTeaser() {
           )}
           {title && <h2 className="mj-about-teaser__title display mt-3 text-3xl md:text-5xl">{title}</h2>}
           {text && (
-            <p className="mj-about-teaser__text mt-5 text-base leading-relaxed text-ink-soft md:text-lg">{text}</p>
+            <p className="mj-about-teaser__text mt-5 whitespace-pre-line text-base leading-relaxed text-ink-soft md:text-lg">{text}</p>
           )}
           {linkLabel && (
             <Link

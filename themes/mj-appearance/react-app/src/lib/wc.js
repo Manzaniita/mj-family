@@ -397,6 +397,14 @@ export const getPaymentInfo = (orderId, orderKey) =>
 /** kind: 'contact' | 'newsletter'. */
 export const sendContact = (data) => apiReq('/contact', { method: 'POST', body: data });
 
+/**
+ * Una página de WordPress ya renderizada (inc/paginas.php). `path` sin barra
+ * inicial ('' = la portada); `id` + `preview` para la vista previa de Gutenberg.
+ * → { id, slug, path, title, hideTitle, firstBlock, content, excerpt, image, modified }
+ */
+export const getPage = ({ path = '', id = 0, preview = false } = {}) =>
+  apiReq(`/page?path=${encodeURIComponent(path)}${id ? `&id=${id}` : ''}${preview ? '&preview=1' : ''}`);
+
 /* ------------------------------- Checkout -------------------------------- */
 
 export async function placeOrder({ billing, paymentMethod, additionalFields }) {

@@ -361,6 +361,226 @@ html.mj-theme-switching::view-transition-new(root) {
   to { clip-path: circle(var(--mj-vt-r, 150vmax) at var(--mj-vt-x, 50%) var(--mj-vt-y, 0)); }
 }
 
+/* ---------------------------------------------------------------------------
+   Páginas de WordPress (pages/Page.jsx, inc/paginas.php)
+
+   El contenido escrito en el editor de bloques llega como HTML y se muestra
+   adentro de .mj-page__prose: ancho de lectura, tipografía y colores del
+   design system, en día y en noche. Tailwind (preflight) borra los estilos
+   por defecto de títulos y listas, así que acá se vuelven a definir para el
+   contenido editorial. Los bloques MJ van fuera de estos contenedores, a todo
+   el ancho, y se dibujan con sus componentes de React.
+--------------------------------------------------------------------------- */
+.mj-page__prose {
+  max-width: 80rem;
+  margin-inline: auto;
+  padding: 2.5rem 1rem;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--mj-ink);
+}
+@media (min-width: 768px) {
+  .mj-page__prose { padding: 3.5rem 2rem; }
+}
+.mj-page__prose + .mj-page__prose { padding-top: 0; }
+
+/* Ancho de lectura para el texto; ancho completo del contenedor para lo visual. */
+.mj-page__prose > * { max-width: 48rem; margin-inline: auto; }
+.mj-page__prose > .alignwide,
+.mj-page__prose > .wp-block-columns,
+.mj-page__prose > .wp-block-gallery,
+.mj-page__prose > .wp-block-cover,
+.mj-page__prose > .wp-block-media-text,
+.mj-page__prose > .wp-block-table,
+.mj-page__prose > .wp-block-group,
+.mj-page__prose > .wp-block-embed,
+.mj-page__prose > .wp-block-video { max-width: 80rem; }
+.mj-page__prose > .alignfull {
+  max-width: none;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  border-radius: 0;
+}
+.mj-page__prose > :first-child { margin-top: 0; }
+.mj-page__prose > :last-child { margin-bottom: 0; }
+
+.mj-page__prose :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-display);
+  font-weight: var(--mj-display-weight);
+  letter-spacing: var(--mj-display-tracking);
+  line-height: 1.1;
+  margin: 2em 0 0.6em;
+  color: var(--mj-ink);
+}
+.mj-page__prose h1 { font-size: 2.5rem; }
+.mj-page__prose h2 { font-size: 2rem; }
+.mj-page__prose h3 { font-size: 1.5rem; }
+.mj-page__prose h4 { font-size: 1.25rem; }
+.mj-page__prose h5 { font-size: 1.1rem; }
+.mj-page__prose h6 { font-size: 1rem; }
+@media (min-width: 768px) {
+  .mj-page__prose h1 { font-size: 3.25rem; }
+  .mj-page__prose h2 { font-size: 2.5rem; }
+  .mj-page__prose h3 { font-size: 1.75rem; }
+}
+
+.mj-page__prose p { margin: 0 0 1.25em; }
+.mj-page__prose ul, .mj-page__prose ol { margin: 0 0 1.25em; padding-left: 1.5em; }
+.mj-page__prose ul { list-style: disc; }
+.mj-page__prose ol { list-style: decimal; }
+.mj-page__prose li { margin: 0.35em 0; }
+.mj-page__prose li > ul, .mj-page__prose li > ol { margin-bottom: 0; }
+.mj-page__prose strong { font-weight: 600; }
+.mj-page__prose a:not(.wp-block-button__link) {
+  color: var(--mj-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--mj-accent) 40%, transparent);
+  transition: color var(--mj-dur-fast) var(--mj-ease);
+}
+.mj-page__prose a:not(.wp-block-button__link):hover { color: var(--mj-ink); text-decoration-color: currentColor; }
+
+.mj-page__prose blockquote,
+.mj-page__prose .wp-block-quote {
+  border-left: 2px solid var(--mj-accent);
+  margin: 2em auto;
+  padding: 0.25em 0 0.25em 1.5em;
+  color: var(--mj-ink-soft);
+  font-size: 1.125rem;
+}
+.mj-page__prose .wp-block-quote p:last-child { margin-bottom: 0; }
+.mj-page__prose .wp-block-quote cite { display: block; margin-top: 0.75em; font-size: 0.875rem; font-style: normal; color: var(--mj-ink-faint); }
+.mj-page__prose .wp-block-pullquote {
+  border-top: 1px solid var(--mj-line);
+  border-bottom: 1px solid var(--mj-line);
+  padding: 2.5em 0;
+  text-align: center;
+}
+.mj-page__prose .wp-block-pullquote blockquote { border: 0; padding: 0; margin: 0; }
+.mj-page__prose .wp-block-pullquote p { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: var(--mj-display-tracking); color: var(--mj-ink); }
+
+.mj-page__prose hr,
+.mj-page__prose .wp-block-separator {
+  border: 0;
+  border-top: 1px solid var(--mj-line);
+  width: 6rem;
+  margin: 3rem auto;
+  opacity: 1;
+}
+.mj-page__prose .wp-block-separator.is-style-wide,
+.mj-page__prose .wp-block-separator.alignwide,
+.mj-page__prose .wp-block-separator.alignfull { width: auto; max-width: 80rem; }
+
+.mj-page__prose img, .mj-page__prose video { border-radius: var(--mj-radius-lg); }
+.mj-page__prose figure { margin: 2rem auto; }
+.mj-page__prose figcaption { margin-top: 0.6rem; text-align: center; font-size: 0.8rem; color: var(--mj-ink-faint); }
+.mj-page__prose .wp-block-gallery { gap: 0.75rem; }
+.mj-page__prose .wp-block-gallery img { border-radius: var(--mj-radius-md); }
+.mj-page__prose .wp-block-cover,
+.mj-page__prose .wp-block-cover-image { border-radius: var(--mj-radius-xl); overflow: hidden; margin: 2rem auto; }
+.mj-page__prose .wp-block-cover .wp-block-cover__inner-container :is(h1, h2, h3, p) { color: inherit; }
+.mj-page__prose .wp-block-media-text { border-radius: var(--mj-radius-xl); overflow: hidden; gap: 1.5rem; margin: 2rem auto; }
+.mj-page__prose .wp-block-media-text img { border-radius: 0; }
+.mj-page__prose .wp-block-group.has-background { border-radius: var(--mj-radius-xl); padding: 2rem; margin: 2rem auto; }
+.mj-page__prose .wp-block-group.has-background > * { max-width: 48rem; margin-inline: auto; }
+.mj-page__prose .wp-block-columns { gap: 1.5rem; margin: 2rem auto; }
+.mj-page__prose .wp-block-column > :first-child { margin-top: 0; }
+.mj-page__prose .wp-block-embed { margin: 2rem auto; }
+.mj-page__prose .wp-block-embed iframe { border-radius: var(--mj-radius-lg); }
+
+.mj-page__prose .wp-block-table { margin: 2rem auto; overflow-x: auto; }
+.mj-page__prose table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.mj-page__prose td, .mj-page__prose th { border: 1px solid var(--mj-line); padding: 0.65em 0.9em; text-align: left; }
+.mj-page__prose th { background: var(--mj-surface); font-weight: 600; }
+.mj-page__prose .wp-block-table.is-style-stripes tbody tr:nth-child(odd) { background: var(--mj-surface); }
+
+.mj-page__prose code, .mj-page__prose kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875em;
+  padding: 0.15em 0.4em;
+  border-radius: 0.4rem;
+  background: var(--mj-surface-2);
+}
+.mj-page__prose pre, .mj-page__prose .wp-block-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--mj-radius-md);
+  border: 1px solid var(--mj-line);
+  background: var(--mj-surface);
+  overflow-x: auto;
+  margin: 1.5rem auto;
+}
+.mj-page__prose pre code { padding: 0; background: none; }
+
+.mj-page__prose .wp-block-buttons { gap: 0.75rem; margin: 1.5rem auto; }
+.mj-page__prose .wp-block-button__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--mj-accent);
+  color: #fff;
+  border-radius: var(--mj-radius-btn);
+  padding: 0.8em 1.6em;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  line-height: 1.2;
+  text-decoration: none;
+  border: 0;
+  box-shadow: var(--shadow-glow);
+  transition: background-color var(--mj-dur) var(--mj-ease), transform var(--mj-dur-fast) var(--mj-ease);
+}
+.mj-page__prose .wp-block-button__link:hover { background-color: color-mix(in srgb, var(--mj-accent) 88%, white); transform: translateY(-1px); }
+.mj-page__prose .is-style-outline .wp-block-button__link,
+.mj-page__prose .wp-block-button.is-style-outline > .wp-block-button__link {
+  background: var(--mj-surface);
+  border: 1px solid var(--mj-line-strong);
+  color: var(--mj-ink);
+  box-shadow: none;
+}
+.mj-page__prose .is-style-outline .wp-block-button__link:hover { background: var(--mj-surface-2); }
+
+/* Tamaños de letra de theme.json (el editor los ofrece; acá se cumplen). */
+.mj-page__prose .has-small-font-size { font-size: 0.875rem; }
+.mj-page__prose .has-medium-font-size { font-size: 1rem; }
+.mj-page__prose .has-large-font-size { font-size: 1.25rem; line-height: 1.5; }
+.mj-page__prose .has-x-large-font-size { font-size: 1.75rem; line-height: 1.3; }
+.mj-page__prose .has-xx-large-font-size { font-size: 2.5rem; line-height: 1.15; }
+
+/* Colores de la paleta de theme.json: siguen al tema día/noche. */
+.has-accent-color { color: var(--mj-accent) !important; }
+.has-accent-background-color { background-color: var(--mj-accent) !important; }
+.has-accent-soft-color { color: var(--mj-accent-soft) !important; }
+.has-accent-soft-background-color { background-color: var(--mj-accent-soft) !important; }
+.has-ink-color { color: var(--mj-ink) !important; }
+.has-ink-background-color { background-color: var(--mj-ink) !important; }
+.has-ink-soft-color { color: var(--mj-ink-soft) !important; }
+.has-ink-soft-background-color { background-color: var(--mj-ink-soft) !important; }
+.has-bg-color { color: var(--mj-bg) !important; }
+.has-bg-background-color { background-color: var(--mj-bg) !important; }
+.has-bg-soft-color { color: var(--mj-bg-soft) !important; }
+.has-bg-soft-background-color { background-color: var(--mj-bg-soft) !important; }
+.has-surface-color { color: var(--mj-surface-2) !important; }
+.has-surface-background-color { background-color: var(--mj-surface-2) !important; }
+.has-white-color { color: #fff !important; }
+.has-white-background-color { background-color: #fff !important; }
+.has-black-color { color: #000 !important; }
+.has-black-background-color { background-color: #000 !important; }
+.has-hero-gradient-background { background: var(--mj-hero-gradient) !important; }
+
+/* ---------------------------------------------------------------------------
+   Carrusel (components/ui/Carousel.jsx): productos o categorías en una fila
+   con scroll nativo. En el celular se ve un ítem y un pedazo del siguiente;
+   en desktop, --mj-cols (lo elige el bloque).
+--------------------------------------------------------------------------- */
+.mj-carousel__item { width: calc((100% - 1.25rem * 0.2) / 1.2); }
+@media (min-width: 640px) {
+  .mj-carousel__item { width: calc((100% - 1.25rem * 1.2) / 2.2); }
+}
+@media (min-width: 1024px) {
+  .mj-carousel__item { width: calc((100% - 1.5rem * (var(--mj-cols, 4) - 1)) / var(--mj-cols, 4)); }
+}
+
 /* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

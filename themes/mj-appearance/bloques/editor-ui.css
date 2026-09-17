@@ -1,0 +1,18 @@
+/* Controles de los bloques MJ en la barra lateral del editor (fuera del lienzo). */
+.mj-field-media { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+.mj-field-media__item { position: relative; }
+.mj-field-media__item img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; display: block; background: #f0f0f1; }
+.mj-field-media__item .components-button { position: absolute; top: -8px; right: -8px; min-width: 0; width: 22px; height: 22px; padding: 0; border-radius: 50%; background: #d63638; color: #fff; }
+.mj-field-media__item .components-button:hover { color: #fff; background: #b32d2e; }
+.mj-field-list { margin: 0 0 8px; padding: 0; list-style: none; }
+.mj-field-list li { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border: 1px solid #dcdcde; border-radius: 6px; margin-bottom: 4px; background: #fff; font-size: 12px; }
+.mj-field-list li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mj-field-results { margin: 4px 0 0; padding: 0; list-style: none; border: 1px solid #dcdcde; border-radius: 6px; overflow: hidden; }
+.mj-field-results li button { display: block; width: 100%; text-align: left; padding: 6px 10px; border: 0; background: #fff; cursor: pointer; font-size: 12px; }
+.mj-field-results li button:hover { background: #f0f0f1; }
+.mj-field-results li + li button { border-top: 1px solid #f0f0f1; }
+.mj-field-repeater__row { border: 1px solid #dcdcde; border-radius: 6px; padding: 8px; margin-bottom: 8px; background: #fff; }
+.mj-field-repeater__actions { display: flex; gap: 4px; justify-content: flex-end; }
+.mj-field-help { font-size: 12px; color: #757575; margin: 0 0 12px; }
+.mj-panel-status { margin: 0 0 12px; font-size: 13px; }
+.mj-panel-status code { font-size: 12px; }

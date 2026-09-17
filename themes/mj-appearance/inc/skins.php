@@ -70,6 +70,7 @@ function mj_skins() {
 			'copy'      => [],
 			'home'      => [],
 			'presets'   => [],
+			'patterns'  => [], // Plantillas de bloques propias: slug => [title, description, content] (ver inc/paginas.php).
 		]);
 	}
 	$skins = $clean;

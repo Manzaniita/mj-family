@@ -95,6 +95,10 @@ function mj_option_defaults() {
 		'skin_defaults'           => 1,  // Aplicar las propuestas de la skin (paleta, tipografías, textos).
 		'icons_cdn'               => '', // URL del script de íconos del admin (vacío = el CDN por defecto).
 		'maps_embed_base'         => '', // Base para incrustar mapas (vacío = Google Maps).
+		/* 3.18 — páginas de WordPress (editor de bloques) dentro de la tienda. */
+		'pages_enabled'           => 1,      // Mostrar en la tienda las páginas publicadas.
+		'pages_override'          => 1,      // Una página con el mismo slug reemplaza a contacto, nosotros, faq, privacidad o terminos.
+		'editor_theme'            => 'auto', // auto | light | dark — con qué tema se pinta el editor de bloques.
 	];
 }
 
@@ -709,6 +713,12 @@ function mj_sanitize_options($input) {
 	$out['legal_terms']   = isset($input['legal_terms']) ? sanitize_textarea_field($input['legal_terms']) : '';
 	$out['legal_privacy'] = isset($input['legal_privacy']) ? sanitize_textarea_field($input['legal_privacy']) : '';
 
+	// Páginas de WordPress (editor de bloques).
+	$out['pages_enabled']  = !empty($input['pages_enabled']) ? 1 : 0;
+	$out['pages_override'] = !empty($input['pages_override']) ? 1 : 0;
+	$editor_theme          = isset($input['editor_theme']) ? sanitize_key($input['editor_theme']) : 'auto';
+	$out['editor_theme']   = in_array($editor_theme, ['auto', 'light', 'dark'], true) ? $editor_theme : 'auto';
+
 	return $out;
 }
 
@@ -1218,10 +1228,12 @@ function mj_render_settings_page() {
 							<?php endforeach; ?>
 						</ul>
 						<input type="hidden" id="mj_home_order" name="mj_options[home_order]" value="<?php echo esc_attr(implode(',', $order)); ?>" />
-						<p class="description">Arrastrá para cambiar el orden. Destildá una sección para ocultarla. El hero siempre va primero. Las secciones sin datos (sin banners, sin marcas, sin opiniones, sin Instagram, sin foto ni texto de "Nosotros") se ocultan solas aunque estén marcadas.</p>
+						<p class="description">Arrastrá para cambiar el orden. Destildá una sección para ocultarla. El hero siempre va primero. Las secciones sin datos (sin banners, sin marcas, sin opiniones, sin Instagram, sin foto ni texto de "Nosotros") se ocultan solas aunque estén marcadas. Si elegís una página como portada (sección "Páginas", más abajo), la portada se arma con los bloques de esa página y este orden no se usa.</p>
 					</td>
 				</tr>
 			</table>
+
+			<?php mj_render_pages_section($o); ?>
 
 			<h2>Textos de la tienda</h2>
 			<p>Títulos, antetítulos y frases fijas de cada pantalla. Vacío = el texto que ves en gris.</p>

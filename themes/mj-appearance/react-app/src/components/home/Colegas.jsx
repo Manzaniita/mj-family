@@ -60,22 +60,27 @@ export function ColegaCard({ colega, className }) {
   );
 }
 
-/** Sección de la portada: las colegas del proyecto (plugin MJ Colegas). */
-export function ColegasShowcase() {
+/**
+ * Sección de la portada: las colegas del proyecto (plugin MJ Colegas).
+ * `override`: lo escrito en el bloque "Colegas" (textos y cantidad); vacío = Colegas → Ajustes.
+ */
+export function ColegasShowcase({ override } = {}) {
+  const o = override || {};
   const colegas = useColegasWithProducts();
-  if (!COLEGAS || !COLEGAS.home.enabled || colegas.length === 0) return null;
+  if (!COLEGAS || (!override && !COLEGAS.home.enabled) || colegas.length === 0) return null;
   const { home, project } = COLEGAS;
+  const limit = Number(o.limit) > 0 ? Number(o.limit) : 4;
   return (
     <Section className="mj-colegas-home">
       <SectionHeader
-        eyebrow={home.eyebrow}
-        title={home.title || project.title}
-        subtitle={home.subtitle}
+        eyebrow={o.eyebrow || home.eyebrow}
+        title={o.title || home.title || project.title}
+        subtitle={o.subtitle || home.subtitle}
         linkTo={projectPath()}
-        linkLabel={home.link || project.name}
+        linkLabel={o.linkLabel || home.link || project.name}
       />
       <Stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {colegas.slice(0, 4).map((c) => (
+        {colegas.slice(0, limit).map((c) => (
           <motion.div key={c.slug} variants={staggerItem}>
             <ColegaCard colega={c} />
           </motion.div>

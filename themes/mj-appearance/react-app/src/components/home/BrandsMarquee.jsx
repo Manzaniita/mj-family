@@ -2,13 +2,16 @@ import { Link } from 'react-router-dom';
 import { useCatalog } from '@/store/catalog';
 import { t } from '@/lib/copy';
 
-/** Marcas en loop infinito — CSS puro (pause en hover), duplicando la pista. */
-export function BrandsMarquee() {
+/**
+ * Marcas en loop infinito — CSS puro (pause en hover), duplicando la pista.
+ * `label`: la frase del bloque "Cinta de marcas"; vacío = la del panel.
+ */
+export function BrandsMarquee({ label: ownLabel } = {}) {
   const brands = useCatalog((s) => s.brands);
   if (brands.length === 0) return null;
   const repeats = Math.max(2, Math.ceil(12 / brands.length));
   const track = Array.from({ length: repeats }, () => brands).flat();
-  const label = t('home_brands_label');
+  const label = ownLabel || t('home_brands_label');
   return (
     <section className="mj-marquee hairline-t hairline-b bg-bg-soft/40 py-10 overflow-hidden">
       {label && (

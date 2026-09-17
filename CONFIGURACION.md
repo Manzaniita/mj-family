@@ -29,7 +29,8 @@ administración, arriba del nombre del sitio.
 | **Anuncios y avisos** | Barra superior y etiquetas de producto. |
 | **Portada (hero)** | Antetítulo, título, subtítulo, botones y fondos. |
 | **Banners promocionales** | Imágenes del carrusel. |
-| **Secciones de la portada** | Orden (arrastrando) y cuáles se muestran. |
+| **Secciones de la portada** | Orden (arrastrando) y cuáles se muestran. No se usa si la portada es una página de bloques. |
+| **Páginas (editor de bloques)** | Si las páginas de WordPress se muestran en la tienda, si una página reemplaza a Contacto/Nosotros/FAQ/legales, con qué tema se pinta el editor, qué páginas se están mostrando y cuáles no (y por qué). |
 | **Textos de la tienda** | Cada texto de cada pantalla. Vacío = el del tema o el de la skin. |
 | **WhatsApp y presupuestos** | Vendedores y condiciones del presupuesto. |
 | **Contacto / Redes sociales** | Mail, teléfono, WhatsApp, dirección, mapa, redes. |
@@ -140,6 +141,73 @@ navegador. Se limita a diez avisos por IP cada diez minutos.
 
 ---
 
+### Las páginas con el editor de bloques, en detalle
+
+Desde MJ Appearance 3.18 las páginas se editan con el editor de bloques de
+WordPress (Páginas → Añadir) y se muestran en la tienda con su cabecera, su
+pie y su diseño, en día y en noche. En el insertador hay una categoría
+**MJ Appearance** con los bloques de la tienda:
+
+| Bloque | Qué hace | Qué se configura |
+| --- | --- | --- |
+| Hero de la portada | La cabecera grande. | Etiqueta, título, título destacado, subtítulo, dos botones con destino, fotos de fondo, si muestra las cifras. Vacío = lo de Portada (hero). |
+| Encabezado de página | Antetítulo, título y bajada. | Los tres textos. Título vacío = el de la página. |
+| Slider de banners | Carrusel de imágenes anchas. | Imágenes, si pasa solo y cada cuántos segundos, alto. Vacío = los banners del panel. |
+| Productos | Grilla o carrusel de productos. | Qué productos (destacados, últimos ingresos, mejor valorados, en oferta, de una categoría, de una marca, elegidos a mano, todo), orden, cuántos, solo con stock, grilla o carrusel, columnas, enlace "Ver todo" y sus textos. Viene con variantes listas: Destacados, Últimos ingresos, Recomendados, Ofertas, De una categoría, Elegidos a mano. |
+| Categorías | Tarjetas grandes por categoría. | Cuáles (o automático por cantidad de productos), cuántas, grilla o carrusel, enlace y textos. |
+| Cinta de marcas | Las marcas en loop. | La frase de arriba. |
+| Opiniones | Valoraciones aprobadas de WooCommerce. | Cuántas y los textos. |
+| Instagram | Mosaico con enlace a la cuenta. | Cuántas fotos, título y enlace. |
+| Nosotros | Foto y texto de "Nosotros". | Adelanto (portada) o página completa (con puntos destacados, cifras y botón), textos, foto. |
+| Contacto | Formulario y canales de contacto. | Si muestra el formulario, los canales y el mapa. Los datos salen de Contacto. |
+| Preguntas frecuentes | Acordeón. | Las preguntas y respuestas (vacío = las de Contenido) y si muestra la tarjeta "¿No encontraste tu respuesta?". |
+| Servicios (Turnos) / Reservá tu turno | Con MJ Turnos Online activo. | Textos, cantidad, foto del banner. Vacío = Turnos → Ajustes. |
+| Colegas | Con MJ Colegas activo. | Textos y cantidad. Vacío = Colegas → Ajustes. |
+
+Un campo vacío siempre usa lo del panel o lo de la skin, así que los bloques
+recién insertados ya salen con los textos de la tienda. Los bloques comunes de
+WordPress (párrafos, títulos, imágenes, columnas, botones, galerías, tablas,
+vídeos) se muestran con la tipografía y los colores del tema; la paleta del
+editor ofrece **Acento, Tinta, Fondo, Superficie** y el degradado de la marca,
+que siguen al modo día/noche. Los bloques MJ conviene ponerlos sueltos, no
+adentro de grupos ni columnas, para que ocupen todo el ancho.
+
+**Plantillas.** En el insertador → Patrones → MJ Appearance: *Portada de la
+tienda (como está hoy)* (el hero y las secciones en el orden configurado en el
+panel), *Página de contacto*, *Página "Nosotros"*, *Preguntas frecuentes* y
+*Página legal*. Una skin suma las suyas con la clave `patterns` de su
+descripción; un plugin, con el filtro `mj_block_patterns`.
+
+**La portada.** Se sigue armando con "Secciones de la portada" hasta que en
+**Ajustes → Lectura → Una página estática** se elige una página: desde ahí la
+portada son los bloques de esa página. Para volver, se elige "Tus últimas
+entradas".
+
+**Qué páginas se muestran.** Toda página publicada, salvo las que maneja la
+tienda (tienda, carrito, finalizar compra, mi cuenta de WooCommerce) y las que
+tienen la misma dirección que una pantalla propia (`/tienda`, `/cuenta`,
+`/login`, `/producto/…`, la de turnos o colegas…). Esas se ignoran y el editor
+lo avisa arriba. Cinco pantallas sí se pueden reemplazar con una página del
+mismo slug: `/contacto`, `/nosotros`, `/faq`, `/privacidad` y `/terminos`; al
+borrar la página vuelve la del tema. Cada página aparece además como fuente
+(apagada) en "Barra de navegación" para sumarla al menú.
+
+**El editor se parece a la tienda.** El lienzo usa el fondo, la tinta, el
+acento y las tipografías de Diseño y marca, en el tema que diga "Vista del
+editor". Los bloques MJ se ven como tarjetas con una vista previa aproximada
+(el título real, las fotos elegidas, una grilla gris con la cantidad de
+productos); el render exacto es el de la tienda. "Vista previa" de Gutenberg
+abre la tienda con el último autoguardado.
+
+**Título de la página.** Se muestra arriba del contenido salvo que la página
+arranque con un Hero, un Encabezado o un Nosotros, o que se marque "Ocultar el
+título" en el panel *Tienda* de la barra lateral del editor.
+
+**Apagar todo.** Desmarcando "Mostrar las páginas" la tienda vuelve a ser
+exactamente la de antes; las páginas quedan guardadas.
+
+---
+
 ## 2. Temas hijo (skins)
 
 Un tema hijo ya no repite en su código la paleta ni los textos del padre: se
@@ -156,10 +224,18 @@ add_filter('mj_skins', function ($skins) {
         'copy'      => ['nav_shop' => 'Productos'],        // textos
         'home'      => ['design_theme' => 'light', 'order' => '…'],
         'presets'   => ['nude' => ['label' => 'Nude', 'palette' => [/* … */]]],
+        'patterns'  => ['portada-salon' => ['title' => 'Portada del salón', 'content' => '<!-- wp:mj/hero /-->…']],
     ];
     return $skins;
 });
 ```
+
+`patterns` son plantillas de bloques propias de la skin (aparecen en el
+insertador → Patrones → MJ Appearance, junto a las del padre): `slug =>
+[title, description, content]`, con `content` en el formato que guarda
+Gutenberg. Sirven para ofrecer una portada o una página armada con los textos
+del rubro; como los campos vacíos de los bloques MJ ya toman los textos de la
+skin, casi siempre alcanza con las plantillas genéricas del padre.
 
 Cómo se resuelve cada valor, de mayor a menor prioridad:
 
@@ -929,6 +1005,13 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Versión de la librería de íconos del panel | `MJ_ICONS_VERSION` | `mj_icons_script_url` |
 | Ruta de la tienda y de la cuenta | — | `mj_shop_path`, `mj_account_path` |
 | Rutas que maneja la tienda (SPA) | — | `mj_spa_routes`, `mj_spa_handles_path` |
+| Si las páginas de WordPress se muestran, y cuáles reemplazan pantallas del tema | — | `mj_pages_enabled`, `mj_pages_override_enabled`, `mj_pages_overridable` |
+| Direcciones que una página no puede ocupar, y páginas que no se sirven | — | `mj_pages_reserved_paths`, `mj_pages_excluded_ids` |
+| HTML y datos de una página tal como llegan a la tienda | — | `mj_page_content`, `mj_page_payload` |
+| Bloques MJ del editor (campos, defaults) y sus props hacia la tienda | — | `mj_blocks`, `mj_block_props` |
+| Qué bloque corresponde a cada sección de la portada clásica (plantilla "Portada") | — | `mj_home_section_blocks` |
+| Plantillas de bloques del insertador | — | `mj_block_patterns` (o `patterns` en la descripción de la skin) |
+| Configuración que recibe el script del editor | — | `mj_blocks_editor_config` |
 | Tipografías y iconos disponibles en el panel | — | `mj_font_choices`, `mj_icon_choices` |
 | Servicio de mapas | — | `mj_map_embed_base` |
 | Duración de la sesión | — | `mj_session_days` |

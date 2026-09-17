@@ -14,7 +14,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_VERSION', '3.17.0');
+define('MJ_VERSION', '3.18.0');
 
 /*
  * Versión de la librería de íconos que usa el panel de ajustes. Se puede fijar
@@ -31,6 +31,8 @@ require_once get_template_directory() . '/inc/settings.php'; // Opciones + pági
 require_once get_template_directory() . '/inc/nav.php';      // Barra de navegación configurable.
 require_once get_template_directory() . '/inc/session.php';  // Sesión, nonces y barra de administración.
 require_once get_template_directory() . '/inc/skins.php';    // API de temas hijo (skins) y sus presets.
+require_once get_template_directory() . '/inc/bloques.php';  // Bloques MJ para el editor (Gutenberg).
+require_once get_template_directory() . '/inc/paginas.php';  // Páginas de WordPress dentro de la tienda.
 require_once get_template_directory() . '/inc/config.php';   // window.MJ (mj_app_config).
 require_once get_template_directory() . '/inc/rest.php';     // Endpoints REST mj/v1.
 require_once get_template_directory() . '/inc/seo.php';      // Título, meta, Open Graph, JSON-LD, sitemap y errores del navegador.
@@ -232,8 +234,13 @@ function mj_fonts_url() {
 	return apply_filters('mj_fonts_url', $url, $families);
 }
 
-/* CSS con los overrides de variables según los ajustes guardados. */
-function mj_design_css() {
+/*
+ * Variables de diseño según los ajustes guardados, separadas por tema:
+ * ['fonts' => [...], 'dark' => [...], 'light' => [...]], cada línea como
+ * "--mj-accent: #hex". Las usa la tienda (mj_design_css) y el editor de
+ * bloques (mj_editor_theme_css), que pinta el lienzo con los mismos valores.
+ */
+function mj_design_var_sets() {
 	$o     = mj_get_options();
 	$dark  = [];
 	$light = [];
@@ -283,6 +290,16 @@ function mj_design_css() {
 	if ('' !== $o['font_sans']) {
 		$fonts[] = '--font-sans: ' . mj_font_stack($o['font_sans']);
 	}
+
+	return ['fonts' => $fonts, 'dark' => $dark, 'light' => $light];
+}
+
+/* CSS con los overrides de variables según los ajustes guardados. */
+function mj_design_css() {
+	$sets  = mj_design_var_sets();
+	$fonts = $sets['fonts'];
+	$dark  = $sets['dark'];
+	$light = $sets['light'];
 
 	// index.php siempre setea data-theme, así que alcanza con los selectores por atributo.
 	$css = '';
@@ -516,11 +533,21 @@ remove_action('wp_head', 'wp_shortlink_wp_head');
 remove_action('wp_head', 'print_emoji_detection_script', 7);
 remove_action('wp_print_styles', 'print_emoji_styles');
 
-/* La SPA trae su propio CSS: fuera estilos de WooCommerce y Gutenberg. */
+/*
+ * La SPA trae su propio CSS: fuera estilos de WooCommerce y Gutenberg.
+ *
+ * Excepción: si la tienda muestra páginas hechas con el editor de bloques
+ * (inc/paginas.php), hace falta la hoja base de los bloques comunes
+ * (columnas, galerías, botones, cover…). Se carga entera y siempre, porque
+ * la tienda navega sin recargar y una página puede abrirse en cualquier
+ * momento; la tipografía y los colores los pone globals.css encima.
+ */
 add_filter('woocommerce_enqueue_styles', '__return_empty_array');
 add_action('wp_enqueue_scripts', function () {
 	wp_dequeue_style('wc-blocks-style');
-	wp_dequeue_style('wp-block-library');
+	if (!function_exists('mj_pages_active') || !mj_pages_active()) {
+		wp_dequeue_style('wp-block-library');
+	}
 	wp_dequeue_style('wp-block-library-theme');
 	wp_dequeue_style('classic-theme-styles');
 	wp_dequeue_style('global-styles');

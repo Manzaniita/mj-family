@@ -1,4 +1,3 @@
-import { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import Home from '@/pages/Home';
@@ -7,42 +6,27 @@ import Product from '@/pages/Product';
 import CartPage from '@/pages/CartPage';
 import { COLEGAS } from '@/lib/colegas';
 import { TURNOS } from '@/lib/turnos';
+import { lazyPage } from '@/lib/lazy';
+import { pageRoute, extraPageRoutes } from '@/lib/pages';
 
 /*
  * Qué viaja con la primera carga y qué se baja cuando hace falta.
  *
  * Portada, tienda, producto y carrito son el camino de compra: van en app.js.
- * Todo lo demás (checkout, cuenta, acceso, turnos, colegas, páginas de texto)
- * se compila en archivos aparte que el navegador pide recién al entrar. En el
- * celular eso es la diferencia entre bajar el bundle entero para ver la
- * portada y bajar la mitad.
- *
- * Si un archivo viejo quedó cacheado después de una actualización del tema,
- * el import falla: se recarga la página una sola vez para traer el nuevo.
+ * Todo lo demás (checkout, cuenta, acceso, turnos, colegas, páginas de texto,
+ * páginas de WordPress) se compila en archivos aparte que el navegador pide
+ * recién al entrar (lib/lazy.js). En el celular eso es la diferencia entre
+ * bajar el bundle entero para ver la portada y bajar la mitad.
  */
-function lazyPage(loader, name) {
-  return lazy(() =>
-    loader()
-      .then((m) => ({ default: name ? m[name] : m.default }))
-      .catch((err) => {
-        const key = 'mj-chunk-reload';
-        let already = false;
-        try {
-          already = sessionStorage.getItem(key) === '1';
-          if (!already) sessionStorage.setItem(key, '1');
-        } catch {
-          /* sin storage: se intenta igual una vez */
-        }
-        if (!already) {
-          window.location.reload();
-          return new Promise(() => {}); // la recarga corta acá
-        }
-        throw err;
-      })
-  );
-}
-
 const Checkout = lazyPage(() => import('@/pages/Checkout'));
+const PageView = lazyPage(() => import('@/pages/Page'));
+
+/*
+ * Páginas de WordPress (inc/paginas.php). Una página publicada con el slug de
+ * una pantalla de texto del tema (contacto, nosotros, faq, privacidad,
+ * terminos) la reemplaza; el resto de las páginas se suman como rutas nuevas.
+ */
+const withPage = (path, element) => (pageRoute(path) ? <PageView path={path} /> : element);
 const account = (name) => lazyPage(() => import('@/pages/Account'), name);
 const AccountLayout = account('AccountLayout');
 const AccountDashboard = account('AccountDashboard');
@@ -105,12 +89,16 @@ export default function App() {
           <Route path="/comparar" element={<Compare />} />
           <Route path="/vistos-recientemente" element={<RecentlyViewed />} />
           <Route path="/marcas" element={<Brands />} />
-          <Route path="/contacto" element={<Contact />} />
-          <Route path="/nosotros" element={<About />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/privacidad" element={<Privacy />} />
-          <Route path="/terminos" element={<Terms />} />
+          <Route path="/contacto" element={withPage('contacto', <Contact />)} />
+          <Route path="/nosotros" element={withPage('nosotros', <About />)} />
+          <Route path="/faq" element={withPage('faq', <FAQ />)} />
+          <Route path="/privacidad" element={withPage('privacidad', <Privacy />)} />
+          <Route path="/terminos" element={withPage('terminos', <Terms />)} />
           <Route path="/mapa-del-sitio" element={<Sitemap />} />
+          {/* Páginas de WordPress publicadas (Páginas → Añadir), con sus bloques. */}
+          {extraPageRoutes().map((path) => (
+            <Route key={path} path={`/${path}`} element={<PageView path={path} />} />
+          ))}
           {/* Proyecto de colegas (plugin MJ Colegas): slug configurable en el plugin. */}
           {COLEGAS && <Route path={`/${COLEGAS.project.slug}`} element={<ProjectPage />} />}
           {COLEGAS && <Route path={`/${COLEGAS.project.slug}/:colega`} element={<ColegaPage />} />}

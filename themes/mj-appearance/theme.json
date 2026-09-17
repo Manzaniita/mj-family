@@ -1,0 +1,46 @@
+{
+	"$schema": "https://schemas.wp.org/wp/6.5/theme.json",
+	"version": 2,
+	"settings": {
+		"appearanceTools": false,
+		"color": {
+			"custom": true,
+			"customGradient": false,
+			"defaultPalette": false,
+			"defaultGradients": false,
+			"defaultDuotone": false,
+			"palette": [
+				{ "slug": "accent", "name": "Acento", "color": "var(--mj-accent)" },
+				{ "slug": "accent-soft", "name": "Acento suave", "color": "var(--mj-accent-soft)" },
+				{ "slug": "ink", "name": "Tinta", "color": "var(--mj-ink)" },
+				{ "slug": "ink-soft", "name": "Tinta suave", "color": "var(--mj-ink-soft)" },
+				{ "slug": "bg", "name": "Fondo", "color": "var(--mj-bg)" },
+				{ "slug": "bg-soft", "name": "Fondo suave", "color": "var(--mj-bg-soft)" },
+				{ "slug": "surface", "name": "Superficie", "color": "var(--mj-surface-2)" },
+				{ "slug": "white", "name": "Blanco", "color": "#ffffff" },
+				{ "slug": "black", "name": "Negro", "color": "#000000" }
+			],
+			"gradients": [
+				{ "slug": "hero", "name": "Degradado de la marca", "gradient": "var(--mj-hero-gradient)" }
+			]
+		},
+		"typography": {
+			"customFontSize": true,
+			"defaultFontSizes": false,
+			"fontSizes": [
+				{ "slug": "small", "name": "Chico", "size": "0.875rem" },
+				{ "slug": "medium", "name": "Normal", "size": "1rem" },
+				{ "slug": "large", "name": "Grande", "size": "1.25rem" },
+				{ "slug": "x-large", "name": "Muy grande", "size": "1.75rem" },
+				{ "slug": "xx-large", "name": "Enorme", "size": "2.5rem" }
+			]
+		},
+		"layout": {
+			"contentSize": "48rem",
+			"wideSize": "80rem"
+		},
+		"spacing": {
+			"units": [ "px", "rem", "%", "vh" ]
+		}
+	}
+}

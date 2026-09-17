@@ -19,11 +19,17 @@ import { cn } from '@/lib/format';
 /* Columnas de la grilla según cuántos servicios se muestran (1 a 4). */
 const GRID_COLS = ['sm:grid-cols-1', 'sm:grid-cols-2', 'sm:grid-cols-2 lg:grid-cols-3', 'sm:grid-cols-2 lg:grid-cols-4'];
 
-/** Servicios destacados (hasta home.services.count) con enlace a la página de servicios. */
-export function ServicesShowcase() {
-  if (!TURNOS || !TURNOS.home.services.enabled) return null;
+/**
+ * Servicios destacados (hasta home.services.count) con enlace a la página de servicios.
+ * `override`: lo escrito en el bloque "Servicios" (textos y cantidad); vacío = Turnos → Ajustes.
+ * Desde un bloque la sección se muestra aunque esté apagada en el plugin: el admin la puso a mano.
+ */
+export function ServicesShowcase({ override } = {}) {
+  const o = override || {};
+  if (!TURNOS || (!override && !TURNOS.home.services.enabled)) return null;
   const home = TURNOS.home.services;
-  const services = TURNOS.services.slice(0, home.count);
+  const count = Number(o.limit) > 0 ? Number(o.limit) : home.count;
+  const services = TURNOS.services.slice(0, count);
   if (services.length === 0) return null;
 
   const cols = GRID_COLS[Math.min(services.length, 4) - 1];
@@ -31,12 +37,12 @@ export function ServicesShowcase() {
   return (
     <Section className="mj-services-home">
       <SectionHeader
-        eyebrow={home.eyebrow}
-        title={home.title}
-        subtitle={home.subtitle}
+        eyebrow={o.eyebrow || home.eyebrow}
+        title={o.title || home.title}
+        subtitle={o.subtitle || home.subtitle}
         // El enlace "Ver todos" solo si la página de servicios está habilitada.
         linkTo={TURNOS.menu.servicesPageEnabled ? servicesPath() : undefined}
-        linkLabel={home.link || TURNOS.menu.servicesLabel}
+        linkLabel={o.linkLabel || home.link || TURNOS.menu.servicesLabel}
       />
       <Stagger className={cn('mj-services-home__grid grid gap-5', cols)}>
         {services.map((service) => (
@@ -49,10 +55,21 @@ export function ServicesShowcase() {
   );
 }
 
-/** Banner "Reservá tu turno": imagen opcional, eyebrow, título, subtítulo y botón a la reserva. */
-export function BookingCTA() {
-  if (!TURNOS || !TURNOS.home.booking.enabled) return null;
-  const { booking } = TURNOS.home;
+/**
+ * Banner "Reservá tu turno": imagen opcional, eyebrow, título, subtítulo y botón a la reserva.
+ * `override`: lo escrito en el bloque "Reservá tu turno"; vacío = Turnos → Ajustes.
+ */
+export function BookingCTA({ override } = {}) {
+  const o = override || {};
+  if (!TURNOS || (!override && !TURNOS.home.booking.enabled)) return null;
+  const base = TURNOS.home.booking;
+  const booking = {
+    eyebrow: o.eyebrow || base.eyebrow,
+    title: o.title || base.title,
+    subtitle: o.subtitle || base.subtitle,
+    button: o.button || base.button,
+    image: o.image || base.image,
+  };
   const hasImage = !!booking.image;
 
   return (

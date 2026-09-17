@@ -253,6 +253,31 @@ function mj_seo_context() {
 		}
 	}
 
+	/*
+	 * Página de WordPress que la tienda muestra (inc/paginas.php). Va antes que
+	 * las rutas fijas: una página "contacto" reemplaza a la pantalla del tema,
+	 * y su título y descripción son los de la página (o los del plugin de SEO,
+	 * que acá sí tiene un objeto real).
+	 */
+	$page = function_exists('mj_page_lookup') ? mj_page_lookup($path) : null;
+	if ($page instanceof WP_Post) {
+		$thumb   = (int) get_post_thumbnail_id($page->ID);
+		$excerpt = '' !== trim((string) $page->post_excerpt) ? $page->post_excerpt : $page->post_content;
+		$desc    = mj_seo_excerpt($excerpt);
+		$title   = function_exists('mj_page_title') ? mj_page_title($page) : get_the_title($page);
+		$ctx     = array_merge($ctx, [
+			'type'        => 'page',
+			'title'       => $title,
+			'description' => '' !== $desc ? $desc : $ctx['description'],
+			'url'         => home_url('/' . $path),
+			'image'       => mj_seo_image($thumb, 'large') ? mj_seo_image($thumb, 'large') : $ctx['image'],
+			'noindex'     => false,
+			'breadcrumbs' => array_merge($ctx['breadcrumbs'], [[$title, home_url('/' . $path)]]),
+		]);
+		$ctx = apply_filters('mj_seo_context', $ctx, $path, $parts);
+		return $ctx;
+	}
+
 	/* Rutas fijas de la SPA (la raíz de la ruta decide: /cuenta/pedidos → cuenta). */
 	$static = mj_seo_static_routes();
 	$root   = $parts[0];
@@ -335,7 +360,7 @@ function mj_seo_plugin() {
 
 /* ¿Esta ruta la maneja el plugin de SEO por su cuenta? (tiene objeto de WP detrás). */
 function mj_seo_plugin_owns($ctx) {
-	return '' !== mj_seo_plugin() && in_array($ctx['type'], ['home', 'product', 'category'], true);
+	return '' !== mj_seo_plugin() && in_array($ctx['type'], ['home', 'product', 'category', 'page'], true);
 }
 
 /* -------------------------------------------------------------------------
@@ -636,10 +661,10 @@ add_filter('wp_sitemaps_add_provider', function ($provider, $name) {
 	return 'users' === $name && '' === mj_seo_plugin() ? false : $provider;
 }, 10, 2);
 
-/* Las páginas de WordPress que la SPA no muestra tampoco van al sitemap. */
+/* Al sitemap van solo las páginas de WordPress que la tienda muestra (inc/paginas.php). */
 add_filter('wp_sitemaps_posts_query_args', function ($args, $post_type) {
 	if ('page' === $post_type && '' === mj_seo_plugin()) {
-		$args['post__in'] = [0];
+		$args['post__in'] = function_exists('mj_pages_sitemap_ids') ? mj_pages_sitemap_ids() : [0];
 	}
 	return $args;
 }, 10, 2);

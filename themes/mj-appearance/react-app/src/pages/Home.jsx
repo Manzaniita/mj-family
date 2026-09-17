@@ -17,16 +17,36 @@ import { getProducts } from '@/lib/api';
 import { usePageMeta } from '@/lib/seo';
 import { SOCIAL, HOME_ORDER } from '@/lib/config';
 import { t, homeSectionVisible as visible } from '@/lib/copy';
+import { PAGES, previewPageId } from '@/lib/pages';
+import { lazyPage } from '@/lib/lazy';
+
+const PageView = lazyPage(() => import('@/pages/Page'));
 
 /**
- * Portada. Las secciones se ordenan y se ocultan desde Apariencia → MJ
- * Appearance → Secciones de la portada (HOME_ORDER + homeHidden) y cada
+ * Portada.
+ *
+ * Si en Ajustes → Lectura hay una página elegida como portada, la portada la
+ * arman los bloques de esa página (PageView). También cuando se está viendo la
+ * vista previa de una página desde Gutenberg (?page_id=…&preview=true), que
+ * WordPress sirve en la raíz. Si no, la portada clásica de abajo.
+ */
+export default function Home() {
+  const previewing = previewPageId(typeof window !== 'undefined' ? window.location.search : '') > 0;
+  if (PAGES.home || (PAGES.enabled && previewing)) {
+    return <PageView home path="" />;
+  }
+  return <ClassicHome />;
+}
+
+/**
+ * Portada clásica. Las secciones se ordenan y se ocultan desde Apariencia →
+ * MJ Appearance → Secciones de la portada (HOME_ORDER + homeHidden) y cada
  * texto se cambia en Textos de la tienda. Las secciones sin datos (sin
  * banners, marcas, opiniones, Instagram, servicios…) se ocultan solas, y
  * las keys sin elemento (p. ej. las del plugin de turnos cuando no está)
  * se saltean.
  */
-export default function Home() {
+function ClassicHome() {
   usePageMeta('');
   const [featured, setFeatured] = useState([]);
   const [latest, setLatest] = useState([]);

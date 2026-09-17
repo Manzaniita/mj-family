@@ -13,17 +13,29 @@ import { EASE, formatPrice, FREE_SHIPPING_THRESHOLD } from '@/lib/format';
  * Si hay fotos configuradas (hero.images), rotan de fondo en crossfade y, en
  * nivel cinematográfico, se mueven en parallax con el scroll.
  */
-export function Hero() {
-  const hero = WP?.hero || {};
-  const badge = hero.badge || '';
-  const title = hero.title || '';
-  const titleHighlight = hero.titleHighlight || '';
+/*
+ * `override`: lo que escribió el admin en el bloque "Hero" de una página
+ * (components/bloques/registry.jsx). Cada campo con texto pisa al del panel;
+ * vacío = el del panel, igual que siempre.
+ */
+export function Hero({ override } = {}) {
+  const base = WP?.hero || {};
+  const o = override || {};
+  const badge = o.badge || base.badge || '';
+  const title = o.title || base.title || '';
+  const titleHighlight = o.titleHighlight || base.titleHighlight || '';
   // Subtítulo vacío → tagline del sitio; si ambos están vacíos → sin subtítulo.
-  const subtitle = hero.subtitle || SITE.tagline || '';
-  const ctaPrimary = hero.ctaPrimary || {};
-  const ctaSecondary = hero.ctaSecondary || {};
-  const images = Array.isArray(hero.images) ? hero.images.filter(Boolean) : [];
+  const subtitle = o.subtitle || base.subtitle || SITE.tagline || '';
+  const ctaPrimary = o.ctaPrimary?.text
+    ? { text: o.ctaPrimary.text, url: o.ctaPrimary.url || base.ctaPrimary?.url }
+    : base.ctaPrimary || {};
+  const ctaSecondary = o.ctaSecondary?.text
+    ? { text: o.ctaSecondary.text, url: o.ctaSecondary.url || base.ctaSecondary?.url }
+    : base.ctaSecondary || {};
+  const ownImages = Array.isArray(o.images) ? o.images.filter(Boolean) : [];
+  const images = ownImages.length ? ownImages : (Array.isArray(base.images) ? base.images.filter(Boolean) : []);
   const hasImages = images.length > 0;
+  const showStats = o.showStats !== false;
 
   const [idx, setIdx] = useState(0);
 
@@ -42,9 +54,9 @@ export function Hero() {
     ? rated.reduce((n, p) => n + p.rating, 0) / rated.length
     : 0;
   const stats = [];
-  if (products.length > 0) stats.push([`${products.length}+`, 'productos']);
-  if (FREE_SHIPPING_THRESHOLD > 0) stats.push([formatPrice(FREE_SHIPPING_THRESHOLD), 'envío gratis desde']);
-  if (REVIEWS_ENABLED && avgRating > 0) stats.push([avgRating.toFixed(1).replace('.', ','), 'rating promedio']);
+  if (showStats && products.length > 0) stats.push([`${products.length}+`, 'productos']);
+  if (showStats && FREE_SHIPPING_THRESHOLD > 0) stats.push([formatPrice(FREE_SHIPPING_THRESHOLD), 'envío gratis desde']);
+  if (showStats && REVIEWS_ENABLED && avgRating > 0) stats.push([avgRating.toFixed(1).replace('.', ','), 'rating promedio']);
 
   return (
     <section

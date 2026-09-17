@@ -24,16 +24,7 @@ import { formatPrice, cn } from '@/lib/format';
 import { effectivePrice } from '@/lib/api';
 import { displayPrice } from '@/lib/payments';
 import { usePageMeta } from '@/lib/seo';
-
-function PageHeader({ eyebrow, title, subtitle }) {
-  return (
-    <Reveal className="mj-page-head max-w-2xl">
-      <p className="mj-eyebrow text-xs font-semibold uppercase tracking-[0.2em] text-accent">{eyebrow}</p>
-      <h1 className="display mt-3 text-4xl md:text-6xl">{title}</h1>
-      {subtitle && <p className="mt-4 text-lg text-ink-soft">{subtitle}</p>}
-    </Reveal>
-  );
-}
+import { PageHeader } from '@/components/ui/PageHeader';
 
 /* ------------------------------- Favoritos ------------------------------- */
 export function Wishlist() {
@@ -186,6 +177,20 @@ export function Brands() {
 /* -------------------------------- Contacto ------------------------------- */
 export function Contact() {
   usePageMeta(t('seo_title_contact') || t('contact_title'), t('seo_desc_contact'));
+  return (
+    <Section className="md:py-16">
+      <PageHeader eyebrow={t('contact_eyebrow')} title={t('contact_title')} subtitle={t('contact_subtitle')} />
+      <ContactPanel />
+    </Section>
+  );
+}
+
+/**
+ * Formulario + canales de contacto (dirección, teléfono, WhatsApp, mail y
+ * mapa). Es el cuerpo de la página Contacto y también el bloque "Contacto"
+ * de una página de WordPress, que puede apagar cada parte.
+ */
+export function ContactPanel({ showForm = true, showChannels = true, showMap = true }) {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -220,10 +225,13 @@ export function Contact() {
     CONTACT.email && [Mail, 'Email', CONTACT.email],
   ].filter(Boolean);
 
+  const map = showMap ? CONTACT.map : '';
+  const aside = showChannels && (channels.length > 0 || map);
+  if (!showForm && !aside) return null;
+
   return (
-    <Section className="md:py-16">
-      <PageHeader eyebrow={t('contact_eyebrow')} title={t('contact_title')} subtitle={t('contact_subtitle')} />
-      <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_380px]">
+    <div className={cn('mt-12 grid gap-8', showForm && aside && 'lg:grid-cols-[1fr_380px]', !showForm && 'lg:grid-cols-3')}>
+        {showForm && (
         <Reveal className="mj-contact-form rounded-(--mj-radius-2xl) border border-line glass p-8">
           {sent ? (
             <div className="grid min-h-64 place-items-center text-center">
@@ -258,24 +266,25 @@ export function Contact() {
             </form>
           )}
         </Reveal>
-        {(channels.length > 0 || CONTACT.map) && (
-          <Reveal delay={0.15} className="space-y-4">
-            {channels.map(([Icon, t, s]) => (
-              <div key={t} className="flex gap-4 rounded-xl3 border border-line glass p-6">
+        )}
+        {aside && (
+          <Reveal delay={0.15} className={cn('space-y-4', !showForm && 'lg:col-span-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0')}>
+            {channels.map(([Icon, label, value]) => (
+              <div key={label} className="flex gap-4 rounded-xl3 border border-line glass p-6">
                 <span className="grid size-11 shrink-0 place-items-center rounded-xl2 bg-accent-soft text-accent">
                   <Icon size={18} />
                 </span>
                 <div>
-                  <p className="font-medium">{t}</p>
-                  <p className="mt-0.5 text-sm text-ink-soft">{s}</p>
+                  <p className="font-medium">{label}</p>
+                  <p className="mt-0.5 text-sm text-ink-soft">{value}</p>
                 </div>
               </div>
             ))}
-            {CONTACT.map ? (
-              <div className="overflow-hidden rounded-xl3 border border-line">
+            {map ? (
+              <div className={cn('overflow-hidden rounded-xl3 border border-line', !showForm && 'lg:col-span-3')}>
                 <iframe
                   title="Ubicación en Google Maps"
-                  src={CONTACT.map}
+                  src={map}
                   loading="lazy"
                   allowFullScreen
                   referrerPolicy="no-referrer-when-downgrade"
@@ -283,7 +292,7 @@ export function Contact() {
                 />
               </div>
             ) : (
-              CONTACT.address && (
+              showMap && CONTACT.address && (
                 <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-xl3 border border-line glass p-6 text-center">
                   <MapPin size={20} className="text-accent" />
                   <p className="text-sm text-ink-soft">{CONTACT.address}</p>
@@ -292,8 +301,7 @@ export function Contact() {
             )}
           </Reveal>
         )}
-      </div>
-    </Section>
+    </div>
   );
 }
 
@@ -313,9 +321,19 @@ const gridCols = (count) =>
  */
 export function About() {
   usePageMeta(t('seo_title_about'), t('seo_desc_about'));
+  return <AboutBody />;
+}
+
+/**
+ * Cuerpo de la página Nosotros. También es el bloque "Nosotros" en modo
+ * página completa: `override` trae antetítulo, título, texto y foto escritos
+ * en el bloque; vacío = lo del panel.
+ */
+export function AboutBody({ override } = {}) {
+  const o = override || {};
   const { products, categories } = useCatalog();
-  const paragraphs = paragraphsOf(WP?.aboutText);
-  const image = ABOUT.image;
+  const paragraphs = paragraphsOf((o.text || '').trim() || WP?.aboutText);
+  const image = o.image || ABOUT.image;
   const highlights = ABOUT.highlights;
   const highlightsTitle = t('about_highlights_title').trim();
   const ctaText = t('about_cta_text').trim();
@@ -342,9 +360,9 @@ export function About() {
             </MaskReveal>
           )}
           <Reveal className={cn('mj-about__body', image ? 'max-w-2xl' : 'mx-auto max-w-3xl text-center')} delay={image ? 0.1 : 0}>
-            <p className="mj-eyebrow text-xs font-semibold uppercase tracking-[0.25em] text-accent">{t('about_eyebrow')}</p>
+            <p className="mj-eyebrow text-xs font-semibold uppercase tracking-[0.25em] text-accent">{o.eyebrow || t('about_eyebrow')}</p>
             <h1 className="mj-about__title display mt-5 text-4xl md:text-6xl">
-              {t('about_title')}
+              {o.title || t('about_title')}
             </h1>
             {paragraphs.length > 0 ? (
               paragraphs.map((p, i) => (
@@ -422,25 +440,39 @@ export function About() {
 /* ---------------------------------- FAQ ---------------------------------- */
 export function FAQ() {
   usePageMeta(t('seo_title_faq'), t('seo_desc_faq'));
-  // En WordPress se usan las FAQ configuradas en el sitio; en standalone, las demo.
-  const items = IS_WP ? (WP?.faqs ?? []) : faqs;
   return (
     <Section className="md:py-16">
       <PageHeader eyebrow="Ayuda" title="Preguntas frecuentes" subtitle={t('faq_subtitle')} />
+      <FAQList />
+    </Section>
+  );
+}
+
+/**
+ * Acordeón de preguntas. `items` [{ q, a }] viene del bloque "Preguntas
+ * frecuentes"; vacío = las del panel (en standalone, las demo).
+ */
+export function FAQList({ items, showContactCard = true } = {}) {
+  const own = (Array.isArray(items) ? items : []).filter((i) => i && i.q && i.a);
+  const list = own.length ? own : (IS_WP ? (WP?.faqs ?? []) : faqs);
+  return (
+    <>
       <Reveal className="mt-12 max-w-3xl">
-        {items.length > 0 ? (
-          <Accordion items={items} />
+        {list.length > 0 ? (
+          <Accordion items={list} />
         ) : (
           <div className="rounded-xl3 border border-line glass p-12 text-center text-ink-soft">
             Próximamente publicaremos las preguntas frecuentes.
           </div>
         )}
       </Reveal>
-      <Reveal className="mt-10 max-w-3xl rounded-xl3 border border-line glass p-8 text-center">
-        <p className="font-display text-lg font-semibold">¿No encontraste tu respuesta?</p>
-        <Button className="mt-4" variant="secondary" to="/contacto">Escribinos</Button>
-      </Reveal>
-    </Section>
+      {showContactCard && (
+        <Reveal className="mt-10 max-w-3xl rounded-xl3 border border-line glass p-8 text-center">
+          <p className="font-display text-lg font-semibold">¿No encontraste tu respuesta?</p>
+          <Button className="mt-4" variant="secondary" to="/contacto">Escribinos</Button>
+        </Reveal>
+      )}
+    </>
   );
 }
 
