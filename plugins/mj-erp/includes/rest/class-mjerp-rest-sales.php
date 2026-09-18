@@ -409,6 +409,12 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function update_sale( $request ) {
+		// Cambiar el cliente, el medio de pago o la caja de una venta que ya existe es corregirla:
+		// mismo permiso que editar sus productos o sus cobros.
+		if ( ! MJERP_Capabilities::can_manage_sales() ) {
+			return $this->fail( 'mjerp_forbidden', __( 'Los datos de una venta los corrige solo quien puede corregir ventas (Configuración → Ventas → Corregir ventas).', 'mj-erp' ), 403 );
+		}
+
 		$id     = $this->route_id( $request );
 		$params = $this->params( $request );
 
@@ -434,10 +440,23 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function delete_sale( $request ) {
+		// Borrar desarma deuda, stock y pedido: es la corrección más grande que existe.
+		if ( ! MJERP_Capabilities::can_manage_sales() ) {
+			return $this->fail( 'mjerp_forbidden', __( 'Borrar una venta lo hace solo quien puede corregir ventas (Configuración → Ventas → Corregir ventas).', 'mj-erp' ), 403 );
+		}
+
 		$id   = $this->route_id( $request );
 		$sale = MJERP_Sales_Repo::find( $id );
 		if ( ! $sale ) {
 			return $this->fail( 'mjerp_not_found', __( 'La venta no existe.', 'mj-erp' ), 404 );
+		}
+
+		// Una venta con devoluciones, RMA o movimientos de saldo no se borra: esos registros la
+		// necesitan. Se anula, que deja todo trazable. La misma regla vive en el repositorio; acá
+		// se pregunta antes de anular para no dejar la venta anulada y sin borrar.
+		$blocker = MJERP_Sales_Repo::delete_blocker( $id );
+		if ( $blocker instanceof WP_Error ) {
+			return $blocker;
 		}
 
 		// Deleting has to unwind the same things voiding does, or the reseller keeps a debt that
@@ -464,6 +483,12 @@ class MJERP_REST_Sales extends MJERP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function void_sale( $request ) {
+		// Anular deshace stock, deuda y pedido, esté cobrada o no: es corregir lo que ya se vendió.
+		// Las anulaciones que dispara WooCommerce (pedido cancelado) no pasan por acá.
+		if ( ! MJERP_Capabilities::can_manage_sales() ) {
+			return $this->fail( 'mjerp_forbidden', __( 'Anular una venta lo hace solo quien puede corregir ventas (Configuración → Ventas → Corregir ventas).', 'mj-erp' ), 403 );
+		}
+
 		$id     = $this->route_id( $request );
 		$params = $this->params( $request );
 

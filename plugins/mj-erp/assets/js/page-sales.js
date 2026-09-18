@@ -271,8 +271,9 @@
 					 * Borrar es solo para las anuladas: una venta anulada ya deshizo lo que tenía
 					 * que deshacer y a partir de ahí solo ensucia la lista. Una venta viva no se
 					 * borra de un botón —primero se anula, que es lo que devuelve stock y deuda.
+					 * Y lo hace solo quien corrige ventas: el servidor lo exige igual.
 					 */
-					(voided
+					(voided && info().can_manage
 						? '<button type="button" class="mj-btn mj-btn--sm mj-btn--ghost mj-btn--icon mj-danger-text" data-action="delete" title="Borrar de la lista" aria-label="Borrar la venta anulada ' + h(sale.code) + '">' + MJ.icon('trash') + '</button>'
 						: '') +
 				'</div>' +

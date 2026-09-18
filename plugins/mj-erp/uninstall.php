@@ -2,8 +2,8 @@
 /**
  * Uninstall handler.
  *
- * Always removes the `manage_mjerp` capability and the rewrite rules. Tables, options and
- * product meta are only deleted when the setting `delete_data_on_uninstall` is enabled.
+ * Always removes the capabilities, the transients and the rewrite rules. Tables, options and
+ * meta are only deleted when the setting `delete_data_on_uninstall` is enabled.
  *
  * @package MJ_ERP
  */
@@ -68,9 +68,12 @@ function mjerp_uninstall_current_site() {
 	/*
 	 * Las tablas hijas van primero para que borrar a mano quede en un orden entendible. La lista se
 	 * escribe acá y no se lee del instalador a propósito: la desinstalación corre con el plugin ya
-	 * apagado y sus clases pueden no estar cargadas.
+	 * apagado y sus clases pueden no estar cargadas. Tiene que decir lo mismo que
+	 * MJERP_Install::table_names(): al sumar una tabla allá, sumarla acá.
 	 */
 	$tables = array(
+		'cash_closures',
+		'cash_movements',
 		'suppliers',
 		'cashboxes',
 		'purchases',
@@ -85,10 +88,12 @@ function mjerp_uninstall_current_site() {
 		'sale_payments',
 		'sale_items',
 		'sales',
+		'customers',
 		'consignment_allocations',
 		'consignment_payments',
 		'consignment_returns',
 		'consignment_sales',
+		'consignment_log',
 		'consignment_items',
 		'consignments',
 		'consignees',
@@ -98,17 +103,25 @@ function mjerp_uninstall_current_site() {
 		$wpdb->query( "DROP TABLE IF EXISTS `{$name}`" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
-	delete_option( 'mjerp_settings' );
-	delete_option( 'mjerp_db_version' );
-	delete_option( 'mjerp_flush_rewrite' );
+	foreach ( array( 'mjerp_settings', 'mjerp_db_version', 'mjerp_flush_rewrite', 'mjerp_order_status_resync' ) as $option ) {
+		delete_option( $option );
+	}
 
-	// Product meta written on receive (_mjerp_cost, _mjerp_cost_local, _mjerp_cost_currency, ...).
-	$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->prepare(
-			"DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s",
-			$wpdb->esc_like( '_mjerp_' ) . '%'
-		)
-	);
+	$like = $wpdb->esc_like( '_mjerp_' ) . '%';
+
+	// Product meta written on receive (_mjerp_cost, _mjerp_cost_local, _mjerp_cost_currency, ...)
+	// and, without HPOS, the order meta (_mjerp_sale_id, _mjerp_sale_source).
+	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s", $like ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+	// La sugerencia de vincular una cuenta nueva con una ficha del mostrador.
+	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s", $like ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+	// Con HPOS los pedidos viven en tablas propias; las líneas de pedido, siempre en la suya.
+	foreach ( array( $wpdb->prefix . 'wc_orders_meta', $wpdb->prefix . 'woocommerce_order_itemmeta' ) as $meta_table ) {
+		if ( $meta_table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $meta_table ) ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->query( $wpdb->prepare( "DELETE FROM {$meta_table} WHERE meta_key LIKE %s", $like ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+	}
 
 	wp_cache_flush();
 }

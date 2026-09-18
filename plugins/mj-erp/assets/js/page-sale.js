@@ -77,7 +77,8 @@
 				((num(sale.due) || 0) > 0.004 && !voided
 					? '<button type="button" class="mj-btn mj-btn--primary" data-action="charge">' + MJ.icon('cash') + '<span>Registrar cobro</span></button>'
 					: '') +
-				(voided ? '' : '<button type="button" class="mj-btn mj-btn--ghost mj-danger-text" data-action="void">' + MJ.icon('x-circle') + '<span>Anular</span></button>') +
+				// Anular es corregir lo que ya se vendió: solo para quien corrige ventas (el servidor lo exige igual).
+				(voided || !info().can_manage ? '' : '<button type="button" class="mj-btn mj-btn--ghost mj-danger-text" data-action="void">' + MJ.icon('x-circle') + '<span>Anular</span></button>') +
 			'</div>' +
 		'</div>';
 	}
@@ -400,12 +401,15 @@
 
 	function detailsHtml(sale) {
 		const channels = (info().channels || []).map(function (c) { return { value: c.key, label: c.label }; });
+		// Cambiar los datos de una venta que ya existe es corregirla: sin el permiso, se ven y no se tocan.
+		const ro = !info().can_manage;
+		const dis = ro ? ' disabled' : '';
 		return '<div class="mj-card"><div class="mj-card__header"><h3 class="mj-card__title">Datos</h3></div>' +
 			'<div class="mj-card__body">' +
 				'<div class="mj-grid mj-grid--2">' +
 					'<div class="mj-field">' +
 						'<label class="mj-field__label" for="mj-sale-edit-channel">Canal</label>' +
-						'<select class="mj-select" id="mj-sale-edit-channel" data-edit="channel">' +
+						'<select class="mj-select" id="mj-sale-edit-channel" data-edit="channel"' + dis + '>' +
 							channels.map(function (c) {
 								return '<option value="' + h(c.value) + '"' + (sale.channel === c.value ? ' selected' : '') + '>' + h(c.label) + '</option>';
 							}).join('') +
@@ -413,16 +417,18 @@
 					'</div>' +
 					'<div class="mj-field">' +
 						'<label class="mj-field__label" for="mj-sale-edit-date">Fecha</label>' +
-						'<input class="mj-input" id="mj-sale-edit-date" type="date" data-edit="sale_date" value="' + h(sale.sale_date || '') + '">' +
+						'<input class="mj-input" id="mj-sale-edit-date" type="date" data-edit="sale_date" value="' + h(sale.sale_date || '') + '"' + dis + '>' +
 					'</div>' +
 				'</div>' +
 				'<div class="mj-field">' +
 					'<label class="mj-field__label" for="mj-sale-edit-note">Nota</label>' +
-					'<textarea class="mj-textarea" id="mj-sale-edit-note" rows="3" data-edit="note">' + h(sale.note || '') + '</textarea>' +
+					'<textarea class="mj-textarea" id="mj-sale-edit-note" rows="3" data-edit="note"' + dis + '>' + h(sale.note || '') + '</textarea>' +
 				'</div>' +
-				'<div class="mj-row mj-row--end mj-mt">' +
-					'<button type="button" class="mj-btn mj-btn--ghost" data-action="save">' + MJ.icon('save') + '<span>Guardar</span></button>' +
-				'</div>' +
+				(ro
+					? '<p class="mj-small mj-muted">Los datos de una venta los corrige quien puede corregir ventas (Configuración → Ventas → Corregir ventas).</p>'
+					: '<div class="mj-row mj-row--end mj-mt">' +
+						'<button type="button" class="mj-btn mj-btn--ghost" data-action="save">' + MJ.icon('save') + '<span>Guardar</span></button>' +
+					'</div>') +
 			'</div>' +
 		'</div>';
 	}

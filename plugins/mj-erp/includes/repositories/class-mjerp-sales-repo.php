@@ -1204,7 +1204,52 @@ class MJERP_Sales_Repo {
 	}
 
 	/**
-	 * Deletes a sale, its lines and its payments.
+	 * Why a sale cannot be deleted, or null when it can.
+	 *
+	 * Borrar es para las ventas que solo ensucian la lista. Una venta con devoluciones, con un
+	 * RMA abierto o con movimientos de saldo a favor deja huérfano todo eso si desaparece: esas
+	 * se anulan, que deshace lo que hay que deshacer y queda trazable.
+	 *
+	 * @param int $id Sale id.
+	 * @return WP_Error|null
+	 */
+	public static function delete_blocker( $id ) : ?WP_Error {
+		global $wpdb;
+
+		$id = absint( $id );
+		if ( ! $id ) {
+			return null;
+		}
+
+		$error = null;
+
+		$returns = MJERP_Install::table( 'sale_returns' );
+		$rma     = MJERP_Install::table( 'rma' );
+		$credit  = MJERP_Install::table( 'customer_credit' );
+
+		if ( (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$returns} WHERE sale_id = %d", $id ) ) > 0 ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+			$error = new WP_Error( 'mjerp_sale_has_returns', __( 'La venta tiene devoluciones o cambios registrados: no se puede borrar, anulala.', 'mj-erp' ), array( 'status' => 409 ) );
+		} elseif ( (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$rma} WHERE sale_id = %d", $id ) ) > 0 ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+			$error = new WP_Error( 'mjerp_sale_has_rma', __( 'La venta tiene productos en RMA: no se puede borrar, anulala.', 'mj-erp' ), array( 'status' => 409 ) );
+		} elseif ( (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$credit} WHERE sale_id = %d", $id ) ) > 0 ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+			$error = new WP_Error( 'mjerp_sale_has_credit', __( 'La venta tiene movimientos de saldo a favor: no se puede borrar, anulala.', 'mj-erp' ), array( 'status' => 409 ) );
+		}
+
+		/**
+		 * Filters why a sale cannot be deleted.
+		 *
+		 * @param WP_Error|null $error Error, or null when it can be deleted.
+		 * @param int           $id    Sale id.
+		 */
+		$error = apply_filters( 'mjerp_sale_delete_blocker', $error, $id );
+
+		return $error instanceof WP_Error ? $error : null;
+	}
+
+	/**
+	 * Deletes a sale, its lines, its payments and its history.
+	 *
+	 * Refuses when delete_blocker() says so: nothing that points at the sale can be left behind.
 	 *
 	 * @param int $id Sale id.
 	 * @return true|WP_Error
@@ -1217,10 +1262,17 @@ class MJERP_Sales_Repo {
 			return new WP_Error( 'mjerp_not_found', __( 'La venta no existe.', 'mj-erp' ), array( 'status' => 404 ) );
 		}
 
+		$blocker = self::delete_blocker( $sale['id'] );
+		if ( $blocker instanceof WP_Error ) {
+			return $blocker;
+		}
+
 		$wpdb->delete( self::items_table(), array( 'sale_id' => $sale['id'] ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		if ( class_exists( 'MJERP_Sale_Payments_Repo' ) ) {
 			MJERP_Sale_Payments_Repo::delete_for_sale( $sale['id'] );
 		}
+		// El historial de una venta que ya no existe no se puede abrir desde ningún lado.
+		$wpdb->delete( MJERP_Install::table( 'sale_log' ), array( 'sale_id' => $sale['id'] ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
 		$result = $wpdb->delete( self::table(), array( 'id' => $sale['id'] ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		if ( false === $result ) {
