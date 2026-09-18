@@ -43,9 +43,9 @@ faltan cosas chicas; **Falta** = hay una pieza grande pendiente.
 | MJ Appearance | 3.20.0 | Casi | Reseñas en la ficha; tope de 1000 productos; subcarpeta. (Frenos y `/catalog-stock`: hechos en 3.19.0.) |
 | GlossyHair / Yamana / Atelier | 1.1.1 | Cerrado | `*_REQUIRES` en 3.19.0. |
 | MJ ERP | 1.22.0 | Casi | Probar en la tienda Caja, Reportes y los permisos nuevos; la bitácora del revendedor sin pestaña; LEEME. (Permisos, integridad, `uninstall.php`, ajustes fantasma, `readme.txt`, Caja y Reportes: hechos en 1.22.0.) |
-| MJ Medios de Pago | 1.4.0 | Casi | `uninstall.php` deja el historial de pagos; filtro "parcial" de la bandeja; purga topeada en 200; LEEME. |
+| MJ Medios de Pago | 1.5.0 | Casi | `uninstall.php` deja el historial de pagos; filtro "parcial" de la bandeja; purga topeada en 200; LEEME. |
 | MJ Dólar | 1.1.1 | Casi | Decidir si el TC se trae solo; endpoint de cotización como ajuste; LEEME. (`readme.txt`: hecho en 1.1.1.) |
-| MJ Envíos | 1.1.1 | Falta | Nunca habló con un correo real. Vía Cargo es un andamio; Correo Argentino sin seguimiento; ningún correo genera el envío ni la etiqueta; importar CSV sin validar; claves reimpresas en el HTML; `/cotizar` sin freno. |
+| MJ Envíos | 1.2.0 | Falta | Nunca habló con un correo real. Vía Cargo es un andamio; Correo Argentino sin seguimiento; ningún correo genera el envío ni la etiqueta; importar CSV sin validar; claves reimpresas en el HTML; `/cotizar` sin freno. |
 | MJ Turnos Online | 1.3.0 | Casi | Probar en la tienda lo de 1.3 (cuentas, reglas de cambios, saldo, mantenimiento, opiniones: `PRUEBAS-EN-LA-TIENDA.md` §10); el panel no usa `receipt`. (Freno de lecturas, alias/CBU fuera de `/config` y LEEME al día: hechos en 1.3.0.) |
 | MJ Fidelidad | 1.0.0 | Casi | Nuevo: probar en la tienda (turnos atendidos, premio como saldo, descontar al sacar el atendido). |
 | MJ Colegas | 1.0.1 | Casi | Sellar la base de la comisión. (`uninstall.php`, permiso del menú y CSV: hechos en 1.0.1.) |

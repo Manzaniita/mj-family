@@ -176,6 +176,21 @@ El link se arma con la plantilla del método o la del correo, que usan la marca
 
 ---
 
+## Listo para retirar
+
+Para lo que se retira en el local o en un punto a coordinar. En *Ajustes →
+Seguimiento y avisos → Listo para retirar* se prende un estado de pedido
+propio (apagado por defecto). Prendido, aparece en el pedido y en las acciones
+en lote de la lista de pedidos, cuenta como pagado y el cliente lo ve en Mi
+cuenta con el nombre que le pongas. Al pasar un pedido a ese estado le llega
+un mail (asunto y cuerpo editables; `{instrucciones}` son las del método de
+envío del pedido).
+
+El circuito típico con MJ Medios de Pago: el cliente sube el comprobante,
+lo aprobás (el pedido pasa a *Procesando*) y, cuando lo tenés preparado, lo
+pasás a *Listo para retirar*. Si en Comprobantes → Ajustes elegís ese estado
+para "Al aprobar el pago", se saltea el paso del medio.
+
 ## Cómo se conecta con el resto
 
 - **MJ Appearance** (el tema): el paso de envío del checkout, el autocompletado

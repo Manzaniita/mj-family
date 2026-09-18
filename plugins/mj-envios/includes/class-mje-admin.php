@@ -866,6 +866,15 @@ class MJE_Admin {
 		self::row('Mensaje de WhatsApp', self::textarea('settings[track_whatsapp]', $s['track_whatsapp'], 3), 'Mismas marcas. Se usa con el botón del pedido.');
 		echo '</table>';
 
+		echo '<h3>Listo para retirar</h3><table class="form-table">';
+		self::row('Estado propio', self::checkbox_input('settings[ready_enabled]', $s['ready_enabled'], 'Sumar el estado de pedido «Listo para retirar»'), 'Para lo que se retira en el local o en un punto a coordinar: lo elegís en el pedido o en lote desde la lista. Cuenta como pagado. El cliente lo ve en Mi cuenta con este nombre.');
+		self::row('Nombre del estado', self::text_input('settings[ready_label]', $s['ready_label'], ['class' => 'regular-text']));
+		self::row('Avisar por email', self::checkbox_input('settings[ready_mail]', $s['ready_mail'], 'Mandar un email cuando el pedido pasa a ese estado'));
+		self::row('Asunto', self::text_input('settings[ready_subject]', $s['ready_subject'], ['class' => 'large-text']));
+		self::row('Cuerpo', self::textarea('settings[ready_body]', $s['ready_body'], 6), 'Marcas: <code>{cliente}</code> <code>{numero}</code> <code>{metodo}</code> <code>{instrucciones}</code> (las del método de envío del pedido) <code>{tienda}</code>.');
+		self::row('Mensaje de WhatsApp', self::textarea('settings[ready_whatsapp]', $s['ready_whatsapp'], 3), 'Mismas marcas.');
+		echo '</table>';
+
 		echo '<h3>MJ ERP</h3><table class="form-table">';
 		self::row('Costo del correo', self::checkbox_input('settings[erp_cost]', $s['erp_cost'], 'Guardar en el pedido lo que cobró el correo, además de lo que pagó el cliente'), 'Es la diferencia entre lo que cobrás por el envío y lo que te cuesta.');
 		echo '</table>';

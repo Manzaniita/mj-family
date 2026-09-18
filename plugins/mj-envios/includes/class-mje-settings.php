@@ -112,6 +112,14 @@ class MJE_Settings {
 			'track_body'      => "Hola {cliente},\n\nDespachamos tu pedido {numero} por {metodo}.\n\nSeguimiento: {codigo}\n{link}\n\n{tienda}",
 			'track_whatsapp'  => 'Hola {cliente}! Despachamos tu pedido {numero} por {metodo}. Seguimiento: {codigo} {link}',
 
+			/* Listo para retirar (estado de pedido propio) --------------- */
+			'ready_enabled'   => 0,   // Apagado: la tienda no cambia hasta que se prenda.
+			'ready_label'     => 'Listo para retirar',
+			'ready_mail'      => 1,
+			'ready_subject'   => 'Tu pedido {numero} está listo para retirar',
+			'ready_body'      => "Hola {cliente},\n\nTu pedido {numero} ya está listo.\n\n{instrucciones}\n\n{tienda}",
+			'ready_whatsapp'  => 'Hola {cliente}! Tu pedido {numero} ya está listo para retirar. {instrucciones}',
+
 			/* ERP -------------------------------------------------------- */
 			'erp_cost'        => 1,   // Guardar el costo real del correo en el pedido y en la nota.
 		];
@@ -170,7 +178,7 @@ class MJE_Settings {
 		$in  = is_array($in) ? $in : [];
 		$out = [];
 
-		foreach (['enabled', 'replace_native', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost'] as $flag) {
+		foreach (['enabled', 'replace_native', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost', 'ready_enabled', 'ready_mail'] as $flag) {
 			$out[$flag] = empty($in[$flag]) ? 0 : 1;
 		}
 
@@ -231,11 +239,11 @@ class MJE_Settings {
 		$out['free_states']  = isset($in['free_states']) ? self::text_list($in['free_states']) : '';
 
 		/* Textos: si los vacían, vuelve el default (nunca queda una pantalla muda). */
-		foreach (['free_label', 'step_title', 'step_intro', 'cp_label', 'cp_help', 'cp_ask', 'cp_invalid', 'eta_text', 'eta_text_one', 'branch_label', 'branch_help', 'pickup_label', 'track_subject'] as $key) {
+		foreach (['free_label', 'step_title', 'step_intro', 'cp_label', 'cp_help', 'cp_ask', 'cp_invalid', 'eta_text', 'eta_text_one', 'branch_label', 'branch_help', 'pickup_label', 'track_subject', 'ready_label', 'ready_subject'] as $key) {
 			$value     = isset($in[$key]) ? trim(sanitize_text_field($in[$key])) : '';
 			$out[$key] = '' !== $value ? mb_substr($value, 0, 190) : $d[$key];
 		}
-		foreach (['none_text', 'coordinate_text', 'error_text', 'track_body', 'track_whatsapp'] as $key) {
+		foreach (['none_text', 'coordinate_text', 'error_text', 'track_body', 'track_whatsapp', 'ready_body', 'ready_whatsapp'] as $key) {
 			$value     = isset($in[$key]) ? trim(sanitize_textarea_field($in[$key])) : '';
 			$out[$key] = '' !== $value ? $value : $d[$key];
 		}
