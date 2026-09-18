@@ -214,6 +214,27 @@ exactamente la de antes; las páginas quedan guardadas.
 
 ---
 
+### Lo que suma 3.21, en detalle
+
+Todo apagado o igual que antes por defecto.
+
+| Dónde | Ajuste | Default | Qué hace |
+| --- | --- | --- | --- |
+| Diseño y marca | Nivel de animación: **Ninguna** | — | Nada se mueve: sin transiciones, sin apariciones, sin cortina de entrada, cambio de tema al instante. |
+| Anuncios y avisos | **Botón fijo abajo** (`sticky_cta_*`) | Apagado | Un botón a todo el ancho pegado abajo (texto y destino; vacío = la reserva de MJ Turnos o la tienda), solo en el celular salvo que se marque también la computadora, y rutas donde no aparece (una por línea, `/x/*` = esa y todo lo de abajo). Nunca en su propio destino, el carrito, el checkout, la ficha de producto ni Mi cuenta. |
+| Contacto | Zona de atención, Instagram en los canales, formulario | Vacío / No / Sí | Para mostrar solo "Atiendo en zona…" e Instagram, sin formulario ni dirección exacta. Los demás canales desaparecen si se dejan vacíos. |
+| Textos de la tienda | Mi cuenta: `account_nav_orders`, `account_orders_title`, `account_orders_empty`, `account_orders_cta`, `account_status_label`, `account_payment_label` y más | los de antes | Una skin puede llamar "Mis compras" a "Mis pedidos". |
+| Textos de la tienda | Galería y Servicios: `gallery_*`, `services_uncategorized` | — | Rótulos de la galería; título del grupo de servicios sin categoría (vacío = sin título). |
+| Editor de bloques | **Galería de trabajos** (`mj/galeria`) | — | Fotos con su nombre abajo (el texto propio, o la leyenda o el alt de la biblioteca), columnas, formato, filtro por nombre y foto grande al tocar. Plantilla "Página de galería". |
+| Editor de bloques | Opiniones: **origen** | Automático | Automático = las reseñas de WooCommerce y, si no hay, las opiniones de MJ Turnos; o solo una de las dos. |
+
+En **Mi cuenta**: con MJ Fidelidad aparece la tarjeta de sellos en el inicio;
+con MJ Medios de Pago, cada pedido que pide comprobante muestra "Pago:
+<estado>" junto a su estado (por ejemplo "Pago: Aprobado · Estado: Listo
+para retirar").
+
+---
+
 ## 2. Temas hijo (skins)
 
 Un tema hijo ya no repite en su código la paleta ni los textos del padre: se
@@ -264,7 +285,7 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 
 | Plugin | Dónde | Qué se configura |
 | --- | --- | --- |
-| MJ Turnos Online | Turnos → Ajustes | Horarios, seña (y cuánto dura la reserva provisoria), comprobante, **cambios y cancelaciones** (reprogramar, cancelar, saldo a favor, qué se le ofrece a la clienta cuando cancela la dueña), **cuentas** (sin cuenta, opcional u obligatoria, "Mis turnos"), avisos (dos recordatorios, mantenimiento, opiniones) y sus plantillas, textos de la reserva, formulario (con Sí/No y fecha de nacimiento), **secciones de los servicios**, ficha técnica, **opiniones**, slug de la página, y en *El panel* si la agenda del día muestra los horarios libres y lo bloqueado (prendido) y si al **borrar** el plugin se van también las clientas, los turnos, las fichas, el saldo, las opiniones y los servicios (por defecto quedan). Los servicios y sus categorías, en Turnos → Servicios / Categorías. Ver 3.4. |
+| MJ Turnos Online | Turnos → Ajustes | Horarios, seña (y cuánto dura la reserva provisoria), comprobante, **cambios y cancelaciones** (reprogramar, cancelar, saldo a favor, qué se le ofrece a la clienta cuando cancela la dueña), **cuentas** (sin cuenta, opcional u obligatoria, "Mis turnos"), avisos (dos recordatorios, mantenimiento, opiniones) y sus plantillas, textos de la reserva, formulario (con Sí/No y fecha de nacimiento), **secciones de los servicios**, ficha técnica, **opiniones**, slug de la página, y en *El panel* si la agenda del día muestra los horarios libres y lo bloqueado (apagado por defecto) y si al **borrar** el plugin se van también las clientas, los turnos, las fichas, el saldo, las opiniones y los servicios (por defecto quedan). Los servicios y sus categorías, en Turnos → Servicios / Categorías. Ver 3.4. |
 | MJ Colegas | Colegas → Ajustes | Nombre del proyecto, etiquetas, comisión, textos. |
 | MJ Fidelidad | Fidelidad → Ajustes | Sellos por tarjeta, vencimiento, el premio (texto a canjear o saldo a favor de MJ Turnos y su monto), de dónde salen los sellos (turnos atendidos y cuántos por turno; compras, por compra o por monto), textos de la tarjeta, mails y si al **borrar** el plugin se van los sellos. Los sellos de cada servicio, en su ficha (Turnos → Servicios, cuadro *Fidelidad*). Sellos a mano y premios canjeados, en Fidelidad → Clientas. |
 | MJ Dólar | WooCommerce → Dólar | Tipo de cambio, redondeo, cotización de referencia y su proveedor. |
@@ -1122,10 +1143,18 @@ son automáticas: la dueña marca "No vino" y la seña queda como perdida.
 
 El link de cada turno (el que llega por mail) funciona siempre, con o sin
 cuenta: con MJ Appearance es `/turnos/t/{código}`; con otro tema, la página
-del shortcode con `?turno={código}`. **Privacidad:** una ficha que ya existía sin cuenta solo se vincula a
-una cuenta nueva si coinciden el teléfono y el email; si no, la reserva arma
-una ficha aparte (la dueña la puede vincular a mano desde la ficha). Nadie ve
-turnos que no sean de su cuenta.
+del shortcode con `?turno={código}`. **Privacidad:** WordPress no verifica el
+email de quien se registra, así que una ficha que ya existía **nunca** se
+vincula sola a una cuenta: la reserva arma una ficha nueva y, si la vieja
+tiene el mismo email que la cuenta, a ese email le llega un link (vence en 7
+días) para unir las dos — solo quien lee ese correo puede hacerlo. La dueña
+también puede vincular a mano desde la ficha. Con las cuentas apagadas no se
+vincula nada y "Mis turnos" no existe. Nadie ve turnos que no sean de su
+cuenta. Las acciones sobre un turno (cancelar, reprogramar, elegir qué hacer
+con la seña, el vencimiento) toman un candado por turno: un doble click no
+mueve la plata dos veces. Si la dueña reactiva un turno cancelado o le saca el
+"no vino", la seña que había pasado a saldo vuelve al turno y la seña perdida
+deja de estarlo.
 
 ### Mantenimiento
 
@@ -1223,7 +1252,6 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Vencimiento de pedidos sin comprobante: cada cuántos minutos, cuántos por vuelta, qué estados y si un pedido se cancela | — | `mjpm_expire_minutes`, `mjpm_expire_batch`, `mjpm_expire_statuses`, `mjpm_expire_order` |
 | Cada cuántos minutos corre la tarea frecuente de Turnos (vencimientos, recordatorios, avisos) | — | `mjto_tick_minutes` |
 | Reglas de cancelar y reprogramar de un turno (después de las del panel) | — | `mjto_cancel_terms`, `mjto_reschedule_terms` |
-| Si una ficha sin cuenta se vincula a la cuenta que reserva | — | `mjto_link_existing_client` |
 | Dirección de «Mis turnos» (MJ Appearance la pone en Mi cuenta) | — | `mjto_my_bookings_url` |
 | Cuántas opiniones viajan en la config pública, y hasta cuántos días después se pide una | — | `mjto_config_reviews`, `mjto_review_request_max_days` |
 | Cómo se nombra el estado de una opinión en el mail a la dueña | — | `mjto_review_status_labels` |

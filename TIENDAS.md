@@ -1,4 +1,4 @@
-# Las tres tiendas: qué lleva cada una y cómo se pone en marcha
+# Las tiendas: qué lleva cada una y cómo se pone en marcha
 
 Este documento reemplaza a las guías de entrega de GlossyHair y Yamana, que
 quedaron viejas (hablaban de MJ Appearance 3.6.0). Acá está lo que hoy corre en
@@ -15,6 +15,7 @@ cómo se instala y se actualiza, en `PUBLICAR.md`.
 | **MJ Importaciones** | MJ Atelier | Core, Dólar, Medios de Pago, Envíos, ERP, Optimizador, Fotos Rápidas | Instalado, con token |
 | **GlossyHair** | GlossyHair | Core, Turnos Online, Medios de Pago, Envíos, Optimizador, Fotos Rápidas | **Falta instalar** |
 | **Yamana** | Yamana | Core, Colegas, Medios de Pago, Envíos, Optimizador, Fotos Rápidas | **Falta instalar** |
+| **Jaz Beauty Art** | Jaz Beauty Art | Core, Turnos Online, Fidelidad, Medios de Pago, Envíos, Optimizador, Fotos Rápidas | **Tienda nueva: todo a mano la primera vez** |
 
 Las tres llevan el tema padre **MJ Appearance** (instalado, sin activar) y el
 tema hijo activo. La composición sale de `bundles` en
@@ -123,6 +124,68 @@ reservas por IP ve una sola IP para todas; el filtro `mjto_client_ip` está
 explicado en el LEEME. Los emails salen con `wp_mail`: si el hosting no entrega
 bien, un plugin SMTP. Los recordatorios corren con el cron de WordPress; si el
 hosting permite un cron real, mejor.
+
+---
+
+## 3.1. Jaz Beauty Art (pestañas y cejas)
+
+Pestañas y cejas con turnos, un Beauty Shop sin envíos y tarjeta de
+fidelidad. Crema cálido, bordó y negro, Cormorant Garamond + Jost, modo día,
+**sin animaciones**, pensada para el celular (la mayoría llega desde
+Instagram). El logo lo sube Jaz en Apariencia → MJ Appearance.
+
+**Qué se instala, en este orden (todo a mano la primera vez):** WordPress y
+WooCommerce, después MJ Appearance (3.21.0 o más nuevo) y el tema hijo Jaz
+Beauty Art, después MJ Turnos Online (1.3.0+), MJ Fidelidad, MJ Medios de Pago
+(1.5.0+), MJ Envíos (1.2.0+), Optimizador, Fotos Rápidas y MJ Core. Un cron
+real del hosting (cada 5 minutos, llamando a `wp-cron.php`) hace exactos la
+reserva provisoria de 1 hora y el recordatorio de 1 hora antes. Un plugin SMTP
+para que los mails lleguen.
+
+**Lo que el tema hijo ya propone** (todo editable): seña del 50 % por
+transferencia, reserva provisoria de 1 hora, comprobante obligatorio,
+cancelar y reprogramar con 48 h (a tiempo: la seña queda a favor o se
+conserva; tarde: se pierde y se abona otra), saldo a favor, opciones cuando
+cancela Jaz, cuenta obligatoria, recordatorios a las 24 h y a la 1 h, aviso
+de mantenimiento 2 días antes, opiniones después del turno, el formulario con
+la ficha de salud (alergias, anteojos o lentes, primera vez, sensibilidad,
+látex, cirugía, género, fecha de nacimiento, Instagram), la ficha técnica de
+pestañas y cejas, los mails con el tono de Jaz, la tarjeta de 10 sellos y el
+botón fijo "Reservar turno".
+
+**Qué cargar apenas se instala**
+
+1. Apariencia → **Contenido inicial** → "Cargar el contenido inicial": crea
+   como borrador las categorías (Pestañas, Cejas, Combos), los 13 servicios,
+   los 4 productos y las páginas Inicio, Sobre mí, Preguntas frecuentes,
+   Políticas y Mis trabajos.
+2. **Turnos → Servicios**: a cada servicio, precio, duración, foto,
+   mantenimiento ("volver cada N semanas"), las secciones (qué incluye,
+   cuidados, recomendaciones, información adicional) y los sellos del cuadro
+   Fidelidad (un combo puede dar 2). Publicar.
+3. **Turnos → Ajustes → Agenda**: días y horarios, días cerrados.
+   **Reservas y seña**: las instrucciones para transferir a Mercado Pago
+   (alias, CVU, titular). **Notificaciones**: el email de Jaz.
+4. **Productos**: precio, stock, foto y descripción de cada uno. Publicar.
+5. **MJ Medios de Pago**: un medio "Transferencia a Mercado Pago" con sus datos
+   para pagar, comprobante obligatorio, plazo 1 hora, "Al vencer el plazo →
+   cancelar el pedido" prendido, y "Al aprobar el pago" → *Listo para
+   retirar* (después de prenderlo en Envíos).
+6. **MJ Envíos**: un método "Retiro / punto a coordinar" (tipo retiro, con
+   sus instrucciones) y, en Seguimiento y avisos, **Listo para retirar**
+   prendido. Ningún método de envío a domicilio.
+7. **Páginas**: revisar los textos de Sobre mí y Políticas, subir las fotos
+   de Mis trabajos (bloque Galería, con el nombre de cada tratamiento),
+   publicar todo y elegir "Inicio" como portada (Ajustes → Lectura).
+8. **Apariencia → MJ Appearance**: logo, Contacto (solo Instagram
+   @jaz.beauty.art, la zona donde atiende y nada de dirección exacta,
+   WhatsApp ni mapa) y la barra de navegación: Inicio, Servicios, Reservar
+   turno, Mis trabajos, Beauty Shop, Sobre mí, Preguntas frecuentes,
+   Políticas, Contacto.
+
+**Prueba corta:** la de `PRUEBAS-EN-LA-TIENDA.md` §10, con una reserva real
+de punta a punta (reserva, comprobante, confirmación, recordatorios,
+reprogramar, atendido, opinión y sello), y una compra con retiro.
 
 ---
 

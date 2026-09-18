@@ -40,7 +40,7 @@ faltan cosas chicas; **Falta** = hay una pieza grande pendiente.
 
 | Paquete | Versión | Estado | Qué le falta para la v1 |
 | --- | --- | --- | --- |
-| MJ Appearance | 3.20.0 | Casi | Reseñas en la ficha; tope de 1000 productos; subcarpeta. (Frenos y `/catalog-stock`: hechos en 3.19.0.) |
+| MJ Appearance | 3.21.0 | Casi | Reseñas en la ficha; tope de 1000 productos; subcarpeta. (Frenos y `/catalog-stock`: hechos en 3.19.0.) |
 | GlossyHair / Yamana / Atelier | 1.1.1 | Cerrado | `*_REQUIRES` en 3.19.0. |
 | MJ ERP | 1.22.0 | Casi | Probar en la tienda Caja, Reportes y los permisos nuevos; la bitácora del revendedor sin pestaña; LEEME. (Permisos, integridad, `uninstall.php`, ajustes fantasma, `readme.txt`, Caja y Reportes: hechos en 1.22.0.) |
 | MJ Medios de Pago | 1.5.0 | Casi | `uninstall.php` deja el historial de pagos; filtro "parcial" de la bandeja; purga topeada en 200; LEEME. |

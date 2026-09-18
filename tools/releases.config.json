@@ -99,6 +99,20 @@
         "mj-optimizador-imagenes",
         "mj-fotos-rapidas"
       ]
+    },
+    "jazbeauty": {
+      "label": "Jaz Beauty Art — pestañas y cejas: turnos con seña, fidelidad y Beauty Shop",
+      "packages": [
+        "mj-core",
+        "mj-appearance",
+        "mj-jazbeauty",
+        "mj-turnos-online",
+        "mj-fidelidad",
+        "mj-medios-pago",
+        "mj-envios",
+        "mj-optimizador-imagenes",
+        "mj-fotos-rapidas"
+      ]
     }
   }
 }

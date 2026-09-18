@@ -18,10 +18,11 @@ piel: paleta, tipografías y textos.
 
 | Tema | Versión | Qué es |
 | --- | --- | --- |
-| **MJ Appearance** | 3.20.0 | El motor. Tienda completa en React (una sola página) sobre la Store API de WooCommerce: catálogo, carrito, checkout con compra rápida, cuenta y turnos. Las páginas (y la portada, si se quiere) se arman con el editor de bloques de WordPress: bloques MJ para hero, productos en grilla o carrusel, categorías, banners, marcas, opiniones, Instagram, "Nosotros", contacto y preguntas frecuentes, con plantillas listas. Con MJ ERP, el cliente ve su saldo a favor en «Mi cuenta» y lo usa al pagar. Con MJ Medios de Pago, la confirmación y «Mi cuenta» muestran los datos para pagar (alias, CBU…) con botón de copiar. Con MJ Turnos Online, la reserva pide la cuenta de la clienta si se configura, muestra el comprobante de la seña, deja reprogramar, cancelar y opinar desde el turno, y suma «Mis turnos» a «Mi cuenta». Modo día/noche, niveles de animación, barra de navegación armada ítem por ítem, paso de envío con validación de código postal, SEO listo para Google y WhatsApp (título, descripción, Open Graph y datos estructurados por producto, con o sin plugin de SEO) y **todo** configurable desde Apariencia → MJ Appearance. |
+| **MJ Appearance** | 3.21.0 | El motor. Tienda completa en React (una sola página) sobre la Store API de WooCommerce: catálogo, carrito, checkout con compra rápida, cuenta y turnos. Las páginas (y la portada, si se quiere) se arman con el editor de bloques de WordPress: bloques MJ para hero, productos en grilla o carrusel, categorías, banners, marcas, opiniones, Instagram, "Nosotros", contacto y preguntas frecuentes, con plantillas listas. Con MJ ERP, el cliente ve su saldo a favor en «Mi cuenta» y lo usa al pagar. Con MJ Medios de Pago, la confirmación y «Mi cuenta» muestran los datos para pagar (alias, CBU…) con botón de copiar. Con MJ Turnos Online, la reserva pide la cuenta de la clienta si se configura, muestra el comprobante de la seña, deja reprogramar, cancelar y opinar desde el turno, y suma «Mis turnos» a «Mi cuenta». Con MJ Fidelidad, la tarjeta de sellos en «Mi cuenta». Nivel de animación «Ninguna», botón fijo abajo (por ejemplo «Reservar turno»), bloque Galería de trabajos, y un Contacto que puede mostrar solo Instagram y la zona de atención. Modo día/noche, niveles de animación, barra de navegación armada ítem por ítem, paso de envío con validación de código postal, SEO listo para Google y WhatsApp (título, descripción, Open Graph y datos estructurados por producto, con o sin plugin de SEO) y **todo** configurable desde Apariencia → MJ Appearance. |
 | **GlossyHair** | 1.1.1 | Salón de alisados que además vende productos. Blanco y fucsia, Urbanist + Manrope. Portada pensada para turnos. |
 | **Yamana** | 1.1.1 | Tejidos artesanales y cursos. Lino y terracota, Fraunces + Nunito. Incluye el proyecto colectivo "Entre Hilos". |
 | **MJ Atelier** | 1.1.1 | Tienda editorial de lujo. Marfil y bronce, Fraunces + Manrope, movimiento cinematográfico. |
+| **Jaz Beauty Art** | 1.0.0 | Pestañas y cejas. Crema, bordó y negro, Cormorant Garamond + Jost, sin animaciones. Propone las reglas de turnos de Jaz, la ficha de salud, la tarjeta de fidelidad y carga el contenido inicial como borrador. |
 
 Los temas hijo no repiten nada del padre: se **describen** con el filtro
 `mj_skins` (paleta, tipografías, textos, orden de la portada, paletas
@@ -54,6 +55,7 @@ Cada plugin hace una cosa y se puede desactivar sin romper el resto.
 | GlossyHair | GlossyHair | Core, Turnos Online, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
 | Yamana | Yamana | Core, Colegas, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
 | MJ Importaciones | MJ Atelier | Core, Dólar, Medios de Pago, Envíos, ERP, Optimizador, Fotos Rápidas |
+| Jaz Beauty Art | Jaz Beauty Art | Core, Turnos Online, Fidelidad, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
 
 Esas combinaciones están declaradas en
 [`tools/releases.config.json`](tools/releases.config.json) y el script las
