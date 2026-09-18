@@ -402,9 +402,13 @@ function mjto_rest_read_guard() {
 	if (current_user_can(MJTO_CAP)) {
 		return true;
 	}
+	$limit = (int) mjto_opt('rate_limit_reads');
+	if ($limit <= 0) {
+		return true; // Sin freno (el default).
+	}
 	$key   = 'mjto_rr_' . md5(mjto_rest_ip());
 	$count = (int) get_transient($key);
-	if ($count >= max(10, (int) mjto_opt('rate_limit_reads'))) {
+	if ($count >= $limit) {
 		return mjto_booking_error('rate_limited', 429);
 	}
 	set_transient($key, $count + 1, 10 * MINUTE_IN_SECONDS);
@@ -629,6 +633,10 @@ function mjto_rest_create_booking(WP_REST_Request $request) {
 
 	$appointment = mjto_create_booking($input, 'web');
 	if (is_wp_error($appointment)) {
+		/* "Ya hay una cuenta con ese email" gasta cupo: así no se puede averiguar sin límite qué emails tienen cuenta. */
+		if ('mjto_account_exists' === $appointment->get_error_code()) {
+			mjto_rest_rate_count();
+		}
 		return mjto_rest_ensure_status($appointment, 400);
 	}
 	if (!is_array($appointment)) {

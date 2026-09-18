@@ -57,6 +57,18 @@ add_action('mjto_status_changed', function ($appointment, $old, $new) {
 	}
 }, 10, 3);
 
+/* Dos fichas de MJ Turnos que se unen (la clienta confirmó que eran suyas): los sellos pasan a la que queda. */
+add_action('mjto_clients_merged', function ($keep_id, $drop_id) {
+	global $wpdb;
+	$wpdb->update(mjfid_table('stamps'), ['holder_id' => (int) $keep_id], ['holder_type' => 'client', 'holder_id' => (int) $drop_id], ['%d'], ['%s', '%d']); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	$wpdb->update(mjfid_table('rewards'), ['holder_id' => (int) $keep_id], ['holder_type' => 'client', 'holder_id' => (int) $drop_id], ['%d'], ['%s', '%d']); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+}, 10, 2);
+
+/* Borrar un turno atendido desde el panel: se descuentan sus sellos. */
+add_action('mjto_appointment_deleted', function ($appointment_id) {
+	mjfid_remove_source('turno', (int) $appointment_id);
+});
+
 /* Cuadro "Fidelidad" en la ficha de cada servicio de MJ Turnos. */
 add_action('add_meta_boxes_mjto_service', function () {
 	add_meta_box('mjfid_service', 'Fidelidad', 'mjfid_render_service_box', 'mjto_service', 'side', 'default');

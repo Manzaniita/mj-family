@@ -46,6 +46,8 @@ function mjto_default_templates() {
 		'tpl_client_owner_cancel_body'     => "Hola {nombre}:\n\nPerdón: tuvimos que cancelar tu turno de {servicio} del {fecha} a las {hora}.\nMotivo: {motivo}\n\nTu seña de {sena_pagada} no se pierde. Entrá acá y elegí qué preferís (otro día, la devolución o dejarla como saldo a favor): {link_turno}\n\nGracias por entender,\n{negocio}",
 		'tpl_client_maintenance_subject'   => 'Se acerca tu próximo {servicio}',
 		'tpl_client_maintenance_body'      => "¡Hola {nombre}!\n\nYa se acerca el momento recomendado para tu próximo mantenimiento de {servicio} ({fecha_mantenimiento}).\nSi querés, podés reservar tu próximo turno desde acá:\n\n{link_reserva}\n\n{negocio}",
+		'tpl_client_link_subject'          => 'Uní tus turnos anteriores a tu cuenta de {negocio}',
+		'tpl_client_link_body'             => "Hola {nombre}:\n\nCreaste una cuenta en {negocio} y encontramos turnos anteriores con este email. Si son tuyos, uní todo a tu cuenta desde acá (el link vence en 7 días; tenés que ingresar con tu cuenta):\n\n{link_vincular}\n\nSi no fuiste vos, ignorá este mail: nadie ve tus datos sin este link.\n\n{negocio}",
 		'tpl_client_review_subject'        => '¿Cómo te fue con tu {servicio}?',
 		'tpl_client_review_body'           => "Hola {nombre}:\n\nGracias por venir. Si tenés un minuto, contanos cómo te fue con tu {servicio}: tu opinión ayuda a otras personas a animarse.\n\n{link_opinion}\n\n{negocio}",
 		// Para la dueña, por los cambios que hace la clienta
@@ -291,7 +293,7 @@ function mjto_option_defaults() {
 		'cancel_hours_before'   => 24,
 		'booking_policy'        => '',
 		'rate_limit'            => 5,         // reservas por IP cada 10 minutos
-		'rate_limit_reads'      => 120,       // consultas públicas (disponibilidad, estado) por IP cada 10 minutos
+		'rate_limit_reads'      => 0,         // consultas públicas (disponibilidad, estado) por IP cada 10 minutos (0 = sin freno)
 		/*
 		 * Cambios y cancelaciones desde la web. Todo apagado por defecto: sin
 		 * tocar nada, la clienta solo puede cancelar como siempre y la seña no
@@ -508,7 +510,7 @@ function mjto_option_defaults() {
 		'panel_theme'           => 'theme', // theme | light | dark
 		'panel_accent'          => '',      // Vacío = acento del tema, si existe; si no, #e11d84.
 		'caja_enabled'          => 1,
-		'panel_free_gaps'       => 1, // La agenda del día muestra los horarios libres y lo bloqueado entre los turnos.
+		'panel_free_gaps'       => 0, // La agenda del día muestra los horarios libres y lo bloqueado entre los turnos.
 		// Al BORRAR el plugin (no al desactivarlo): 1 = se borran clientas, turnos, fichas, servicios y ajustes.
 		'delete_on_uninstall'   => 0,
 		// Moneda sin WooCommerce
@@ -1082,7 +1084,7 @@ function mjto_option_schema() {
 		'deposit_receipt_confirm' => ['reservas', 'bool'],
 		'booking_policy'       => ['reservas', 'textarea'],
 		'rate_limit'           => ['reservas', 'int', [1, 1000]],
-		'rate_limit_reads'     => ['reservas', 'int', [10, 10000]],
+		'rate_limit_reads'     => ['reservas', 'int', [0, 10000]],
 		// Cambios y cancelaciones
 		'client_can_cancel'       => ['cambios', 'bool'],
 		'cancel_hours_before'     => ['cambios', 'int', [0, 720]],
@@ -1885,7 +1887,7 @@ function mjto_settings_tab_reservas() {
 		<?php
 		mjto_field_row('Política / indicaciones', 'booking_policy', fn () => mjto_field_textarea('booking_policy', 5, 'Ej: Vení con el pelo lavado y sin productos. Si no podés venir, avisá con 24 h de anticipación para que le demos el lugar a otra persona.'), 'Se muestra en el paso de datos, bajo el título "' . esc_html(mjto_opt('booking_policy_title')) . '" (editable en Textos). Vacío = no se muestra.');
 		mjto_field_row('Límite anti-spam', 'rate_limit', fn () => mjto_field_number('rate_limit', 1, 1000, 1, 'reservas por IP cada 10 minutos'), 'Protege el formulario público de robots. Un número bajo alcanza.');
-		mjto_field_row('Límite de consultas', 'rate_limit_reads', fn () => mjto_field_number('rate_limit_reads', 10, 10000, 1, 'consultas por IP cada 10 minutos'), 'Cuántas veces una misma conexión puede pedir horarios libres o el estado de un turno. Una clienta normal usa unas pocas decenas; el freno es para robots.');
+		mjto_field_row('Límite de consultas', 'rate_limit_reads', fn () => mjto_field_number('rate_limit_reads', 0, 10000, 1, 'consultas por IP cada 10 minutos'), 'Cuántas veces una misma conexión puede pedir horarios libres o el estado de un turno. <strong>0 = sin freno.</strong> Una clienta normal usa unas pocas decenas (300 es holgado). Si el sitio está detrás de Cloudflare o un proxy, primero configurá la IP real (ver el LEEME): si no, todas las clientas comparten el mismo cupo.');
 		?>
 	</table>
 	<?php
@@ -2101,6 +2103,7 @@ function mjto_settings_tab_notificaciones() {
 			'client_owner_cancel' => 'Cancelaste vos y le ofrecés opciones',
 			'client_maintenance'  => 'Se acerca el mantenimiento',
 			'client_review'       => 'Pedido de opinión',
+			'client_link'         => 'Unir turnos anteriores a la cuenta ({link_vincular})',
 		],
 	];
 	foreach ($mail_groups as $group => $templates) :

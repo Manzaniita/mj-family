@@ -1034,20 +1034,46 @@ class MJPM_Receipts {
 		if (!(int) MJPM_Settings::receipts('expire') || !self::enabled() || !function_exists('wc_get_orders')) {
 			return 0;
 		}
-		$orders = wc_get_orders([
-			'limit'      => (int) apply_filters('mjpm_expire_batch', 30),
-			'status'     => (array) apply_filters('mjpm_expire_statuses', ['on-hold', 'pending']),
-			'meta_query' => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- acotado por estado y tope.
-				[
-					'key'   => self::META_STATE,
-					'value' => self::STATUS_PENDING,
-				],
-			],
-			'orderby'    => 'date',
-			'order'      => 'ASC',
-		]);
-
+		$since = (int) MJPM_Settings::receipts('expire_since');
+		if ($since <= 0) {
+			return 0;
+		}
 		$note  = str_replace('{comprobante}', self::noun(), (string) MJPM_Settings::receipts('expire_note'));
+		$count = 0;
+		$batch = max(1, (int) apply_filters('mjpm_expire_batch', 30));
+		/*
+		 * Solo pedidos creados desde que se prendió la opción, y recorriendo
+		 * páginas: los que ya tienen algo subido (esperando revisión) no pueden
+		 * tapar a los vencidos que vienen después.
+		 */
+		for ($page = 1; $page <= 10; $page++) {
+			$orders = wc_get_orders([
+				'limit'        => $batch,
+				'paged'        => $page,
+				'status'       => (array) apply_filters('mjpm_expire_statuses', ['on-hold', 'pending']),
+				'date_created' => '>' . $since,
+				'meta_query'   => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- acotado por estado, fecha y tope.
+					[
+						'key'   => self::META_STATE,
+						'value' => self::STATUS_PENDING,
+					],
+				],
+				'orderby'      => 'date',
+				'order'        => 'ASC',
+			]);
+			if (!$orders) {
+				break;
+			}
+			$count += self::expire_batch($orders, $note);
+			if (count($orders) < $batch) {
+				break;
+			}
+		}
+		return $count;
+	}
+
+	/** Cancela los vencidos de un lote. → cuántos. */
+	private static function expire_batch(array $orders, $note) {
 		$count = 0;
 		foreach ($orders as $order) {
 			if (!$order instanceof WC_Order || self::for_object('order', $order->get_id())) {

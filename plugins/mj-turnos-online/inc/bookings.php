@@ -281,7 +281,7 @@ function mjto_validate_panel_client(array $input) {
  * datos se actualizan con lo que acaba de escribir (es ella, con sesión). Una
  * ficha que ya existía sin cuenta solo se vincula si coinciden el teléfono Y
  * el email: así nadie ve la historia de otra persona creando una cuenta con
- * sus datos (ver mjto_should_link_client en inc/accounts.php).
+ * sus datos (ver mjto_offer_client_link en inc/accounts.php).
  */
 function mjto_resolve_booking_client(array $parsed, $user_id = 0) {
 	if (!empty($parsed['client_id'])) {
@@ -289,14 +289,26 @@ function mjto_resolve_booking_client(array $parsed, $user_id = 0) {
 	}
 	$c       = $parsed['client'];
 	$extra   = isset($parsed['extra']) && is_array($parsed['extra']) ? $parsed['extra'] : [];
-	$user_id = (int) $user_id;
+	$user_id      = (int) $user_id;
+	$pending_link = null;
 
 	if ($user_id > 0) {
 		$own = mjto_find_client_by_user($user_id);
 		if ($own) {
-			$patch = array_filter($c, fn ($v) => '' !== (string) $v);
-			if ($extra) {
-				$patch['extra'] = array_merge(mjto_json_to_array($own['extra'] ?? ''), array_filter($extra, fn ($v) => '' !== (string) $v));
+			/*
+			 * Su propia ficha: se completan los datos vacíos (nunca se pisan el
+			 * nombre ni el teléfono: quizás reserva para otra persona) y las
+			 * respuestas del formulario se actualizan (la salud cambia).
+			 */
+			$patch = [];
+			foreach (['last_name', 'email', 'locality', 'birthdate'] as $key) {
+				if ('' === trim((string) ($own[$key] ?? '')) && '' !== (string) ($c[$key] ?? '')) {
+					$patch[$key] = $c[$key];
+				}
+			}
+			$answers = array_filter($extra, fn ($v) => '' !== (string) $v);
+			if ($answers) {
+				$patch['extra'] = array_merge(mjto_json_to_array($own['extra'] ?? ''), $answers);
 			}
 			if ($patch) {
 				mjto_update_client($own['id'], $patch);
@@ -306,17 +318,21 @@ function mjto_resolve_booking_client(array $parsed, $user_id = 0) {
 	}
 
 	$existing = mjto_find_client_by_phone($c['phone']);
-	if ($existing && $user_id > 0 && !empty($existing['user_id']) && (int) $existing['user_id'] !== $user_id) {
-		$existing = null; // Es de otra cuenta: esta reserva arma su propia ficha.
-	}
-	if ($existing && $user_id > 0 && empty($existing['user_id']) && !mjto_should_link_client($existing, $c, $user_id)) {
-		$existing = null; // Ficha sin cuenta que no se puede atribuir a esta cuenta: se arma una nueva.
+	if ($existing && $user_id > 0) {
+		/*
+		 * Una ficha que ya existía NUNCA se vincula sola a una cuenta: WordPress
+		 * no verifica el email de quien se registra, y la ficha tiene datos de
+		 * salud y turnos. Esta reserva arma una ficha propia de la cuenta y, si
+		 * la vieja tiene ese mismo email, a ese email le llega un link para unir
+		 * las dos (solo quien lee ese correo puede hacerlo). Ver inc/accounts.php.
+		 */
+		if (empty($existing['user_id']) && function_exists('mjto_offer_client_link')) {
+			$pending_link = $existing;
+		}
+		$existing = null;
 	}
 	if ($existing) {
 		$patch = [];
-		if ($user_id > 0 && empty($existing['user_id'])) {
-			$patch['user_id'] = $user_id;
-		}
 		foreach (['last_name', 'email', 'locality', 'birthdate'] as $key) {
 			if ('' === trim((string) ($existing[$key] ?? '')) && '' !== (string) ($c[$key] ?? '')) {
 				$patch[$key] = $c[$key];
@@ -362,6 +378,9 @@ function mjto_resolve_booking_client(array $parsed, $user_id = 0) {
 		return mjto_booking_error('db', 500);
 	}
 	do_action('mjto_client_created', $id, $data);
+	if (!empty($pending_link) && $user_id > 0) {
+		mjto_offer_client_link($user_id, (int) $id, $pending_link);
+	}
 	return (int) $id;
 }
 

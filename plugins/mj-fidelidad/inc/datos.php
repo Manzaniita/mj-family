@@ -191,7 +191,7 @@ function mjfid_add_stamps(array $holder, $stamps, $source = 'manual', $source_id
 	}
 	$id = (int) $wpdb->insert_id;
 	do_action('mjfid_stamps_added', $id, $holder, $stamps, $source, $source_id);
-	mjfid_sync_rewards($holder);
+	mjfid_sync_rewards($holder, $stamps < 0);
 	return $id;
 }
 
@@ -205,7 +205,7 @@ function mjfid_remove_source($source, $source_id) {
 	}
 	$wpdb->delete($table, ['id' => (int) $row['id']], ['%d']);
 	do_action('mjfid_stamps_removed', $row);
-	mjfid_sync_rewards([$row['holder_type'], (int) $row['holder_id']]);
+	mjfid_sync_rewards([$row['holder_type'], (int) $row['holder_id']], true);
 	return true;
 }
 
@@ -257,20 +257,30 @@ function mjfid_get_reward($id) {
 }
 
 /**
- * Pone los premios al día con los sellos: crea los de las tarjetas nuevas y
- * borra los pendientes de tarjetas que ya no se completan. Cada premio nuevo
- * dispara el aviso y, con "saldo a favor", se acredita solo.
+ * Pone los premios al día con los sellos: crea los de las tarjetas nuevas y,
+ * si se DESCONTARON sellos ($removed), borra los pendientes de tarjetas que ya
+ * no se completan. Que venzan sellos nunca borra un premio ganado.
+ *
+ * Con vencimiento, se comparan los sellos válidos con los premios ganados en
+ * esa misma ventana: los premios viejos consumieron sellos que ya vencieron.
+ * Cada premio nuevo dispara el aviso y, con "saldo a favor", se acredita solo.
  */
-function mjfid_sync_rewards(array $holder) {
+function mjfid_sync_rewards(array $holder, $removed = false) {
 	global $wpdb;
 	$people    = mjfid_people($holder);
 	$canonical = $people[0];
 	$earned    = intdiv(mjfid_total_stamps($holder), mjfid_per_card());
-	$rewards   = mjfid_rewards($holder);
+	$all       = mjfid_rewards($holder);
+	$since     = mjfid_valid_since();
+	$rewards   = $since ? array_values(array_filter($all, fn ($r) => (string) $r['created_at'] >= $since)) : $all;
 	$have      = count($rewards);
+	$next      = count($all) + 1; // Número de la próxima tarjeta (histórico, nunca se repite).
 
-	/* Tarjetas que ya no se completan (se descontaron sellos): solo se borran las pendientes, de la última para atrás. */
+	/* Tarjetas que ya no se completan porque se descontaron sellos: solo las pendientes, de la última para atrás. */
 	if ($have > $earned) {
+		if (!$removed) {
+			return;
+		}
 		foreach ($rewards as $reward) {
 			if ($have <= $earned) {
 				break;
@@ -284,7 +294,8 @@ function mjfid_sync_rewards(array $holder) {
 	}
 
 	$mode = (string) mjfid_opt('reward_mode');
-	for ($number = $have + 1; $number <= $earned; $number++) {
+	for ($i = $have + 1; $i <= $earned; $i++, $next++) {
+		$number = $next;
 		$credit = ('credit' === $mode && mjfid_credit_available()) ? round(max(0, (float) mjfid_opt('reward_credit_amount')), 2) : 0.0;
 		$ok     = $wpdb->insert(mjfid_table('rewards'), [
 			'holder_type'   => $canonical[0],
@@ -418,7 +429,8 @@ function mjfid_people_list($search = '') {
 	$rows   = $wpdb->get_results('SELECT holder_type, holder_id, MAX(created_at) AS last_at FROM ' . mjfid_table('stamps') . ' GROUP BY holder_type, holder_id ORDER BY last_at DESC', ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- tabla propia, sin valores.
 	$seen   = [];
 	$out    = [];
-	$search = function_exists('mb_strtolower') ? mb_strtolower(trim((string) $search)) : strtolower(trim((string) $search));
+	$lower  = fn ($text) => function_exists('mb_strtolower') ? mb_strtolower((string) $text, 'UTF-8') : strtolower((string) $text);
+	$search = $lower(trim((string) $search));
 	foreach ((array) $rows as $row) {
 		$holder = mjfid_holder($row['holder_type'], $row['holder_id']);
 		if (!$holder) {
@@ -431,7 +443,7 @@ function mjfid_people_list($search = '') {
 		}
 		$seen[$key] = true;
 		$contact    = mjfid_person_contact($canonical);
-		$haystack   = strtolower($contact['name'] . ' ' . $contact['email']);
+		$haystack   = $lower($contact['name'] . ' ' . $contact['email']);
 		if ('' !== $search && false === strpos($haystack, $search)) {
 			continue;
 		}

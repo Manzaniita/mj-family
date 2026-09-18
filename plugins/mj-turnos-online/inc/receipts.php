@@ -269,8 +269,10 @@ add_action('mjpm_receipt_created', function ($id, $row) {
 	if (!$appointment || !in_array((string) $appointment['status'], ['awaiting_deposit', 'pending'], true)) {
 		return;
 	}
+	/* Solo la marca: el aviso a la dueña ya lo manda MJ Medios de Pago (si no, le llegarían dos mails). */
 	if (empty(mjto_dt_or_null($appointment['deposit_notified_at'] ?? ''))) {
-		mjto_client_deposit_notice((string) $appointment['token'], '');
+		mjto_update_appointment((int) $appointment['id'], ['deposit_notified_at' => mjto_now()]);
+		do_action('mjto_deposit_notified', mjto_get_appointment((int) $appointment['id']), '', true);
 	}
 }, 10, 2);
 

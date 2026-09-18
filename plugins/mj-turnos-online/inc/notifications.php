@@ -576,18 +576,31 @@ function mjto_cron_expire_deposits() {
 	), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL
 	$count = 0;
 	foreach ((array) $rows as $row) {
-		$reason = (string) apply_filters('mjto_deposit_expired_reason', (string) mjto_opt('cancel_reason_deposit_expired'), $row);
-		$result = mjto_set_status($row['id'], 'cancelled', ['by' => 'system', 'reason' => $reason, 'notify' => false]);
-		if (is_wp_error($result)) {
-			continue;
+		/*
+		 * Con el candado del turno y releyendo: la tarea horaria, la frecuente y
+		 * una consulta pública pueden llegar juntas, y solo una tiene que
+		 * cancelar, devolver el saldo y mandar el mail.
+		 */
+		$done = mjto_with_appointment_lock((int) $row['id'], function ($fresh) {
+			if ('awaiting_deposit' !== (string) $fresh['status'] || !empty($fresh['deposit_notified_at']) || empty($fresh['deposit_deadline']) || (string) $fresh['deposit_deadline'] >= mjto_now()) {
+				return false;
+			}
+			$reason = (string) apply_filters('mjto_deposit_expired_reason', (string) mjto_opt('cancel_reason_deposit_expired'), $fresh);
+			$result = mjto_set_status($fresh['id'], 'cancelled', ['by' => 'system', 'reason' => $reason, 'notify' => false]);
+			if (is_wp_error($result)) {
+				return false;
+			}
+			$returned = function_exists('mjto_return_applied_credit') ? mjto_return_applied_credit($result) : 0.0;
+			$after    = mjto_get_appointment((int) $fresh['id']);
+			mjto_notify_client($after, 'cancelled', [
+				'seña_resultado' => $returned > 0 ? mjto_deposit_result_text('credit', $after, $returned) : '',
+			]);
+			do_action('mjto_deposit_expired', $after);
+			return true;
+		});
+		if (true === $done) {
+			$count++;
 		}
-		$returned = function_exists('mjto_return_applied_credit') ? mjto_return_applied_credit($result) : 0.0;
-		$fresh    = mjto_get_appointment((int) $row['id']);
-		mjto_notify_client($fresh, 'cancelled', [
-			'seña_resultado' => $returned > 0 ? mjto_deposit_result_text('credit', $fresh, $returned) : '',
-		]);
-		$count++;
-		do_action('mjto_deposit_expired', $fresh);
 	}
 	return $count;
 }

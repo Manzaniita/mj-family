@@ -29,9 +29,11 @@ export function DepositDialog({ appointment, open, onClose, onChanged }) {
 
   useEffect(() => {
     if (!open || !appointment) return;
-    const paid = num(appointment.depositPaid);
-    const required = num(appointment.depositRequired);
-    const suggested = required > 0 ? required : store.depositFor(store.serviceById(appointment.serviceId) || appointment.price);
+    const credit = num(appointment.creditApplied);
+    const paid = num(appointment.depositPaid) - credit;
+    const required = num(appointment.depositRequired) - credit;
+    const suggested = required > 0 ? required : credit > 0 ? 0 : store.depositFor(store.serviceById(appointment.serviceId) || appointment.price);
+    // Con saldo a favor aplicado se carga solo lo transferido: el saldo se suma al guardar.
     setAmount(paid > 0 ? paid : suggested > 0 ? suggested : '');
     const current = appointment.depositMethod || methods[0] || '';
     setMethod(current);
@@ -43,13 +45,14 @@ export function DepositDialog({ appointment, open, onClose, onChanged }) {
 
   if (!appointment) return null;
 
+  const credit = num(appointment.creditApplied);
   const required = num(appointment.depositRequired);
   const alreadyConfirmed = appointment.status === 'confirmed';
 
   const submit = async () => {
     if (saving) return;
-    const value = num(amount);
-    if (!(value > 0)) {
+    const value = num(amount) + credit;
+    if (!(num(amount) > 0) && !(credit > 0)) {
       setError('Cargá el monto que recibiste.');
       return;
     }
@@ -89,7 +92,7 @@ export function DepositDialog({ appointment, open, onClose, onChanged }) {
     >
       <div className="flex flex-col gap-4">
         <MoneyInput
-          label="Monto recibido"
+          label={credit > 0 ? 'Transferencia recibida' : 'Monto recibido'}
           required
           value={amount}
           onChange={(v) => {
@@ -97,7 +100,13 @@ export function DepositDialog({ appointment, open, onClose, onChanged }) {
             if (error) setError('');
           }}
           error={error}
-          help={required > 0 ? `Seña pedida: ${store.formatPrice(required)}` : `Precio del turno: ${store.formatPrice(appointment.price)}`}
+          help={
+            credit > 0
+              ? `Seña pedida: ${store.formatPrice(required)}. Ya cubierto con saldo a favor: ${store.formatPrice(credit)} (se suma solo).`
+              : required > 0
+                ? `Seña pedida: ${store.formatPrice(required)}`
+                : `Precio del turno: ${store.formatPrice(appointment.price)}`
+          }
           min={0}
           autoFocus
         />

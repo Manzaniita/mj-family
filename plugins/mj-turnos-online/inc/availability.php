@@ -532,7 +532,28 @@ function mjto_slot_is_free($service, $date, $time, $exclude_id = 0, $ignore_noti
 
 /** Nombre de la opción-lock de una fecha. */
 function mjto_lock_name($date) {
-	return 'mjto_lock_' . preg_replace('/[^0-9\-]/', '', (string) $date);
+	/* Una fecha ('2026-09-18') o una clave propia ('turno-12'): solo minúsculas, números y guiones. */
+	return 'mjto_lock_' . preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $date));
+}
+
+/**
+ * Corre $fn con el candado de un turno tomado: dos pedidos simultáneos sobre
+ * el mismo turno (doble click, dos pestañas, la tarea programada y una
+ * consulta a la vez) no pueden mover la misma plata dos veces. $fn recibe la
+ * fila recién leída (ya con el candado). → lo que devuelva $fn, o WP_Error.
+ */
+function mjto_with_appointment_lock($id, callable $fn) {
+	$id  = (int) $id;
+	$key = 'turno-' . $id;
+	if ($id <= 0 || !mjto_acquire_lock($key, 5)) {
+		return mjto_booking_error('busy', 503);
+	}
+	try {
+		$row = mjto_get_appointment($id);
+		return $row ? $fn($row) : mjto_booking_error('not_found', 404);
+	} finally {
+		mjto_release_lock($key);
+	}
 }
 
 /**

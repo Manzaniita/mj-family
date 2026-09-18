@@ -501,8 +501,12 @@ function mjto_delete_client($id) {
 	if ($id <= 0) {
 		return false;
 	}
+	$appointments = $wpdb->get_col($wpdb->prepare('SELECT id FROM ' . mjto_table('appointments') . ' WHERE client_id = %d', $id)); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- tabla propia.
 	$wpdb->delete(mjto_table('visits'), ['client_id' => $id], ['%d']);
 	$wpdb->delete(mjto_table('appointments'), ['client_id' => $id], ['%d']);
+	foreach ((array) $appointments as $appointment_id) {
+		do_action('mjto_appointment_deleted', (int) $appointment_id);
+	}
 	$wpdb->delete(mjto_table('credits'), ['client_id' => $id], ['%d']);
 	$wpdb->delete(mjto_table('reviews'), ['client_id' => $id], ['%d']);
 	return false !== $wpdb->delete(mjto_table('clients'), ['id' => $id], ['%d']);
@@ -774,7 +778,11 @@ function mjto_delete_appointment($id) {
 		return false;
 	}
 	$wpdb->query($wpdb->prepare('UPDATE ' . mjto_table('visits') . ' SET appointment_id = NULL WHERE appointment_id = %d', $id)); // phpcs:ignore WordPress.DB.PreparedSQL
-	return false !== $wpdb->delete(mjto_table('appointments'), ['id' => $id], ['%d']);
+	$ok = false !== $wpdb->delete(mjto_table('appointments'), ['id' => $id], ['%d']);
+	if ($ok) {
+		do_action('mjto_appointment_deleted', $id); // Ej.: MJ Fidelidad descuenta los sellos de ese turno.
+	}
+	return $ok;
 }
 
 /**

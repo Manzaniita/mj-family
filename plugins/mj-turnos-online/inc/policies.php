@@ -235,6 +235,14 @@ function mjto_reschedule_terms(array $row) {
  * → fila del turno o WP_Error.
  */
 function mjto_policy_client_cancel(array $row) {
+	return mjto_with_appointment_lock((int) $row['id'], 'mjto_policy_client_cancel_locked');
+}
+
+/** Cancelación de la clienta, con el candado del turno ya tomado. */
+function mjto_policy_client_cancel_locked(array $row) {
+	if ('cancelled' === (string) $row['status']) {
+		return mjto_booking_error('already_cancelled', 400);
+	}
 	$terms = mjto_cancel_terms($row);
 	if (!$terms['allowed']) {
 		return mjto_booking_error('cannot_cancel', 400);
@@ -288,6 +296,11 @@ function mjto_client_reschedule($token, $date, $time) {
 	if (!$row) {
 		return mjto_booking_error('not_found', 404);
 	}
+	return mjto_with_appointment_lock((int) $row['id'], fn ($fresh) => mjto_client_reschedule_locked($fresh, $date, $time));
+}
+
+/** Reprogramado de la clienta, con el candado del turno ya tomado. */
+function mjto_client_reschedule_locked(array $row, $date, $time) {
 	$terms = mjto_reschedule_terms($row);
 	if (!$terms['allowed']) {
 		return mjto_booking_error('cannot_reschedule', 400);
@@ -316,6 +329,11 @@ function mjto_client_reschedule($token, $date, $time) {
 		]);
 		if (is_wp_error($cancelled)) {
 			return $cancelled;
+		}
+		$returned = 0.0;
+		if ('confirmed' !== (string) $row['status'] && (float) $row['credit_applied'] > 0) {
+			$returned = mjto_return_applied_credit($cancelled); // Sin confirmar, el saldo usado no es seña perdida.
+			$paid    -= $returned;
 		}
 		$new = mjto_create_booking(
 			['service_id' => (int) $row['service_id'], 'date' => $date, 'time' => $time],
@@ -383,6 +401,11 @@ function mjto_client_offer_choice($token, $choice) {
 	if (!$row) {
 		return mjto_booking_error('not_found', 404);
 	}
+	return mjto_with_appointment_lock((int) $row['id'], fn ($fresh) => mjto_client_offer_choice_locked($fresh, $choice));
+}
+
+/** Elección de la clienta, con el candado del turno ya tomado. */
+function mjto_client_offer_choice_locked(array $row, $choice) {
 	$choice = sanitize_key((string) $choice);
 	if (!mjto_offer_open($row) || !in_array($choice, mjto_offer_choices(), true) || 'reschedule' === $choice) {
 		return mjto_booking_error('offer_closed', 400);
@@ -413,16 +436,24 @@ function mjto_client_offer_choice($token, $choice) {
  * confirmar vuelve siempre. → fila del turno o WP_Error.
  */
 function mjto_owner_cancel($id, $reason = '', $offer = false, $notify = false) {
-	$row = mjto_get_appointment($id);
-	if (!$row) {
-		return mjto_booking_error('not_found', 404);
+	return mjto_with_appointment_lock((int) $id, fn ($row) => mjto_owner_cancel_locked($row, $reason, $offer, $notify));
+}
+
+/** Cancelación de la dueña, con el candado del turno ya tomado. */
+function mjto_owner_cancel_locked(array $row, $reason, $offer, $notify) {
+	if ('cancelled' === (string) $row['status']) {
+		return $row;
 	}
-	$confirmed = 'confirmed' === (string) $row['status'];
-	$fresh     = mjto_set_status((int) $row['id'], 'cancelled', ['by' => 'owner', 'reason' => $reason, 'notify' => false]);
+	$fresh = mjto_set_status((int) $row['id'], 'cancelled', ['by' => 'owner', 'reason' => $reason, 'notify' => false]);
 	if (is_wp_error($fresh)) {
 		return $fresh;
 	}
-	if (!$confirmed && (float) $row['credit_applied'] > 0) {
+	/*
+	 * Lo que había salido del saldo a favor vuelve al saldo (confirmado o no):
+	 * lo que se le ofrece a la clienta (devolución, saldo, otro día) es solo lo
+	 * que transfirió. Así nunca se devuelve en plata algo que era saldo.
+	 */
+	if ((float) $row['credit_applied'] > 0) {
 		mjto_return_applied_credit($fresh);
 		$fresh = mjto_get_appointment((int) $row['id']);
 	}
@@ -438,6 +469,30 @@ function mjto_owner_cancel($id, $reason = '', $offer = false, $notify = false) {
 	}
 	return $fresh;
 }
+
+/*
+ * La dueña vuelve atrás una cancelación o un "no vino": la seña que había
+ * pasado a saldo a favor por ese turno sale del saldo (lo que quede), y la
+ * seña perdida deja de estarlo. Así nadie queda con el saldo y el turno a la vez.
+ */
+add_action('mjto_status_changed', function ($fresh, $old, $new) {
+	if (!is_array($fresh) || !in_array($old, ['cancelled', 'no_show'], true) || !in_array($new, ['pending', 'awaiting_deposit', 'confirmed', 'completed'], true)) {
+		return;
+	}
+	global $wpdb;
+	$given = (float) $wpdb->get_var($wpdb->prepare(
+		'SELECT SUM(amount) FROM ' . mjto_table('credits') . " WHERE appointment_id = %d AND kind = 'deposit'", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- tabla propia.
+		(int) $fresh['id']
+	));
+	if ($given > 0) {
+		mjto_add_credit((int) $fresh['client_id'], -$given, 'manual', 'El turno se reactivó: la seña vuelve al turno', (int) $fresh['id']);
+	}
+	$patch = ['deposit_forfeited' => 0];
+	if ('cancelled' === $old && in_array((string) ($fresh['owner_offer'] ?? ''), ['open', 'credited', 'refund_requested'], true)) {
+		$patch['owner_offer'] = '';
+	}
+	mjto_update_appointment((int) $fresh['id'], $patch);
+}, 20, 3);
 
 /** La dueña marca como devuelta la seña que la clienta pidió. */
 function mjto_mark_refunded($id) {

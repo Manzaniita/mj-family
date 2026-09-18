@@ -167,7 +167,7 @@ class MJPM_Receipts_Settings_Screen {
 					<th scope="row">Al vencer el plazo</th>
 					<td>
 						<label><input type="checkbox" name="receipts[expire]" value="1" <?php checked((int) $s['expire'], 1); ?>> Cancelar el pedido si no subió ningún <?php echo esc_html(MJPM_Receipts::noun()); ?> (el stock vuelve solo)</label>
-						<p class="description">Así lo reservado no queda trabado: con un plazo de 1 hora, el producto vuelve a estar disponible a la hora. Si ya subió algo, el pedido no se toca: lo revisás vos. Apagado, el plazo es solo informativo.</p>
+						<p class="description">Así lo reservado no queda trabado: con un plazo de 1 hora, el producto vuelve a estar disponible a la hora. Si ya subió algo, el pedido no se toca: lo revisás vos. Solo alcanza a los pedidos hechos después de prenderlo (los anteriores nunca se cancelan solos). Apagado, el plazo es solo informativo.</p>
 						<p style="margin-top:8px;"><label for="mjpm-expire-note">Qué le decimos</label><br>
 						<textarea id="mjpm-expire-note" name="receipts[expire_note]" rows="3" class="large-text"><?php echo esc_textarea($s['expire_note']); ?></textarea></p>
 						<p class="description">Le llega por mail como nota del pedido. <code>{comprobante}</code> = cómo llamás al comprobante.</p>

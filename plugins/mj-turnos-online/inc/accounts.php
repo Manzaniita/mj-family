@@ -17,11 +17,14 @@
  *
  * PRIVACIDAD
  *   Con la sesión iniciada, la clienta ve sus turnos y sus datos guardados
- *   (para no volver a cargarlos). Por eso una ficha que ya existía sin cuenta
- *   no se vincula a una cuenta nueva por coincidir un solo dato: hace falta
- *   que coincidan el teléfono Y el email (mjto_should_link_client). Si no, la
- *   reserva arma una ficha nueva y la dueña ve las dos en el panel. Nadie ve
- *   nunca los turnos de otra persona: "Mis turnos" busca solo por la cuenta.
+ *   (para no volver a cargarlos). WordPress no verifica el email de quien se
+ *   registra, así que una ficha que ya existía NUNCA se vincula sola a una
+ *   cuenta: la reserva arma una ficha nueva de la cuenta y, si la vieja tiene
+ *   el mismo email que la cuenta, a ESE email le llega un link firmado para
+ *   unir las dos (mjto_offer_client_link). Solo quien lee ese correo puede
+ *   hacerlo. La dueña también puede vincular a mano desde la ficha del panel.
+ *   Nadie ve nunca los turnos de otra persona: "Mis turnos" busca solo por la
+ *   cuenta. Con las cuentas apagadas ("off") no se vincula nada y /me no existe.
  *
  * @package MJ_Turnos_Online
  */
@@ -54,19 +57,101 @@ function mjto_my_bookings_url($only_default = false) {
 	return (string) apply_filters('mjto_my_bookings_url', $default);
 }
 
-/**
- * ¿Se puede vincular una ficha sin cuenta a esta cuenta? Por defecto, solo si
- * el teléfono y el email de la ficha son los mismos que escribió al reservar
- * y el email es también el de la cuenta. Filtro: mjto_link_existing_client.
- */
-function mjto_should_link_client(array $existing, array $typed, $user_id) {
-	$user       = get_userdata((int) $user_id);
-	$user_email = $user ? strtolower((string) $user->user_email) : '';
-	$email      = strtolower(trim((string) ($existing['email'] ?? '')));
-	$same_email = '' !== $email && $email === strtolower(trim((string) ($typed['email'] ?? ''))) && $email === $user_email;
-	$same_phone = '' !== (string) ($existing['phone'] ?? '') && (string) $existing['phone'] === mjto_normalize_phone($typed['phone'] ?? '');
-	return (bool) apply_filters('mjto_link_existing_client', $same_email && $same_phone, $existing, $typed, (int) $user_id);
+/* -------------------------------------------------------------------------
+ * Unir una ficha vieja a la cuenta, con un link al email de la ficha
+ * ---------------------------------------------------------------------- */
+
+/** Firma de un link de unión: usuario | ficha nueva | ficha vieja | vence. */
+function mjto_link_signature($payload) {
+	return hash_hmac('sha256', (string) $payload, wp_salt('auth'));
 }
+
+/** Link firmado para unir la ficha vieja a la cuenta (vence en 7 días). */
+function mjto_client_link_url($user_id, $new_client_id, $old_client_id) {
+	$payload = (int) $user_id . '|' . (int) $new_client_id . '|' . (int) $old_client_id . '|' . (time() + 7 * DAY_IN_SECONDS);
+	$token   = rtrim(strtr(base64_encode($payload . '|' . mjto_link_signature($payload)), '+/', '-_'), '='); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- token firmado para un link, no ofuscación.
+	return add_query_arg('mjto_vincular', $token, home_url('/'));
+}
+
+/** Token → [user, nueva, vieja] o null si no es válido o venció. */
+function mjto_client_link_verify($token) {
+	$raw   = base64_decode(strtr((string) $token, '-_', '+/'), true); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- token firmado para un link, no ofuscación.
+	$parts = false !== $raw ? explode('|', $raw) : [];
+	if (5 !== count($parts)) {
+		return null;
+	}
+	[$user, $new, $old, $expires, $signature] = $parts;
+	$payload = $user . '|' . $new . '|' . $old . '|' . $expires;
+	if (!hash_equals(mjto_link_signature($payload), (string) $signature) || (int) $expires < time()) {
+		return null;
+	}
+	return [(int) $user, (int) $new, (int) $old];
+}
+
+/**
+ * La reserva con cuenta encontró una ficha vieja con el mismo teléfono. Si esa
+ * ficha tiene el MISMO email que la cuenta, se le manda a ese email el link
+ * para unirlas. Si no, no pasa nada (la dueña puede vincular a mano).
+ */
+function mjto_offer_client_link($user_id, $new_client_id, array $existing) {
+	$user  = get_userdata((int) $user_id);
+	$email = strtolower(trim((string) ($existing['email'] ?? '')));
+	if (!$user || '' === $email || !is_email($email) || strtolower((string) $user->user_email) !== $email) {
+		return false;
+	}
+	$subject = mjto_render_template((string) mjto_opt('tpl_client_link_subject'), ['{negocio}' => mjto_business_name()]);
+	$body    = mjto_render_template((string) mjto_opt('tpl_client_link_body'), [
+		'{nombre}'       => (string) $existing['first_name'],
+		'{negocio}'      => mjto_business_name(),
+		'{link_vincular}' => mjto_client_link_url($user_id, $new_client_id, (int) $existing['id']),
+	]);
+	return mjto_mail($email, $subject, $body, ['reply_to' => mjto_owner_email(), 'reply_to_name' => mjto_business_name()]);
+}
+
+/**
+ * Une dos fichas: todo lo de la nueva (turnos, visitas, saldo, opiniones)
+ * pasa a la vieja, la nueva se borra y la vieja queda vinculada a la cuenta.
+ * → id de la ficha que queda, o false.
+ */
+function mjto_merge_clients($keep_id, $drop_id, $user_id) {
+	global $wpdb;
+	$keep = mjto_get_client($keep_id);
+	$drop = mjto_get_client($drop_id);
+	if (!$keep || !$drop || (int) $keep_id === (int) $drop_id) {
+		return false;
+	}
+	if (!empty($keep['user_id']) && (int) $keep['user_id'] !== (int) $user_id) {
+		return false; // Mientras tanto la vinculó otra cuenta (o la dueña).
+	}
+	foreach (['appointments', 'visits', 'credits', 'reviews'] as $table) {
+		$wpdb->update(mjto_table($table), ['client_id' => (int) $keep_id], ['client_id' => (int) $drop_id], ['%d'], ['%d']); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	}
+	$wpdb->delete(mjto_table('clients'), ['id' => (int) $drop_id], ['%d']); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	mjto_update_client($keep_id, ['user_id' => (int) $user_id]);
+	do_action('mjto_clients_merged', (int) $keep_id, (int) $drop_id, (int) $user_id);
+	return (int) $keep_id;
+}
+
+/* Abrir el link: con la sesión de esa cuenta, se unen; sin sesión, primero el login. */
+add_action('template_redirect', function () {
+	if (!isset($_GET['mjto_vincular'])) { // phpcs:ignore WordPress.Security.NonceVerification -- el token firmado es la autorización.
+		return;
+	}
+	$token = sanitize_text_field(wp_unslash($_GET['mjto_vincular'])); // phpcs:ignore WordPress.Security.NonceVerification
+	$data  = mjto_client_link_verify($token);
+	if (!$data) {
+		wp_safe_redirect(add_query_arg('vinculado', 'no', mjto_my_bookings_url()));
+		exit;
+	}
+	[$user_id, $new_id, $old_id] = $data;
+	if (!is_user_logged_in()) {
+		wp_safe_redirect(wp_login_url(add_query_arg('mjto_vincular', $token, home_url('/'))));
+		exit;
+	}
+	$ok = (int) get_current_user_id() === $user_id && mjto_merge_clients($old_id, $new_id, $user_id);
+	wp_safe_redirect(add_query_arg('vinculado', $ok ? '1' : 'no', mjto_my_bookings_url()));
+	exit;
+});
 
 /**
  * Qué hacer con la cuenta en una reserva web (se llama antes de tomar el
@@ -76,18 +161,18 @@ function mjto_booking_account_plan(array $input, array $parsed) {
 	$plan = ['user_id' => 0, 'create' => false];
 	$mode = mjto_account_mode();
 
+	/* Cuentas apagadas: como siempre, la reserva no se ata a ninguna cuenta. */
+	if ('off' === $mode) {
+		return $plan;
+	}
 	if (is_user_logged_in()) {
 		/*
-		 * Con sesión: la reserva queda en su cuenta (también en modo "off", si la
-		 * tiene). La dueña probando la reserva con ?vista=publica no se vincula a
-		 * la clienta que carga.
+		 * Con sesión: la reserva queda en su cuenta. La dueña probando la
+		 * reserva con ?vista=publica no se vincula a la clienta que carga.
 		 */
 		if (!current_user_can(MJTO_CAP)) {
 			$plan['user_id'] = (int) get_current_user_id();
 		}
-		return $plan;
-	}
-	if ('off' === $mode) {
 		return $plan;
 	}
 
@@ -195,6 +280,9 @@ function mjto_current_client() {
 add_action('rest_api_init', function () {
 	$ns   = 'mjto/v1';
 	$auth = function () {
+		if ('off' === mjto_account_mode()) {
+			return new WP_Error('rest_no_route', 'No existe.', ['status' => 404]);
+		}
 		if (!is_user_logged_in()) {
 			return new WP_Error('mjto_not_logged_in', (string) mjto_opt('my_bookings_login'), ['status' => 401]);
 		}

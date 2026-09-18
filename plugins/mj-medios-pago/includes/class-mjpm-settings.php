@@ -412,6 +412,7 @@ class MJPM_Settings {
 			'hours'        => 0,                                   // Plazo para subirlo (0 = sin plazo).
 			'remind_hours' => 0,                                   // Recordatorio al cliente (0 = sin recordatorio).
 			'expire'       => 0,                                   // Al vencer el plazo sin comprobante: cancelar el pedido (y devolver el stock).
+			'expire_since' => 0,                                   // Desde cuándo está prendido: los pedidos anteriores nunca se cancelan solos.
 			'expire_note'  => 'Cancelamos tu pedido porque no recibimos el {comprobante} dentro del plazo. Si todavía lo querés, podés hacer una compra nueva.',
 
 			/* Qué pasa cuando decidís ------------------------------------ */
@@ -592,6 +593,11 @@ class MJPM_Settings {
 		$out['hours']        = max(0, min(8760, absint(isset($in['hours']) ? $in['hours'] : 0)));
 		$out['remind_hours'] = max(0, min(8760, absint(isset($in['remind_hours']) ? $in['remind_hours'] : 0)));
 		$out['expire']       = !empty($in['expire']) ? 1 : 0;
+		/* Se anota cuándo se prendió: prenderlo no cancela de golpe los pedidos viejos. */
+		$saved               = get_option(self::RECEIPTS, []);
+		$was_on              = is_array($saved) && !empty($saved['expire']);
+		$since               = is_array($saved) && isset($saved['expire_since']) ? absint($saved['expire_since']) : 0;
+		$out['expire_since'] = $out['expire'] ? (($was_on && $since > 0) ? $since : time()) : 0;
 		$note                = isset($in['expire_note']) ? trim(sanitize_textarea_field((string) $in['expire_note'])) : '';
 		$out['expire_note']  = '' !== $note ? mb_substr($note, 0, 1000) : $d['expire_note'];
 
