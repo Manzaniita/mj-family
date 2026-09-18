@@ -3,11 +3,11 @@
         "Slug":  "mj-appearance",
         "Name":  "MJ Appearance",
         "Type":  "theme",
-        "Version":  "3.28.0",
+        "Version":  "3.29.0",
         "Parent":  null,
-        "Zip":  "mj-appearance-3.28.0.zip",
+        "Zip":  "mj-appearance-3.29.0.zip",
         "SizeKB":  584,
-        "Sha256":  "de63247a0af14c833f9225af4858b4d4211f6ebe9379f7a70297ea1bdfad1a45"
+        "Sha256":  "9882656ab49c7b69e868395b1944b62ef45d51d892d27291ef2865fd2e685ce0"
     },
     {
         "Slug":  "mj-atelier",
@@ -23,71 +23,71 @@
         "Slug":  "mj-colegas",
         "Name":  "MJ Colegas",
         "Type":  "plugin",
-        "Version":  "1.0.1",
+        "Version":  "1.1.0",
         "Parent":  null,
-        "Zip":  "mj-colegas-1.0.1.zip",
-        "SizeKB":  23,
-        "Sha256":  "f98db49d7143f507836e18c4b876555a11bbe486456755ef0800a4650765b21b"
+        "Zip":  "mj-colegas-1.1.0.zip",
+        "SizeKB":  28,
+        "Sha256":  "f2b48ff7ea5b75185994042b74df873e3c35f8cef7381ea3a1574fa74f578862"
     },
     {
         "Slug":  "mj-core",
         "Name":  "MJ Core",
         "Type":  "plugin",
-        "Version":  "1.0.1",
+        "Version":  "1.1.0",
         "Parent":  null,
-        "Zip":  "mj-core-1.0.1.zip",
-        "SizeKB":  20,
-        "Sha256":  "8ee6f8500b9396b2bbe63baf2df21e071f8abb7aa6c63b48598756a19be95ba1"
+        "Zip":  "mj-core-1.1.0.zip",
+        "SizeKB":  24,
+        "Sha256":  "77dd16364d7e0782e896954cb23f6988043efb7d22ff253267110fab17dfd4ab"
     },
     {
         "Slug":  "mj-dolar",
         "Name":  "MJ Dólar",
         "Type":  "plugin",
-        "Version":  "1.1.1",
+        "Version":  "1.2.0",
         "Parent":  null,
-        "Zip":  "mj-dolar-1.1.1.zip",
-        "SizeKB":  46,
-        "Sha256":  "d19195735145f8806a9d62fa5567495437d328ddbb9c9260362788d48856c6a1"
+        "Zip":  "mj-dolar-1.2.0.zip",
+        "SizeKB":  51,
+        "Sha256":  "bf7ae21c73e78d9bea2ceed2c7125e4624bf2edebad2eb4e981f282966ecbc7e"
     },
     {
         "Slug":  "mj-envios",
         "Name":  "MJ Envíos",
         "Type":  "plugin",
-        "Version":  "1.8.1",
+        "Version":  "1.9.0",
         "Parent":  null,
-        "Zip":  "mj-envios-1.8.1.zip",
-        "SizeKB":  146,
-        "Sha256":  "47f76e019a7c6323e730d917809a908e27491b7c563d2985cd41d43175def806"
+        "Zip":  "mj-envios-1.9.0.zip",
+        "SizeKB":  151,
+        "Sha256":  "2483171029ae4a48195a09bffb1965d71ffdca3bc226f18bb27a293c53392a82"
     },
     {
         "Slug":  "mj-erp",
         "Name":  "MJ ERP",
         "Type":  "plugin",
-        "Version":  "1.22.0",
+        "Version":  "1.23.0",
         "Parent":  null,
-        "Zip":  "mj-erp-1.22.0.zip",
-        "SizeKB":  680,
-        "Sha256":  "23c1e275a69149cc20236d49b805bf045d754abde6189a6c757270054f655131"
+        "Zip":  "mj-erp-1.23.0.zip",
+        "SizeKB":  684,
+        "Sha256":  "7557fdf142f16d81588dd26be268d15e3dd1334a0c2a18b9cd932c5d616da7d1"
     },
     {
         "Slug":  "mj-fidelidad",
         "Name":  "MJ Fidelidad",
         "Type":  "plugin",
-        "Version":  "1.0.0",
+        "Version":  "1.1.0",
         "Parent":  null,
-        "Zip":  "mj-fidelidad-1.0.0.zip",
-        "SizeKB":  22,
-        "Sha256":  "2a9c8348c97949e5c0c002710d0bda686abf4f602c741cb24b67e49638c64f8c"
+        "Zip":  "mj-fidelidad-1.1.0.zip",
+        "SizeKB":  27,
+        "Sha256":  "28c512f55508af32aa0510ff3699a3814fdb8708b26713c4764ce693f29a751e"
     },
     {
         "Slug":  "mj-fotos-rapidas",
         "Name":  "MJ Fotos Rápidas",
         "Type":  "plugin",
-        "Version":  "1.3.0",
+        "Version":  "1.4.0",
         "Parent":  null,
-        "Zip":  "mj-fotos-rapidas-1.3.0.zip",
-        "SizeKB":  9,
-        "Sha256":  "76305bd6dfd5c240afebb2bd2ac9a10efe9741483ea84916293cbd3aff669531"
+        "Zip":  "mj-fotos-rapidas-1.4.0.zip",
+        "SizeKB":  13,
+        "Sha256":  "4ee3a136638f07819aca3e0c9f5dfcdb6766663168dd33cdce7519796e301a1d"
     },
     {
         "Slug":  "mj-glossyhair",
@@ -103,41 +103,41 @@
         "Slug":  "mj-jazbeauty",
         "Name":  "Jaz Beauty Art",
         "Type":  "theme",
-        "Version":  "1.0.0",
+        "Version":  "1.1.0",
         "Parent":  "mj-appearance",
-        "Zip":  "mj-jazbeauty-1.0.0.zip",
+        "Zip":  "mj-jazbeauty-1.1.0.zip",
         "SizeKB":  15,
-        "Sha256":  "2173e090ec13bb14e986e3b94affe9e8f976109986cc8549a6a235db60ef30a4"
+        "Sha256":  "853e332ce337d09d66cf05b141e401155c123143ec2d8d762ed003d6ad30c06f"
     },
     {
         "Slug":  "mj-medios-pago",
         "Name":  "MJ Medios de Pago",
         "Type":  "plugin",
-        "Version":  "1.5.0",
+        "Version":  "1.6.0",
         "Parent":  null,
-        "Zip":  "mj-medios-pago-1.5.0.zip",
-        "SizeKB":  113,
-        "Sha256":  "cf39e50fbf1592530697aac2ac3a17260a4d0ff8fcbd7f1593c91079e41c05b7"
+        "Zip":  "mj-medios-pago-1.6.0.zip",
+        "SizeKB":  117,
+        "Sha256":  "428a1c339bfa4d0be0743cbddebd9a5dd5272c06b6379d71aaf53f9b8e76b1fe"
     },
     {
         "Slug":  "mj-optimizador-imagenes",
         "Name":  "MJ Optimizador de Imágenes",
         "Type":  "plugin",
-        "Version":  "1.1.1",
+        "Version":  "1.2.0",
         "Parent":  null,
-        "Zip":  "mj-optimizador-imagenes-1.1.1.zip",
-        "SizeKB":  42,
-        "Sha256":  "a25a364d115d7ca8402eb8151058a688080f6ec167023e9c9328c2a4fd58fadb"
+        "Zip":  "mj-optimizador-imagenes-1.2.0.zip",
+        "SizeKB":  46,
+        "Sha256":  "eba2d3ae78da0b917d0dfff3c53393cf286fc13b891d0324f07e434b34225096"
     },
     {
         "Slug":  "mj-turnos-online",
         "Name":  "MJ Turnos Online",
         "Type":  "plugin",
-        "Version":  "1.3.0",
+        "Version":  "1.4.0",
         "Parent":  null,
-        "Zip":  "mj-turnos-online-1.3.0.zip",
-        "SizeKB":  293,
-        "Sha256":  "9aa1e4646b7f98172655d1f572ed7040cb872839f7e398e3dd044d8a8fcd1314"
+        "Zip":  "mj-turnos-online-1.4.0.zip",
+        "SizeKB":  297,
+        "Sha256":  "9ae3b8d060e2820e91844e0d76119103692fd61d62f383d6269004a098076e77"
     },
     {
         "Slug":  "mj-yamana",
