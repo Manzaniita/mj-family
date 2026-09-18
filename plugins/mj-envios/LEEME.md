@@ -32,7 +32,8 @@ son dos cosas:
 | --- | --- |
 | **Tabla propia** | Tenés tus propios precios por zona y peso. Cargás filas: "CP 1000-1999 hasta 5 kg, $8.000". |
 | **Precio fijo** | Un solo precio para todo el país. |
-| **Cotización en vivo** | El precio lo pone Vía Cargo, Andreani o Correo Argentino en el momento. |
+| **Cotización en vivo** | El precio lo pone Vía Cargo, Andreani o Correo Argentino en el momento, con las credenciales que cargás acá. |
+| **Correo conectado por su propio plugin** | El precio lo pone el plugin oficial del correo, con la cuenta que ya tenés conectada ahí. Aparece solo si hay uno instalado. |
 | **Gratis** | Sin costo, siempre. |
 | **Retiro en el local** | Pasa a buscarlo. No pide dirección de entrega. |
 | **A coordinar** | Se ofrece sin precio y lo arreglás después de la compra. |
@@ -119,11 +120,36 @@ escrita en el plugin.
 
 ---
 
-## Correos
+## Correos que ya tienen su propio plugin
 
-Pestaña **Correos**. Cada uno pide sus datos: URL de la API, usuario, clave,
-número de cliente, contratos. **Un correo sin credenciales queda apagado**, y los
-métodos que lo usan cotizan con su tabla propia.
+Andreani y Correo Argentino tienen plugin oficial. Si está instalado y
+conectado, **no hace falta cargar la credencial dos veces**: MJ Envíos usa esa
+conexión, deja que ese plugin calcule su tarifa y le aplica encima tus reglas
+(envío gratis, excluidos, margen, redondeo, nombre, orden). Aparece en
+**Correos → Conectados por su plugin**, con el titular, el CUIT y en qué zonas
+está su método.
+
+Lo único que tiene que estar prendido es la zona: el plugin del correo cotiza
+cuando su método está en una zona de envío de WooCommerce. Si está conectado pero
+fuera de todas las zonas, no cotiza nunca — el panel lo avisa y tiene el botón
+para agregarlo ahí mismo.
+
+Cada servicio suyo que cotiza **queda como un método propio, editable**, sin
+cargarlo a mano (se apaga en *Ajustes → General → Adopción automática*). Y el
+pedido sale escrito también en las claves que usa ese plugin, así lo ves en su
+propia pantalla de envíos y le podés dar el alta o imprimir el rótulo desde ahí.
+
+> Instalar o desactivar el plugin de un correo no rompe nada: si no está, MJ
+> Envíos ni lo nombra y sigue funcionando igual.
+
+---
+
+## Correos sin plugin propio
+
+Pestaña **Correos → Configurados acá**. Cada uno pide sus datos: URL de la API,
+usuario, clave, número de cliente, contratos. **Un correo sin credenciales queda
+apagado**, y los métodos que lo usan cotizan con su tabla propia. Una clave
+guardada no se vuelve a mostrar: dejar el campo vacío la conserva.
 
 Si la API no responde, hace lo que digas en **Ajustes → Si el correo no
 responde**: cotizar con la tabla propia (lo recomendado), ofrecerlo a coordinar,
@@ -162,9 +188,54 @@ puede quedar gratis. El número que pongas ahí es el que anuncia la barra de
 
 ---
 
+## Sucursales
+
+Se traen una vez desde **Correos → Sucursales** y quedan guardadas: el checkout
+nunca depende de que el correo esté arriba. Los correos las publican por zona,
+así que se piden con un código postal.
+
+Al cliente se le ofrecen **las más cercanas primero**: por distancia real cuando
+el correo publica las coordenadas de sus sucursales, y si no, primero las de su
+código postal y después las de su localidad. Se cambia en *Ajustes →
+Cotización → Sucursales*, junto con cuántas mostrar.
+
+---
+
+## El más barato y el más rápido
+
+En la lista del checkout se le marca al cliente cuál es el envío más barato y
+cuál el más rápido. Los dos carteles se escriben (o se apagan) en *Ajustes →
+General*. Solo aparecen cuando hay con qué comparar y hay un ganador claro: con
+dos envíos al mismo precio no se marca nada.
+
+---
+
+## Cuánto sale, desde la ficha del producto
+
+El cliente pone su código postal en la página del producto y ve cuánto sale y
+cuándo llega, con las mismas opciones y los mismos precios que el checkout, sin
+armar el carrito. Se prende y se escribe en *Ajustes → Textos*. El código postal
+le queda guardado, así no lo escribe de nuevo en cada producto.
+
+---
+
+## Qué hay para despachar
+
+Pestaña **Envíos**: los pedidos que esperan salir, con qué correo va cada uno, a
+dónde, cuántos días llevan esperando y el campo para cargarles el número de
+seguimiento sin abrir el pedido. Se cargan varios y se guarda una vez, con o sin
+aviso al cliente. Se filtra por correo y por método.
+
+Un pedido entra en la lista cuando tiene un envío de MJ Envíos, está en uno de
+los estados que elegiste en *Ajustes → Avisos → Pantalla de envíos* y todavía no
+tiene seguimiento. Ahí mismo se elige a los cuántos días se marca atrasado.
+
+---
+
 ## Seguimiento
 
-El número del correo se carga en el pedido (recuadro **📦 Envío**, a la derecha).
+El número del correo se carga en el pedido (recuadro **📦 Envío**, a la derecha)
+o, de a varios, en la pestaña **Envíos**.
 Al guardarlo:
 
 - El cliente lo ve en **Mi cuenta**, con el link para rastrearlo.
@@ -226,9 +297,12 @@ MJE_Rates::quote($def, $package)       precio de un método para un paquete
 MJE_Geo::resolve_cp($cp)               provincia y localidades de un CP
 MJE_Orders::shipment($order)           el envío guardado en un pedido
 
-filtros  mje_carriers · mje_method_available · mje_quote · mje_fields ·
-         mje_package_weight · mje_geo_cp · mje_known_fields ·
-         mje_fill_from_account · mje_relaxed_address_fields
+MJE_Native::all()                      correos con su propio plugin instalado
+MJE_Native::find($plugin, $servicio)   la tarifa que ese plugin ya calculó
+
+filtros  mje_carriers · mje_native_plugins · mje_method_available · mje_quote ·
+         mje_fields · mje_package_weight · mje_geo_cp · mje_known_fields ·
+         mje_fill_from_account · mje_relaxed_address_fields · mje_quote_rate_limit
 REST     /wp-json/mje/v1/config · /geo/cp · /geo/localidades · /provincias ·
          /sucursales · /cotizar · /seguimiento
 Store API  extensions.mje en el carrito · cart/extensions namespace "mje"
@@ -237,3 +311,9 @@ Store API  extensions.mje en el carrito · cart/extensions namespace "mje"
 Sumar otro correo es registrar una clase que extienda `MJE_Carrier` con el
 filtro `mje_carriers`: declara qué datos de conexión pide, cómo cotiza y cómo se
 lee la respuesta. El resto (HTTP, caché, margen, redondeo) ya está hecho.
+
+Si ese correo **ya tiene su plugin oficial**, el camino es el otro: una clase que
+extienda `MJE_Native_Plugin`, registrada con el filtro `mje_native_plugins`.
+Declara cómo se llama su método de envío, si está conectado, sus sucursales y qué
+hay que escribirle al pedido. La tarifa no se calcula: se toma la que ese plugin
+ya puso en el carrito.

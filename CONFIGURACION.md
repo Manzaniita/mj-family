@@ -303,7 +303,7 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 | MJ Dólar | WooCommerce → Dólar | Tipo de cambio, redondeo, cotización de referencia y su proveedor. |
 | MJ Medios de Pago | WooCommerce → Medios de pago | Recargos y descuentos por medio de pago. Con **Editar textos y datos para pagar**, en cada fila: título, descripción, instrucciones, si está activo, y la lista de datos para pagar (alias, CBU, titular, lo que haga falta: la etiqueta la escribe el admin), con su encabezado, cuáles llevan botón de copiar y si se muestran también en el checkout. En Ajustes generales → *Cómo pagar*: el título del bloque («Cómo pagar»), el encabezado por defecto de los datos, el texto del botón de copiar y el de después de copiar, y en qué estados del pedido los ve el cliente. |
 | MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos (y si al vencer el plazo sin comprobante el pedido se cancela y devuelve el stock: apagado por defecto), qué pasa al aprobar, qué estado toma el pedido con un pago parcial, el mail y el WhatsApp del pago parcial, si los mails suman el resumen del pago (acreditado, pagado, falta abonar y mensaje), quién puede revisarlos, mails y WhatsApp, cuánto se guardan, las equivalencias con los métodos de MJ ERP, y **todos los textos que ve el cliente**: nombres de los estados, mensajes de cada estado, lo pagado y lo que falta, el historial de pagos, el resumen de los mails y los botones y avisos del widget de subida. |
-| MJ Envíos | WooCommerce → Envíos | Los métodos de envío (crear, editar, ordenar, apagar, borrar), sus condiciones, qué datos pide cada uno, la tabla propia de códigos postales, las credenciales de cada correo, el origen del despacho, pesos, margen, redondeo, textos del checkout, los avisos de seguimiento y el estado **Listo para retirar** (apagado por defecto: nombre, mail y WhatsApp). |
+| MJ Envíos | WooCommerce → Envíos | Los métodos de envío (crear, editar, ordenar, apagar, borrar), sus condiciones, qué datos pide cada uno, la tabla propia de códigos postales, los correos —los conectados por su propio plugin y los que se configuran acá—, las sucursales, el origen del despacho, pesos, margen, redondeo, envío gratis, carteles del checkout, el cotizador de la ficha del producto, la pantalla de envíos pendientes, los avisos de seguimiento y el estado **Listo para retirar** (apagado por defecto: nombre, mail y WhatsApp). |
 | MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. Los ve y cambia quien administra la tienda (`manage_woocommerce`); subir fotos lo hace cualquiera que edite productos. Solo se aceptan imágenes (JPG, PNG, WebP, GIF, AVIF), mirando el contenido del archivo. |
 | MJ ERP | MJ ERP → Ajustes | Ventas, clientes, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, permisos del revendedor (por rol y por usuario), y en **Caja y reportes** los dos módulos: si se muestran, los conceptos de los movimientos a mano, el cierre de caja, el aviso de bajo costo y el margen mínimo. |
@@ -1070,9 +1070,40 @@ pregunta:
 Las provincias salen de WooCommerce (país base de la tienda), no de una lista
 escrita en el plugin.
 
-### Los correos
+### Los correos que ya tienen su propio plugin
 
-Un correo sin credenciales queda apagado, y los métodos que lo usan cotizan con
+Andreani y Correo Argentino tienen plugin oficial de WooCommerce. Cuando está
+instalado y conectado, **MJ Envíos no vuelve a pedir la credencial**: lee la
+cuenta que ya está cargada ahí, deja que ese plugin calcule su tarifa y se queda
+con ella. Después le aplica encima las reglas de la casa —envío gratis desde $X,
+productos y categorías excluidos, margen, redondeo, precio mínimo, nombre,
+orden— y la muestra en la misma lista que el resto.
+
+Se ve en **Envíos → Correos → Conectados por su plugin**: el titular, el CUIT,
+desde dónde despacha y en qué zonas está su método. Para configurarlo se va a la
+pantalla del correo, que es la que manda sobre la conexión.
+
+**Lo único que hay que tener prendido es la zona.** El plugin del correo calcula
+su tarifa cuando su método está en una zona de envío de WooCommerce que cubra el
+destino. Si está conectado pero fuera de todas las zonas, no cotiza nunca y los
+métodos que lo usan caen al respaldo de *Si el correo no responde*. El panel lo
+avisa con un botón para agregarlo a la zona ahí mismo.
+
+**Adopción automática** (*Ajustes → General*, encendida por defecto): cada
+servicio del correo que cotiza queda como un método propio de MJ Envíos,
+editable como cualquier otro. Es lo que hace que conectar un correo alcance: no
+hay que cargar a mano un método por cada modo de entrega. Apagada, los métodos se
+crean a mano eligiendo el tipo *Correo conectado por su propio plugin*.
+
+Cuando el cliente compra, el pedido queda escrito también en las claves que usa
+el plugin del correo, así aparece en **su** pantalla de envíos y se le puede dar
+el alta o imprimir el rótulo desde ahí. Dar de alta el envío sigue siendo cosa de
+ese plugin: MJ Envíos no inventa envíos.
+
+### Los correos sin plugin propio
+
+Se configuran en **Envíos → Correos → Configurados acá**. Un correo sin
+credenciales queda apagado, y los métodos que lo usan cotizan con
 su tabla propia. Si la API no responde, pasa lo que diga **Ajustes → Si el correo
 no responde**: cotizar con la tabla (lo recomendado), ofrecerlo a coordinar, o no
 ofrecerlo.
@@ -1094,6 +1125,43 @@ Se activa por monto en **Ajustes → Envío gratis**, y cada método decide si p
 quedar gratis. Ese número es el que anuncia la barra de "te faltan $X para el
 envío gratis" de la tienda: MJ Envíos se lo informa al tema, así que no hay que
 cargarlo dos veces.
+
+### Los carteles del checkout
+
+En **Ajustes → General → Carteles de la lista** se prenden y se escriben los dos
+carteles que marcan el envío **más barato** y el **más rápido**. Solo aparecen
+cuando hay con qué comparar y hay un ganador claro: con dos envíos al mismo
+precio no se marca nada, porque no le diría nada a nadie.
+
+### Las sucursales
+
+Se traen una vez desde **Envíos → Correos → Sucursales** y quedan guardadas, así
+el checkout nunca depende de que el correo esté funcionando. Andreani y Correo
+Argentino las publican por zona, así que se piden con un código postal.
+
+En **Ajustes → Cotización → Sucursales** se elige cómo se le ofrecen al cliente:
+las más cercanas primero (por distancia real cuando el correo publica las
+coordenadas, y si no por código postal y localidad) o por nombre, y cuántas se
+muestran.
+
+### El cotizador de la ficha del producto
+
+En **Ajustes → Textos** se prende el cotizador que aparece en la página del
+producto: el cliente pone su código postal y ve cuánto sale y cuándo llega, con
+las mismas opciones y los mismos precios que el checkout, sin armar el carrito.
+El título, la ayuda y el botón se escriben ahí. El código postal queda guardado
+en el navegador del cliente, así no lo escribe de nuevo en cada producto.
+
+### La pantalla de envíos
+
+**Envíos → Envíos** muestra qué hay para despachar: el pedido, el cliente, con
+qué correo va, a dónde, cuántos días lleva esperando y el campo para cargarle el
+número de seguimiento sin abrir el pedido. Se cargan varios y se guarda una vez,
+con o sin aviso al cliente.
+
+Un pedido entra en la lista cuando tiene un envío de MJ Envíos, está en uno de
+los estados que elegiste en **Ajustes → Avisos → Pantalla de envíos** y todavía
+no tiene seguimiento. Ahí mismo se elige a los cuántos días se marca atrasado.
 
 ### Con MJ ERP
 

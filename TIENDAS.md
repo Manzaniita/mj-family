@@ -52,6 +52,10 @@ Tienda de importación con precios en dólares, mostrador propio y ERP.
   encendido. Empezar por retiro en el local o precio fijo; la cotización en
   vivo con los correos queda apagada hasta tener cuenta (ver
   `PRUEBAS-EN-LA-TIENDA.md`, sección 3.7).
+  Si la tienda tiene el **plugin oficial de un correo** (Andreani, Correo
+  Argentino), la credencial se carga ahí y no en MJ Envíos: alcanza con que su
+  método esté en una zona de envío. Después se mira *Envíos → Correos →
+  Conectados por su plugin*, que avisa si falta algo.
 - **MJ ERP → Configuración**: canales, medios de pago con su caja, formas de
   entrega, cuándo se emite el pedido, la libreta de clientes y quién puede
   corregir ventas.
@@ -135,9 +139,9 @@ fidelidad. Crema cálido, bordó y negro, Cormorant Garamond + Jost, modo día,
 Instagram). El logo lo sube Jaz en Apariencia → MJ Appearance.
 
 **Qué se instala, en este orden (todo a mano la primera vez):** WordPress y
-WooCommerce, después MJ Appearance (3.21.0 o más nuevo) y el tema hijo Jaz
+WooCommerce, después MJ Appearance (3.22.0 o más nuevo) y el tema hijo Jaz
 Beauty Art, después MJ Turnos Online (1.3.0+), MJ Fidelidad, MJ Medios de Pago
-(1.5.0+), MJ Envíos (1.2.0+), Optimizador, Fotos Rápidas y MJ Core. Un cron
+(1.5.0+), MJ Envíos (1.3.0+), Optimizador, Fotos Rápidas y MJ Core. Un cron
 real del hosting (cada 5 minutos, llamando a `wp-cron.php`) hace exactos la
 reserva provisoria de 1 hora y el recordatorio de 1 hora antes. Un plugin SMTP
 para que los mails lleguen. En PHP, `max_input_vars` en 3000 o más (el panel
@@ -235,7 +239,9 @@ con "Marcar como liquidado" y CSV. Manual en `plugins/mj-colegas/LEEME.md`.
 - **Correr las pruebas de `PRUEBAS-EN-LA-TIENDA.md`** en MJ Importaciones: MJ
   Dólar, MJ Medios de Pago, MJ Envíos y las correcciones, devoluciones y saldo a
   favor del ERP nunca se probaron con una tienda funcionando.
-- **No encender la cotización en vivo de envíos** hasta tener cuenta con un
-  correo y haberlo probado contra su ambiente de pruebas.
+- **No encender la cotización en vivo de envíos** en GlossyHair, Yamana ni Jaz
+  Beauty Art: ninguna tiene cuenta con un correo. En MJ Importaciones ya cotiza
+  Andreani por su plugin oficial; falta probarlo con una compra real
+  (`PRUEBAS-EN-LA-TIENDA.md`, sección 11).
 - Cuando se instale MJ Core en una tienda o se cree o revoque un token,
   actualizar la tabla de arriba y la de `PUBLICAR.md`, sección 3.

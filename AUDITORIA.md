@@ -45,7 +45,7 @@ faltan cosas chicas; **Falta** = hay una pieza grande pendiente.
 | MJ ERP | 1.22.0 | Casi | Probar en la tienda Caja, Reportes y los permisos nuevos; la bitácora del revendedor sin pestaña; LEEME. (Permisos, integridad, `uninstall.php`, ajustes fantasma, `readme.txt`, Caja y Reportes: hechos en 1.22.0.) |
 | MJ Medios de Pago | 1.5.0 | Casi | `uninstall.php` deja el historial de pagos; filtro "parcial" de la bandeja; purga topeada en 200; LEEME. |
 | MJ Dólar | 1.1.1 | Casi | Decidir si el TC se trae solo; endpoint de cotización como ajuste; LEEME. (`readme.txt`: hecho en 1.1.1.) |
-| MJ Envíos | 1.2.0 | Falta | Nunca habló con un correo real. Vía Cargo es un andamio; Correo Argentino sin seguimiento; ningún correo genera el envío ni la etiqueta; importar CSV sin validar; claves reimpresas en el HTML; `/cotizar` sin freno. |
+| MJ Envíos | 1.3.0 | Casi | Probar en la tienda el puente con Andreani (`PRUEBAS-EN-LA-TIENDA.md` §11). Vía Cargo sigue siendo un andamio a la espera de su API; MJ Envíos no da de alta el envío ni imprime el rótulo (lo hace el plugin del correo desde su propia pantalla). (CSV validado, claves que no se reimprimen, `/cotizar` con freno y puente con los plugins de los correos: hechos en 1.3.0.) |
 | MJ Turnos Online | 1.3.0 | Casi | Probar en la tienda lo de 1.3 (cuentas, reglas de cambios, saldo, mantenimiento, opiniones: `PRUEBAS-EN-LA-TIENDA.md` §10); el panel no usa `receipt`. (Freno de lecturas, alias/CBU fuera de `/config` y LEEME al día: hechos en 1.3.0.) |
 | MJ Fidelidad | 1.0.0 | Casi | Nuevo: probar en la tienda (turnos atendidos, premio como saldo, descontar al sacar el atendido). |
 | MJ Colegas | 1.0.1 | Casi | Sellar la base de la comisión. (`uninstall.php`, permiso del menú y CSV: hechos en 1.0.1.) |
@@ -79,23 +79,16 @@ arreglar en el código. Cada punto trae el archivo para ir directo.
       ERP, corregir ventas, devoluciones/RMA, saldo a favor y entrega por
       partes. Es la lista de `PRUEBAS-EN-LA-TIENDA.md`, pendiente desde hace
       una semana. Todo eso toca plata, stock o el checkout.
-- [ ] **No encender la cotización en vivo de envíos** hasta tener cuenta con
-      un correo (memoria del proyecto: no hay credenciales de ninguno).
+- [ ] **Probar el puente con Andreani en MJ Importaciones**, que es la única
+      tienda con cuenta de un correo. Hasta que se pruebe con una compra real,
+      no encender la cotización en vivo en las otras tiendas: no tienen cuenta
+      con ningún correo.
 
 ### 3.2. Seguridad
 
 Ninguna es una inyección ni una fuga de datos; son puertas sin freno o
 permisos mal cerrados. Ordenadas por lo que más duele.
 
-- [ ] **Envíos: `POST /mje/v1/cotizar` público sin freno**
-      (`plugins/mj-envios/includes/class-mje-rest.php:64`) y dispara llamadas
-      salientes al correo. Copiar `MJPM_Receipts_REST::rate_limited()`.
-- [ ] **Envíos: importar CSV de códigos postales sin validar**
-      (`class-mje-admin.php:996-1003`): ni `is_uploaded_file()`, ni extensión,
-      ni tamaño. Y las claves de los correos se reimprimen en el HTML como
-      `value` de un `input type="password"` (`:681-682`): viajan en claro en
-      cada carga de la pestaña, y guardar con el campo vacío las borra. MJ
-      Core resuelve las dos cosas bien (`class-mjc-ajustes.php:141`): copiar.
 - [ ] **Optimizador: borra el `original_image` sin escalar aunque `backup = 0`**
       (`class-mjoi-processor.php:185-197`). Es pérdida irreversible: forzar
       la copia cuando se convierte lo existente. Y `replace_urls()` (`:555-568`)
@@ -330,13 +323,16 @@ existe. Tamaño: chico = días, mediano = una o dos semanas, grande = más.
 
 ### 5.3. Lo grande que depende de terceros
 
-- **Cotización en vivo de envíos**, cuando existan cuentas con los correos.
-  Andreani es el único adaptador completo (cotizar, sucursales, seguimiento);
-  Correo Argentino cotiza y trae sucursales pero no sigue; Vía Cargo es un
+- **Cotización en vivo de envíos** en las tiendas que todavía no tienen cuenta
+  con ningún correo. En MJ Importaciones ya cotizan Andreani y Correo Argentino
+  por el puente con sus plugins oficiales (1.3.0). Vía Cargo sigue siendo un
   formulario configurable a la espera del contrato de su API.
-- **Alta de envío y etiquetas de despacho.** Ningún correo genera el envío ni
-  el rótulo: hoy el circuito termina en "cargá el número de seguimiento a
-  mano".
+- **Alta de envío y etiquetas de despacho desde MJ Envíos.** Hoy el circuito de
+  MJ Envíos termina en "cargá el número de seguimiento", de a uno o de a varios
+  desde su pestaña Envíos. El alta y el rótulo se hacen en la pantalla del
+  plugin del correo, que reconoce el pedido porque MJ Envíos se lo deja escrito.
+  Traerlo adentro es una segunda vuelta: el alta crea un envío de verdad y no es
+  idempotente.
 - **Pago online de la seña** en Turnos (Mercado Pago con webhook), **agenda
   multi-profesional** (hoy todo el motor asume una) y **calendario** (un `.ics`
   para la clienta es el 20 % del valor con el 5 % del trabajo).

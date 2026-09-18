@@ -675,6 +675,72 @@ aviso; en el panel aparece "Marcar devuelta") o saldo a favor.
 **Señal de que algo está mal:** un horario ocupado aparece como libre, una
 clienta ve un turno que no es suyo, o un mail sale dos veces.
 
+---
+
+## 11. MJ Envíos 1.3: el puente con Andreani y Correo Argentino
+
+Solo en **MJ Importaciones**, que es la única tienda con cuenta de un correo.
+Esto toca el checkout: probalo antes de tocar las otras tiendas.
+
+Antes de empezar: en **WooCommerce → 📦 Envíos → Correos → Conectados por su
+plugin** tiene que decir **conectado** y mostrar el titular y el CUIT de la
+cuenta. Si dice *fuera de las zonas*, agregá su método a la zona con el botón
+que está ahí mismo y volvé a mirar.
+
+1. **El correo cotiza y aparece una sola vez.** Poné un producto con peso en el
+   carrito y andá al checkout con un código postal de otra provincia.
+   **Qué tiene que pasar:** en la lista aparecen los envíos de Andreani con su
+   precio, mezclados con los tuyos y ordenados como vos los ordenaste. Ninguno
+   aparece dos veces, ni con el nombre del plugin y el tuyo a la vez.
+2. **Los métodos se crearon solos.** Mirá **Envíos → Métodos**.
+   **Qué tiene que pasar:** hay un método por cada servicio que cotizó Andreani,
+   encendido, con el nombre que le puso el correo. Cambiale el nombre y el orden
+   a uno y volvé al checkout: tiene que salir con el nombre nuevo, en el lugar
+   nuevo, y con el mismo precio.
+3. **Tus reglas mandan sobre el precio del correo.** En *Ajustes → Precio*
+   ponele 10 % de margen y guardá. Recargá el checkout.
+   **Qué tiene que pasar:** el envío de Andreani sale 10 % más caro. Volvelo a 0
+   antes de seguir.
+4. **El envío gratis alcanza al correo.** Prendé *Envío gratis por monto* con un
+   número por debajo de tu carrito.
+   **Qué tiene que pasar:** el envío de Andreani dice GRATIS. Apagalo de nuevo.
+5. **Los carteles.** Con dos o más envíos a distinto precio.
+   **Qué tiene que pasar:** uno solo dice MÁS BARATO y uno solo MÁS RÁPIDO. Si
+   hay empate, no aparece el cartel.
+6. **"A coordinar" dice que se coordina.** Encendé un método a coordinar.
+   **Qué tiene que pasar:** en la lista dice el texto de a coordinar, **no**
+   GRATIS.
+7. **La sucursal.** Elegí un envío a sucursal.
+   **Qué tiene que pasar:** el desplegable trae sucursales del código postal
+   cargado, las más cercanas primero. Cambiá de sucursal: el precio se recalcula
+   si el correo cobra distinto.
+8. **El código postal completa solo.** Escribí un CP que no hayas usado antes.
+   **Qué tiene que pasar:** se completan provincia y localidad, y las podés
+   corregir a mano sin que se vuelvan a pisar.
+9. **El cotizador de la ficha.** Entrá a un producto sin nada en el carrito y
+   poné tu código postal.
+   **Qué tiene que pasar:** salen las mismas opciones y los mismos precios que
+   en el checkout. Recargá la página: el código postal quedó cargado.
+10. **El pedido que el correo reconoce.** Comprá con un envío de Andreani y
+    abrí el pedido en **su** pantalla (menú Andreani).
+    **Qué tiene que pasar:** el pedido figura ahí con el modo de entrega
+    correcto y, si era a sucursal, con la sucursal elegida. Desde ahí tenés que
+    poder darle el alta como siempre.
+11. **La pantalla de envíos.** Andá a **Envíos → Envíos**.
+    **Qué tiene que pasar:** el pedido está en *Pendientes de despacho*, con el
+    correo, el destino y los días que lleva. Cargale el número de seguimiento
+    con el aviso al cliente prendido y guardá: sale de la lista, al cliente le
+    llega el mail y en Mi cuenta ve el link para rastrearlo.
+12. **Sin el plugin del correo, nada se rompe.** Desactivá el plugin de Andreani
+    un minuto y mirá el checkout.
+    **Qué tiene que pasar:** sus envíos dejan de ofrecerse (o caen al respaldo
+    que elegiste en *Si el correo no responde*), pero los tuyos siguen igual y
+    el panel no tira ningún error. Volvé a activarlo.
+
+**Señal de que algo está mal:** el mismo envío listado dos veces, un envío de
+Andreani que sale $0 sin que hayas puesto envío gratis, un pedido que el panel
+de Andreani no reconoce, o el checkout que se queda pensando al elegir sucursal.
+
 ## Cuando termines
 
 1. Volvé los registros a **Solo los errores**.
