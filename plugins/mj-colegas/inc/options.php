@@ -162,13 +162,27 @@ function mjc_sanitize_options($input) {
 /* -------------------------------------------------------------------------
  * Menú: Colegas → Ajustes | Lista de colegas | Liquidaciones
  * ---------------------------------------------------------------------- */
+/*
+ * Quién ve y guarda los ajustes. Es la misma capacidad que el resto del menú
+ * (quien administra la tienda): antes el menú pedía manage_woocommerce y la
+ * pantalla de ajustes manage_options, así que un shop manager veía el menú y
+ * al entrar le decía que no tenía permiso. Se cambia con el filtro.
+ */
+function mjc_settings_capability() {
+	return (string) apply_filters('mjc_settings_capability', 'manage_woocommerce');
+}
+
 add_action('admin_menu', function () {
 	$plural = mjc_opt('label_plural');
-	add_menu_page("MJ {$plural}", $plural, 'manage_woocommerce', 'mjc', 'mjc_render_settings_page', 'dashicons-groups', 56);
-	add_submenu_page('mjc', 'Ajustes', 'Ajustes', 'manage_options', 'mjc', 'mjc_render_settings_page');
+	$cap    = mjc_settings_capability();
+	add_menu_page("MJ {$plural}", $plural, $cap, 'mjc', 'mjc_render_settings_page', 'dashicons-groups', 56);
+	add_submenu_page('mjc', 'Ajustes', 'Ajustes', $cap, 'mjc', 'mjc_render_settings_page');
 	add_submenu_page('mjc', "Lista de {$plural}", "Lista de {$plural}", 'manage_woocommerce', 'edit-tags.php?taxonomy=' . MJC_TAX . '&post_type=product');
 	add_submenu_page('mjc', 'Liquidaciones', 'Liquidaciones', 'manage_woocommerce', 'mjc-liquidaciones', 'mjc_render_report_page');
 });
+
+/* options.php exige manage_options por defecto para guardar: se alinea con la capacidad de arriba. */
+add_filter('option_page_capability_mjc_options_group', 'mjc_settings_capability');
 
 /* Que la pantalla de la taxonomía resalte el menú "Colegas" y no "Productos". */
 add_filter('parent_file', function ($parent) {
@@ -285,7 +299,7 @@ function mjc_media_picker_script() {
  * Página Colegas → Ajustes
  * ---------------------------------------------------------------------- */
 function mjc_render_settings_page() {
-	if (!current_user_can('manage_options')) {
+	if (!current_user_can(mjc_settings_capability())) {
 		return;
 	}
 	$o        = mjc_get_options();

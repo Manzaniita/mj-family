@@ -2,11 +2,16 @@
 /**
  * Plugin Name: MJ Fotos Rápidas
  * Description: Cargá las fotos de tus productos desde el celular en dos toques y publicalos ahí mismo. Sin FTP, sin renombrar archivos, sin carpetas. Achica las imágenes solo antes de subirlas.
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author: MJ Importaciones
+ * Requires at least: 6.0
+ * Requires PHP: 7.4
  * Requires Plugins: woocommerce
  * Text Domain: mj-fotos-rapidas
  *
+ * v1.3: constante de versión, uninstall.php, los ajustes globales los cambia
+ * solo quien administra la tienda, lo subido tiene que ser una imagen, y el
+ * buscador busca también por SKU (antes lo prometía y buscaba solo por nombre).
  * v1.2: el archivo principal ya no lleva la versión en el nombre (así el zip
  * nuevo actualiza el plugin en lugar de instalar uno distinto al lado), y el
  * tamaño y la calidad con que se achican las fotos son configurables.
@@ -14,12 +19,23 @@
  * borradores que ya tengan fotos.
  */
 
-if (!defined('ABSPATH')) exit;
+defined('ABSPATH') || exit;
+
+define('MJFR_VERSION', '1.3.0');
 
 class MJ_Fotos_Rapidas {
 
     const SLUG    = 'mj-fotos-rapidas';
     const NONCE   = 'mj_fotos_rapidas';
+
+    /**
+     * Quién puede cambiar los ajustes globales (tamaño y calidad del achique).
+     * Subir fotos lo hace cualquiera que edite productos; cambiar cómo se
+     * achican para todos, solo quien administra la tienda.
+     */
+    public static function capacidad_ajustes() {
+        return (string) apply_filters('mj_fotos_rapidas_capacidad_ajustes', 'manage_woocommerce');
+    }
 
     /* Valores por defecto del achique previo a la subida (ver ajustes()). */
     const MAX_PX  = 1600;
@@ -59,7 +75,7 @@ class MJ_Fotos_Rapidas {
 
     /** Guarda el tamaño y la calidad del achique (formulario de la pantalla). */
     public function guardar_ajustes() {
-        if (!current_user_can('edit_products')) {
+        if (!current_user_can(self::capacidad_ajustes())) {
             wp_die('Sin permisos.');
         }
         check_admin_referer(self::NONCE . '_ajustes');
@@ -89,15 +105,37 @@ class MJ_Fotos_Rapidas {
         );
     }
 
+    /**
+     * Cuántos productos muestra la pantalla. Se cambia con el filtro
+     * `mj_fotos_rapidas_por_pagina`.
+     */
+    private function por_pagina() {
+        return max(1, min(200, (int) apply_filters('mj_fotos_rapidas_por_pagina', 40)));
+    }
+
     private function productos($filtro, $busqueda) {
         $args = array(
             'post_type'      => 'product',
             'post_status'    => array('publish', 'draft', 'pending', 'private'),
-            'posts_per_page' => 40,
+            'posts_per_page' => $this->por_pagina(),
             'orderby'        => 'date',
             'order'          => 'DESC',
         );
-        if ($busqueda !== '') $args['s'] = $busqueda;
+
+        /*
+         * "Buscar por nombre o SKU": get_posts con `s` busca solo en el título y
+         * el texto. El SKU se busca aparte en la tabla de búsqueda de WooCommerce
+         * y los dos resultados se juntan en un solo listado.
+         */
+        if ($busqueda !== '') {
+            $args['s'] = $busqueda;
+            $por_sku = $this->ids_por_sku($busqueda);
+            if ($por_sku) {
+                $por_nombre = get_posts(array_merge($args, array('fields' => 'ids')));
+                unset($args['s']);
+                $args['post__in'] = array_values(array_unique(array_merge($por_sku, (array) $por_nombre)));
+            }
+        }
 
         if ($filtro === 'sin') {
             $args['meta_query'] = array(
@@ -107,6 +145,35 @@ class MJ_Fotos_Rapidas {
             $args['post_status'] = array('draft', 'pending');
         }
         return get_posts($args);
+    }
+
+    /**
+     * IDs de productos y variaciones cuyo SKU contiene el texto, con el padre de
+     * cada variación (la pantalla muestra productos). Lee wc_product_meta_lookup,
+     * que es donde WooCommerce indexa el SKU.
+     *
+     * @return int[]
+     */
+    private function ids_por_sku($busqueda) {
+        global $wpdb;
+        $tabla = $wpdb->prefix . 'wc_product_meta_lookup';
+        $like  = '%' . $wpdb->esc_like($busqueda) . '%';
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nombres de tabla de WordPress y WooCommerce, no del usuario.
+        $filas = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $wpdb->prepare(
+                "SELECT l.product_id, p.post_parent FROM {$tabla} l INNER JOIN {$wpdb->posts} p ON p.ID = l.product_id
+                 WHERE l.sku LIKE %s AND p.post_type IN ('product', 'product_variation') LIMIT %d",
+                $like,
+                $this->por_pagina()
+            ),
+            ARRAY_A
+        );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $ids = array();
+        foreach ((array) $filas as $fila) {
+            $ids[] = (int) $fila['post_parent'] > 0 ? (int) $fila['post_parent'] : (int) $fila['product_id'];
+        }
+        return array_values(array_unique(array_filter($ids)));
     }
 
     private function fotos_de($product_id) {
@@ -144,6 +211,7 @@ class MJ_Fotos_Rapidas {
             <?php endif; ?>
 
             <?php $mjfr_ajustes = self::ajustes(); ?>
+            <?php if (current_user_can(self::capacidad_ajustes())) : ?>
             <details style="margin:0 0 16px;">
                 <summary style="cursor:pointer;">Ajustes de las fotos</summary>
                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; margin-top:10px;">
@@ -159,6 +227,7 @@ class MJ_Fotos_Rapidas {
                     <span class="description">Más tamaño y más calidad = fotos más lindas pero más pesadas y más lentas de subir desde el celular.</span>
                 </form>
             </details>
+            <?php endif; ?>
 
             <form method="get" class="mjfr-barra">
                 <input type="hidden" name="post_type" value="product">
@@ -505,6 +574,23 @@ class MJ_Fotos_Rapidas {
         $this->verificar($id);
 
         if (empty($_FILES['archivo'])) wp_send_json_error('No llegó ningún archivo.');
+
+        /*
+         * Solo imágenes. media_handle_upload() acepta cualquier tipo que WordPress
+         * permita subir (PDF, ZIP…); acá se mira el contenido real del archivo,
+         * no la extensión ni lo que declara el navegador.
+         */
+        $archivo = $_FILES['archivo']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput, WordPress.Security.NonceVerification.Missing -- verificar() ya validó el nonce; el archivo se comprueba abajo.
+        $tmp     = isset($archivo['tmp_name']) ? (string) $archivo['tmp_name'] : '';
+        if ('' === $tmp || !is_uploaded_file($tmp)) {
+            wp_send_json_error('El archivo no llegó completo. Probá de nuevo.');
+        }
+        $tipo = wp_check_filetype_and_ext($tmp, isset($archivo['name']) ? sanitize_file_name((string) $archivo['name']) : 'foto.jpg');
+        $mime = !empty($tipo['type']) ? (string) $tipo['type'] : '';
+        $permitidos = (array) apply_filters('mj_fotos_rapidas_mimes', array('image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'));
+        if ('' === $mime || !in_array($mime, $permitidos, true) || false === @getimagesize($tmp)) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+            wp_send_json_error('Solo se pueden subir fotos (JPG, PNG, WebP, GIF o AVIF).');
+        }
 
         require_once ABSPATH . 'wp-admin/includes/image.php';
         require_once ABSPATH . 'wp-admin/includes/file.php';

@@ -357,6 +357,8 @@ function mjto_option_defaults() {
 		'panel_theme'           => 'theme', // theme | light | dark
 		'panel_accent'          => '',      // Vacío = acento del tema, si existe; si no, #e11d84.
 		'caja_enabled'          => 1,
+		// Al BORRAR el plugin (no al desactivarlo): 1 = se borran clientas, turnos, fichas, servicios y ajustes.
+		'delete_on_uninstall'   => 0,
 		// Moneda sin WooCommerce
 		'currency_symbol'       => '$',
 		'currency_decimals'     => 0,
@@ -909,6 +911,7 @@ function mjto_option_schema() {
 		'panel_theme'           => ['panel', 'enum', ['theme', 'light', 'dark']],
 		'panel_accent'          => ['panel', 'hex'],
 		'caja_enabled'          => ['panel', 'bool'],
+		'delete_on_uninstall'   => ['panel', 'bool'],
 		'currency_symbol'       => ['panel', 'text'],
 		'currency_decimals'     => ['panel', 'int', [0, 4]],
 	];
@@ -2076,6 +2079,7 @@ function mjto_settings_tab_panel() {
 		mjto_field_row('Apariencia', 'panel_theme', fn () => mjto_field_select('panel_theme', ['theme' => 'Como el sitio (tema MJ Appearance)', 'light' => 'Clara (día)', 'dark' => 'Oscura (noche)']), 'Con "como el sitio" sigue el modo elegido en el tema; sin el tema, clara.');
 		mjto_field_row('Color de acento', 'panel_accent', fn () => mjto_field_text('panel_accent', mjto_panel_accent(), 'small-text', 'text'), 'Hexadecimal, ej. <code>#e11d84</code>. Vacío = acento del tema (o fucsia si no hay tema).');
 		mjto_field_row('Caja', '', fn () => mjto_field_check('caja_enabled', 'Mostrar la pestaña Caja (cobrado, señas, métodos de pago, export)'), '');
+		mjto_field_row('Al borrar el plugin', '', fn () => mjto_field_check('delete_on_uninstall', 'Borrar también las clientas, los turnos, las fichas, los servicios y estos ajustes'), 'Solo al <strong>borrar</strong> el plugin desde Plugins, nunca al desactivarlo. Desmarcado, todo queda en la base por si lo volvés a instalar; se limpian igual los permisos, las tareas programadas y los contadores.');
 		?>
 	</table>
 

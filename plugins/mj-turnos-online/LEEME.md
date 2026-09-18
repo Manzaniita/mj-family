@@ -50,7 +50,7 @@ Reserva de turnos online con agenda, ficha técnica por clienta, seña, recordat
 
 ## Bueno saber
 
-- Al desactivar el plugin no se borra nada: las clientas, turnos, fichas y ajustes quedan en la base para cuando lo vuelvas a activar.
+- Al desactivar el plugin no se borra nada: las clientas, turnos, fichas y ajustes quedan en la base para cuando lo vuelvas a activar. Al **borrarlo** desde Plugins tampoco, salvo que en Turnos → Ajustes → El panel marques «Al borrar el plugin»; lo que sí se limpia siempre es el permiso del panel, la tarea programada y los contadores.
 - Los horarios de la agenda y de los turnos usan la zona horaria configurada en *Ajustes → Generales* de WordPress. Revisá que sea la de tu ciudad.
 - Los emails automáticos salen con el nombre del negocio y responden a tu email (el de *Notificaciones*).
 - Los recordatorios y la cancelación de señas vencidas corren con la tarea programada de WordPress (cada hora, cuando hay visitas al sitio). Si tu hosting permite un cron real, mejor.

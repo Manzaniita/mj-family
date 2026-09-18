@@ -191,6 +191,16 @@ add_action('admin_post_mjc_unsettle', function () {
 	exit;
 });
 
+/*
+ * Texto libre para el CSV: un nombre de cliente o de producto que empiece con
+ * «=», «+», «-» o «@» lo ejecutaría Excel como fórmula al abrir el archivo.
+ * Un apóstrofo adelante lo deja como texto (mismo criterio que MJ Turnos).
+ */
+function mjc_csv_texto($valor) {
+	$valor = (string) $valor;
+	return preg_match('/^[=+\-@\t\r]/', $valor) ? "'" . $valor : $valor;
+}
+
 add_action('admin_post_mjc_export', function () {
 	if (!current_user_can('manage_woocommerce')) {
 		wp_die('Sin permisos.');
@@ -213,9 +223,9 @@ add_action('admin_post_mjc_export', function () {
 			$order->get_order_number(),
 			$order->get_date_created() ? $order->get_date_created()->date('Y-m-d') : '',
 			wc_get_order_status_name($order->get_status()),
-			$order->get_formatted_billing_full_name(),
-			$info['name'],
-			$line['item']->get_name(),
+			mjc_csv_texto($order->get_formatted_billing_full_name()),
+			mjc_csv_texto($info['name']),
+			mjc_csv_texto($line['item']->get_name()),
 			$line['item']->get_quantity(),
 			number_format($info['base'], 2, ',', ''),
 			number_format($info['commission'], 2, ',', ''),
