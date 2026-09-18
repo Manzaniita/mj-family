@@ -264,8 +264,9 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 
 | Plugin | Dónde | Qué se configura |
 | --- | --- | --- |
-| MJ Turnos Online | Turnos → Ajustes | Servicios, horarios, seña, textos de la reserva, plantillas de aviso, slug de la página, y en *El panel* si al **borrar** el plugin se van también las clientas, los turnos, las fichas y los servicios (por defecto quedan). |
+| MJ Turnos Online | Turnos → Ajustes | Horarios, seña (y cuánto dura la reserva provisoria), comprobante, **cambios y cancelaciones** (reprogramar, cancelar, saldo a favor, qué se le ofrece a la clienta cuando cancela la dueña), **cuentas** (sin cuenta, opcional u obligatoria, "Mis turnos"), avisos (dos recordatorios, mantenimiento, opiniones) y sus plantillas, textos de la reserva, formulario (con Sí/No y fecha de nacimiento), **secciones de los servicios**, ficha técnica, **opiniones**, slug de la página, y en *El panel* si la agenda del día muestra los horarios libres y lo bloqueado (prendido) y si al **borrar** el plugin se van también las clientas, los turnos, las fichas, el saldo, las opiniones y los servicios (por defecto quedan). Los servicios y sus categorías, en Turnos → Servicios / Categorías. Ver 3.4. |
 | MJ Colegas | Colegas → Ajustes | Nombre del proyecto, etiquetas, comisión, textos. |
+| MJ Fidelidad | Fidelidad → Ajustes | Sellos por tarjeta, vencimiento, el premio (texto a canjear o saldo a favor de MJ Turnos y su monto), de dónde salen los sellos (turnos atendidos y cuántos por turno; compras, por compra o por monto), textos de la tarjeta, mails y si al **borrar** el plugin se van los sellos. Los sellos de cada servicio, en su ficha (Turnos → Servicios, cuadro *Fidelidad*). Sellos a mano y premios canjeados, en Fidelidad → Clientas. |
 | MJ Dólar | WooCommerce → Dólar | Tipo de cambio, redondeo, cotización de referencia y su proveedor. |
 | MJ Medios de Pago | WooCommerce → Medios de pago | Recargos y descuentos por medio de pago. Con **Editar textos y datos para pagar**, en cada fila: título, descripción, instrucciones, si está activo, y la lista de datos para pagar (alias, CBU, titular, lo que haga falta: la etiqueta la escribe el admin), con su encabezado, cuáles llevan botón de copiar y si se muestran también en el checkout. En Ajustes generales → *Cómo pagar*: el título del bloque («Cómo pagar»), el encabezado por defecto de los datos, el texto del botón de copiar y el de después de copiar, y en qué estados del pedido los ve el cliente. |
 | MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos, qué pasa al aprobar, qué estado toma el pedido con un pago parcial, el mail y el WhatsApp del pago parcial, si los mails suman el resumen del pago (acreditado, pagado, falta abonar y mensaje), quién puede revisarlos, mails y WhatsApp, cuánto se guardan, las equivalencias con los métodos de MJ ERP, y **todos los textos que ve el cliente**: nombres de los estados, mensajes de cada estado, lo pagado y lo que falta, el historial de pagos, el resumen de los mails y los botones y avisos del widget de subida. |
@@ -1075,6 +1076,88 @@ cuesta.
 
 ---
 
+## 3.4. Turnos: cambios, cuentas, saldo, mantenimiento y opiniones
+
+Desde MJ Turnos Online 1.3. **Todo viene apagado**: con los ajustes de
+siempre, la reserva funciona como antes. Cada cosa se prende en su pestaña de
+Turnos → Ajustes.
+
+### La reserva provisoria
+
+Cuando la clienta elige un horario queda **esperando la seña** durante
+*Reservas y seña → Plazo para enviar la seña* (en horas; con 1, una hora). Si
+en ese tiempo no avisó que transfirió ni subió el comprobante, el turno se
+cancela solo y el horario vuelve a estar libre. El vencimiento se revisa cada
+5 minutos y, además, en el momento en que alguien consulta los horarios: un
+horario vencido nunca se muestra como ocupado. Subir el comprobante frena el
+vencimiento (la dueña lo está revisando); si lo rechaza, el plazo vuelve a
+correr para que mande otro. La seña se calcula sola (monto fijo o porcentaje,
+*Reservas y seña → Cómo se calcula*; 50 % = porcentaje 50).
+
+### Cambios y cancelaciones
+
+| Ajuste | Default | Qué hace |
+| --- | --- | --- |
+| Cancelar: permitir / anticipación | Sí / 24 h | Con esa anticipación o más, la cancelación es "a tiempo". |
+| La seña de una cancelación a tiempo | No se toca | O "queda como saldo a favor". |
+| Cancelar más cerca del turno | No | Si se permite, la seña se pierde. |
+| Reprogramar: permitir / anticipación | No / 48 h | A tiempo, el turno se mueve y conserva la seña. |
+| Reprogramar más cerca del turno | No puede | O "puede, pero pierde la seña y abona una nueva": el turno viejo se cancela y el nuevo espera su seña. |
+| Saldo a favor | No | Cada clienta tiene su saldo; se usa solo en la seña de la próxima reserva (si alcanza, el turno queda confirmado sin transferir). Si la reserva no sigue, vuelve. |
+| Cuando cancelás vos: ofrecer opciones | No | Al cancelar desde el panel aparece la casilla; la clienta recibe un mail y elige desde su turno: otro día (conserva la seña), la devolución (te avisa y la marcás devuelta) o saldo a favor. Cada opción se prende por separado. |
+| Qué dicen los mails sobre la seña | textos | El comodín `{seña_resultado}`: pasó a saldo, se perdió, se conserva, hace falta una nueva. |
+
+La clienta ve **antes de confirmar** qué va a pasar con su seña: los textos
+salen de Textos → Reprogramar y cancelar. La inasistencia y la tolerancia no
+son automáticas: la dueña marca "No vino" y la seña queda como perdida.
+
+### Cuentas
+
+| Ajuste | Default | Qué hace |
+| --- | --- | --- |
+| Cuenta al reservar | No se pide | "Opcional" (una casilla para crearla) u "Obligatoria" (la crea en el mismo paso, o ingresa si ya tiene). Es la cuenta de WordPress / WooCommerce: la misma sirve para comprar. Con cuenta, el email pasa a ser obligatorio. |
+| Largo mínimo de la contraseña | 8 | |
+| Datos guardados | Sí | Con sesión, el formulario arranca con los datos de su última reserva. |
+| Dirección de "Mis turnos" | vacío | Vacío = Mi cuenta → Mis turnos del tema (o, sin el tema, `/turnos?mis-turnos=1`). |
+
+El link de cada turno (el que llega por mail) funciona siempre, con o sin
+cuenta: con MJ Appearance es `/turnos/t/{código}`; con otro tema, la página
+del shortcode con `?turno={código}`. **Privacidad:** una ficha que ya existía sin cuenta solo se vincula a
+una cuenta nueva si coinciden el teléfono y el email; si no, la reserva arma
+una ficha aparte (la dueña la puede vincular a mano desde la ficha). Nadie ve
+turnos que no sean de su cuenta.
+
+### Mantenimiento
+
+Cada servicio tiene *Mantenimiento: volver cada N días / semanas / meses*
+(Turnos → Servicios). Al confirmarse un turno, la fecha de "retoque / próximo
+mantenimiento" de la ficha sale de ahí (sin período propio, de la regla de la
+ficha técnica) y la dueña la puede cambiar en cada visita. Con
+*Notificaciones → Aviso de mantenimiento* prendido, a la clienta le llega un
+mail *N días antes* (default 2) con el link para reservar ese servicio. No se
+manda si ya tiene un turno reservado, y solo mira su última visita.
+
+### Opiniones
+
+*Opiniones → Pedir opiniones*: después de marcar un turno como atendido (y
+las horas que elijas), a la clienta le llega un mail con el link para
+opinar (puntaje, texto, cómo quiere su nombre). Una por turno. Se publican
+solas desde el puntaje que elijas o esperan revisión; se ocultan, publican y
+borran desde el panel (Más → Opiniones). El nombre se muestra como "Ana G.",
+"Ana" o completo.
+
+### Servicios
+
+Cada servicio: nombre, foto, precio, duración, seña propia, descripción,
+frase corta, categoría, mantenimiento y las **secciones** de información
+(por defecto Qué incluye, Cuidados, Recomendaciones, Información adicional;
+se renombran, agregan y quitan en Turnos → Ajustes → Servicios con líneas
+`clave | Etiqueta`). Las vacías no se muestran. Las **categorías** (Turnos →
+Categorías, con su orden) agrupan la página de servicios y el primer paso de
+la reserva.
+
+---
+
 ## 4. Para instalaciones especiales
 
 Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
@@ -1137,6 +1220,16 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Estados de pedido en los que el cliente ve cómo pagar, después de los del panel | — | `mjpm_payment_info_statuses` |
 | Regla del comprobante de un pago de reventa | — | `mjerp_payment_receipt_requirement` |
 | Regla del comprobante de una seña | — | `mjto_receipt_requirement` |
+| Cada cuántos minutos corre la tarea frecuente de Turnos (vencimientos, recordatorios, avisos) | — | `mjto_tick_minutes` |
+| Reglas de cancelar y reprogramar de un turno (después de las del panel) | — | `mjto_cancel_terms`, `mjto_reschedule_terms` |
+| Si una ficha sin cuenta se vincula a la cuenta que reserva | — | `mjto_link_existing_client` |
+| Dirección de «Mis turnos» (MJ Appearance la pone en Mi cuenta) | — | `mjto_my_bookings_url` |
+| Cuántas opiniones viajan en la config pública, y hasta cuántos días después se pide una | — | `mjto_config_reviews`, `mjto_review_request_max_days` |
+| Cómo se nombra el estado de una opinión en el mail a la dueña | — | `mjto_review_status_labels` |
+| IP real del visitante detrás de un proxy (frenos de Turnos) | — | `mjto_client_ip` |
+| Quién administra la fidelidad, y los defaults que propone un tema hijo | — | `mjfid_capability`, `mjfid_option_defaults` |
+| Sellos que suma una compra | — | `mjfid_order_stamps` |
+| Nombre del negocio en los mails de fidelidad | — | `mjfid_business_name` |
 | Repositorio de donde salen las actualizaciones | `MJ_CORE_REPO` | `mjc_ajustes` |
 | Token de GitHub para leerlo (así no queda en la base) | `MJ_CORE_TOKEN` | `mjc_ajustes` |
 | Dirección de la API de GitHub (GitHub Enterprise) | — | `mjc_api_base` |

@@ -26,7 +26,7 @@ nada contra una tienda: lo que dice "sin probar" sigue sin probar.
 | Líneas propias (sin `dist/`, sin dependencias) | ~146.000, de las cuales MJ ERP ~72.000 (49 %) |
 | Archivos PHP | 160, todos compilan en 7.4 y 8.4 |
 | Rutas REST propias | ~145 (87 del ERP) |
-| Tablas propias | 33 (25 del ERP, 4 de Turnos, 3 de Envíos, 1 de Comprobantes) |
+| Tablas propias | 35 (25 del ERP, 6 de Turnos, 3 de Envíos, 1 de Comprobantes) |
 | Avisos de PHPCS anotados como deuda | 456 (eran 512; la foto se rehizo el 18/9) |
 | Commits / Releases publicadas | 80 / 15 |
 | Corridas del CI que llegaron a arrancar | **0 de 30** (ver 3.1) |
@@ -40,13 +40,14 @@ faltan cosas chicas; **Falta** = hay una pieza grande pendiente.
 
 | Paquete | Versión | Estado | Qué le falta para la v1 |
 | --- | --- | --- | --- |
-| MJ Appearance | 3.19.0 | Casi | Reseñas en la ficha; tope de 1000 productos; subcarpeta. (Frenos y `/catalog-stock`: hechos en 3.19.0.) |
+| MJ Appearance | 3.20.0 | Casi | Reseñas en la ficha; tope de 1000 productos; subcarpeta. (Frenos y `/catalog-stock`: hechos en 3.19.0.) |
 | GlossyHair / Yamana / Atelier | 1.1.1 | Cerrado | `*_REQUIRES` en 3.19.0. |
 | MJ ERP | 1.22.0 | Casi | Probar en la tienda Caja, Reportes y los permisos nuevos; la bitácora del revendedor sin pestaña; LEEME. (Permisos, integridad, `uninstall.php`, ajustes fantasma, `readme.txt`, Caja y Reportes: hechos en 1.22.0.) |
 | MJ Medios de Pago | 1.4.0 | Casi | `uninstall.php` deja el historial de pagos; filtro "parcial" de la bandeja; purga topeada en 200; LEEME. |
 | MJ Dólar | 1.1.1 | Casi | Decidir si el TC se trae solo; endpoint de cotización como ajuste; LEEME. (`readme.txt`: hecho en 1.1.1.) |
 | MJ Envíos | 1.1.1 | Falta | Nunca habló con un correo real. Vía Cargo es un andamio; Correo Argentino sin seguimiento; ningún correo genera el envío ni la etiqueta; importar CSV sin validar; claves reimpresas en el HTML; `/cotizar` sin freno. |
-| MJ Turnos Online | 1.2.1 | Casi | Freno en las rutas públicas de lectura; el LEEME promete un anti-spam que no existe; alias/CBU públicos en `/config`. (`uninstall.php`: hecho en 1.2.1.) |
+| MJ Turnos Online | 1.3.0 | Casi | Probar en la tienda lo de 1.3 (cuentas, reglas de cambios, saldo, mantenimiento, opiniones: `PRUEBAS-EN-LA-TIENDA.md` §10); el panel no usa `receipt`. (Freno de lecturas, alias/CBU fuera de `/config` y LEEME al día: hechos en 1.3.0.) |
+| MJ Fidelidad | 1.0.0 | Casi | Nuevo: probar en la tienda (turnos atendidos, premio como saldo, descontar al sacar el atendido). |
 | MJ Colegas | 1.0.1 | Casi | Sellar la base de la comisión. (`uninstall.php`, permiso del menú y CSV: hechos en 1.0.1.) |
 | MJ Core | 1.0.1 | Casi | Instalarlo en GlossyHair y Yamana. Sin reporte de versiones ni rollback (mejora, no bloqueante). |
 | MJ Optimizador | 1.1.1 | Cerrado | Borra el original sin escalar aunque no haya backup (ver 3.2). |
@@ -86,15 +87,6 @@ arreglar en el código. Cada punto trae el archivo para ir directo.
 Ninguna es una inyección ni una fuga de datos; son puertas sin freno o
 permisos mal cerrados. Ordenadas por lo que más duele.
 
-- [ ] **Turnos: las rutas públicas de lectura no tienen freno**
-      (`plugins/mj-turnos-online/inc/rest.php:35-59`): solo `POST /bookings`
-      mira el límite, y `GET /availability` calcula hasta 62 días con consultas.
-      Además el límite cuenta reservas creadas, no intentos (`:322-331`), así
-      que los intentos fallidos no gastan cupo. `deposit-notice` concatena
-      notas sin tope (`inc/bookings.php:754-763`).
-- [ ] **Turnos: alias, CBU y titular de la seña se publican en `GET /config`**
-      (`inc/frontend.php:130`) a cualquier visitante, sin haber reservado.
-      Mostrarlos recién en el paso final de la reserva.
 - [ ] **Envíos: `POST /mje/v1/cotizar` público sin freno**
       (`plugins/mj-envios/includes/class-mje-rest.php:64`) y dispara llamadas
       salientes al correo. Copiar `MJPM_Receipts_REST::rate_limited()`.
@@ -134,10 +126,8 @@ Cosas que la pantalla ofrece y el código no hace. Peor que no tenerlas.
 - [ ] Medios de Pago: el filtro por estado de la bandeja no acepta `parcial`
       (`class-mjpm-receipts.php:683`) y la purga borra 200 archivos por día
       como mucho (`:971`).
-- [ ] Turnos: el LEEME promete que "frena a quien insiste con 4 veces esa
-      cantidad de intentos fallidos" (`LEEME.md:58`); no existe en el código.
-      El panel recibe `receipt` en cada turno y ningún componente lo usa
-      (`inc/db.php:1073-1075`).
+- [ ] Turnos: el panel recibe `receipt` en cada turno y ningún componente lo
+      usa (`inc/db.php`, `mjto_appointment_public`).
 - [ ] Tema: la ficha de producto **nunca muestra reseñas** en WordPress: la
       pestaña solo se arma en modo demo (`react-app/src/pages/Product.jsx:664`),
       aunque `fetchReviews()` y `reviewsEnabled` existen. Es la única pantalla
@@ -362,7 +352,6 @@ existe. Tamaño: chico = días, mediano = una o dos semanas, grande = más.
 - Buscador avanzado: el de la tienda es rápido. Recién vale con más de mil
   productos, y ahí lo primero es la paginación de 4.1.
 - Chat en vivo: WhatsApp ya cumple ese rol.
-- MJ Fidelidad (puntos): último de la lista, suma poco al lado del resto.
 - Reescribir el ERP en React. Funciona, está entregado, y reescribir 72.000
   líneas para terminar donde ya se está es la peor inversión posible. Partir
   archivos y poner tests sobre la plata, sí.

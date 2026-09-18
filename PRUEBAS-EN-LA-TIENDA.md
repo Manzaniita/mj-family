@@ -600,6 +600,81 @@ vacía sola).
 configurados. Si el hosting está detrás de Cloudflare o un proxy, todas las
 visitas comparten la IP: ver el filtro `mj_client_ip` en `CONFIGURACION.md`.
 
+## 10. MJ Turnos Online 1.3
+
+Primero en una tienda de prueba (o en la de Jaz antes de abrirla). En
+GlossyHair, con los ajustes de siempre, **nada de esto tiene que cambiar**:
+la prueba ahí es reservar un turno como siempre y ver que todo sigue igual.
+
+Preparación: un servicio de 60 minutos con precio 10.000; *Reservas y seña*
+con porcentaje 50 y plazo 1 hora; *Cambios y cancelaciones* con cancelar y
+reprogramar a 48 h, "saldo a favor" prendido, "reprogramar tarde: pierde la
+seña y abona una nueva", "ofrecer opciones" prendido; *Cuentas* obligatoria;
+*Opiniones* prendidas con espera 0; *Notificaciones* con segundo
+recordatorio y aviso de mantenimiento. Un cron real del hosting ayuda.
+
+### 10.1. Reserva con cuenta y seña del 50 %
+
+1. En incógnito, reservá el servicio: el resumen dice seña 5.000. En el paso
+   de datos pide contraseña.
+
+**Qué tiene que pasar:** el turno queda "Esperando seña", se crea la cuenta
+y la sesión queda iniciada. En *Mi cuenta → Mis turnos* aparece solo ese
+turno. Con otra cuenta no se ve.
+
+2. Esperá una hora sin subir comprobante.
+
+**Qué tiene que pasar:** el turno se cancela, llega el mail, y el horario
+vuelve a aparecer libre al consultar (aunque la tarea programada no haya
+corrido todavía).
+
+### 10.2. Comprobante
+
+1. Reservá de nuevo y subí el comprobante desde la página del turno.
+
+**Qué tiene que pasar:** te llega el aviso; el turno ya no vence. Aprobalo
+desde la bandeja: queda "Confirmado" y a la clienta le llega "¡Tu turno está
+confirmado!". Probá también rechazar uno: el plazo vuelve a correr.
+
+### 10.3. Reprogramar y cancelar según la anticipación
+
+1. Con un turno confirmado a más de 48 h: *Reprogramar*.
+   **Qué tiene que pasar:** antes de confirmar dice que la seña se conserva;
+   el turno se mueve y conserva la seña. Te llega el aviso.
+2. Con un turno confirmado a menos de 48 h: *Reprogramar*.
+   **Qué tiene que pasar:** avisa que la seña se pierde; el turno viejo queda
+   cancelado con la seña perdida y el nuevo espera una seña nueva.
+3. Cancelar a tiempo.
+   **Qué tiene que pasar:** la seña pasa a saldo a favor (se ve en Mis turnos
+   y en su ficha del panel). En la reserva siguiente se usa sola: si alcanza,
+   el turno queda confirmado sin transferir.
+
+### 10.4. Cancelás vos
+
+1. Desde el panel, cancelá un turno con seña pagada tildando "Ofrecerle
+   opciones".
+
+**Qué tiene que pasar:** a la clienta le llega el mail; en su turno elige
+otro día (queda confirmado, conserva la seña), la devolución (te llega el
+aviso; en el panel aparece "Marcar devuelta") o saldo a favor.
+
+### 10.5. Mantenimiento, recordatorios y opinión
+
+1. Poné "Mantenimiento: cada 4 semanas" en el servicio y marcá un turno como
+   atendido.
+   **Qué tiene que pasar:** en la ficha, la fecha de mantenimiento es 4 semanas
+   después; dos días antes llega el aviso (probá cambiando la fecha a mano).
+2. Con un turno confirmado para dentro de 23 horas y otro para dentro de 50
+   minutos.
+   **Qué tiene que pasar:** el primero recibe el recordatorio de 24 h y el
+   segundo solo el de "una hora antes".
+3. Tras marcar atendido, llega el pedido de opinión.
+   **Qué tiene que pasar:** la opinión se publica sola (o espera revisión con
+   puntaje bajo) y aparece en el panel, en Más → Opiniones.
+
+**Señal de que algo está mal:** un horario ocupado aparece como libre, una
+clienta ve un turno que no es suyo, o un mail sale dos veces.
+
 ## Cuando termines
 
 1. Volvé los registros a **Solo los errores**.
