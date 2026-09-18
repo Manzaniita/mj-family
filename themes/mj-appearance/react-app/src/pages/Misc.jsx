@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, Scale, X, MapPin, Mail, Phone, MessageCircle, ArrowRight, Send, Loader2, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { Heart, Scale, X, MapPin, Mail, Phone, MessageCircle, ArrowRight, Send, Loader2, CheckCircle2, AlertCircle, Sparkles, Instagram, Navigation } from 'lucide-react';
 import { Section } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
@@ -15,7 +15,7 @@ import { iconByName } from '@/components/ui/DynamicIcon';
 import { Reveal, MaskReveal, Stagger, staggerItem, Counter } from '@/components/motion/Reveal';
 import { useWishlist, useCompare, useRecentlyViewed, useCatalog } from '@/store';
 import { faqs } from '@/data/catalog';
-import { WP, IS_WP, CONTACT, SITE, REVIEWS_ENABLED, ABOUT } from '@/lib/config';
+import { WP, IS_WP, CONTACT, SOCIAL, SITE, REVIEWS_ENABLED, ABOUT } from '@/lib/config';
 import { t, BRAND_LABEL, LEGAL } from '@/lib/copy';
 import { COLEGAS, projectPath, colegaPath, paragraphsOf } from '@/lib/colegas';
 import { TURNOS, bookingPath, servicesPath } from '@/lib/turnos';
@@ -180,7 +180,7 @@ export function Contact() {
   return (
     <Section className="md:py-16">
       <PageHeader eyebrow={t('contact_eyebrow')} title={t('contact_title')} subtitle={t('contact_subtitle')} />
-      <ContactPanel />
+      <ContactPanel showForm={CONTACT.showForm !== false} />
     </Section>
   );
 }
@@ -219,12 +219,16 @@ export function ContactPanel({ showForm = true, showChannels = true, showMap = t
     }
   };
 
-  // Solo canales con datos reales — las líneas vacías se omiten.
+  // Solo canales con datos reales — las líneas vacías se omiten. Instagram, solo si el panel lo pide.
+  const instagram = CONTACT.showInstagram ? String(SOCIAL?.instagram || '').trim() : '';
+  const igHandle = instagram.match(/instagram\.com\/([^/?#]+)/i)?.[1];
   const channels = [
-    CONTACT.address && [MapPin, 'Dirección', CONTACT.address],
-    CONTACT.phone && [Phone, 'Teléfono', CONTACT.phone],
-    CONTACT.whatsapp && [MessageCircle, 'WhatsApp', CONTACT.whatsapp],
-    CONTACT.email && [Mail, 'Email', CONTACT.email],
+    CONTACT.address && [MapPin, t('contact_label_address'), CONTACT.address],
+    CONTACT.area && [Navigation, t('contact_label_area'), CONTACT.area],
+    CONTACT.phone && [Phone, t('contact_label_phone'), CONTACT.phone],
+    CONTACT.whatsapp && [MessageCircle, t('contact_label_whatsapp'), CONTACT.whatsapp],
+    CONTACT.email && [Mail, t('contact_label_email'), CONTACT.email],
+    instagram && [Instagram, t('contact_label_instagram'), igHandle ? `@${igHandle}` : instagram, instagram],
   ].filter(Boolean);
 
   const map = showMap ? CONTACT.map : '';
@@ -284,14 +288,20 @@ export function ContactPanel({ showForm = true, showChannels = true, showMap = t
         )}
         {aside && (
           <Reveal delay={0.15} className={cn('space-y-4', !showForm && 'lg:col-span-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0')}>
-            {channels.map(([Icon, label, value]) => (
-              <div key={label} className="flex gap-4 rounded-xl3 border border-line glass p-6">
+            {channels.map(([Icon, label, value, href]) => (
+              <div key={label} className="mj-contact-channel relative flex gap-4 rounded-xl3 border border-line glass p-6">
                 <span className="grid size-11 shrink-0 place-items-center rounded-xl2 bg-accent-soft text-accent">
                   <Icon size={18} />
                 </span>
-                <div>
+                <div className="min-w-0">
                   <p className="font-medium">{label}</p>
-                  <p className="mt-0.5 text-sm text-ink-soft">{value}</p>
+                  {href ? (
+                    <a href={href} target="_blank" rel="noreferrer" className="mt-0.5 block break-words text-sm text-ink-soft transition-colors after:absolute after:inset-0 hover:text-accent">
+                      {value}
+                    </a>
+                  ) : (
+                    <p className="mt-0.5 break-words text-sm text-ink-soft">{value}</p>
+                  )}
                 </div>
               </div>
             ))}

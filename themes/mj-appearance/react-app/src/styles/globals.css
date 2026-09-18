@@ -581,6 +581,80 @@ html.mj-theme-switching::view-transition-new(root) {
   .mj-carousel__item { width: calc((100% - 1.5rem * (var(--mj-cols, 4) - 1)) / var(--mj-cols, 4)); }
 }
 
+/* ---------------------------------------------------------------------------
+   Animación "Ninguna" (motion_level = none → html[data-motion="none"]).
+   Igual que reduced-motion, pero elegido por la tienda: sin transiciones ni
+   animaciones CSS, y los hovers que mueven cosas (flechas que se corren,
+   fotos que se agrandan, íconos que giran) quedan quietos.
+--------------------------------------------------------------------------- */
+html[data-motion='none'] { scroll-behavior: auto; }
+html[data-motion='none'] *,
+html[data-motion='none'] *::before,
+html[data-motion='none'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0s !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+}
+html[data-motion='none'] .group:hover [class*='group-hover:scale'],
+html[data-motion='none'] .group:hover [class*='group-hover:rotate'],
+html[data-motion='none'] .group:hover [class*='group-hover:-rotate'],
+html[data-motion='none'] .group:hover [class*='group-hover:translate'],
+html[data-motion='none'] .group:hover [class*='group-hover:-translate'],
+html[data-motion='none'] [class*='hover:scale']:hover,
+html[data-motion='none'] [class*='hover:translate']:hover,
+html[data-motion='none'] [class*='hover:-translate']:hover {
+  scale: none !important;
+  rotate: none !important;
+  translate: none !important;
+}
+html[data-motion='none'] .mj-page__prose .wp-block-button__link:hover { transform: none; }
+
+/* ---------------------------------------------------------------------------
+   Botón fijo abajo (components/layout/StickyCta.jsx). En el celular descansa
+   sobre la navegación inferior, como la barra de compra; en la computadora
+   (si está prendido ahí) va pegado al borde. El botón flotante de WhatsApp
+   se corre para arriba mientras está visible (html[data-sticky-cta]).
+--------------------------------------------------------------------------- */
+.mj-sticky-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 75;
+  bottom: calc(3.75rem + env(safe-area-inset-bottom));
+  padding: 0.625rem 1rem;
+}
+.mj-sticky-cta__spacer { height: 4.5rem; }
+/* Button con `to` envuelve el enlace en un span: que ocupe todo el ancho. */
+.mj-sticky-cta__inner > span { display: flex; width: 100%; }
+html[data-sticky-cta] .mj-whatsapp { bottom: calc(9rem + env(safe-area-inset-bottom)); }
+@media (min-width: 1024px) {
+  .mj-sticky-cta {
+    bottom: 0;
+    padding-bottom: calc(0.625rem + env(safe-area-inset-bottom));
+  }
+  .mj-sticky-cta__inner { max-width: 28rem; margin-inline: auto; }
+  html[data-sticky-cta='mobile'] .mj-whatsapp { bottom: 1.5rem; }
+  html[data-sticky-cta='all'] .mj-whatsapp { bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+}
+
+/* ---------------------------------------------------------------------------
+   Galería de trabajos (bloque mj/galeria, components/bloques/GalleryBlock.jsx).
+   Columnas por variable: --mj-gcols-m (celular), --mj-gcols-t (tablet),
+   --mj-gcols (computadora).
+--------------------------------------------------------------------------- */
+.mj-gallery-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(var(--mj-gcols-m, 2), minmax(0, 1fr));
+}
+@media (min-width: 768px) {
+  .mj-gallery-grid { gap: 1.25rem; grid-template-columns: repeat(var(--mj-gcols-t, 3), minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .mj-gallery-grid { grid-template-columns: repeat(var(--mj-gcols, 3), minmax(0, 1fr)); }
+}
+
 /* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

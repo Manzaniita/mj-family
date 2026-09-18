@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Input, Textarea } from '@/components/ui/Input';
 import { ReceiptUploader } from '@/components/ui/ReceiptUploader';
 import { Reveal, Stagger, staggerItem } from '@/components/motion/Reveal';
-import { ServiceCard, ServiceGroupHeading } from '@/components/turnos/ServiceCard';
+import { ServiceCard, ServiceGroupHeading, groupHasHeading } from '@/components/turnos/ServiceCard';
 import { Calendar, monthOf } from '@/components/turnos/Calendar';
 import { SlotPicker } from '@/components/turnos/SlotPicker';
 import { useMonthAvailability } from '@/components/turnos/useMonthAvailability';
@@ -364,7 +364,7 @@ function ServicePicker({ services, selected, onSelect }) {
   return groups.map(({ category, services: list }) => (
     <section key={category ? category.id : 'sin-categoria'} className="mj-booking__service-group mt-8">
       <ServiceGroupHeading category={category} as="h3" small />
-      {grid(list, category ? 'mt-5' : 'mt-0')}
+      {grid(list, groupHasHeading(category) ? 'mt-5' : 'mt-0')}
     </section>
   ));
 }

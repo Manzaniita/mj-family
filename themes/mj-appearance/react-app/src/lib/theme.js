@@ -10,7 +10,7 @@
  * correcto y no hay parpadeo. Acá vive lo que pasa después de montar.
  */
 import { THEME_DEFAULT, THEME_SWITCH } from './config';
-import { REDUCED_MOTION } from './motion';
+import { REDUCED_MOTION, STILL } from './motion';
 
 export const THEME_KEY = 'mj-theme';
 
@@ -105,7 +105,7 @@ export function transitionTheme(theme, origin, commit) {
     commit?.();
   };
 
-  const effect = REDUCED_MOTION ? 'instant' : THEME_SWITCH;
+  const effect = REDUCED_MOTION || STILL ? 'instant' : THEME_SWITCH;
 
   if (effect === 'instant') {
     root.classList.add('mj-theme-cut');

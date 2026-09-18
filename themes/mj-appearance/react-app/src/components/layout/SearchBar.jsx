@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { STILL } from '@/lib/motion';
 import { Search, ArrowUpRight, Loader2, ShoppingBag, FolderOpen, LayoutGrid } from 'lucide-react';
 import { getProducts } from '@/lib/api';
 import { useCatalog, useCart, useUI } from '@/store';
@@ -230,8 +231,8 @@ export function SearchBar() {
                           </div>
                           <Price product={p} size="sm" className="shrink-0" />
                           <motion.button
-                            whileHover={stock.ok ? { scale: 1.1 } : undefined}
-                            whileTap={stock.ok ? { scale: 0.9 } : undefined}
+                            whileHover={STILL ? undefined : stock.ok ? { scale: 1.1 } : undefined}
+                            whileTap={STILL ? undefined : stock.ok ? { scale: 0.9 } : undefined}
                             onClick={(e) => handleAdd(e, p)}
                             disabled={!stock.ok}
                             aria-label={p.type === 'variable' ? 'Elegir opciones' : 'Añadir al carrito'}

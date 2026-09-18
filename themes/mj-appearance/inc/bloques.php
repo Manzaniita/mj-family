@@ -4,8 +4,8 @@
  *
  * Cada sección de la portada (hero, banners, productos, categorías, marcas,
  * opiniones, Instagram, "Nosotros") y las piezas de las páginas de texto
- * (encabezado, formulario de contacto, preguntas frecuentes) existen también
- * como bloque `mj/*`. Con MJ Turnos Online y MJ Colegas activos se suman los
+ * (encabezado, formulario de contacto, preguntas frecuentes, galería de
+ * trabajos) existen también como bloque `mj/*`. Con MJ Turnos Online y MJ Colegas activos se suman los
  * suyos (servicios, reserva, colegas).
  *
  * Cómo funciona:
@@ -48,6 +48,7 @@ function mj_block_field_types() {
 		'products'   => 'array',
 		'categories' => 'array',
 		'repeater'   => 'array',
+		'gallery'    => 'array', // Fotos con leyenda: [{id, url, caption}] (caption vacío = la leyenda o el texto alternativo de la biblioteca).
 	];
 }
 
@@ -64,6 +65,7 @@ function mj_block_field_empty($type) {
 		case 'products':
 		case 'categories':
 		case 'repeater':
+		case 'gallery':
 			return [];
 		default:
 			return '';
@@ -242,15 +244,38 @@ function mj_blocks() {
 
 		'opiniones' => [
 			'title'       => 'Opiniones',
-			'description' => 'Las últimas valoraciones aprobadas de WooCommerce. Sin opiniones, el bloque no se muestra.',
+			'description' => 'Las últimas valoraciones aprobadas de WooCommerce o las opiniones de los turnos (MJ Turnos Online). Sin opiniones, el bloque no se muestra.',
 			'icon'        => 'star-filled',
 			'keywords'    => ['opiniones', 'reseñas', 'testimonios'],
 			'fields'      => [
 				'eyebrow' => $text('Antetítulo', $ph('home_testimonials_eyebrow')),
 				'title'   => $text('Título', $ph('home_testimonials_title')),
 				'limit'   => $number('Cuántas', 4, 1, 12),
+				'source'  => $select('De dónde salen', [
+					'auto'   => 'Automático (WooCommerce; si no hay, las de los turnos)',
+					'woo'    => 'Valoraciones de productos (WooCommerce)',
+					'turnos' => 'Opiniones de los turnos (MJ Turnos Online)',
+				], 'auto', 'Las de los turnos necesitan el plugin MJ Turnos Online con las opiniones prendidas.'),
 			],
-			'summary'     => ['title', 'limit'],
+			'summary'     => ['title', 'limit', 'source'],
+		],
+
+		'galeria' => [
+			'title'       => 'Galería de trabajos',
+			'description' => 'Fotos con su nombre debajo (ej. "Lash Lifting Tradicional"). Al tocar una se abre grande. Con varias leyendas distintas, un filtro opcional arriba.',
+			'icon'        => 'format-gallery',
+			'keywords'    => ['galería', 'trabajos', 'fotos', 'portfolio', 'antes y después'],
+			'fields'      => [
+				'eyebrow'      => $text('Antetítulo'),
+				'title'        => $text('Título', '', 'Vacío = sin encabezado.'),
+				'images'       => ['label' => 'Fotos', 'type' => 'gallery', 'default' => [], 'help' => 'La leyenda de cada foto es el texto que escribas debajo; vacío = la leyenda (o el texto alternativo) de la foto en la biblioteca de medios.'],
+				'showCaptions' => $toggle('Mostrar la leyenda debajo de cada foto', true),
+				'filter'       => $toggle('Filtro por leyenda (botones arriba)', false, 'Solo aparece si hay al menos dos leyendas distintas.'),
+				'cols'         => $select('Columnas en la computadora', ['2' => '2', '3' => '3', '4' => '4', '5' => '5'], '3'),
+				'colsMobile'   => $select('Columnas en el celular', ['1' => '1', '2' => '2'], '2'),
+				'ratio'        => $select('Forma de las fotos', ['square' => 'Cuadradas', 'portrait' => 'Verticales (4:5)', 'landscape' => 'Horizontales (4:3)', 'original' => 'Como vienen'], 'square'),
+			],
+			'summary'     => ['title'],
 		],
 
 		'instagram' => [
@@ -284,7 +309,7 @@ function mj_blocks() {
 
 		'contacto' => [
 			'title'       => 'Contacto',
-			'description' => 'El formulario de contacto y los canales (dirección, teléfono, WhatsApp, mail, mapa) configurados en Contacto.',
+			'description' => 'El formulario de contacto y los canales (dirección o zona de atención, teléfono, WhatsApp, mail, Instagram, mapa) configurados en Contacto.',
 			'icon'        => 'email',
 			'keywords'    => ['contacto', 'formulario', 'mapa', 'whatsapp'],
 			'fields'      => [
@@ -468,6 +493,41 @@ function mj_block_image_url($value) {
 	return $url ? $url : '';
 }
 
+/*
+ * Fotos de la galería → [{src, full, caption, alt, width, height}].
+ *
+ * La leyenda es el texto propio de la foto en el bloque; vacío = la leyenda
+ * de la biblioteca de medios; vacía también = su texto alternativo. Así, si
+ * se corrige la leyenda en la biblioteca, la galería se entera sola.
+ */
+function mj_block_gallery_items($value) {
+	$items = [];
+	foreach ((array) $value as $item) {
+		$id = is_array($item) && isset($item['id']) ? absint($item['id']) : absint($item);
+		if (!$id) {
+			continue;
+		}
+		$large = wp_get_attachment_image_src($id, 'large');
+		if (!$large) {
+			continue;
+		}
+		$full    = wp_get_attachment_image_src($id, 'full');
+		$alt     = trim((string) get_post_meta($id, '_wp_attachment_image_alt', true));
+		$own     = is_array($item) && isset($item['caption']) ? sanitize_text_field((string) $item['caption']) : '';
+		$library = function_exists('wp_get_attachment_caption') ? trim(wp_strip_all_tags((string) wp_get_attachment_caption($id))) : '';
+		$caption = '' !== trim($own) ? trim($own) : ('' !== $library ? $library : $alt);
+		$items[] = [
+			'src'     => (string) $large[0],
+			'full'    => $full ? (string) $full[0] : (string) $large[0],
+			'caption' => $caption,
+			'alt'     => '' !== $alt ? $alt : $caption,
+			'width'   => (int) $large[1],
+			'height'  => (int) $large[2],
+		];
+	}
+	return $items;
+}
+
 /* Un valor de campo saneado según su tipo, listo para viajar a la SPA. */
 function mj_block_sanitize_value(array $field, $value) {
 	switch ($field['type']) {
@@ -529,6 +589,8 @@ function mj_block_sanitize_value(array $field, $value) {
 				}
 			}
 			return array_values(array_unique($slugs));
+		case 'gallery':
+			return mj_block_gallery_items($value);
 		case 'repeater':
 			$rows = [];
 			$sub  = isset($field['fields']) && is_array($field['fields']) ? $field['fields'] : [];

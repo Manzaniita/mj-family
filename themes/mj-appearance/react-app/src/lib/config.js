@@ -126,14 +126,28 @@ export const SKIN =
   (typeof document !== 'undefined' ? document.documentElement.dataset.skin : '') ||
   '';
 
-/** 'subtle' | 'medium' | 'cinematic' — cuánta animación lleva la tienda. */
-export const MOTION = pick(qs?.get('motion') || WP?.motion, ['subtle', 'medium', 'cinematic'], 'medium');
+/** 'none' | 'subtle' | 'medium' | 'cinematic' — cuánta animación lleva la tienda ('none' = todo quieto). */
+export const MOTION = pick(qs?.get('motion') || WP?.motion, ['none', 'subtle', 'medium', 'cinematic'], 'medium');
 
 /**
  * 'instant' | 'fade' | 'circle' — cómo cambia la tienda de día a noche al tocar el
  * botón sol/luna. Instantáneo por defecto: el cambio tiene que sentirse al clic.
  */
 export const THEME_SWITCH = pick(qs?.get('switch') || WP?.themeSwitch, ['instant', 'fade', 'circle'], 'instant');
+
+/**
+ * Botón fijo abajo (Apariencia → MJ Appearance → Anuncios y avisos).
+ * url '' = la reserva de MJ Turnos si el plugin está activo; si no, la tienda
+ * (lo resuelve components/layout/StickyCta.jsx). hide: rutas donde no
+ * aparece ('/blog/*' = esa ruta y todo lo que cuelga).
+ */
+export const STICKY_CTA = {
+  enabled: !!WP?.stickyCta?.enabled,
+  text: typeof WP?.stickyCta?.text === 'string' ? WP.stickyCta.text.trim() : '',
+  url: typeof WP?.stickyCta?.url === 'string' ? WP.stickyCta.url.trim() : '',
+  desktop: !!WP?.stickyCta?.desktop,
+  hide: (Array.isArray(WP?.stickyCta?.hide) ? WP.stickyCta.hide : []).filter((p) => typeof p === 'string' && p.trim() !== ''),
+};
 
 /** Cortina de intro al cargar el sitio (una vez por sesión). */
 export const INTRO_ENABLED = qs?.has('intro') ? qs.get('intro') === '1' : !!WP?.intro;

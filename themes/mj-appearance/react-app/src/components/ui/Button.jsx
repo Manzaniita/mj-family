@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/format';
+import { STILL } from '@/lib/motion';
 
 /*
  * Clases mj-btn / mj-btn--{variant} / mj-btn--{size}: ganchos para las skins.
@@ -34,7 +35,8 @@ export function Button({
   );
   // Hover con translate de píxel entero y no con scale: el scale re-rasteriza el
   // texto y las letras se ven borrosas mientras el mouse está encima (globals.css).
-  const motionProps = { whileHover: { y: -1 }, whileTap: { scale: 0.97 } };
+  // Animación "Ninguna": el botón no se mueve al pasar ni al tocar.
+  const motionProps = STILL ? {} : { whileHover: { y: -1 }, whileTap: { scale: 0.97 } };
 
   if (to) {
     return (

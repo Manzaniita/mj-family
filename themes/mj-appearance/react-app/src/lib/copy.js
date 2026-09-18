@@ -101,6 +101,31 @@ export const COPY_DEFAULTS = {
   contact_title: 'Contacto',
   contact_subtitle: 'Escribinos y te respondemos a la brevedad.',
   faq_subtitle: 'Todo lo que necesitás saber antes de comprar.',
+  contact_label_address: 'Dirección',
+  contact_label_phone: 'Teléfono',
+  contact_label_whatsapp: 'WhatsApp',
+  contact_label_email: 'Email',
+  contact_label_instagram: 'Instagram',
+  contact_label_area: 'Zona de atención',
+  // Mi cuenta
+  account_nav_orders: 'Pedidos',
+  account_orders_title: 'Mis pedidos',
+  account_orders_empty: 'Todavía no hiciste ningún pedido.',
+  account_orders_cta: 'Explorar la tienda',
+  account_orders_back: 'Volver a pedidos',
+  account_order_title: 'Pedido',
+  account_status_label: 'Estado',
+  account_payment_label: 'Pago',
+  // Galería de trabajos (bloque mj/galeria)
+  gallery_page_eyebrow: 'Trabajos',
+  gallery_page_title: 'Galería',
+  gallery_page_subtitle: '',
+  gallery_filter_all: 'Todos',
+  gallery_open: 'Ver la foto grande',
+  gallery_prev: 'Foto anterior',
+  gallery_next: 'Foto siguiente',
+  // Servicios (MJ Turnos Online): título del grupo sin categoría. Vacío = sin título.
+  services_uncategorized: '',
 };
 
 const saved = WP?.copy && typeof WP.copy === 'object' ? WP.copy : {};

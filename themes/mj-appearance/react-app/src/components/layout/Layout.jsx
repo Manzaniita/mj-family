@@ -10,6 +10,7 @@ import { QuickView } from './QuickView';
 import { CartToast } from '@/components/ui/CartToast';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { FloatingContact } from './FloatingContact';
+import { StickyCta } from './StickyCta';
 import { Intro } from '@/components/motion/Intro';
 import { PageTransition } from '@/components/motion/PageTransition';
 import { useCart, useUI } from '@/store';
@@ -89,6 +90,8 @@ export function Layout() {
         </ErrorBoundary>
       </main>
       <Footer />
+      {/* Botón fijo abajo (apagado por defecto): deja su propio espacio al final de la página. */}
+      <StickyCta />
       {/* Espacio para que la barra inferior fija no tape el final del footer. */}
       <div className="h-20 pb-[env(safe-area-inset-bottom)] lg:hidden" aria-hidden="true" />
       <BottomNav />

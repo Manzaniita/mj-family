@@ -3,7 +3,7 @@ import { CalendarDays, Sparkles } from 'lucide-react';
 import { Section } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { Reveal, Stagger, staggerItem } from '@/components/motion/Reveal';
-import { ServiceCard, ServiceGroupHeading } from '@/components/turnos/ServiceCard';
+import { ServiceCard, ServiceGroupHeading, groupHasHeading } from '@/components/turnos/ServiceCard';
 import { NotFound } from '@/pages/Misc';
 import { TURNOS, tcopy, bookingPath, groupServicesByCategory } from '@/lib/turnos';
 import { cn } from '@/lib/format';
@@ -61,12 +61,12 @@ export function ServicesPage() {
           {groups
             ? groups.map(({ category, services: list }) => (
                 <section key={category ? category.id : 'sin-categoria'} className="mj-services__group mt-12 md:mt-16">
-                  {category && (
+                  {groupHasHeading(category) && (
                     <Reveal>
                       <ServiceGroupHeading category={category} />
                     </Reveal>
                   )}
-                  {grid(list, category ? 'mt-6' : 'mt-0')}
+                  {grid(list, groupHasHeading(category) ? 'mt-6' : 'mt-0')}
                 </section>
               ))
             : grid(services)}

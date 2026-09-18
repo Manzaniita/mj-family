@@ -122,6 +122,81 @@
 		);
 	}
 
+	/*
+	 * Fotos con leyenda (bloque Galería de trabajos): se eligen de la
+	 * biblioteca y cada una lleva un texto propio. Vacío = la leyenda (o el
+	 * texto alternativo) de la foto en la biblioteca, que se muestra de guía.
+	 */
+	function GalleryField(props) {
+		var field = props.field;
+		var items = Array.isArray(props.value) ? props.value : [];
+
+		function update(i, patch) {
+			props.onChange(items.map(function (it, j) { return j === i ? Object.assign({}, it, patch) : it; }));
+		}
+		function move(i, dir) {
+			var j = i + dir;
+			if (j < 0 || j >= items.length) { return; }
+			var next = items.slice();
+			var tmp = next[i]; next[i] = next[j]; next[j] = tmp;
+			props.onChange(next);
+		}
+
+		return el(c.BaseControl, { label: field.label, help: field.help, __nextHasNoMarginBottom: true },
+			el('ul', { className: 'mj-field-gallery' },
+				items.map(function (img, i) {
+					return el('li', { key: img.id + '-' + i, className: 'mj-field-gallery__item' },
+						el('img', { src: img.url, alt: '' }),
+						el('div', { className: 'mj-field-gallery__body' },
+							el(c.TextControl, {
+								label: 'Leyenda',
+								hideLabelFromVision: true,
+								value: img.caption || '',
+								placeholder: img.libraryCaption || 'Leyenda (ej. Lash Lifting Tradicional)',
+								onChange: function (v) { update(i, { caption: v }); },
+								__nextHasNoMarginBottom: true,
+								__next40pxDefaultSize: true
+							}),
+							el('div', { className: 'mj-field-gallery__actions' },
+								el(c.Button, { icon: 'arrow-up-alt2', label: 'Subir', size: 'small', disabled: i === 0, onClick: function () { move(i, -1); } }),
+								el(c.Button, { icon: 'arrow-down-alt2', label: 'Bajar', size: 'small', disabled: i === items.length - 1, onClick: function () { move(i, 1); } }),
+								el(c.Button, { icon: 'no-alt', label: 'Quitar', size: 'small', isDestructive: true, onClick: function () {
+									props.onChange(items.filter(function (_, j) { return j !== i; }));
+								} })
+							)
+						)
+					);
+				})
+			),
+			el(MediaUploadCheck, null,
+				el(MediaUpload, {
+					allowedTypes: ['image'],
+					multiple: true,
+					gallery: true,
+					value: pick(items, 'id'),
+					onSelect: function (sel) {
+						var prev = {};
+						items.forEach(function (it) { prev[it.id] = it; });
+						var list = (Array.isArray(sel) ? sel : [sel]).map(function (m) {
+							var thumb = m.sizes && (m.sizes.medium || m.sizes.thumbnail);
+							var library = decode(m.caption || m.alt || '');
+							return {
+								id: m.id,
+								url: thumb ? thumb.url : m.url,
+								caption: prev[m.id] ? prev[m.id].caption || '' : '',
+								libraryCaption: library
+							};
+						});
+						props.onChange(list);
+					},
+					render: function (r) {
+						return el(c.Button, { variant: 'secondary', onClick: r.open }, items.length ? 'Agregar o quitar fotos' : 'Elegir fotos');
+					}
+				})
+			)
+		);
+	}
+
 	function ProductsField(props) {
 		var q = useState('');
 		var results = useState([]);
@@ -286,6 +361,8 @@
 				return el(CategoriesField, { field: field, value: value, onChange: onChange });
 			case 'repeater':
 				return el(RepeaterField, { field: field, value: value, onChange: onChange });
+			case 'gallery':
+				return el(GalleryField, { field: field, value: value, onChange: onChange });
 			default:
 				return el(c.TextControl, Object.assign({}, common, { value: value || '', placeholder: field.placeholder || '', onChange: onChange, __next40pxDefaultSize: true }));
 		}
@@ -402,9 +479,33 @@
 			case 'opiniones':
 				return el(Fragment, null,
 					header({ value: attrs.eyebrow, fallback: t('home_testimonials_eyebrow') }, { value: attrs.title, fallback: t('home_testimonials_title') }),
-					chips([attrs.limit + ' opiniones de WooCommerce']),
+					chips([attrs.limit + ' opiniones', sourceLabel(def, attrs)]),
 					cards(Math.min(attrs.limit || 4, 4), Math.min(attrs.limit || 4, 4), false)
 				);
+			case 'galeria': {
+				var photos = Array.isArray(attrs.images) ? attrs.images : [];
+				var gcols = Math.max(1, Number(attrs.cols) || 3);
+				var shown = photos.length ? photos.slice(0, gcols * 2) : [1, 2, 3].slice(0, gcols);
+				var labels = [];
+				photos.forEach(function (p) {
+					var cap = (p.caption || p.libraryCaption || '').trim();
+					if (cap && labels.indexOf(cap) === -1) { labels.push(cap); }
+				});
+				return el(Fragment, null,
+					(attrs.eyebrow || attrs.title) ? header({ value: attrs.eyebrow }, { value: attrs.title }) : null,
+					attrs.filter && labels.length > 1 ? chips([t('gallery_filter_all', 'Todos')].concat(labels.slice(0, 5))) : null,
+					el('div', { className: 'mj-prev-gallery', style: { '--mj-prev-cols': String(gcols) } },
+						shown.map(function (p, i) {
+							var cap = p && p.id ? (p.caption || p.libraryCaption || '') : '';
+							return el('figure', { key: i, className: 'mj-prev-gallery__item' },
+								el('div', { className: 'mj-prev-gallery__img mj-prev-gallery__img--' + (attrs.ratio || 'square'), style: p && p.url ? { backgroundImage: 'url(' + p.url + ')' } : {} }),
+								attrs.showCaptions !== false ? el('figcaption', { className: cap ? '' : 'is-placeholder' }, cap || (p && p.id ? 'Sin leyenda' : 'Leyenda de la foto')) : null
+							);
+						})
+					),
+					chips([photos.length ? photos.length + ' fotos' : 'Elegí las fotos en la barra lateral', attrs.colsMobile + ' columnas en el celular'])
+				);
+			}
 			case 'instagram':
 				return el(Fragment, null,
 					header({ value: '@instagram' }, { value: attrs.title, fallback: t('home_instagram_title') }),
@@ -502,7 +603,7 @@
 	Object.keys(cfg.blocks).forEach(function (key) {
 		var def = cfg.blocks[key];
 		var attributes = {};
-		var types = { text: 'string', textarea: 'string', url: 'string', select: 'string', category: 'string', brand: 'string', number: 'number', toggle: 'boolean', image: 'object', images: 'array', products: 'array', categories: 'array', repeater: 'array' };
+		var types = { text: 'string', textarea: 'string', url: 'string', select: 'string', category: 'string', brand: 'string', number: 'number', toggle: 'boolean', image: 'object', images: 'array', products: 'array', categories: 'array', repeater: 'array', gallery: 'array' };
 		Object.keys(def.fields).forEach(function (fkey) {
 			var f = def.fields[fkey];
 			attributes[fkey] = { type: types[f.type] || 'string', default: f.default };

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { LayoutDashboard, Package, MapPin, Heart, Download, Settings, LogOut, Loader2, AlertCircle, CheckCircle2, ArrowLeft, RotateCcw, MessageCircle, XCircle, Plus, ChevronRight, ExternalLink, CalendarDays, Wallet } from 'lucide-react';
+import { LayoutDashboard, Package, MapPin, Heart, Download, Settings, LogOut, Loader2, AlertCircle, CheckCircle2, ArrowLeft, RotateCcw, MessageCircle, XCircle, Plus, ChevronRight, ExternalLink, CalendarDays, Wallet, Check, Gift } from 'lucide-react';
 import { Section } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
@@ -25,7 +25,7 @@ import {
 
 const nav = [
   { to: '/cuenta', end: true, icon: LayoutDashboard, label: 'Resumen' },
-  { to: '/cuenta/pedidos', icon: Package, label: 'Pedidos' },
+  { to: '/cuenta/pedidos', icon: Package, label: tCopy('account_nav_orders') },
   /* "Mis turnos" (plugin MJ Turnos Online): solo con las cuentas de clientas prendidas. */
   ...(accountsEnabled() ? [{ to: '/cuenta/turnos', icon: CalendarDays, label: turnosCopy('my_bookings_title') }] : []),
   { to: '/cuenta/direcciones', icon: MapPin, label: 'Direcciones' },
@@ -243,7 +243,7 @@ export function AccountDashboard() {
     <Reveal className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          [String(orders.length), 'Pedidos'],
+          [String(orders.length), tCopy('account_nav_orders')],
           [String(favCount), 'En favoritos'],
           [formatPrice(totalSpent), 'Total comprado'],
         ].map(([n, l]) => (
@@ -253,16 +253,133 @@ export function AccountDashboard() {
           </div>
         ))}
       </div>
+      <LoyaltyCard card={account?.fidelidad} />
       <CreditPanel credit={account?.credit} />
       <div className="mj-panel rounded-xl3 border border-line glass p-6">
         <h2 className="font-display text-lg font-semibold">Actividad reciente</h2>
         {recent.length === 0 ? (
-          <p className="mt-4 text-sm text-ink-soft">Todavía no hiciste ningún pedido.</p>
+          <p className="mt-4 text-sm text-ink-soft">{tCopy('account_orders_empty')}</p>
         ) : (
           recent.map((o) => <OrderRow key={o.id} order={o} />)
         )}
       </div>
     </Reveal>
+  );
+}
+
+/* Estado del pago (MJ Medios de Pago, pedidos que piden comprobante) → tono de la etiqueta. */
+const paymentTone = (state) =>
+  ({ aprobado: 'success', parcial: 'solid', rechazado: 'danger' })[state] ?? 'neutral';
+
+/**
+ * Estado del pedido y, si el pedido pide comprobante (plugin MJ Medios de
+ * Pago), el del pago al lado: "Estado: En espera · Pago: A revisar". Sin
+ * `payment`, la etiqueta de siempre sola.
+ */
+function OrderStatus({ order }) {
+  const status = <Badge tone={statusTone(order.status)}>{order.statusLabel ?? order.status}</Badge>;
+  const payment = order.payment && order.payment.label ? order.payment : null;
+  if (!payment) return status;
+  return (
+    <div className="mj-order-status flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-faint">
+      <span className="inline-flex items-center gap-1.5">
+        {tCopy('account_status_label')}: {status}
+      </span>
+      <span className="mj-order-status__payment inline-flex items-center gap-1.5">
+        {tCopy('account_payment_label')}: <Badge tone={paymentTone(payment.state)}>{payment.label}</Badge>
+      </span>
+    </div>
+  );
+}
+
+/* Premio de fidelidad → tono de su estado (pendiente de canje, canjeado, pasado a saldo). */
+const rewardTone = (status) => ({ pending: 'solid', credited: 'success' })[status] ?? 'neutral';
+
+/**
+ * Tarjeta de fidelidad (plugin MJ Fidelidad → `fidelidad` en GET /mj/v1/account):
+ * los sellos como círculos, el progreso, el premio y los premios ganados con
+ * su estado. Todos los textos vienen del plugin. Sin plugin, no aparece.
+ */
+function LoyaltyCard({ card }) {
+  if (!card || typeof card !== 'object' || !card.enabled) return null;
+  const texts = card.texts && typeof card.texts === 'object' ? card.texts : {};
+  const per = Math.max(1, Math.min(50, Math.round(Number(card.perCard) || 0)));
+  const current = Math.max(0, Math.min(per, Math.round(Number(card.current) || 0)));
+  const total = Math.max(0, Math.round(Number(card.total) || 0));
+  const rewards = (Array.isArray(card.rewards) ? card.rewards : []).filter((r) => r && (r.text || Number(r.credit) > 0));
+  const movements = (Array.isArray(card.movements) ? card.movements : []).filter((m) => m && Number(m.stamps));
+
+  return (
+    <div className="mj-panel mj-loyalty rounded-xl3 border border-line glass p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        {texts.title && <h2 className="mj-loyalty__title font-display text-lg font-semibold">{texts.title}</h2>}
+        {card.progressText && <p className="mj-loyalty__progress text-sm font-medium text-accent">{card.progressText}</p>}
+      </div>
+      <ol className="mj-loyalty__stamps mt-5 flex flex-wrap gap-2.5" aria-label={card.progressText || undefined}>
+        {Array.from({ length: per }).map((_, i) => {
+          const filled = i < current;
+          return (
+            <li
+              key={i}
+              className={cn(
+                'mj-loyalty__stamp grid size-9 place-items-center rounded-full border-2',
+                filled ? 'mj-loyalty__stamp--filled border-accent bg-accent text-white' : 'border-line text-ink-faint'
+              )}
+            >
+              {filled ? (
+                <Check size={16} strokeWidth={2.5} aria-hidden="true" />
+              ) : (
+                <span className="text-[11px] font-medium" aria-hidden="true">{i + 1}</span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      {total === 0 && texts.empty && <p className="mj-loyalty__empty mt-4 text-sm text-ink-soft">{texts.empty}</p>}
+      {card.rewardText && (
+        <p className="mj-loyalty__reward mt-5 flex items-start gap-2 text-sm">
+          <Gift size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
+          <span>
+            {texts.rewardLabel && <span className="font-medium">{texts.rewardLabel} </span>}
+            <span className="text-ink-soft">{card.rewardText}</span>
+          </span>
+        </p>
+      )}
+      {rewards.length > 0 && (
+        <div className="mj-loyalty__rewards mt-6 border-t border-line pt-5">
+          {texts.rewardsTitle && <h3 className="text-sm font-semibold">{texts.rewardsTitle}</h3>}
+          <ul className="mt-3 divide-y divide-line text-sm">
+            {rewards.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+                <span className="min-w-0">
+                  {r.text || formatPrice(Number(r.credit) || 0)}
+                  {r.text && Number(r.credit) > 0 && <span className="text-ink-faint"> · {formatPrice(Number(r.credit))}</span>}
+                </span>
+                {r.statusLabel && <Badge tone={rewardTone(r.status)}>{r.statusLabel}</Badge>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {movements.length > 0 && texts.historyTitle && (
+        <details className="mj-loyalty__history mt-5 border-t border-line pt-4 text-sm">
+          <summary className="cursor-pointer list-none font-semibold [&::-webkit-details-marker]:hidden">{texts.historyTitle}</summary>
+          <ul className="mt-2 divide-y divide-line">
+            {movements.slice(0, 10).map((m) => {
+              const n = Number(m.stamps);
+              return (
+                <li key={m.id} className="flex items-center justify-between gap-4 py-2">
+                  <span className="min-w-0 truncate text-ink-soft">{m.note || formatDate(m.createdAt)}</span>
+                  <span className={cn('shrink-0 font-medium', n < 0 ? 'text-ink-soft' : 'text-success')}>
+                    {n > 0 ? `+${n}` : String(n)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      )}
+    </div>
   );
 }
 
@@ -282,7 +399,7 @@ function OrderRow({ order }) {
         <p className="font-medium">#{order.number ?? order.id}</p>
         <p className="text-xs text-ink-faint">{meta}</p>
       </div>
-      <Badge tone={statusTone(order.status)}>{order.statusLabel ?? order.status}</Badge>
+      <OrderStatus order={order} />
       <p className="font-display font-semibold">{formatPrice(Number(order.total) || 0)}</p>
       <ChevronRight size={16} className="text-ink-faint" />
     </Link>
@@ -294,12 +411,12 @@ export function AccountOrders() {
   const orders = account?.orders ?? [];
   return (
     <Reveal>
-      <h2 className="font-display text-xl font-semibold">Mis pedidos</h2>
+      <h2 className="font-display text-xl font-semibold">{tCopy('account_orders_title')}</h2>
       {orders.length === 0 ? (
         <div className="mt-6 rounded-xl3 border border-line glass p-12 text-center">
           <Package size={28} className="mx-auto text-ink-faint" />
-          <p className="mt-4 text-ink-soft">Todavía no hiciste ningún pedido.</p>
-          <Button className="mt-5" size="sm" to="/tienda">Explorar la tienda</Button>
+          <p className="mt-4 text-ink-soft">{tCopy('account_orders_empty')}</p>
+          <Button className="mt-5" size="sm" to="/tienda">{tCopy('account_orders_cta')}</Button>
         </div>
       ) : (
         <div className="mt-2">
@@ -383,7 +500,7 @@ export function AccountOrderDetail() {
       <Reveal className="mj-empty rounded-xl3 border border-line glass p-12 text-center">
         <Package size={28} className="mx-auto text-ink-faint" />
         <p className="mt-4 text-ink-soft">El detalle de pedidos está disponible con la tienda conectada.</p>
-        <Button className="mt-5" size="sm" to="/cuenta/pedidos">Volver a pedidos</Button>
+        <Button className="mt-5" size="sm" to="/cuenta/pedidos">{tCopy('account_orders_back')}</Button>
       </Reveal>
     );
   }
@@ -393,7 +510,7 @@ export function AccountOrderDetail() {
       <Reveal className="mj-empty rounded-xl3 border border-line glass p-12 text-center">
         <AlertCircle size={28} className="mx-auto text-danger" />
         <p className="mt-4 text-ink-soft">{error}</p>
-        <Button className="mt-5" size="sm" to="/cuenta/pedidos">Volver a pedidos</Button>
+        <Button className="mt-5" size="sm" to="/cuenta/pedidos">{tCopy('account_orders_back')}</Button>
       </Reveal>
     );
   }
@@ -418,15 +535,15 @@ export function AccountOrderDetail() {
   return (
     <Reveal>
       <Link to="/cuenta/pedidos" className="inline-flex items-center gap-1.5 text-sm text-ink-faint transition-colors hover:text-accent">
-        <ArrowLeft size={15} /> Volver a pedidos
+        <ArrowLeft size={15} /> {tCopy('account_orders_back')}
       </Link>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl font-semibold">Pedido #{order.number ?? order.id}</h2>
+          <h2 className="font-display text-2xl font-semibold">{tCopy('account_order_title')} #{order.number ?? order.id}</h2>
           <p className="mt-1 text-sm text-ink-faint">{formatDate(order.date)}</p>
         </div>
-        <Badge tone={statusTone(order.status)}>{order.statusLabel ?? order.status}</Badge>
+        <OrderStatus order={order} />
       </div>
 
       {/* Acciones sobre el pedido */}

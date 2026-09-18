@@ -4,6 +4,7 @@ import { ArrowRight, CalendarSync, Check, ChevronDown, Clock } from 'lucide-reac
 import { Button } from '@/components/ui/Button';
 import { TURNOS, tcopy, serviceBookingPath, serviceDeposit, formatDuration, maintenanceText } from '@/lib/turnos';
 import { formatPrice, cn } from '@/lib/format';
+import { t } from '@/lib/copy';
 
 /**
  * Tarjeta de servicio (plugin MJ Turnos Online). Tres modos:
@@ -20,15 +21,26 @@ import { formatPrice, cn } from '@/lib/format';
  */
 
 /**
- * Título de un grupo de servicios (agrupados por categoría). Sin categoría
- * (los que quedan al final) no lleva título.
+ * Título del grupo de los servicios sin categoría (los que quedan al final):
+ * el texto "services_uncategorized" del tema (Textos → Servicios). Vacío = sin
+ * título, como siempre.
+ */
+export const uncategorizedTitle = () => t('services_uncategorized').trim();
+
+/** ¿El grupo lleva título? (sirve para decidir el espacio de la grilla que sigue) */
+export const groupHasHeading = (category) => !!category || uncategorizedTitle() !== '';
+
+/**
+ * Título de un grupo de servicios (agrupados por categoría). El grupo sin
+ * categoría lleva el texto "services_uncategorized", si hay.
  */
 export function ServiceGroupHeading({ category, as: Tag = 'h2', small = false, className }) {
-  if (!category) return null;
+  const name = category ? category.name : uncategorizedTitle();
+  if (!name) return null;
   return (
-    <div className={cn('mj-service-group__head', className)}>
-      <Tag className={cn('mj-service-group__title display', small ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl')}>{category.name}</Tag>
-      {category.description && <p className="mj-service-group__desc mt-2 max-w-2xl text-ink-soft">{category.description}</p>}
+    <div className={cn('mj-service-group__head', !category && 'mj-service-group__head--uncategorized', className)}>
+      <Tag className={cn('mj-service-group__title display', small ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl')}>{name}</Tag>
+      {category?.description && <p className="mj-service-group__desc mt-2 max-w-2xl text-ink-soft">{category.description}</p>}
     </div>
   );
 }

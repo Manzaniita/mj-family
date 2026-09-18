@@ -54,7 +54,7 @@ function mj_option_defaults() {
 		'menu_categories'         => '', // Slugs CSV (máx. 4). Semilla del menú por defecto; lo que manda es nav_items.
 		'nav_items'               => [], // Barra de navegación: filas [{key,label,href,visible,…}] (ver inc/nav.php). Vacío = el menú automático.
 		'design_theme'            => 'dark', // dark | light | system
-		'motion_level'            => 'medium', // subtle | medium | cinematic
+		'motion_level'            => 'medium', // none | subtle | medium | cinematic
 		'theme_switch'            => 'instant', // instant | fade | circle — efecto del botón sol/luna
 		'seo_description'         => '',  // Descripción para Google del sitio (vacío = la descripción corta de WP).
 		'seo_share_image'         => 0,   // Adjunto: foto al compartir una URL sin foto propia (vacío = el logo).
@@ -105,6 +105,16 @@ function mj_option_defaults() {
 		'pages_enabled'           => 1,      // Mostrar en la tienda las páginas publicadas.
 		'pages_override'          => 1,      // Una página con el mismo slug reemplaza a contacto, nosotros, faq, privacidad o terminos.
 		'editor_theme'            => 'auto', // auto | light | dark — con qué tema se pinta el editor de bloques.
+		/* Botón fijo abajo (llamado a la acción en el celular). Apagado = como siempre. */
+		'sticky_cta_enabled'      => 0,                // Mostrar el botón fijo abajo.
+		'sticky_cta_text'         => 'Reservar turno', // Texto del botón.
+		'sticky_cta_url'          => '',               // Destino (vacío = la reserva de MJ Turnos si está activo; si no, la tienda).
+		'sticky_cta_desktop'      => 0,                // 0 = solo en celular y tablet; 1 = también en la computadora.
+		'sticky_cta_hide'         => '',               // Rutas donde NO aparece, una por línea (termina en * = esa ruta y todo lo que cuelga).
+		/* Contacto: qué canales se muestran (lo de siempre por defecto). */
+		'contact_area'            => '',               // Zona de atención ("Atiendo en zona Palermo"). Vacío = no se muestra.
+		'contact_show_instagram'  => 0,                // Sumar Instagram (Redes sociales) a los canales de la página de contacto.
+		'contact_show_form'       => 1,                // Mostrar el formulario en la página de contacto.
 	];
 }
 
@@ -136,6 +146,7 @@ function mj_theme_choices() {
 /* Niveles de animación disponibles. */
 function mj_motion_choices() {
 	return (array) apply_filters('mj_motion_choices', [
+		'none'      => 'Ninguna — todo quieto: sin transiciones, reveals, hovers animados ni cortina de entrada',
 		'subtle'    => 'Sutil — solo fundidos y hovers',
 		'medium'    => 'Media — transiciones de página y reveals al scroll',
 		'cinematic' => 'Cinematográfica — además parallax, reveals por máscara, botones magnéticos y contadores',
@@ -302,6 +313,31 @@ function mj_copy_fields() {
 		'seo_title_recent'          => ['SEO', 'Vistos recientemente — título', 'Vistos recientemente', 'text'],
 		'seo_title_notfound'        => ['SEO', 'Página no encontrada — título', 'Página no encontrada', 'text'],
 		'faq_subtitle'              => ['Páginas', 'Preguntas frecuentes — subtítulo', 'Todo lo que necesitás saber antes de comprar.', 'text'],
+		'contact_label_address'     => ['Páginas', 'Contacto — rótulo de la dirección', 'Dirección', 'text'],
+		'contact_label_phone'       => ['Páginas', 'Contacto — rótulo del teléfono', 'Teléfono', 'text'],
+		'contact_label_whatsapp'    => ['Páginas', 'Contacto — rótulo de WhatsApp', 'WhatsApp', 'text'],
+		'contact_label_email'       => ['Páginas', 'Contacto — rótulo del email', 'Email', 'text'],
+		'contact_label_instagram'   => ['Páginas', 'Contacto — rótulo de Instagram', 'Instagram', 'text', 'Se usa si marcás "Sumar Instagram a los canales" (Contacto).'],
+		'contact_label_area'        => ['Páginas', 'Contacto — rótulo de la zona', 'Zona de atención', 'text', 'Se usa si cargás la zona de atención (Contacto).'],
+		// Mi cuenta
+		'account_nav_orders'        => ['Mi cuenta', 'Pedidos — ítem del menú de la cuenta', 'Pedidos', 'text', 'También rotula el contador de pedidos del resumen. Ej.: "Compras".'],
+		'account_orders_title'      => ['Mi cuenta', 'Pedidos — título', 'Mis pedidos', 'text', 'Ej.: "Mis compras".'],
+		'account_orders_empty'      => ['Mi cuenta', 'Pedidos — sin pedidos', 'Todavía no hiciste ningún pedido.', 'text'],
+		'account_orders_cta'        => ['Mi cuenta', 'Pedidos — botón cuando no hay pedidos', 'Explorar la tienda', 'text'],
+		'account_orders_back'       => ['Mi cuenta', 'Pedidos — volver a la lista', 'Volver a pedidos', 'text'],
+		'account_order_title'       => ['Mi cuenta', 'Detalle — título (antes del número)', 'Pedido', 'text', 'Ej.: "Compra" → "Compra #123".'],
+		'account_status_label'      => ['Mi cuenta', 'Rótulo del estado del pedido', 'Estado', 'text', 'Solo se muestra junto al estado del pago (plugin MJ Medios de Pago, en los pedidos que piden comprobante).'],
+		'account_payment_label'     => ['Mi cuenta', 'Rótulo del estado del pago', 'Pago', 'text', '"Pago: Aprobado". Solo en los pedidos que piden comprobante (plugin MJ Medios de Pago).'],
+		// Galería de trabajos (bloque mj/galeria)
+		'gallery_page_eyebrow'      => ['Galería', 'Plantilla "Página de galería" — antetítulo', 'Trabajos', 'text', 'Lo que propone la plantilla al insertarla en una página (después se edita en el bloque).'],
+		'gallery_page_title'        => ['Galería', 'Plantilla "Página de galería" — título', 'Galería', 'text'],
+		'gallery_page_subtitle'     => ['Galería', 'Plantilla "Página de galería" — bajada', '', 'text'],
+		'gallery_filter_all'        => ['Galería', 'Filtro — botón "todas"', 'Todos', 'text', 'El primer botón del filtro por leyenda del bloque "Galería de trabajos".'],
+		'gallery_open'              => ['Galería', 'Abrir la foto (título accesible)', 'Ver la foto grande', 'text'],
+		'gallery_prev'              => ['Galería', 'Foto anterior (título accesible)', 'Foto anterior', 'text'],
+		'gallery_next'              => ['Galería', 'Foto siguiente (título accesible)', 'Foto siguiente', 'text'],
+		// Servicios (plugin MJ Turnos Online)
+		'services_uncategorized'    => ['Servicios', 'Servicios sin categoría — título del grupo', '', 'text', 'Con los servicios agrupados por categoría, el título del grupo de los que no tienen ninguna. Vacío = sin título.'],
 	];
 	return apply_filters('mj_copy_fields', $fields);
 }
@@ -527,6 +563,58 @@ function mj_map_embed_query($query) {
 	return esc_url_raw($url);
 }
 
+/*
+ * Enlace escrito a mano en un ajuste: una ruta de la tienda ("/turnos",
+ * "turnos") o una URL completa. Vacío = ''.
+ */
+function mj_sanitize_link($value) {
+	$value = trim((string) (is_scalar($value) ? $value : ''));
+	if ('' === $value) {
+		return '';
+	}
+	if (0 === strpos($value, '/') || preg_match('#^[a-z][a-z0-9+.-]*:#i', $value)) {
+		return esc_url_raw($value);
+	}
+	return '/' . ltrim(sanitize_text_field($value), '/');
+}
+
+/*
+ * Rutas donde no aparece el botón fijo abajo → lista de rutas limpias.
+ * Acepta URLs completas (se queda con la ruta), con o sin barra inicial; un
+ * "*" al final quiere decir "esa ruta y todo lo que cuelga de ella".
+ */
+function mj_sticky_cta_hide_paths($text) {
+	$out   = [];
+	$lines = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string) $text)), 'strlen');
+	foreach ($lines as $line) {
+		$wild = '*' === substr($line, -1);
+		$path = rtrim($line, '*');
+		if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $path)) {
+			$path = (string) wp_parse_url($path, PHP_URL_PATH);
+		}
+		$path = trim(sanitize_text_field($path), '/');
+		$path = '/' . $path;
+		if ($wild) {
+			$path = rtrim($path, '/') . '/*';
+		}
+		$out[] = $path;
+	}
+	return array_values(array_unique($out));
+}
+
+/* Botón fijo abajo, tal como viaja a la SPA (window.MJ.stickyCta). */
+function mj_sticky_cta_config(array $options) {
+	$defaults = mj_option_defaults();
+	$text     = isset($options['sticky_cta_text']) ? trim((string) $options['sticky_cta_text']) : '';
+	return [
+		'enabled' => !empty($options['sticky_cta_enabled']),
+		'text'    => '' !== $text ? $text : (string) $defaults['sticky_cta_text'],
+		'url'     => isset($options['sticky_cta_url']) ? (string) $options['sticky_cta_url'] : '',
+		'desktop' => !empty($options['sticky_cta_desktop']),
+		'hide'    => mj_sticky_cta_hide_paths(isset($options['sticky_cta_hide']) ? (string) $options['sticky_cta_hide'] : ''),
+	];
+}
+
 /* -------------------------------------------------------------------------
  * Settings API
  * ---------------------------------------------------------------------- */
@@ -734,6 +822,18 @@ function mj_sanitize_options($input) {
 	$out['pages_override'] = !empty($input['pages_override']) ? 1 : 0;
 	$editor_theme          = isset($input['editor_theme']) ? sanitize_key($input['editor_theme']) : 'auto';
 	$out['editor_theme']   = in_array($editor_theme, ['auto', 'light', 'dark'], true) ? $editor_theme : 'auto';
+
+	/* Botón fijo abajo. */
+	$out['sticky_cta_enabled'] = !empty($input['sticky_cta_enabled']) ? 1 : 0;
+	$out['sticky_cta_desktop'] = !empty($input['sticky_cta_desktop']) ? 1 : 0;
+	$out['sticky_cta_text']    = isset($input['sticky_cta_text']) ? sanitize_text_field((string) $input['sticky_cta_text']) : '';
+	$out['sticky_cta_url']     = mj_sanitize_link(isset($input['sticky_cta_url']) ? $input['sticky_cta_url'] : '');
+	$out['sticky_cta_hide']    = implode("\n", mj_sticky_cta_hide_paths(isset($input['sticky_cta_hide']) ? sanitize_textarea_field((string) $input['sticky_cta_hide']) : ''));
+
+	/* Contacto: zona de atención y qué se muestra. */
+	$out['contact_area']           = isset($input['contact_area']) ? sanitize_text_field((string) $input['contact_area']) : '';
+	$out['contact_show_instagram'] = !empty($input['contact_show_instagram']) ? 1 : 0;
+	$out['contact_show_form']      = !empty($input['contact_show_form']) ? 1 : 0;
 
 	return $out;
 }
@@ -1187,6 +1287,33 @@ function mj_render_settings_page() {
 						<p class="description">Uno por línea, con ícono opcional: <code>Envío en 24hs | truck</code>. Se muestran como tarjetas con ícono en la página de cada producto (debajo del botón de compra). Vacío = no se muestran.</p>
 					</td>
 				</tr>
+				<tr>
+					<th scope="row">Botón fijo abajo</th>
+					<td>
+						<label for="mj_sticky_cta_enabled">
+							<input type="checkbox" id="mj_sticky_cta_enabled" name="mj_options[sticky_cta_enabled]" value="1" <?php checked((int) $o['sticky_cta_enabled'], 1); ?> />
+							Mostrar un botón grande, a todo el ancho, pegado abajo de la pantalla (arriba de la barra inferior del celular).
+						</label>
+						<p style="margin:8px 0 0;">
+							<input type="text" id="mj_sticky_cta_text" name="mj_options[sticky_cta_text]" value="<?php echo esc_attr((string) $o['sticky_cta_text']); ?>" class="regular-text" placeholder="<?php echo esc_attr((string) mj_option_defaults()['sticky_cta_text']); ?>" />
+							<label for="mj_sticky_cta_text">Texto del botón</label>
+						</p>
+						<p style="margin:8px 0 0;">
+							<input type="text" id="mj_sticky_cta_url" name="mj_options[sticky_cta_url]" value="<?php echo esc_attr((string) $o['sticky_cta_url']); ?>" class="regular-text" placeholder="/turnos" />
+							<label for="mj_sticky_cta_url">A dónde lleva</label>
+						</p>
+						<p class="description">Una ruta de la tienda (<code>/turnos</code>, <code>/servicios</code>) o una URL completa. Vacío = la reserva de turnos si el plugin MJ Turnos Online está activo; si no, la tienda.</p>
+						<p style="margin:8px 0 0;">
+							<label for="mj_sticky_cta_desktop">
+								<input type="checkbox" id="mj_sticky_cta_desktop" name="mj_options[sticky_cta_desktop]" value="1" <?php checked((int) $o['sticky_cta_desktop'], 1); ?> />
+								Mostrarlo también en la computadora (desmarcado = solo en el celular y la tablet).
+							</label>
+						</p>
+						<p style="margin:10px 0 4px;"><label for="mj_sticky_cta_hide">Rutas donde no aparece</label></p>
+						<textarea id="mj_sticky_cta_hide" name="mj_options[sticky_cta_hide]" rows="3" class="large-text code" placeholder="/nosotros&#10;/blog/*"><?php echo esc_textarea((string) $o['sticky_cta_hide']); ?></textarea>
+						<p class="description">Una por línea. Con <code>*</code> al final vale para esa ruta y todo lo que cuelga de ella (<code>/blog/*</code>). Además nunca aparece en la página a la que lleva, en el carrito, el checkout, Mi cuenta ni en la ficha de un producto (que ya tiene su propia barra de compra abajo).</p>
+					</td>
+				</tr>
 			</table>
 
 			<h2>Portada (hero)</h2>
@@ -1359,6 +1486,29 @@ function mj_render_settings_page() {
 							• el código de <em>Google Maps → Compartir → Insertar un mapa</em> (el <code>&lt;iframe&gt;</code> completo).<br>
 							Vacío = no se muestra el mapa. Al guardar se convierte automáticamente al formato embebible.
 						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="mj_contact_area">Zona de atención</label></th>
+					<td>
+						<input type="text" id="mj_contact_area" name="mj_options[contact_area]" value="<?php echo esc_attr((string) $o['contact_area']); ?>" class="large-text" placeholder="Atiendo en zona Palermo, CABA" />
+						<p class="description">Para no publicar la dirección exacta: se muestra como un canal más en la página de contacto. Vacío = no se muestra. Con la dirección y el mapa vacíos, no aparece ninguno de los dos.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">Qué se muestra en Contacto</th>
+					<td>
+						<label for="mj_contact_show_instagram">
+							<input type="checkbox" id="mj_contact_show_instagram" name="mj_options[contact_show_instagram]" value="1" <?php checked((int) $o['contact_show_instagram'], 1); ?> />
+							Sumar Instagram a los canales (el enlace de Redes sociales).
+						</label>
+						<p style="margin:8px 0 0;">
+							<label for="mj_contact_show_form">
+								<input type="checkbox" id="mj_contact_show_form" name="mj_options[contact_show_form]" value="1" <?php checked((int) $o['contact_show_form'], 1); ?> />
+								Mostrar el formulario de contacto.
+							</label>
+						</p>
+						<p class="description">Cada canal aparece solo si tiene dato. Para mostrar únicamente Instagram: dejá vacíos teléfono, WhatsApp, dirección, mapa y email, marcá Instagram y desmarcá el formulario (si lo dejás y el email está vacío, los mensajes llegan al email del administrador). Vale para la página de contacto y para el bloque "Contacto".</p>
 					</td>
 				</tr>
 			</table>

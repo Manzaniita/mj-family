@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Logo } from '@/components/ui/Logo';
 import { INTRO_ENABLED } from '@/lib/config';
-import { REDUCED_MOTION } from '@/lib/motion';
+import { REDUCED_MOTION, STILL } from '@/lib/motion';
 import { EASE } from '@/lib/format';
 
 const KEY = 'mj-intro';
 
 /** ¿Corresponde mostrar la cortina en esta carga? (una vez por sesión de pestaña) */
 function shouldPlay() {
-  if (!INTRO_ENABLED || REDUCED_MOTION || typeof window === 'undefined') return false;
+  if (!INTRO_ENABLED || REDUCED_MOTION || STILL || typeof window === 'undefined') return false;
   try {
     return !sessionStorage.getItem(KEY);
   } catch {

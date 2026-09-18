@@ -574,6 +574,15 @@ function mj_block_patterns() {
 				'subtitle' => $c('faq_subtitle'),
 			]) . mj_block_comment('mj/faq'),
 		],
+		'galeria'  => [
+			'title'       => 'Página de galería',
+			'description' => 'Encabezado y galería de trabajos con leyenda y filtro. Elegís las fotos desde la biblioteca de medios.',
+			'content'     => mj_block_comment('mj/encabezado', [
+				'eyebrow'  => $c('gallery_page_eyebrow', 'Trabajos'),
+				'title'    => $c('gallery_page_title', 'Galería'),
+				'subtitle' => $c('gallery_page_subtitle'),
+			]) . mj_block_comment('mj/galeria', ['filter' => true]),
+		],
 		'legales'  => [
 			'title'       => 'Página legal',
 			'description' => 'Encabezado y secciones numeradas para términos, privacidad o devoluciones.',

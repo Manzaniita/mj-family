@@ -10,6 +10,11 @@
  *
  * Un bloque sin componente (plugin desactivado, versión vieja del build) no
  * dibuja nada.
+ *
+ * Bloques propios de las páginas (no están en la portada clásica):
+ * encabezado, contacto, faq y galeria (Galería de trabajos: fotos con
+ * leyenda, filtro por leyenda y foto grande al tocar — GalleryBlock.jsx).
+ * "opiniones" elige su fuente con `source`: auto | woo | turnos.
  */
 import { Hero } from '@/components/home/Hero';
 import { BannerSlider } from '@/components/home/BannerSlider';
@@ -22,9 +27,10 @@ import { Section } from '@/components/layout/Layout';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ProductsBlock } from '@/components/bloques/ProductsBlock';
+import { GalleryBlock } from '@/components/bloques/GalleryBlock';
 import { ContactPanel, FAQList, AboutBody } from '@/pages/Misc';
 import { useCatalog } from '@/store/catalog';
-import { SOCIAL } from '@/lib/config';
+import { SOCIAL, CONTACT } from '@/lib/config';
 import { t } from '@/lib/copy';
 
 /* Hero: sus campos pisan los del panel; las fotos, solo si eligió alguna. */
@@ -100,10 +106,11 @@ function AboutBlock({ layout, eyebrow, title, text, image, linkLabel }) {
   return layout === 'full' ? <AboutBody override={override} /> : <AboutTeaser override={override} />;
 }
 
+/* El bloque puede apagar cada parte; lo que el panel apagó (Contacto → formulario) queda apagado igual. */
 function ContactBlock({ showForm, showChannels, showMap }) {
   return (
     <Section className="pt-8 md:pt-12">
-      <ContactPanel showForm={showForm !== false} showChannels={showChannels !== false} showMap={showMap !== false} />
+      <ContactPanel showForm={showForm !== false && CONTACT.showForm !== false} showChannels={showChannels !== false} showMap={showMap !== false} />
     </Section>
   );
 }
@@ -123,7 +130,8 @@ export const BLOCKS = {
   productos: ProductsBlock,
   categorias: CategoriesBlock,
   marcas: ({ label }) => <BrandsMarquee label={label} />,
-  opiniones: ({ eyebrow, title, limit }) => <Testimonials eyebrow={eyebrow} title={title} limit={limit} />,
+  opiniones: ({ eyebrow, title, limit, source }) => <Testimonials eyebrow={eyebrow} title={title} limit={limit} source={source} />,
+  galeria: GalleryBlock,
   instagram: InstagramBlock,
   nosotros: AboutBlock,
   contacto: ContactBlock,

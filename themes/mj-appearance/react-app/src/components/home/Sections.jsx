@@ -12,6 +12,7 @@ import { useCatalog } from '@/store/catalog';
 import { IS_WP, SOCIAL, REVIEWS_ENABLED } from '@/lib/config';
 import { t } from '@/lib/copy';
 import { fetchReviews } from '@/lib/wc';
+import { TURNOS, getReviews, normalizeReview } from '@/lib/turnos';
 
 /* ------------------------- Categorías inmersivas ------------------------- */
 function CategoryTile({ category, cover, index }) {
@@ -73,32 +74,74 @@ export function CategoryShowcase({ slugs, limit = 4, layout = 'grid' } = {}) {
 }
 
 /* ------------------------------ Testimonios ------------------------------ */
-export function Testimonials({ eyebrow, title, limit = 4 } = {}) {
+
+const REVIEW_SOURCES = ['auto', 'woo', 'turnos'];
+
+/* Opinión de MJ Turnos → la forma de una tarjeta (el servicio va como subtítulo). */
+const fromTurnos = (r) => ({ id: `turno-${r.id}`, name: r.name, rating: r.rating, text: r.body, role: r.serviceName });
+
+/* Opiniones de los turnos con texto (las que vinieron en window.MJ.turnos.reviews). */
+const turnosInitial = () =>
+  TURNOS?.reviews.enabled ? TURNOS.reviews.items.filter((r) => r.body.trim() !== '' && r.name) : [];
+
+/**
+ * `source`: 'auto' (default: las valoraciones de WooCommerce como siempre y,
+ * si no hay ninguna, las opiniones de MJ Turnos Online), 'woo' o 'turnos'.
+ * Sin opiniones de ninguna fuente, la sección no se muestra.
+ */
+export function Testimonials({ eyebrow, title, limit = 4, source = 'auto' } = {}) {
   // En WordPress: opiniones reales de clientes (Store API). Sin opiniones → sin sección.
   // Standalone: opiniones demo para desarrollo.
-  // Valoraciones desactivadas en WooCommerce → la sección entera se oculta.
+  // Valoraciones desactivadas en WooCommerce → sin las de WooCommerce (las de los turnos van aparte).
   const count = Math.max(1, Number(limit) || 4);
+  const src = REVIEW_SOURCES.includes(source) ? source : 'auto';
+  const wantsWoo = src !== 'turnos';
+  const wantsTurnos = src !== 'woo' && !!TURNOS?.reviews.enabled;
   const [fetched, setFetched] = useState(null);
+  const [turnos, setTurnos] = useState(turnosInitial);
 
   useEffect(() => {
-    if (!IS_WP || !REVIEWS_ENABLED) return undefined;
+    if (!IS_WP || !REVIEWS_ENABLED || !wantsWoo) return undefined;
     let live = true;
     fetchReviews(count)
       .then((r) => { if (live) setFetched(Array.isArray(r) ? r : []); })
       .catch(() => { if (live) setFetched([]); });
     return () => { live = false; };
-  }, [count]);
+  }, [count, wantsWoo]);
 
-  const list = IS_WP ? fetched : demoReviews.slice(0, count);
-  if (!REVIEWS_ENABLED || !list?.length) return null;
+  // Las de los turnos: si en la config vinieron menos de las que hay y de las que se piden, se buscan más.
+  useEffect(() => {
+    if (!IS_WP || !wantsTurnos) return undefined;
+    const initial = turnosInitial();
+    if (initial.length >= count || TURNOS.reviews.count <= TURNOS.reviews.items.length) return undefined;
+    let live = true;
+    getReviews({ limit: count })
+      .then((r) => {
+        if (!live) return;
+        const items = (Array.isArray(r?.items) ? r.items : []).map(normalizeReview).filter((x) => x.body.trim() !== '' && x.name);
+        if (items.length) setTurnos(items);
+      })
+      .catch(() => { /* quedan las de la config */ });
+    return () => { live = false; };
+  }, [count, wantsTurnos]);
+
+  const woo = !wantsWoo || !REVIEWS_ENABLED ? [] : IS_WP ? fetched : demoReviews.slice(0, count);
+  const fromBookings = wantsTurnos ? turnos.slice(0, count).map(fromTurnos) : [];
+
+  let list = null;
+  if (src === 'turnos') list = fromBookings;
+  else if (src === 'woo') list = woo;
+  else if (woo === null) list = null; // todavía llegan las de WooCommerce: no se decide nada
+  else list = woo.length ? woo : fromBookings;
+  if (!list?.length) return null;
 
   return (
     <Section>
       <SectionHeader eyebrow={eyebrow || t('home_testimonials_eyebrow')} title={title || t('home_testimonials_title')} />
       <Stagger className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-        {list.map((r) => (
+        {list.map((r, i) => (
         <motion.figure
-          key={r.name}
+          key={r.id ?? `${r.name}-${i}`}
           variants={staggerItem}
           className="mj-testimonial flex flex-col justify-between rounded-xl3 border border-line glass p-7"
         >

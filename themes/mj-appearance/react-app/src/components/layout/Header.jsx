@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { STILL } from '@/lib/motion';
 import { Heart, Scale, ShoppingBag, User, SunMedium, MoonStar, CalendarDays, ArrowUpRight, Menu } from 'lucide-react';
 import { TopBar } from './TopBar';
 import { FreeShippingBar } from './FreeShippingBar';
@@ -19,8 +20,8 @@ import { iconByName } from '@/components/ui/DynamicIcon';
 function IconAction({ to, onClick, icon: Icon, label, count }) {
   const content = (
     <motion.span
-      whileHover={{ scale: 1.08 }}
-      whileTap={{ scale: 0.92 }}
+      whileHover={STILL ? undefined : { scale: 1.08 }}
+      whileTap={STILL ? undefined : { scale: 0.92 }}
       className="mj-icon-action relative grid size-9 place-items-center rounded-(--mj-radius-pill) text-ink-soft transition-colors hover:text-ink hover:bg-surface lg:size-10"
     >
       <Icon size={19} strokeWidth={1.8} />
@@ -63,8 +64,8 @@ function ThemeToggle() {
       aria-checked={dark}
       aria-label={label}
       title={label}
-      whileHover={{ scale: 1.08 }}
-      whileTap={{ scale: 0.92 }}
+      whileHover={STILL ? undefined : { scale: 1.08 }}
+      whileTap={STILL ? undefined : { scale: 0.92 }}
       onClick={(e) => toggleTheme({ x: e.clientX || undefined, y: e.clientY || undefined })}
       className="mj-theme-toggle mj-icon-action relative grid size-9 place-items-center overflow-hidden rounded-(--mj-radius-pill) text-ink-soft transition-colors hover:text-ink hover:bg-surface lg:size-10"
     >

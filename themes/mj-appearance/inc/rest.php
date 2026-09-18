@@ -382,6 +382,33 @@ function mj_rest_recover(WP_REST_Request $request) {
  * Cuenta
  * ---------------------------------------------------------------------- */
 
+/*
+ * Estado del pago de un pedido que pide comprobante (plugin MJ Medios de Pago):
+ * ['state' => 'pendiente'|'aprobado'|'parcial'|'rechazado', 'label' => '…'],
+ * o null sin el plugin o si el pedido no pide comprobante. Sin decisión
+ * todavía, el estado es "pendiente".
+ */
+function mj_order_payment_state($order_id) {
+	if (!class_exists('MJPM_Receipts') || !method_exists('MJPM_Receipts', 'requirement')) {
+		return null;
+	}
+	$requirement = MJPM_Receipts::requirement('order', (int) $order_id);
+	if (!is_array($requirement) || empty($requirement['asks'])) {
+		return null;
+	}
+	$state = (string) MJPM_Receipts::order_state((int) $order_id);
+	if ('' === $state && defined('MJPM_Receipts::STATUS_PENDING')) {
+		$state = MJPM_Receipts::STATUS_PENDING;
+	}
+	if ('' === $state) {
+		return null;
+	}
+	return [
+		'state' => $state,
+		'label' => (string) MJPM_Receipts::status_label($state),
+	];
+}
+
 /* GET /account → {user, orders, addresses, downloads} */
 function mj_rest_account(WP_REST_Request $request) {
 	$user_id = get_current_user_id();
@@ -405,6 +432,10 @@ function mj_rest_account(WP_REST_Request $request) {
 				'total'       => (float) $order->get_total(),
 				'itemsCount'  => count($order->get_items()),
 			];
+			$payment = mj_order_payment_state($order->get_id());
+			if ($payment) {
+				$orders[count($orders) - 1]['payment'] = $payment;
+			}
 		}
 	}
 
@@ -643,6 +674,10 @@ function mj_rest_order_detail(WP_REST_Request $request) {
 		'shippingAddr'   => mj_order_address($order, 'shipping'),
 		'factura'        => mj_order_factura($order),
 	];
+	$payment = mj_order_payment_state($order->get_id());
+	if ($payment) {
+		$data['payment'] = $payment;
+	}
 
 	/* Otros plugins MJ agregan datos al detalle (p. ej. MJ Dólar → exchangeRate, usdUnit por línea). */
 	return rest_ensure_response(apply_filters('mj_rest_order_detail', $data, $order));

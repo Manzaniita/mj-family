@@ -256,6 +256,10 @@ function mj_app_config() {
 			'whatsapp' => $options['contact_whatsapp'],
 			'address'  => $options['contact_address'],
 			'map'      => $options['contact_map'],
+			/* Zona de atención y qué se muestra (Contacto): los defaults dejan todo como siempre. */
+			'area'          => (string) $options['contact_area'],
+			'showInstagram' => !empty($options['contact_show_instagram']),
+			'showForm'      => !empty($options['contact_show_form']),
 		],
 		'social'                => [
 			'instagram' => $options['social_instagram'],
@@ -296,6 +300,8 @@ function mj_app_config() {
 		'skin'                  => mj_skin(),
 		'motion'                => $options['motion_level'],
 		'intro'                 => (bool) $options['intro_enabled'],
+		/* Botón fijo abajo (Anuncios y avisos). Apagado por defecto. */
+		'stickyCta'             => mj_sticky_cta_config($options),
 		/* 3.4 — logo, etiquetas de marca, textos, secciones de la portada y legales. */
 		'logo'                  => mj_logo_config(),
 		'brandLabel'            => mj_brand_labels(),

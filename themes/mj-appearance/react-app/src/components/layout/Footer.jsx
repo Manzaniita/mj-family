@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { STILL } from '@/lib/motion';
 import {
   ArrowRight, Instagram, Facebook, Twitter, Youtube, Music2,
   Mail, MapPin, Phone, Check, CreditCard, Loader2,
@@ -121,8 +122,8 @@ export function Footer() {
                 />
               </div>
               <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={STILL ? undefined : { scale: 1.04 }}
+                whileTap={STILL ? undefined : { scale: 0.95 }}
                 disabled={status === 'sending'}
                 className={`mj-footer__submit grid size-12 shrink-0 place-items-center rounded-(--mj-radius-pill) text-white transition-colors ${status === 'ok' ? 'bg-success' : 'bg-accent shadow-glow'}`}
                 aria-label="Suscribirme"
@@ -171,7 +172,7 @@ export function Footer() {
                     href={url}
                     target="_blank"
                     rel="noreferrer"
-                    whileHover={{ scale: 1.1, y: -2 }}
+                    whileHover={STILL ? undefined : { scale: 1.1, y: -2 }}
                     className="grid size-10 place-items-center rounded-full glass text-ink-soft transition-colors hover:text-ink"
                     aria-label={name}
                   >

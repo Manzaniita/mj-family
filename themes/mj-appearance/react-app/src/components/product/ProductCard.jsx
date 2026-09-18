@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { STILL } from '@/lib/motion';
 import { Heart, Scale, Eye, ShoppingBag, Warehouse, HandHeart } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Price } from '@/components/ui/Price';
@@ -17,8 +18,8 @@ import { cn } from '@/lib/format';
 function FloatAction({ icon: Icon, label, active, onClick }) {
   return (
     <motion.button
-      whileHover={{ scale: 1.12 }}
-      whileTap={{ scale: 0.9 }}
+      whileHover={STILL ? undefined : { scale: 1.12 }}
+      whileTap={STILL ? undefined : { scale: 0.9 }}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick(); }}
       aria-label={label}
       title={label}
@@ -145,8 +146,8 @@ export function ProductCard({ product, asStaggerItem = true, highlight }) {
           <Price product={product} className="mt-2" />
 
           <motion.button
-            whileHover={out ? undefined : { y: -1 }}
-            whileTap={out ? undefined : { scale: 0.97 }}
+            whileHover={STILL ? undefined : out ? undefined : { y: -1 }}
+            whileTap={STILL ? undefined : out ? undefined : { scale: 0.97 }}
             onClick={handleBuy}
             disabled={out}
             className={cn(
