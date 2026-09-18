@@ -14,7 +14,7 @@ import { useCart } from '@/store';
 import { effectivePrice } from '@/lib/api';
 import { IS_WP, WP, EXCHANGE_RATE, EXPRESS } from '@/lib/config';
 import * as wc from '@/lib/wc';
-import { formatPrice, formatUsd, FREE_SHIPPING_THRESHOLD, isValidCuit, cn } from '@/lib/format';
+import { formatPrice, formatUsd, isValidCuit, cn } from '@/lib/format';
 import { PAY, usePaymentMethod, selectedMethodId, findMethod, resolveAdjustment, usdTotalFor } from '@/lib/payments';
 import { formFields, hasShipping, methodBySlug, missingFor, shippingTexts } from '@/lib/envios';
 import { usePageMeta } from '@/lib/seo';
@@ -314,16 +314,28 @@ export default function Checkout() {
   }, []);
 
   const subtotal = items.reduce((n, i) => n + effectivePrice(i.product) * i.qty, 0);
-  // Envío: gratis sobre el umbral; si no, costo real del servidor (null = a calcular).
-  const freeShip = FREE_SHIPPING_THRESHOLD > 0 && subtotal >= FREE_SHIPPING_THRESHOLD;
-  const shippingCost = freeShip ? 0 : cartShipping?.cost ?? null;
+  /*
+   * El envío vale lo que dice el servidor, nunca lo que el tema deduzca.
+   * Comparar el subtotal contra el umbral acá era duplicar la regla del envío
+   * gratis a medias: la de MJ Envíos además filtra por método, por provincia y
+   * por un mínimo propio de cada método. Con eso, un carrito que el servidor
+   * cobraba se mostraba GRATIS y el total prometido quedaba por debajo del que
+   * iba a cobrar WooCommerce. El umbral queda solo para la barra de progreso.
+   */
+  /*
+   * Sin ninguna forma de envío ofrecida, el envío todavía no está calculado: la
+   * Store API manda total_shipping en 0 igual, y mostrarlo como GRATIS sería
+   * prometer algo que nadie calculó.
+   */
+  const shippingRatesRaw = cartShipping?.rates ?? [];
+  const shippingCost = shippingRatesRaw.length > 0 ? cartShipping?.cost ?? null : null;
   // Ajuste por medio de pago (plugin MJ Medios de Pago) + otras fees del servidor.
   const payMethod = findMethod(payment);
   const adjustment = resolveAdjustment({ items, method: payMethod, server, syncing, live: IS_WP });
   const otherFees = IS_WP ? (server?.fees || []).filter((f) => !adjustment || f.name !== adjustment.label) : [];
   const total = subtotal + (shippingCost ?? 0) + (adjustment?.amount ?? 0) + otherFees.reduce((n, f) => n + f.amount, 0);
   const usdTotal = usdTotalFor(total, payMethod);
-  const shippingRates = cartShipping?.rates ?? [];
+  const shippingRates = shippingRatesRaw;
   const chosenRate = shippingRates.find((r) => r.selected) ?? null;
   const noGateways = IS_WP && paymentMethods.length === 0;
 

@@ -18,7 +18,7 @@ import { t } from '@/lib/copy';
 import { useCart, useCatalog } from '@/store';
 import { effectivePrice } from '@/lib/api';
 import { WP } from '@/lib/config';
-import { formatPrice, FREE_SHIPPING_THRESHOLD } from '@/lib/format';
+import { formatPrice } from '@/lib/format';
 import { useSelectedMethod, resolveAdjustment } from '@/lib/payments';
 
 export default function CartPage() {
@@ -29,9 +29,16 @@ export default function CartPage() {
   const [quoteOpen, setQuoteOpen] = useState(false);
   const navigate = useNavigate();
   const subtotal = items.reduce((n, i) => n + effectivePrice(i.product) * i.qty, 0);
-  // Envío: gratis sobre el umbral; si no, costo real del servidor (null = a calcular).
-  const freeShip = FREE_SHIPPING_THRESHOLD > 0 && subtotal >= FREE_SHIPPING_THRESHOLD;
-  const shippingCost = freeShip ? 0 : cartShipping?.cost ?? null;
+  /*
+   * El envío vale lo que dice el servidor, nunca lo que el tema deduzca.
+   * Comparar el subtotal contra el umbral acá era duplicar la regla del envío
+   * gratis a medias: la de MJ Envíos además filtra por método, por provincia y
+   * por un mínimo propio de cada método. Con eso, un carrito que el servidor
+   * cobraba se mostraba GRATIS y el total prometido quedaba por debajo del que
+   * iba a cobrar WooCommerce. El umbral queda solo para la barra de progreso.
+   */
+  /* Sin formas de envío ofrecidas todavía no hay envío calculado, no hay envío gratis. */
+  const shippingCost = (cartShipping?.rates ?? []).length > 0 ? cartShipping?.cost ?? null : null;
   // Ajuste por medio de pago (plugin MJ Medios de Pago): línea aparte, en vivo al cambiar el método.
   const payMethod = useSelectedMethod();
   const adjustment = resolveAdjustment({ items, method: payMethod, server, syncing, live: !!WP });

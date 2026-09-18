@@ -1257,13 +1257,16 @@ class MJE_Admin {
 			return;
 		}
 
-		self::panel('Traer sucursales', 'Andreani y Correo Argentino las publican por zona, así que hace falta un código postal para pedirlas.');
+		self::panel(
+			'Traer sucursales',
+			'Andreani las publica por código postal y Correo Argentino por provincia: con uno de los dos alcanza. Viene cargado el de tu origen para que puedas probar de una.'
+		);
 		echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="mje-inline">';
 		wp_nonce_field('mje_sync_branches');
 		echo '<input type="hidden" name="action" value="mje_sync_branches">';
 		echo self::select_input('carrier', $sources, (string) key($sources)); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
-		echo self::text_input('cp', '', ['class' => 'small-text', 'placeholder' => 'CP']); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
-		echo self::select_input('provincia', ['' => '— Provincia (Correo Argentino las pide así) —'] + MJE_Geo::states(), ''); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo self::text_input('cp', (string) MJE_Settings::get('origin_postcode'), ['class' => 'small-text', 'placeholder' => 'CP']); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo self::select_input('provincia', ['' => '— Provincia (Correo Argentino las pide así) —'] + MJE_Geo::states(), (string) MJE_Settings::get('origin_state')); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
 		submit_button('Traerlas', 'secondary', 'submit', false);
 		echo '</form>';
 		self::panel_end();
@@ -1795,9 +1798,19 @@ class MJE_Admin {
 			self::back($back + ['error' => 'Elegí de qué correo traerlas.']);
 		}
 
+		/*
+		 * Sin destino no se le pregunta nada a nadie: los correos publican sus
+		 * sucursales por zona, y mandar la consulta vacía terminaba en "el correo
+		 * no devolvió nada", que le echa la culpa al correo por algo nuestro.
+		 */
+		$state = isset($_POST['provincia']) ? sanitize_text_field(wp_unslash($_POST['provincia'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
+		if ('' === $cp && '' === $state) {
+			self::back($back + ['error' => 'Poné un código postal o elegí una provincia: los correos publican sus sucursales por zona.']);
+		}
+
 		$before = count(MJE_Carriers::stored_branches($key));
 		if (0 === strpos($key, 'nativo_')) {
-			MJE_Native::branches(substr($key, strlen('nativo_')), $cp, true, isset($_POST['provincia']) ? sanitize_text_field(wp_unslash($_POST['provincia'])) : ''); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
+			MJE_Native::branches(substr($key, strlen('nativo_')), $cp, true, $state);
 		} else {
 			MJE_Carriers::branches($key, $cp, true);
 		}
