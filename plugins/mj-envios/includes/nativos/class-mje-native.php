@@ -55,6 +55,8 @@ class MJE_Native {
 	public static function init() {
 		/* La sucursal elegida se anota en el plugin del correo antes de cotizar. */
 		add_filter('woocommerce_cart_shipping_packages', [__CLASS__, 'prime'], 5, 1);
+		/* Los correos conectados también saben resolver un código postal. */
+		add_action('woocommerce_init', ['MJE_Geo', 'maybe_add_native_provider']);
 	}
 
 	/* ----------------------------- Adaptadores --------------------------- */
@@ -407,6 +409,30 @@ class MJE_Native {
 		}
 		$rows = MJE_Carriers::stored_branches($carrier, $postcode);
 		return $rows ? $rows : $fetched;
+	}
+
+	/**
+	 * Qué localidad y provincia hay en un código postal, según los correos.
+	 *
+	 * Se le pregunta al primero que sepa contestar. Sirve para completarle la
+	 * localidad al cliente cuando la tabla propia del plugin todavía está vacía,
+	 * que es el caso de toda tienda que no importó su CSV de códigos postales.
+	 */
+	public static function resolve_cp($postcode) {
+		$postcode = MJE_Geo::normalize_cp($postcode);
+		if ('' === $postcode) {
+			return [];
+		}
+		foreach (self::all() as $plugin) {
+			if (!$plugin->connected()) {
+				continue;
+			}
+			$rows = $plugin->resolve_cp($postcode);
+			if ($rows) {
+				return $rows;
+			}
+		}
+		return [];
 	}
 
 	/**

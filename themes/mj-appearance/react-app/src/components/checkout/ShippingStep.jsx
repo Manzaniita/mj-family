@@ -55,6 +55,12 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
 
   /* Estado del código postal: qué sabemos del destino que cargó el cliente. */
   const [cp, setCp] = useState({ status: 'idle', cities: [], asked: '' });
+  /*
+   * Para qué código postal se completaron provincia y localidad. Va en una
+   * referencia y no en el estado porque lo lee `lookup`, que corre con retraso:
+   * leyéndolo del estado siempre vería el valor del primer render.
+   */
+  const filledFor = useRef('');
   const [suggestions, setSuggestions] = useState([]);
   const [branches, setBranches] = useState({ loading: false, list: [] });
   const [busy, setBusy] = useState(false);
@@ -92,14 +98,14 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
   const lookup = async (value) => {
     if (!IS_WP) return;
     if (!cpLooksValid(value)) {
-      setCp({ status: String(value || '').trim() === '' ? 'idle' : 'invalid', cities: [], asked: value });
+      setCp((c) => ({ ...c, status: String(value || '').trim() === '' ? 'idle' : 'invalid', cities: [], asked: value }));
       return;
     }
     setCp((c) => ({ ...c, status: 'loading', asked: value }));
     try {
       const data = await wc.getPostcode(value);
       if (!data?.valido) {
-        setCp({ status: 'invalid', cities: [], asked: value });
+        setCp((c) => ({ ...c, status: 'invalid', cities: [], asked: value }));
         return;
       }
       const cities = data.localidades ?? [];
@@ -108,17 +114,31 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
           ...f,
           state: data.provinciaId || cities[0].provinciaId || f.state,
           // Con una sola localidad se completa; con varias, que elija.
-          city: cities.length === 1 ? cities[0].nombre : f.city,
+          city: cities.length === 1 ? cities[0].nombre : forget(f.city, value),
         }));
+        filledFor.current = value;
         setCp({ status: 'ok', cities, asked: value });
       } else {
-        setCp({ status: 'unknown', cities: [], asked: value });
+        /*
+         * No sabemos qué hay en ese código postal. Lo que quedó de OTRO código
+         * postal se borra: dejar "Buenos Aires · Mar del Plata" cuando el cliente
+         * puso un CP de Santa Cruz es peor que no decir nada, porque se compra
+         * con un destino que nadie eligió.
+         */
+        setForm((f) => ({ ...f, state: forget(f.state, value), city: forget(f.city, value) }));
+        filledFor.current = '';
+        setCp((c) => ({ ...c, status: 'unknown', cities: [], asked: value }));
       }
     } catch {
       /* Sin el plugin (o sin internet) el paso sigue: se cargan provincia y localidad a mano. */
-      setCp({ status: 'unknown', cities: [], asked: value });
+      setCp((c) => ({ ...c, status: 'unknown', cities: [], asked: value }));
     }
   };
+
+  /* Lo que había quedado de otro código postal no vale; lo que escribió el cliente, sí. */
+  function forget(value, asked) {
+    return filledFor.current && filledFor.current !== asked ? '' : value;
+  }
 
   const lookupDebounced = useRef(debounce(lookup, 400)).current;
 

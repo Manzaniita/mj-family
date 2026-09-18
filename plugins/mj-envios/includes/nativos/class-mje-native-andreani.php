@@ -203,11 +203,12 @@ class MJE_Native_Andreani extends MJE_Native_Plugin {
 		foreach ((array) $data['options'] as $code => $name) {
 			$detail                 = isset($details[$code]) && is_array($details[$code]) ? $details[$code] : [];
 			list($lat, $lon)        = $this->coordinates($detail);
-			$out[] = [
+			$address = isset($detail['direccion']) ? (string) $detail['direccion'] : '';
+			$out[]   = [
 				'code'     => (string) $code,
 				'name'     => (string) $name,
-				'address'  => isset($detail['direccion']) ? (string) $detail['direccion'] : '',
-				'city'     => '',
+				'address'  => $address,
+				'city'     => $this->city_from_address($address, $postcode),
 				'state'    => '',
 				'postcode' => $postcode,
 				'hours'    => isset($detail['horario']) ? (string) $detail['horario'] : '',
@@ -216,6 +217,30 @@ class MJE_Native_Andreani extends MJE_Native_Plugin {
 			];
 		}
 		return $out;
+	}
+
+	/**
+	 * La localidad, leída de la dirección que arma su plugin.
+	 *
+	 * Su API no devuelve la localidad como dato aparte: la mete adentro de un
+	 * texto que su plugin arma como "Calle Número, Localidad, CP 9400" (ver
+	 * Andreani_Api_Response::format_branch_address). Se lee solo si ese texto
+	 * termina en el mismo código postal que pedimos; si no coincide, se devuelve
+	 * vacío en lugar de adivinar.
+	 */
+	private function city_from_address($address, $postcode) {
+		$parts = array_map('trim', explode(',', (string) $address));
+		if (count($parts) < 3) {
+			return '';
+		}
+		$last = array_pop($parts);
+		if (!preg_match('/^CP\s*(.+)$/i', $last, $m)) {
+			return '';
+		}
+		if (MJE_Geo::normalize_cp($m[1]) !== MJE_Geo::normalize_cp($postcode)) {
+			return '';
+		}
+		return (string) array_pop($parts);
 	}
 
 	/** Las coordenadas de una sucursal, que vienen con nombres distintos según el endpoint. */

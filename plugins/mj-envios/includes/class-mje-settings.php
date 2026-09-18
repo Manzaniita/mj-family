@@ -99,7 +99,7 @@ class MJE_Settings {
 			'log_errors'      => 1,
 
 			/* Código postal, provincia y localidad ------------------------ */
-			'geo_providers'   => 'tabla,georef', // Orden de consulta. Los que estén acá, y en ese orden.
+			'geo_providers'   => 'tabla,nativo,georef', // Orden de consulta. Los que estén acá, y en ese orden.
 			'geo_url'         => 'https://apis.datos.gob.ar/georef/api', // API pública del Estado.
 			'geo_cache_days'  => 30,
 			'cp_min_len'      => 4,

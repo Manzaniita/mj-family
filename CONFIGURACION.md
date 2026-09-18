@@ -1065,7 +1065,18 @@ pregunta:
   hace andar el autocompletado de localidad. No publica códigos postales: un CP
   que todavía no esté en la tabla propia se completa eligiendo la localidad, y
   ahí queda aprendido.
-- **El correo conectado**, si su API resuelve CP.
+- **El correo conectado** por credenciales propias, si su API resuelve CP.
+- **Los correos con plugin propio** (Andreani, Correo Argentino). No tienen un
+  buscador de códigos postales, pero **sus sucursales dicen dónde están**: con
+  eso se completa la localidad, y la provincia se resuelve por el nombre de la
+  localidad. Es lo que hace que una tienda que todavía no importó su CSV pueda
+  igual completar el destino sola. Lo que se resuelve queda aprendido en la
+  tabla propia, así la segunda vez es instantáneo.
+
+**Cuando un código postal no se conoce, la provincia y la localidad se vacían.**
+Dejar las del código postal anterior es peor que no decir nada: el cliente
+compraría con un destino que nunca eligió, y el envío se cotizaría para otro
+lado.
 
 Las provincias salen de WooCommerce (país base de la tienda), no de una lista
 escrita en el plugin.

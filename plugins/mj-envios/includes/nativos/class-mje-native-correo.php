@@ -249,6 +249,16 @@ class MJE_Native_Correo extends MJE_Native_Plugin {
 			return [];
 		}
 
+		/*
+		 * Primero por el mismo camino que usa su propia pantalla: su clase Branch
+		 * ya resuelve las diferencias entre MiCorreo y Paq.Ar, arma el texto y
+		 * filtra por producto. Reusarla es más seguro que rehacer todo eso acá.
+		 */
+		$suyas = $this->branches_via_plugin($province);
+		if ($suyas) {
+			return $suyas;
+		}
+
 		try {
 			$factory = new \Corrarfo\Service\ServiceFactory();
 			$service = $factory->get();
@@ -275,6 +285,53 @@ class MJE_Native_Correo extends MJE_Native_Plugin {
 			if ($branch) {
 				$out[] = $branch;
 			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Las sucursales por el camino del propio plugin.
+	 *
+	 * `Branch::listBranches()` lee la provincia y el producto de SU sesión, así
+	 * que hay que dejárselos anotados antes de llamarla. Devuelve [] si su clase
+	 * no está, si no hay sesión, o si no trajo nada: ahí se prueba el camino
+	 * directo contra su servicio.
+	 */
+	private function branches_via_plugin($province) {
+		if (!class_exists('Corrarfo\Orders\Branch') || !function_exists('WC') || !WC()->session) {
+			return [];
+		}
+		if (defined('CORRARFO_CHOSEN_PROVINCE_CODE')) {
+			WC()->session->set(CORRARFO_CHOSEN_PROVINCE_CODE, $province);
+		}
+
+		try {
+			$rows = \Corrarfo\Orders\Branch::listBranches();
+		} catch (Exception $e) {
+			MJE_Geo::log($this->id(), 'sucursales (su propia lista): ' . $e->getMessage());
+			return [];
+		}
+		if (!is_array($rows)) {
+			return [];
+		}
+
+		$none = defined('CORRARFO_NONE') ? CORRARFO_NONE : 'none';
+		$out  = [];
+		foreach ($rows as $row) {
+			if (!is_array($row) || empty($row['id']) || $none === $row['id']) {
+				continue; // La primera fila es el "elegí una sucursal" de su desplegable.
+			}
+			$out[] = [
+				'code'     => (string) $row['id'],
+				'name'     => (string) (isset($row['agency_name']) ? $row['agency_name'] : $row['id']),
+				'address'  => trim((string) (isset($row['agency_street_name']) ? $row['agency_street_name'] : '') . ' ' . (string) (isset($row['agency_street_number']) ? $row['agency_street_number'] : '')),
+				'city'     => (string) (isset($row['agency_city']) ? $row['agency_city'] : ''),
+				'state'    => (string) (isset($row['agency_state']) ? $row['agency_state'] : ''),
+				'postcode' => MJE_Geo::normalize_cp(isset($row['agency_zip_code']) ? $row['agency_zip_code'] : ''),
+				'hours'    => '',
+				'lat'      => '',
+				'lon'      => '',
+			];
 		}
 		return $out;
 	}

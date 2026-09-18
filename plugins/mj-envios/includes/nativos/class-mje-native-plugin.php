@@ -134,6 +134,31 @@ abstract class MJE_Native_Plugin {
 	}
 
 	/**
+	 * Qué localidad y qué provincia hay en ese código postal, según este correo.
+	 *
+	 * → [['city' => 'Río Gallegos', 'state' => 'Santa Cruz'], ...]
+	 *
+	 * Los correos no publican un buscador de códigos postales, pero sus
+	 * sucursales sí dicen dónde están: con eso alcanza para completar la
+	 * localidad del cliente cuando la tabla propia todavía no la conoce. Lo que
+	 * se resuelve queda aprendido, así la segunda vez no hace falta preguntar.
+	 */
+	public function resolve_cp($postcode) {
+		$out = [];
+		foreach ($this->branches($postcode) as $branch) {
+			$city = trim((string) (isset($branch['city']) ? $branch['city'] : ''));
+			if ('' === $city) {
+				continue;
+			}
+			$key = MJE_Settings::key_of($city);
+			if (!isset($out[$key])) {
+				$out[$key] = ['city' => $city, 'state' => trim((string) (isset($branch['state']) ? $branch['state'] : ''))];
+			}
+		}
+		return array_values($out);
+	}
+
+	/**
 	 * Deja anotada la sucursal elegida donde su plugin la busca.
 	 *
 	 * Se llama ANTES de pedir las tarifas: varios correos cotizan distinto según

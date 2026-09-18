@@ -32,8 +32,42 @@ class MJE_Geo {
 		return [
 			'tabla'  => 'La tabla propia del plugin (instantánea, sin internet)',
 			'georef' => 'API pública del Estado — Georef (localidades y provincias por nombre)',
-			'correo' => 'El correo conectado, si su API resuelve códigos postales',
+			'correo' => 'El correo conectado por credenciales propias, si su API resuelve códigos postales',
+			'nativo' => 'Los correos con plugin propio (Andreani, Correo Argentino), por sus sucursales',
 		];
+	}
+
+	const OPTION_NATIVE_PROVIDER = 'mje_geo_nativo_sumado';
+
+	/**
+	 * Suma el proveedor de los correos con plugin a las tiendas que ya existían.
+	 *
+	 * El orden de proveedores es un ajuste guardado, así que una tienda que ya lo
+	 * tenía nunca vería el proveedor nuevo. Se agrega una sola vez, después de la
+	 * tabla propia (que sigue siendo la más rápida) y antes de Georef. Si no
+	 * gusta, se destilda en Ajustes → Código postal.
+	 */
+	public static function maybe_add_native_provider() {
+		if (false !== get_option(self::OPTION_NATIVE_PROVIDER, false)) {
+			return;
+		}
+		add_option(self::OPTION_NATIVE_PROVIDER, '1', '', false);
+
+		$actuales = MJE_Settings::to_array(MJE_Settings::get('geo_providers'));
+		if (!$actuales || in_array('nativo', $actuales, true)) {
+			return;
+		}
+		$nuevos = [];
+		foreach ($actuales as $provider) {
+			$nuevos[] = $provider;
+			if ('tabla' === $provider) {
+				$nuevos[] = 'nativo';
+			}
+		}
+		if (!in_array('nativo', $nuevos, true)) {
+			array_unshift($nuevos, 'nativo');
+		}
+		MJE_Settings::update(['geo_providers' => implode(',', $nuevos)]);
 	}
 
 	/** Los proveedores activos, en el orden configurado. */
@@ -162,6 +196,8 @@ class MJE_Geo {
 				$rows = self::table_by_cp($cp, $country);
 			} elseif ('correo' === $provider) {
 				$rows = MJE_Carriers::resolve_cp($cp, $country);
+			} elseif ('nativo' === $provider && class_exists('MJE_Native')) {
+				$rows = self::from_native($cp, $country);
 			}
 			/* georef no publica códigos postales: solo alimenta el autocompletado por nombre. */
 			if (!$rows) {
@@ -181,6 +217,42 @@ class MJE_Geo {
 		}
 
 		return apply_filters('mje_geo_cp', $out, $cp, $country);
+	}
+
+	/**
+	 * Lo que saben los correos con plugin propio sobre un código postal.
+	 *
+	 * No tienen un buscador de códigos postales, pero sus sucursales dicen dónde
+	 * están. La provincia casi nunca viene: se completa por el nombre de la
+	 * localidad con el proveedor que sepa hacerlo (Georef), que es exactamente
+	 * lo que ya hace el autocompletado.
+	 */
+	private static function from_native($cp, $country) {
+		$out = [];
+		foreach (MJE_Native::resolve_cp($cp) as $row) {
+			$city  = (string) $row['city'];
+			$state = (string) $row['state'];
+			if ('' === $state) {
+				$state = self::state_for_city($city, $country);
+			}
+			$out[] = [
+				'city'       => $city,
+				'state'      => self::state_name($state, $country),
+				'state_code' => self::state_code($state, $country),
+				'postcode'   => $cp,
+			];
+		}
+		return $out;
+	}
+
+	/** La provincia de una localidad, preguntándole al buscador por nombre. */
+	private static function state_for_city($city, $country) {
+		foreach (self::cities($city, '', $country) as $row) {
+			if (MJE_Settings::key_of($row['city']) === MJE_Settings::key_of($city) && '' !== (string) $row['state']) {
+				return (string) $row['state'];
+			}
+		}
+		return '';
 	}
 
 	/** Filas de la tabla propia para un CP. */
