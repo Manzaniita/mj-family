@@ -56,6 +56,7 @@ function mjfid_option_defaults() {
 		// Motivos que quedan en cada movimiento
 		'note_turno'           => 'Turno atendido: {servicio}',
 		'note_order'           => 'Compra #{pedido}',
+		'note_reward'          => 'Tarjeta de fidelidad n.º {tarjeta} completa', // Motivo en el saldo a favor de MJ Turnos.
 		// Al BORRAR el plugin (no al desactivarlo): 1 = se borran los sellos, los premios y estos ajustes.
 		'delete_on_uninstall'  => 0,
 	]);
@@ -316,6 +317,7 @@ function mjfid_render_settings_page() {
 				]) . '<p>' . mjfid_input('orders_stamps', 'number', 'small-text', 'min="0" max="100" step="1"') . ' sellos por compra &nbsp; · &nbsp; un sello cada ' . mjfid_input('orders_amount', 'number', 'regular-text', 'min="0" step="0.01"') . '</p>', '');
 				mjfid_row('Motivo de un turno', mjfid_input('note_turno', 'text', 'large-text'), 'Queda en los movimientos. <code>{servicio}</code> = el servicio.');
 				mjfid_row('Motivo de una compra', mjfid_input('note_order', 'text', 'large-text'), '<code>{pedido}</code> = número de pedido.');
+				mjfid_row('Motivo del premio en el saldo', mjfid_input('note_reward', 'text', 'large-text'), 'Con "Saldo a favor": lo que queda escrito en el saldo de la clienta. <code>{tarjeta}</code> = número de tarjeta.');
 				?>
 			</table>
 

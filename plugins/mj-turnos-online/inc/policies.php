@@ -34,6 +34,18 @@ function mjto_hours_until(array $row) {
 	return ($ts - current_datetime()->getTimestamp()) / HOUR_IN_SECONDS;
 }
 
+/**
+ * Motivo de un movimiento del saldo a favor (lo ve la clienta en "Mis
+ * turnos" y la dueña en la ficha). Texto de Cambios y cancelaciones con
+ * {servicio} y {fecha}.
+ */
+function mjto_credit_note($key, array $row) {
+	return strtr((string) mjto_opt($key), [
+		'{servicio}' => (string) ($row['service_name'] ?? ''),
+		'{fecha}'    => mjto_date_label($row['starts_at'] ?? ''),
+	]);
+}
+
 /** Lo que falta transferir de la seña. */
 function mjto_deposit_due(array $row) {
 	return round(max(0.0, (float) ($row['deposit_required'] ?? 0) - (float) ($row['deposit_paid'] ?? 0)), 2);
@@ -92,7 +104,7 @@ function mjto_apply_credit_to_booking($appointment_id) {
 		return $status;
 	}
 	$use  = round(min($need, $balance), 2);
-	$note = sprintf('Seña del turno de %s (%s)', (string) $row['service_name'], mjto_date_label($row['starts_at']));
+	$note = mjto_credit_note('credit_note_applied', $row);
 	if (!mjto_add_credit((int) $row['client_id'], -$use, 'applied', $note, (int) $row['id'])) {
 		return $status;
 	}
@@ -123,7 +135,7 @@ function mjto_return_applied_credit(array $row, $reason = '') {
 	if ($applied <= 0) {
 		return 0.0;
 	}
-	$reason = '' !== $reason ? $reason : sprintf('Vuelve la seña del turno de %s (%s)', (string) $row['service_name'], mjto_date_label($row['starts_at']));
+	$reason = '' !== $reason ? $reason : mjto_credit_note('credit_note_returned', $row);
 	mjto_add_credit((int) $row['client_id'], $applied, 'returned', $reason, (int) $row['id']);
 	mjto_update_appointment((int) $row['id'], [
 		'credit_applied' => 0,
@@ -264,7 +276,7 @@ function mjto_policy_client_cancel_locked(array $row) {
 	}
 	if ($paid > 0) {
 		if ($terms['keepsDeposit']) {
-			mjto_add_credit((int) $row['client_id'], $paid, 'deposit', sprintf('Seña del turno cancelado a tiempo (%s)', mjto_date_label($row['starts_at'])), (int) $row['id']);
+			mjto_add_credit((int) $row['client_id'], $paid, 'deposit', mjto_credit_note('credit_note_cancel', $row), (int) $row['id']);
 			$amount += $paid;
 			$result  = 'credit';
 		} elseif ($terms['late']) {
@@ -338,7 +350,7 @@ function mjto_client_reschedule_locked(array $row, $date, $time) {
 		$new = mjto_create_booking(
 			['service_id' => (int) $row['service_id'], 'date' => $date, 'time' => $time],
 			'web',
-			['client_id' => (int) $row['client_id'], 'rescheduled_from' => (int) $row['id']]
+			['client_id' => (int) $row['client_id'], 'rescheduled_from' => (int) $row['id'], 'notify_owner' => false]
 		);
 		if (is_wp_error($new)) {
 			mjto_set_status((int) $row['id'], (string) $row['status'], ['notify' => false, 'by' => 'client']);
@@ -357,24 +369,32 @@ function mjto_client_reschedule_locked(array $row, $date, $time) {
 		return $new;
 	}
 
-	/* move: el horario nuevo tiene que estar libre con las reglas de la web (sin contar este mismo turno). */
+	/*
+	 * move: el horario nuevo tiene que estar libre con las reglas de la web (sin
+	 * contar este mismo turno). El candado del día nuevo queda tomado hasta que
+	 * el turno está movido y, si venía de una cancelación de la dueña, otra vez
+	 * confirmado: nadie puede reservar ese horario en el medio (toda reserva
+	 * pide el mismo candado antes de mirar si está libre).
+	 */
 	if (!mjto_acquire_lock($date)) {
 		return mjto_booking_error('busy', 503);
 	}
-	$free = mjto_slot_is_free($spec, $date, $time, (int) $row['id'], false);
-	mjto_release_lock($date);
-	if (!$free) {
-		return mjto_booking_error('slot_taken', 409);
-	}
-	$was_offer = mjto_offer_open($row);
-	$fresh     = mjto_reschedule((int) $row['id'], $date, $time, null, null, false, false);
-	if (is_wp_error($fresh)) {
-		return $fresh;
-	}
-	mjto_update_appointment((int) $row['id'], ['reschedule_count' => (int) $row['reschedule_count'] + 1]);
-	if ($was_offer) {
-		mjto_set_status((int) $row['id'], 'confirmed', ['notify' => false, 'by' => 'client']);
-		mjto_update_appointment((int) $row['id'], ['owner_offer' => 'rescheduled']);
+	try {
+		if (!mjto_slot_is_free($spec, $date, $time, (int) $row['id'], false)) {
+			return mjto_booking_error('slot_taken', 409);
+		}
+		$was_offer = mjto_offer_open($row);
+		$fresh     = mjto_reschedule((int) $row['id'], $date, $time, null, null, true, false); // Ya chequeado, con el candado.
+		if (is_wp_error($fresh)) {
+			return $fresh;
+		}
+		mjto_update_appointment((int) $row['id'], ['reschedule_count' => (int) $row['reschedule_count'] + 1]);
+		if ($was_offer) {
+			mjto_set_status((int) $row['id'], 'confirmed', ['notify' => false, 'by' => 'client']);
+			mjto_update_appointment((int) $row['id'], ['owner_offer' => 'rescheduled']);
+		}
+	} finally {
+		mjto_release_lock($date);
 	}
 	$fresh = mjto_get_appointment((int) $row['id']);
 	$extra = [
@@ -412,7 +432,7 @@ function mjto_client_offer_choice_locked(array $row, $choice) {
 	}
 	$paid = (float) $row['deposit_paid'];
 	if ('credit' === $choice) {
-		mjto_add_credit((int) $row['client_id'], $paid, 'deposit', sprintf('Seña del turno que se canceló (%s)', mjto_date_label($row['starts_at'])), (int) $row['id']);
+		mjto_add_credit((int) $row['client_id'], $paid, 'deposit', mjto_credit_note('credit_note_offer', $row), (int) $row['id']);
 		mjto_update_appointment((int) $row['id'], ['owner_offer' => 'credited']);
 	} else {
 		mjto_update_appointment((int) $row['id'], ['owner_offer' => 'refund_requested']);
@@ -485,7 +505,7 @@ add_action('mjto_status_changed', function ($fresh, $old, $new) {
 		(int) $fresh['id']
 	));
 	if ($given > 0) {
-		mjto_add_credit((int) $fresh['client_id'], -$given, 'manual', 'El turno se reactivó: la seña vuelve al turno', (int) $fresh['id']);
+		mjto_add_credit((int) $fresh['client_id'], -$given, 'manual', mjto_credit_note('credit_note_reactivated', $fresh), (int) $fresh['id']);
 	}
 	$patch = ['deposit_forfeited' => 0];
 	if ('cancelled' === $old && in_array((string) ($fresh['owner_offer'] ?? ''), ['open', 'credited', 'refund_requested'], true)) {

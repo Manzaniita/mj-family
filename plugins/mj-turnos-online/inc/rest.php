@@ -1492,21 +1492,43 @@ function mjto_rest_month_range(WP_REST_Request $request) {
 
 /* GET /panel/cash?from&to → {from, to, totals, items} */
 function mjto_rest_cash(WP_REST_Request $request) {
+	global $wpdb;
 	[$from, $to] = mjto_rest_month_range($request);
 	$rows      = mjto_visits_between($from, $to);
 	$collected = 0.0;
 	$deposits  = 0.0;
+	$credit    = 0.0;
 	$by_method = [];
 	$items     = [];
+
+	/*
+	 * La parte de una seña que salió del saldo a favor no es plata nueva: ya se
+	 * contó cuando entró (en la visita del turno donde se pagó). Se descuenta de
+	 * las señas cobradas y se informa aparte, así una seña que pasó a saldo y se
+	 * usó en otro turno no se cuenta dos veces.
+	 */
+	$ids     = array_values(array_filter(array_map(fn ($r) => (int) $r['appointment_id'], $rows)));
+	$applied = [];
+	if ($ids) {
+		$in   = implode(',', array_fill(0, count($ids), '%d'));
+		$list = $wpdb->get_results($wpdb->prepare('SELECT id, credit_applied FROM ' . mjto_table('appointments') . " WHERE id IN ({$in})", ...$ids), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL, WordPress.DB.PreparedSQLPlaceholders -- tabla propia; los ids van por prepare (un %d por id).
+		foreach ((array) $list as $a) {
+			$applied[(int) $a['id']] = (float) $a['credit_applied'];
+		}
+	}
+	$no_method = (string) mjto_opt('label_no_method');
+
 	foreach ($rows as $row) {
 		$total   = (float) $row['total'];
-		$deposit = (float) $row['deposit'];
+		$from_credit = min((float) $row['deposit'], $applied[(int) $row['appointment_id']] ?? 0.0);
+		$deposit = (float) $row['deposit'] - $from_credit;
 		$method  = trim((string) $row['payment_method']);
 		if ('' === $method) {
-			$method = 'Sin especificar';
+			$method = $no_method;
 		}
 		$collected += $total;
 		$deposits  += $deposit;
+		$credit    += $from_credit;
 		$by_method[$method] = round(($by_method[$method] ?? 0) + $total, 2);
 		$items[] = [
 			'visitId'       => (int) $row['id'],
@@ -1518,6 +1540,7 @@ function mjto_rest_cash(WP_REST_Request $request) {
 			'serviceName'   => (string) $row['service_name'],
 			'total'         => round($total, 2),
 			'deposit'       => round($deposit, 2),
+			'creditUsed'    => round($from_credit, 2),
 			'paymentMethod' => (string) $row['payment_method'],
 		];
 	}
@@ -1527,6 +1550,7 @@ function mjto_rest_cash(WP_REST_Request $request) {
 		'totals' => [
 			'collected' => round($collected, 2),
 			'deposits'  => round($deposits, 2),
+			'creditUsed' => round($credit, 2),
 			'visits'    => count($rows),
 			'byMethod'  => (object) $by_method,
 		],

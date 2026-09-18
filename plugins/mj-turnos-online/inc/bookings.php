@@ -408,6 +408,7 @@ function mjto_create_booking(array $input, $source = 'web', array $opts = []) {
 		'ignore_notice'    => ('panel' === $source),
 		'client_id'        => 0,
 		'rescheduled_from' => 0,
+		'notify_owner'     => true, // El reprogramado con seña nueva avisa a la dueña con su propio mail.
 	]);
 
 	/* 1. Clienta (validación; el alta se hace recién con el horario asegurado). */
@@ -563,7 +564,7 @@ function mjto_create_booking(array $input, $source = 'web', array $opts = []) {
 
 	/* 9. Notificaciones. */
 	if (!empty($opts['notify']) && $appointment) {
-		if (function_exists('mjto_notify_owner_new')) {
+		if (!empty($opts['notify_owner']) && function_exists('mjto_notify_owner_new')) {
 			mjto_notify_owner_new($appointment);
 		}
 		if (function_exists('mjto_notify_client')) {

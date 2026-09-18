@@ -338,6 +338,12 @@ function mjto_option_defaults() {
 		'deposit_result_lost'     => 'Por la política de cambios, la seña de {sena_pagada} no se devuelve.',
 		'deposit_result_kept'     => 'Tu seña de {sena_pagada} sigue valiendo para el turno nuevo.',
 		'deposit_result_new'      => 'Para confirmar el turno nuevo hace falta una seña nueva de {sena}.',
+		// Motivos de los movimientos del saldo a favor ({servicio}, {fecha})
+		'credit_note_applied'     => 'Seña del turno de {servicio} ({fecha})',
+		'credit_note_returned'    => 'Vuelve la seña del turno de {servicio} ({fecha})',
+		'credit_note_cancel'      => 'Seña del turno cancelado a tiempo ({fecha})',
+		'credit_note_offer'       => 'Seña del turno que se canceló ({fecha})',
+		'credit_note_reactivated' => 'El turno se reactivó: la seña vuelve al turno ({fecha})',
 		// Opiniones
 		'reviews_enabled'         => 0,
 		'reviews_auto_publish'    => 1,
@@ -476,6 +482,9 @@ function mjto_option_defaults() {
 		'review_thanks'                => '¡Gracias por tu opinión!',
 		'review_thanks_pending'        => '¡Gracias! La vamos a publicar después de leerla.',
 		'review_section_title'         => 'Opiniones',
+		'review_label_approved'        => 'publicada',
+		'review_label_pending'         => 'esperando tu revisión',
+		'review_label_hidden'          => 'oculta',
 		// Página de servicios
 		'services_eyebrow'      => 'Servicios',
 		'services_title'        => 'Servicios',
@@ -490,6 +499,7 @@ function mjto_option_defaults() {
 		'label_minutes'         => 'min',
 		'label_hours'           => 'h',
 		'label_credit'          => 'Saldo a favor',
+		'label_no_method'       => 'Sin especificar', // Caja: cobros sin método de pago cargado.
 		'label_maintenance'     => 'Mantenimiento recomendado: cada {periodo}',
 		'label_day'             => 'día',
 		'label_days'            => 'días',
@@ -1103,6 +1113,11 @@ function mjto_option_schema() {
 		'deposit_result_lost'     => ['cambios', 'text'],
 		'deposit_result_kept'     => ['cambios', 'text'],
 		'deposit_result_new'      => ['cambios', 'text'],
+		'credit_note_applied'     => ['cambios', 'text'],
+		'credit_note_returned'    => ['cambios', 'text'],
+		'credit_note_cancel'      => ['cambios', 'text'],
+		'credit_note_offer'       => ['cambios', 'text'],
+		'credit_note_reactivated' => ['cambios', 'text'],
 		// Cuentas
 		'account_mode'            => ['cuentas', 'enum', ['off', 'optional', 'required']],
 		'account_password_min'    => ['cuentas', 'int', [6, 64]],
@@ -1955,6 +1970,18 @@ function mjto_settings_tab_cambios() {
 		mjto_field_row('Hace falta una nueva', 'deposit_result_new', fn () => mjto_field_text('deposit_result_new', null, 'large-text'), '');
 		?>
 	</table>
+
+	<h2>Motivos del saldo a favor</h2>
+	<p>Lo que queda escrito en cada movimiento del saldo (lo ve la clienta en "Mis turnos" y vos en su ficha). Podés usar <code>{servicio}</code> y <code>{fecha}</code>.</p>
+	<table class="form-table" role="presentation">
+		<?php
+		mjto_field_row('Se usó en una seña', 'credit_note_applied', fn () => mjto_field_text('credit_note_applied', null, 'large-text'), '');
+		mjto_field_row('Vuelve (la reserva no siguió)', 'credit_note_returned', fn () => mjto_field_text('credit_note_returned', null, 'large-text'), '');
+		mjto_field_row('Canceló a tiempo', 'credit_note_cancel', fn () => mjto_field_text('credit_note_cancel', null, 'large-text'), '');
+		mjto_field_row('Cancelaste vos y eligió saldo', 'credit_note_offer', fn () => mjto_field_text('credit_note_offer', null, 'large-text'), '');
+		mjto_field_row('Reactivaste el turno', 'credit_note_reactivated', fn () => mjto_field_text('credit_note_reactivated', null, 'large-text'), '');
+		?>
+	</table>
 	<?php
 }
 
@@ -2247,6 +2274,9 @@ function mjto_copy_field_labels() {
 			'review_thanks'         => 'Gracias (publicada)',
 			'review_thanks_pending' => 'Gracias (a revisar)',
 			'review_section_title'  => 'Título de la sección de opiniones',
+			'review_label_approved' => 'Mail para vos: opinión publicada',
+			'review_label_pending'  => 'Mail para vos: opinión a revisar',
+			'review_label_hidden'   => 'Mail para vos: opinión oculta',
 		],
 		'services' => [
 			'services_eyebrow'     => 'Antetítulo',
@@ -2263,6 +2293,7 @@ function mjto_copy_field_labels() {
 			'label_minutes'  => 'Abreviatura de minutos',
 			'label_hours'    => 'Abreviatura de horas',
 			'label_credit'   => 'Saldo a favor',
+			'label_no_method' => 'Caja: sin método de pago',
 			'label_maintenance' => 'Mantenimiento del servicio ({periodo})',
 			'label_day'      => 'día',
 			'label_days'     => 'días',

@@ -160,9 +160,9 @@ function mjto_submit_review($token, $rating, $body = '', $name = '') {
 /** "publicada" / "esperando revisión" / "oculta" (para el mail de la dueña). */
 function mjto_status_label_review($status) {
 	$labels = (array) apply_filters('mjto_review_status_labels', [
-		'approved' => 'publicada',
-		'pending'  => 'esperando tu revisión',
-		'hidden'   => 'oculta',
+		'approved' => (string) mjto_opt('review_label_approved'),
+		'pending'  => (string) mjto_opt('review_label_pending'),
+		'hidden'   => (string) mjto_opt('review_label_hidden'),
 	]);
 	return isset($labels[$status]) ? (string) $labels[$status] : (string) $status;
 }

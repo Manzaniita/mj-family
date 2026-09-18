@@ -1127,6 +1127,7 @@ correr para que mande otro. La seña se calcula sola (monto fijo o porcentaje,
 | Saldo a favor | No | Cada clienta tiene su saldo; se usa solo en la seña de la próxima reserva (si alcanza, el turno queda confirmado sin transferir). Si la reserva no sigue, vuelve. |
 | Cuando cancelás vos: ofrecer opciones | No | Al cancelar desde el panel aparece la casilla; la clienta recibe un mail y elige desde su turno: otro día (conserva la seña), la devolución (te avisa y la marcás devuelta) o saldo a favor. Cada opción se prende por separado. |
 | Qué dicen los mails sobre la seña | textos | El comodín `{seña_resultado}`: pasó a saldo, se perdió, se conserva, hace falta una nueva. |
+| Motivos del saldo a favor | textos | Lo que queda escrito en cada movimiento del saldo (se usó, volvió, canceló a tiempo, eligió saldo, turno reactivado), con `{servicio}` y `{fecha}`. |
 
 La clienta ve **antes de confirmar** qué va a pasar con su seña: los textos
 salen de Textos → Reprogramar y cancelar. La inasistencia y la tolerancia no
@@ -1173,7 +1174,8 @@ las horas que elijas), a la clienta le llega un mail con el link para
 opinar (puntaje, texto, cómo quiere su nombre). Una por turno. Se publican
 solas desde el puntaje que elijas o esperan revisión; se ocultan, publican y
 borran desde el panel (Más → Opiniones). El nombre se muestra como "Ana G.",
-"Ana" o completo.
+"Ana" o completo. En la Caja del panel, la parte de una seña que salió del saldo a favor
+no se suma como cobrada (ya se contó cuando entró) y se muestra aparte.
 
 ### Servicios
 

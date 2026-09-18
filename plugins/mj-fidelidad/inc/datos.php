@@ -330,7 +330,7 @@ function mjfid_credit_reward(array $reward, array $people) {
 	if ($client_id <= 0 || !mjfid_credit_available()) {
 		return false; // Sin ficha en Turnos: queda pendiente y la dueña lo resuelve.
 	}
-	$reason = sprintf('Tarjeta de fidelidad n.º %d completa', (int) $reward['card_number']);
+	$reason = mjfid_fill((string) mjfid_opt('note_reward'), ['tarjeta' => (int) $reward['card_number']]);
 	if (!mjto_add_credit($client_id, (float) $reward['credit_amount'], 'manual', $reason)) {
 		return false;
 	}

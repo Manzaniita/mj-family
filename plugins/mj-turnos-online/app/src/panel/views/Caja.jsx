@@ -100,6 +100,7 @@ export default function Caja() {
   const totals = data?.totals || {};
   const collected = num(totals.collected);
   const deposits = num(totals.deposits);
+  const creditUsed = num(totals.creditUsed);
   const visitsCount = Number(totals.visits) || (Array.isArray(data?.items) ? data.items.length : 0);
   const byMethod = useMemo(() => {
     const src = totals.byMethod && typeof totals.byMethod === 'object' ? totals.byMethod : {};
@@ -170,7 +171,7 @@ export default function Caja() {
         ) : (
           <>
             <StatTile icon={Wallet} label="Cobrado" value={store.formatPrice(collected)} tone="accent" sub={visitsCount ? `${store.formatPrice(visitsCount ? collected / visitsCount : 0)} por visita` : undefined} />
-            <StatTile icon={Coins} label="Señas" value={store.formatPrice(deposits)} tone="violet" sub={collected > 0 ? `${Math.round((deposits / collected) * 100)}% del total` : undefined} />
+            <StatTile icon={Coins} label="Señas" value={store.formatPrice(deposits)} tone="violet" sub={creditUsed > 0 ? `además ${store.formatPrice(creditUsed)} con saldo a favor` : collected > 0 ? `${Math.round((deposits / collected) * 100)}% del total` : undefined} />
             <StatTile icon={ClipboardList} label="Visitas" value={String(visitsCount)} tone="info" sub={pluralize(visitsCount, 'ficha cargada', 'fichas cargadas')} />
           </>
         )}
