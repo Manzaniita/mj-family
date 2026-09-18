@@ -124,6 +124,7 @@ require_once MJE_DIR . 'includes/class-mje-cart.php';
 require_once MJE_DIR . 'includes/class-mje-orders.php';
 require_once MJE_DIR . 'includes/class-mje-tracking.php';
 require_once MJE_DIR . 'includes/class-mje-shipments.php';
+require_once MJE_DIR . 'includes/class-mje-probe.php';
 require_once MJE_DIR . 'includes/class-mje-ready.php';
 require_once MJE_DIR . 'includes/class-mje-rest.php';
 require_once MJE_DIR . 'includes/class-mje-admin.php';

@@ -47,6 +47,7 @@ class MJE_Admin {
 		add_action('admin_post_mje_save_carrier', [__CLASS__, 'save_carrier']);
 		add_action('admin_post_mje_sync_branches', [__CLASS__, 'sync_branches']);
 		add_action('admin_post_mje_add_to_zone', [__CLASS__, 'add_to_zone']);
+		add_action('admin_post_mje_probe', [__CLASS__, 'probe']);
 		add_action('admin_post_mje_save_branch', [__CLASS__, 'save_branch']);
 		add_action('admin_post_mje_delete_branch', [__CLASS__, 'delete_branch']);
 		add_action('admin_post_mje_import_geo', [__CLASS__, 'import_geo']);
@@ -112,6 +113,7 @@ class MJE_Admin {
 				'deleted'  => 'Método borrado.',
 				'copied'   => 'Método duplicado. Está apagado hasta que lo revises.',
 				'group'    => 'Grupo guardado.',
+				'probe'    => 'Cotización pedida. El resultado está abajo.',
 				'group_deleted' => 'Grupo borrado. Los métodos que tenía adentro quedaron sueltos.',
 				'toggled'  => 'Listo.',
 				'fields'   => 'Datos del cliente guardados.',
@@ -488,6 +490,96 @@ class MJE_Admin {
 		echo '<input type="hidden" name="grupo[enabled]" value="1">';
 		submit_button('Crear grupo', 'primary', 'submit', false);
 		echo '</form>';
+		self::panel_end();
+	}
+
+	/**
+	 * Preguntarle a los correos delante de uno.
+	 *
+	 * En el checkout el precio ya viene con el margen, el seguro, el mínimo y el
+	 * redondeo encima, así que mirándolo no se puede saber si el correo está
+	 * cotizando bien. Acá se ven las dos cifras separadas: lo que cobra el correo
+	 * y lo que paga el cliente. Probando dos destinos distintos se contesta sola
+	 * la pregunta de si el precio varía o es plano.
+	 */
+	private static function screen_probe() {
+		$last     = MJE_Probe::last();
+		$asked    = isset($last['asked']) ? (array) $last['asked'] : [];
+		$products = MJE_Probe::products();
+
+		self::panel(
+			'Probar una cotización',
+			'Pedile un precio de verdad a los correos para un destino, sin pasar por la tienda. Se muestra lo que cobra el correo y lo que pagaría el cliente, por separado.'
+		);
+
+		if (!$products) {
+			echo '<p class="mje-note">' . esc_html('No hay productos publicados que necesiten envío. Los correos no pueden cotizar un paquete sin nada adentro.') . '</p>';
+			self::panel_end();
+			return;
+		}
+
+		$choices = [];
+		foreach ($products as $product) {
+			$choices[$product['id']] = $product['label'];
+		}
+
+		echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="mje-inline">';
+		wp_nonce_field('mje_probe');
+		echo '<input type="hidden" name="action" value="mje_probe">';
+		echo '<div><label for="mje-probe-cp">Código postal de destino</label>';
+		echo self::text_input('cp', isset($asked['cp']) ? $asked['cp'] : '', ['class' => 'small-text', 'id' => 'mje-probe-cp', 'placeholder' => '9400']); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo '</div>';
+		echo '<div><label for="mje-probe-prov">Provincia</label>';
+		echo self::select_input('provincia', ['' => '— La que salga del CP —'] + MJE_Geo::states(), isset($asked['provincia']) ? $asked['provincia'] : '', 'id="mje-probe-prov"'); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo '</div>';
+		echo '<div><label for="mje-probe-prod">Con este producto</label>';
+		echo self::select_input('producto', $choices, isset($asked['producto']) ? $asked['producto'] : (string) key($choices), 'id="mje-probe-prod"'); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo '</div>';
+		echo '<div><label for="mje-probe-qty">Cantidad</label>';
+		echo self::text_input('cantidad', isset($asked['cantidad']) ? $asked['cantidad'] : 1, ['type' => 'number', 'class' => 'small-text', 'id' => 'mje-probe-qty']); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo '</div>';
+		echo '<div>';
+		submit_button('Cotizar', 'secondary', 'submit', false);
+		echo '</div>';
+		echo '</form>';
+
+		if (empty($last['result'])) {
+			echo '<p class="mje-note">' . esc_html('Probá el mismo producto con dos destinos lejanos entre sí: si el correo cotiza bien, los números tienen que cambiar.') . '</p>';
+			self::panel_end();
+			return;
+		}
+
+		printf(
+			'<p class="mje-note">%s</p>',
+			esc_html(sprintf('Última prueba: CP %s%s.', isset($asked['cp']) ? $asked['cp'] : '', !empty($asked['provincia']) ? ', ' . MJE_Geo::state_name($asked['provincia']) : ''))
+		);
+
+		echo '<table class="widefat striped"><thead><tr>';
+		echo '<th>Método</th><th>Correo</th><th>Lo que cobra el correo</th><th>Lo que paga el cliente</th><th>Plazo</th><th>Qué pasó</th>';
+		echo '</tr></thead><tbody>';
+
+		foreach ((array) $last['result'] as $row) {
+			echo '<tr>';
+			printf(
+				'<td>%s%s</td>',
+				esc_html($row['titulo']),
+				!empty($row['apagado']) ? ' ' . self::pill('apagado', 'off') : '' // phpcs:ignore WordPress.Security.EscapeOutput -- pill() ya escapa.
+			);
+			printf('<td>%s</td>', esc_html($row['correo']));
+			printf('<td>%s</td>', null !== $row['base'] ? esc_html(MJE_Settings::money($row['base'])) : '<span class="mje-note">—</span>');
+			printf(
+				'<td>%s</td>',
+				null !== $row['final'] ? esc_html(MJE_Settings::money($row['final'])) : '<span class="mje-note">' . esc_html('no se ofrece') . '</span>'
+			);
+			printf('<td>%s</td>', esc_html($row['plazo']));
+			printf(
+				'<td>%s</td>',
+				'' !== $row['error'] ? esc_html($row['error']) : '<span class="mje-note">' . esc_html($row['origen']) . '</span>'
+			);
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+		echo '<p class="mje-note">' . esc_html('«Lo que cobra el correo» está vacío cuando el precio no lo puso un correo (tabla propia, precio fijo, retiro). La diferencia entre las dos cifras es tu margen, el seguro, el mínimo y el redondeo.') . '</p>';
 		self::panel_end();
 	}
 
@@ -1331,6 +1423,8 @@ class MJE_Admin {
 	/* -------------------------------- Estado ----------------------------- */
 
 	private static function screen_carriers_status() {
+		self::screen_probe();
+
 		self::panel('Caché de cotizaciones', 'El mismo destino y peso no se le pregunta dos veces al correo. Vaciala si cambiaste precios o contratos y querés ver el efecto ya.');
 		echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="mje-inline">';
 		wp_nonce_field('mje_clear_quotes');
@@ -1697,6 +1791,26 @@ class MJE_Admin {
 			MJE_Methods::save($slug, $def);
 		}
 		self::back(['tab' => 'metodos', 'saved' => 'toggled']);
+	}
+
+	/** Corre la prueba de cotización y deja el resultado a la vista. */
+	public static function probe() {
+		self::guard('mje_probe');
+		$asked = [
+			'cp'        => isset($_POST['cp']) ? MJE_Geo::normalize_cp(sanitize_text_field(wp_unslash($_POST['cp']))) : '', // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
+			'provincia' => isset($_POST['provincia']) ? sanitize_text_field(wp_unslash($_POST['provincia'])) : '', // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
+			'producto'  => isset($_POST['producto']) ? absint(wp_unslash($_POST['producto'])) : 0, // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
+			'cantidad'  => isset($_POST['cantidad']) ? max(1, absint(wp_unslash($_POST['cantidad']))) : 1, // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
+		];
+		$back = ['tab' => 'correos', 'vista' => 'estado'];
+
+		if ('' === $asked['cp']) {
+			self::back($back + ['error' => 'Poné un código postal de destino.']);
+		}
+
+		$result = MJE_Probe::run($asked['cp'], $asked['provincia'], $asked['producto'], $asked['cantidad']);
+		MJE_Probe::remember($result, $asked);
+		self::back($back + ['saved' => 'probe']);
 	}
 
 	public static function save_group() {
