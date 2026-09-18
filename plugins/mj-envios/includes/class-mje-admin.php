@@ -1627,7 +1627,7 @@ class MJE_Admin {
 		 */
 		foreach ($carrier->fields() as $key => $field) {
 			$is_password = isset($field['type']) && 'password' === $field['type'];
-			if ($is_password && isset($config[$key]) && '' === trim((string) $config[$key])) {
+			if ($is_password && '' === trim((string) (isset($config[$key]) ? $config[$key] : ''))) {
 				$config[$key] = $carrier->config($key);
 			}
 		}

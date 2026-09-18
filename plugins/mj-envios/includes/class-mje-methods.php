@@ -269,8 +269,15 @@ class MJE_Methods {
 		self::$cache = null;
 	}
 
-	/** Guarda un método (lo crea si no existe). Devuelve el slug con el que quedó. */
-	public static function save($slug, $def) {
+	/**
+	 * Guarda un método (lo crea si no existe). Devuelve el slug con el que quedó.
+	 *
+	 * `$flush` en false guarda sin vaciar las cachés de WooCommerce. Es para la
+	 * adopción automática, que corre DENTRO del cálculo del carrito: purgar las
+	 * cachés ahí es caro y no hace falta, porque las tarifas que se están
+	 * calculando ya incluyen el método nuevo.
+	 */
+	public static function save($slug, $def, $flush = true) {
 		$all  = self::all();
 		$def  = self::sanitize($def);
 		$slug = sanitize_key('' !== $slug ? $slug : $def['slug']);
@@ -279,7 +286,7 @@ class MJE_Methods {
 		}
 		$def['slug'] = $slug;
 		$all[$slug]  = $def;
-		self::store($all);
+		self::store($all, $flush);
 		return $slug;
 	}
 
@@ -385,7 +392,8 @@ class MJE_Methods {
 			'order'          => 50,
 		], self::defaults());
 
-		self::save($slug, $def);
+		/* Sin vaciar cachés: esto corre dentro del cálculo del carrito. */
+		self::save($slug, $def, false);
 		return self::get($slug);
 	}
 
@@ -403,7 +411,7 @@ class MJE_Methods {
 		self::store($all);
 	}
 
-	private static function store(array $all) {
+	private static function store(array $all, $flush = true) {
 		$clean = [];
 		foreach ($all as $slug => $def) {
 			$slug = sanitize_key($slug);
@@ -413,8 +421,11 @@ class MJE_Methods {
 			}
 		}
 		update_option(MJE_Settings::METHODS, $clean);
+		/* La caché propia siempre se vacía: lo que sigue tiene que ver el método nuevo. */
 		self::$cache = null;
-		MJE_Settings::flush_caches();
+		if ($flush) {
+			MJE_Settings::flush_caches();
+		}
 	}
 
 	private static function unique_slug($title) {
