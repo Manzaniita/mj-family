@@ -9,17 +9,18 @@ import { ProductImage } from '@/components/ui/ProductImage';
 import { Price } from '@/components/ui/Price';
 import { Highlight } from '@/components/ui/Highlight';
 import { EASE } from '@/lib/format';
+import { t, tf, tn } from '@/lib/copy';
 
 const MAX_PRODUCTS = 5;
 const MAX_CATS = 7;
 
 /** "119 en stock" | "En stock" | "Sin stock" según lo que sepamos del producto. */
 function stockLabel(p) {
-  if (p.stock_status !== 'instock') return { text: 'Sin stock', ok: false };
+  if (p.stock_status !== 'instock') return { text: t('product_out_of_stock'), ok: false };
   if (p.stock_quantity != null) {
-    return { text: `${p.stock_quantity} en stock`, ok: true };
+    return { text: tf('search_in_stock_n', { n: p.stock_quantity }), ok: true };
   }
-  return { text: 'En stock', ok: true };
+  return { text: t('product_in_stock'), ok: true };
 }
 
 const inCategory = (p, slug) => p.category === slug || (p.categories || []).includes(slug);
@@ -48,8 +49,8 @@ export function SearchBar() {
   const setCartOpen = useUI((s) => s.setCartOpen);
 
   const placeholder = categories.length
-    ? `Buscar ${categories.slice(0, 2).map((c) => c.name).join(', ')}…`
-    : 'Buscar productos…';
+    ? tf('search_placeholder_categories', { categorias: categories.slice(0, 2).map((c) => c.name).join(', ') })
+    : t('search_placeholder');
 
   const active = query.trim().length >= 2;
 
@@ -58,11 +59,11 @@ export function SearchBar() {
     if (!active) { setResults([]); setLoading(false); return; }
     let live = true;
     setLoading(true);
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       const r = await getProducts({ search: query });
       if (live) { setResults(r); setLoading(false); }
     }, 180);
-    return () => { live = false; clearTimeout(t); };
+    return () => { live = false; clearTimeout(timer); };
   }, [query, active]);
 
   useEffect(() => {
@@ -125,7 +126,7 @@ export function SearchBar() {
       <form onSubmit={submit}>
         <div className="mj-search__field group flex h-11 items-center gap-3 rounded-(--mj-radius-pill) glass px-4 transition-all duration-300 focus-within:border-accent/50 focus-within:shadow-glow">
           {loading ? (
-            <Loader2 size={16} className="shrink-0 animate-spin text-accent" aria-label="Buscando…" />
+            <Loader2 size={16} className="shrink-0 animate-spin text-accent" aria-label={t('search_searching')} />
           ) : (
             <Search size={16} className="shrink-0 text-ink-faint transition-colors group-focus-within:text-accent" />
           )}
@@ -136,7 +137,7 @@ export function SearchBar() {
             onKeyDown={(e) => { if (e.key === 'Enter') submit(e); }}
             placeholder={placeholder}
             className="w-full bg-transparent text-sm text-ink placeholder:text-ink-faint outline-none"
-            aria-label="Buscar productos"
+            aria-label={t('search_label')}
           />
           <kbd className="hidden rounded-md border border-line bg-surface px-1.5 py-0.5 text-[10px] text-ink-faint lg:block">
             Enter
@@ -159,7 +160,7 @@ export function SearchBar() {
                   {/* Categorías con coincidencias de esta búsqueda */}
                   <div className="hidden border-r border-line p-2 sm:block">
                     <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">
-                      Categorías
+                      {t('search_categories')}
                     </p>
                     <button
                       onClick={() => setSelectedCat(null)}
@@ -168,7 +169,7 @@ export function SearchBar() {
                       }`}
                     >
                       <LayoutGrid size={14} className="shrink-0 opacity-70" />
-                      <span className="min-w-0 flex-1 truncate text-[13px] font-medium">Todas</span>
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{t('search_all')}</span>
                       <span className="grid min-w-5 place-items-center rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-bold text-accent">
                         {results.length}
                       </span>
@@ -178,7 +179,7 @@ export function SearchBar() {
                         key={c.slug}
                         onClick={() => setSelectedCat(selectedCat === c.slug ? null : c.slug)}
                         onDoubleClick={() => goToResults(c.slug)}
-                        title={`Ver las ${c.matches} coincidencias en ${c.name}`}
+                        title={tf('search_category_title', { n: c.matches, categoria: c.name })}
                         className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left transition-colors ${
                           selectedCat === c.slug ? 'bg-accent-soft text-accent' : 'hover:bg-surface'
                         }`}
@@ -198,8 +199,8 @@ export function SearchBar() {
                   <div className="min-w-0 p-2">
                     <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-faint">
                       {selectedCat
-                        ? `${pool.length} en ${catMatches.find((c) => c.slug === selectedCat)?.name ?? 'la categoría'}`
-                        : 'Productos'}
+                        ? tf('search_in_category', { n: pool.length, categoria: catMatches.find((c) => c.slug === selectedCat)?.name ?? t('search_the_category') })
+                        : t('search_products')}
                     </p>
                     {products.map((p) => {
                       const stock = stockLabel(p);
@@ -222,7 +223,7 @@ export function SearchBar() {
                                 <Highlight text={categoryName(p)} query={query} />
                               </span>
                               {p.sku && (
-                                <span>SKU: <Highlight text={p.sku} query={query} /></span>
+                                <span>{t('product_sku')}: <Highlight text={p.sku} query={query} /></span>
                               )}
                               <span className={stock.ok ? 'text-success' : 'text-danger'}>
                                 • {stock.text}
@@ -235,8 +236,8 @@ export function SearchBar() {
                             whileTap={STILL ? undefined : stock.ok ? { scale: 0.9 } : undefined}
                             onClick={(e) => handleAdd(e, p)}
                             disabled={!stock.ok}
-                            aria-label={p.type === 'variable' ? 'Elegir opciones' : 'Añadir al carrito'}
-                            title={p.type === 'variable' ? 'Elegir opciones' : 'Añadir al carrito'}
+                            aria-label={p.type === 'variable' ? t('product_choose_options') : t('product_card_add')}
+                            title={p.type === 'variable' ? t('product_choose_options') : t('product_card_add')}
                             className={`grid size-9 shrink-0 place-items-center rounded-full transition-all ${
                               stock.ok
                                 ? 'mj-solid bg-accent text-white shadow-glow'
@@ -249,7 +250,7 @@ export function SearchBar() {
                       );
                     })}
                     {pool.length === 0 && (
-                      <p className="px-3 py-4 text-sm text-ink-faint">Sin coincidencias en esta categoría.</p>
+                      <p className="px-3 py-4 text-sm text-ink-faint">{t('search_no_category_matches')}</p>
                     )}
                   </div>
                 </div>
@@ -258,14 +259,14 @@ export function SearchBar() {
                   onClick={() => goToResults()}
                   className="flex w-full items-center justify-between px-4 py-3 text-xs font-medium text-accent hairline-t transition-colors hover:bg-surface"
                 >
-                  Ver {pool.length === 1 ? 'el único resultado' : `los ${pool.length} resultados`} para “{query}”
-                  {selectedCat && ` en ${catMatches.find((c) => c.slug === selectedCat)?.name ?? ''}`}
+                  {tn('search_view_results', pool.length, { busqueda: query })}
+                  {selectedCat && ` ${tf('search_view_in', { categoria: catMatches.find((c) => c.slug === selectedCat)?.name ?? '' })}`}
                   <ArrowUpRight size={14} />
                 </button>
               </>
             ) : (
               <p className="px-4 py-6 text-center text-sm text-ink-faint">
-                {loading ? 'Buscando…' : `Sin resultados para “${query}”`}
+                {loading ? t('search_searching') : tf('search_no_results', { busqueda: query })}
               </p>
             )}
           </motion.div>

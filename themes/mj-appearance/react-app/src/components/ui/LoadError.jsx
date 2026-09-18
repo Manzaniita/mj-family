@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { RefreshCw, WifiOff } from 'lucide-react';
 import { Button } from './Button';
+import { t } from '@/lib/copy';
 
 /**
  * Cuando no se pudo cargar algo del servidor: dice qué pasó y deja reintentar.
  * `onRetry` devuelve una promesa (o no): mientras corre, el botón gira.
  */
 export function LoadError({
-  title = 'No pudimos cargar esto',
-  text = 'Puede ser la conexión o que el servidor esté tardando. Probá de nuevo en unos segundos.',
+  title = t('ui_load_error_title'),
+  text = t('ui_load_error_text'),
   onRetry,
   compact = false,
   className = '',
@@ -38,7 +39,7 @@ export function LoadError({
       <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-soft">{text}</p>
       <Button className="mt-6" variant="secondary" onClick={retry} disabled={busy}>
         <RefreshCw size={15} className={busy ? 'animate-spin' : ''} />
-        {busy ? 'Reintentando…' : 'Reintentar'}
+        {busy ? t('ui_retrying') : t('ui_retry')}
       </Button>
     </div>
   );

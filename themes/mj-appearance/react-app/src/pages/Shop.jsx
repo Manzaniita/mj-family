@@ -14,17 +14,17 @@ import { getProducts, priceBounds } from '@/lib/api';
 import { useCatalog } from '@/store/catalog';
 import { formatPrice, cn, EASE } from '@/lib/format';
 import { REVIEWS_ENABLED } from '@/lib/config';
-import { t, BRAND_LABEL } from '@/lib/copy';
+import { t, tf, tn, BRAND_LABEL } from '@/lib/copy';
 import { COLEGAS, isValidMaker, makerLabel } from '@/lib/colegas';
 import { usePageMeta } from '@/lib/seo';
 import { LoadError } from '@/components/ui/LoadError';
 
 const sortOptions = [
-  ['relevance', 'Relevancia'],
-  ['price-asc', 'Menor precio'],
-  ['price-desc', 'Mayor precio'],
-  ['rating', 'Mejor valorados'],
-  ['newest', 'Novedades'],
+  ['relevance', t('shop_sort_relevance')],
+  ['price-asc', t('shop_sort_price_asc')],
+  ['price-desc', t('shop_sort_price_desc')],
+  ['rating', t('shop_sort_rating')],
+  ['newest', t('shop_sort_newest')],
 ];
 
 function FilterGroup({ title, children }) {
@@ -128,15 +128,15 @@ export default function Shop({ mode }) {
   );
 
   const title = useMemo(() => {
-    if (mode === 'category') return categories.find((c) => c.slug === params.slug)?.name ?? 'Categoría';
+    if (mode === 'category') return categories.find((c) => c.slug === params.slug)?.name ?? t('shop_filter_category');
     if (mode === 'brand') return brands.find((b) => b.slug === params.slug)?.name ?? BRAND_LABEL.singular;
     if (mode === 'search') {
       const catName = filters.category
         ? categories.find((c) => c.slug === filters.category)?.name
         : null;
       return catName
-        ? `“${searchQuery}” en ${catName}`
-        : `Resultados para “${searchQuery}”`;
+        ? tf('shop_search_in', { busqueda: searchQuery, categoria: catName })
+        : tf('shop_search_results', { busqueda: searchQuery });
     }
     if (preset === 'ofertas') return t('shop_sale_title');
     if (preset === 'novedades') return t('shop_new_title');
@@ -150,9 +150,9 @@ export default function Shop({ mode }) {
   const filterPanel = (
     <div className="space-y-6">
       {!lockedCategory && (
-        <FilterGroup title="Categoría">
+        <FilterGroup title={t('shop_filter_category')}>
           <div className="flex flex-wrap gap-2">
-            <Chip active={!filters.category} onClick={() => set({ category: null })}>Todas</Chip>
+            <Chip active={!filters.category} onClick={() => set({ category: null })}>{t('shop_filter_all')}</Chip>
             {categories.map((c) => (
               <Chip key={c.slug} active={filters.category === c.slug} onClick={() => set({ category: c.slug })}>
                 {c.name}
@@ -179,7 +179,7 @@ export default function Shop({ mode }) {
       {!lockedBrand && brands.length > 0 && (
         <FilterGroup title={BRAND_LABEL.singular}>
           <div className="flex flex-wrap gap-2">
-            <Chip active={!filters.brand} onClick={() => set({ brand: null })}>Todas</Chip>
+            <Chip active={!filters.brand} onClick={() => set({ brand: null })}>{t('shop_filter_all')}</Chip>
             {brands.map((b) => (
               <Chip key={b.slug} active={filters.brand === b.slug} onClick={() => set({ brand: b.slug })}>
                 {b.name}
@@ -188,7 +188,7 @@ export default function Shop({ mode }) {
           </div>
         </FilterGroup>
       )}
-      <FilterGroup title={`Precio máximo · ${formatPrice(filters.maxPrice ?? bounds[1])}`}>
+      <FilterGroup title={`${t('shop_filter_max_price')} · ${formatPrice(filters.maxPrice ?? bounds[1])}`}>
         <input
           type="range"
           min={bounds[0]}
@@ -197,18 +197,18 @@ export default function Shop({ mode }) {
           value={filters.maxPrice ?? bounds[1]}
           onChange={(e) => set({ maxPrice: Number(e.target.value) })}
           className="w-full accent-(--mj-accent)"
-          aria-label="Precio máximo"
+          aria-label={t('shop_filter_max_price')}
         />
         <div className="mt-1 flex justify-between text-xs text-ink-faint">
           <span>{formatPrice(bounds[0])}</span>
           <span>{formatPrice(bounds[1])}</span>
         </div>
       </FilterGroup>
-      <FilterGroup title="Disponibilidad">
+      <FilterGroup title={t('shop_filter_availability')}>
         <div className="flex flex-wrap gap-2">
-          <Chip active={filters.inStock} onClick={() => set({ inStock: !filters.inStock })}>Solo en stock</Chip>
+          <Chip active={filters.inStock} onClick={() => set({ inStock: !filters.inStock })}>{t('shop_filter_in_stock')}</Chip>
           <Chip active={filters.onlyNew} onClick={() => set({ onlyNew: !filters.onlyNew })}>{t('shop_new_title')}</Chip>
-          <Chip active={filters.onlySale} onClick={() => set({ onlySale: !filters.onlySale })}>En oferta</Chip>
+          <Chip active={filters.onlySale} onClick={() => set({ onlySale: !filters.onlySale })}>{t('shop_filter_on_sale')}</Chip>
         </div>
       </FilterGroup>
     </div>
@@ -219,7 +219,7 @@ export default function Shop({ mode }) {
       <Reveal className="mj-page-head">
         <p className="mj-eyebrow text-xs font-semibold uppercase tracking-[0.2em] text-accent">{t('shop_eyebrow')}</p>
         <h1 className="display mt-3 text-4xl md:text-6xl">{title}</h1>
-        <p className="mt-3 text-ink-soft">{items.length} producto{items.length !== 1 && 's'}</p>
+        <p className="mt-3 text-ink-soft">{tn('shop_count', items.length)}</p>
       </Reveal>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[260px_1fr]">
@@ -235,7 +235,7 @@ export default function Shop({ mode }) {
               onClick={() => setMobileFilters(true)}
               className="flex h-10 items-center gap-2 rounded-(--mj-radius-pill) glass px-4 text-sm font-medium lg:hidden"
             >
-              <SlidersHorizontal size={15} /> Filtros
+              <SlidersHorizontal size={15} /> {t('shop_filters')}
             </button>
             <div className="mj-toolbar__sort flex h-10 items-center gap-1 rounded-(--mj-radius-pill) glass p-1 ml-auto">
               {sortOptions.map(([value, label]) => (
@@ -254,7 +254,7 @@ export default function Shop({ mode }) {
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
                 className="bg-transparent px-3 text-xs font-medium outline-none md:hidden"
-                aria-label="Ordenar"
+                aria-label={t('shop_sort_label')}
               >
                 {sortOptions.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
@@ -268,7 +268,7 @@ export default function Shop({ mode }) {
                     'grid size-8 place-items-center rounded-(--mj-radius-pill) transition-colors',
                     view === v ? 'bg-surface-2 text-ink' : 'text-ink-faint hover:text-ink'
                   )}
-                  aria-label={v === 'grid' ? 'Vista grilla' : 'Vista lista'}
+                  aria-label={v === 'grid' ? t('shop_view_grid') : t('shop_view_list')}
                 >
                   <Icon size={15} />
                 </button>
@@ -279,7 +279,7 @@ export default function Shop({ mode }) {
           {/* Resultados */}
           {catalogError && items.length === 0 ? (
             <LoadError
-              title="No pudimos cargar los productos"
+              title={t('ui_products_load_error')}
               onRetry={() => useCatalog.getState().init(true)}
             />
           ) : loading ? (
@@ -292,7 +292,7 @@ export default function Shop({ mode }) {
             <div className="rounded-xl3 border border-line glass p-16 text-center">
               <p className="display text-2xl">{t('shop_empty_title')}</p>
               <p className="mt-2 text-sm text-ink-soft">{t('shop_empty_text')}</p>
-              <Button className="mt-6" to="/tienda">Ver toda la tienda</Button>
+              <Button className="mt-6" to="/tienda">{t('shop_empty_cta')}</Button>
             </div>
           ) : view === 'grid' ? (
             <ProductGrid products={items} cols={3} highlight={searchQuery || undefined} />
@@ -341,14 +341,14 @@ export default function Shop({ mode }) {
               className="mj-sheet absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-(--mj-radius-2xl) border-t border-line bg-bg-soft p-6 pb-10"
             >
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="font-display text-lg font-semibold">Filtros</h2>
-                <button onClick={() => setMobileFilters(false)} className="grid size-9 place-items-center rounded-(--mj-radius-pill) glass" aria-label="Cerrar filtros">
+                <h2 className="font-display text-lg font-semibold">{t('shop_filters')}</h2>
+                <button onClick={() => setMobileFilters(false)} className="grid size-9 place-items-center rounded-(--mj-radius-pill) glass" aria-label={t('shop_filters_close')}>
                   <X size={16} />
                 </button>
               </div>
               {filterPanel}
               <Button className="mt-6 w-full" onClick={() => setMobileFilters(false)}>
-                Ver {items.length} resultado{items.length !== 1 && 's'}
+                {tn('shop_results', items.length)}
               </Button>
             </motion.div>
           </div>

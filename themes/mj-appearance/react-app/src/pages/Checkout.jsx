@@ -19,10 +19,10 @@ import { PAY, usePaymentMethod, selectedMethodId, findMethod, resolveAdjustment,
 import { formFields, hasShipping, methodBySlug, missingFor, shippingTexts } from '@/lib/envios';
 import { usePageMeta } from '@/lib/seo';
 import { validateAll, focusFirstError } from '@/lib/validate';
-import { t as tCopy } from '@/lib/copy';
+import { t as tCopy, tf, tx } from '@/lib/copy';
 
 /* Cómo se llama el paso de envío. Lo decide el plugin; sin plugin, "Envío". */
-const SHIPPING_TITLE = shippingTexts().stepTitle || 'Envío';
+const SHIPPING_TITLE = shippingTexts().stepTitle || tCopy('checkout_shipping_title');
 
 // Medios de pago: dentro de WordPress SOLO los gateways reales activos en
 // WooCommerce (inyectados por PHP). En modo demo (standalone) se muestran
@@ -87,7 +87,7 @@ function ExpressSummary({ form, onEdit }) {
     <div className="mj-panel rounded-xl3 border border-line glass p-7">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="font-display text-lg font-semibold tracking-tight">Tus datos</h2>
+          <h2 className="font-display text-lg font-semibold tracking-tight">{tCopy('checkout_express_title')}</h2>
           <p className="mt-3 text-sm text-ink">{form.firstName} {form.lastName}</p>
           <p className="text-sm text-ink-soft">
             {[form.address, form.address2].filter(Boolean).join(', ')}
@@ -101,7 +101,7 @@ function ExpressSummary({ form, onEdit }) {
           onClick={onEdit}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink"
         >
-          <Pencil size={13} /> Cambiar
+          <Pencil size={13} /> {tCopy('checkout_express_change')}
         </button>
       </div>
     </div>
@@ -134,7 +134,7 @@ function CreditBox({ credit }) {
   const [amount, setAmount] = useState('');
   if (!credit || !(credit.available > 0)) return null;
 
-  const label = credit.label || 'Saldo a favor';
+  const label = credit.label || tCopy('checkout_credit_label');
   const others = credit.balances.filter((b) => b.currency !== credit.currency);
   const apply = () => {
     const n = parseAmount(amount);
@@ -152,10 +152,10 @@ function CreditBox({ credit }) {
         <span className="flex items-center gap-3">
           <Wallet size={17} className="shrink-0 text-accent" />
           <span>
-            <span className="block text-sm font-medium">Usar mi {label.toLowerCase()}</span>
+            <span className="block text-sm font-medium">{tf('checkout_credit_use', { saldo: label.toLowerCase() })}</span>
             <span className="block text-xs text-ink-faint">
-              Tenés {formatPrice(credit.available)}
-              {others.length > 0 && ` (incluye ${others.map((b) => moneyIn(b.amount, b.currency, credit.currency)).join(' y ')} al dólar de hoy)`}
+              {tf('checkout_credit_have', { monto: formatPrice(credit.available) })}
+              {others.length > 0 && ` ${tf('checkout_credit_includes', { montos: others.map((b) => moneyIn(b.amount, b.currency, credit.currency)).join(` ${tCopy('checkout_credit_and')} `) })}`}
             </span>
           </span>
         </span>
@@ -171,12 +171,12 @@ function CreditBox({ credit }) {
       {credit.use && (
         <div className="mt-4 border-t border-line pt-4">
           <p className="text-sm font-medium text-success" aria-live="polite">
-            Se descuentan {formatPrice(credit.applied)} del total.
+            {tf('checkout_credit_applied', { monto: formatPrice(credit.applied) })}
           </p>
           <div className="mt-3 flex items-end gap-2">
             <div className="min-w-0 flex-1">
               <Input
-                label="¿Querés usar menos?"
+                label={tCopy('checkout_credit_less')}
                 inputMode="decimal"
                 placeholder={formatPrice(credit.max)}
                 value={amount}
@@ -191,7 +191,7 @@ function CreditBox({ credit }) {
               />
             </div>
             <Button type="button" size="sm" variant="secondary" onClick={apply} disabled={syncing}>
-              Aplicar
+              {tCopy('checkout_credit_apply')}
             </Button>
           </div>
         </div>
@@ -420,20 +420,20 @@ export default function Checkout() {
           >
             <Check size={34} strokeWidth={2.5} />
           </motion.span>
-          <h1 className="display mt-8 text-4xl">¡Pedido confirmado!</h1>
+          <h1 className="display mt-8 text-4xl">{tCopy('checkout_done_title')}</h1>
           <p className="mt-4 text-ink-soft">
-            {orderId ? <>Tu orden <span className="font-semibold text-ink">#{orderId}</span> fue creada. </> : null}
-            Te enviamos el detalle por email.
+            {orderId ? <>{tx('checkout_done_order', { numero: <span className="font-semibold text-ink">#{orderId}</span> })} </> : null}
+            {tCopy('checkout_done_email')}
           </p>
           {placedUsd != null && EXCHANGE_RATE && (
             <p className="mt-4 text-ink-soft">
-              Total a pagar: <span className="font-semibold text-ink">{formatUsd(placedUsd)}</span> al dólar {EXCHANGE_RATE.formatted}
+              {tx('checkout_done_usd', { monto: <span className="font-semibold text-ink">{formatUsd(placedUsd)}</span>, cotizacion: EXCHANGE_RATE.formatted })}
             </p>
           )}
           {hasHowTo && (
             <div className="mj-panel mt-6 rounded-xl2 border border-line glass p-5 text-left">
               <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">
-                {howToTexts.howTo || 'Cómo pagar'}{placedMethod || howTo.title ? ` · ${placedMethod?.short || placedMethod?.title || howTo.title}` : ''}
+                {howToTexts.howTo || tCopy('checkout_payment_howto')}{placedMethod || howTo.title ? ` · ${placedMethod?.short || placedMethod?.title || howTo.title}` : ''}
               </p>
               {howTo.instructions && (
                 <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{howTo.instructions}</p>
@@ -452,8 +452,8 @@ export default function Checkout() {
             </div>
           )}
           <div className="mt-8 flex justify-center gap-3">
-            <Button to="/cuenta/pedidos" variant="secondary">Ver mis pedidos</Button>
-            <Button to="/tienda">Seguir comprando</Button>
+            <Button to="/cuenta/pedidos" variant="secondary">{tCopy('checkout_done_orders')}</Button>
+            <Button to="/tienda">{tCopy('checkout_done_continue')}</Button>
           </div>
         </motion.div>
       </Section>
@@ -464,8 +464,8 @@ export default function Checkout() {
     return (
       <Section className="grid min-h-[50vh] place-items-center text-center">
         <div>
-          <h1 className="display text-3xl">No hay nada para pagar</h1>
-          <Button className="mt-6" to="/tienda">Ir a la tienda</Button>
+          <h1 className="display text-3xl">{tCopy('checkout_empty_title')}</h1>
+          <Button className="mt-6" to="/tienda">{tCopy('checkout_empty_cta')}</Button>
         </div>
       </Section>
     );
@@ -478,7 +478,7 @@ export default function Checkout() {
     // Datos de contacto y envío: se avisa al lado de cada campo y se lleva el foco al primero.
     if (!express && Object.keys(errors).length > 0) {
       setTouched(Object.fromEntries(Object.keys(schema).map((key) => [key, true])));
-      setError('Revisá los campos marcados en rojo.');
+      setError(tCopy('checkout_error_fields'));
       focusFirstError(errors, e.currentTarget);
       return;
     }
@@ -496,19 +496,19 @@ export default function Checkout() {
       const docTipo = esA ? 'cuit' : factura.docTipo;
       const docNro = factura.docNro.replace(/\D+/g, '').slice(0, 11);
       if (factura.receptor === 'otro' && !factura.factNombre.trim()) {
-        setError('Cargá el nombre o razón social del receptor de la factura.');
+        setError(tCopy('checkout_error_invoice_name'));
         return;
       }
       if (docTipo === 'cuit' && !isValidCuit(docNro)) {
         setError(
           docNro.length === 11
-            ? 'El CUIT/CUIL del receptor no es válido: revisá los números, hay algún dígito incorrecto.'
-            : 'El CUIT/CUIL del receptor debe tener 11 dígitos.'
+            ? tCopy('checkout_error_cuit_invalid')
+            : tCopy('checkout_error_cuit_length')
         );
         return;
       }
       if (docTipo === 'dni' && (docNro.length < 7 || docNro.length > 8)) {
-        setError('El DNI del receptor debe tener 7 u 8 dígitos.');
+        setError(tCopy('checkout_error_dni'));
         return;
       }
       additionalFields = {
@@ -529,7 +529,7 @@ export default function Checkout() {
     if (hasShipping()) {
       const rate = (cartShipping?.rates ?? []).find((r) => r.selected);
       if (!rate) {
-        setError('Elegí cómo querés recibir tu compra.');
+        setError(tCopy('checkout_error_rate'));
         return;
       }
       const missing = missingFor(rate.slug ? methodBySlug(rate.slug) : null, {
@@ -541,7 +541,7 @@ export default function Checkout() {
         address_2: form.address2,
       });
       if (missing.length) {
-        setError(`Para poder enviarte la compra falta: ${missing.join(', ')}.`);
+        setError(tf('checkout_error_missing', { datos: missing.join(', ') }));
         return;
       }
       /* Lo último que escribió puede estar esperando su turno: se manda ahora. */
@@ -584,7 +584,7 @@ export default function Checkout() {
       clear();
       window.scrollTo({ top: 0 });
     } catch (err) {
-      setError(err.message || 'No pudimos procesar el pedido. Revisá los datos e intentá de nuevo.');
+      setError(err.message || tCopy('checkout_error_generic'));
     } finally {
       setPlacing(false);
     }
@@ -594,11 +594,11 @@ export default function Checkout() {
     <Section className="md:py-16">
       <Reveal>
         <Link to="/carrito" className="inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-ink">
-          <ChevronLeft size={15} /> Volver al carrito
+          <ChevronLeft size={15} /> {tCopy('checkout_back')}
         </Link>
-        <h1 className="display mt-4 text-4xl md:text-5xl">Checkout</h1>
+        <h1 className="display mt-4 text-4xl md:text-5xl">{tCopy('checkout_title')}</h1>
         <p className="mt-2 flex items-center gap-1.5 text-sm text-ink-soft">
-          <Lock size={13} className="text-success" /> Pago 100% seguro y encriptado
+          <Lock size={13} className="text-success" /> {tCopy('checkout_secure')}
         </p>
       </Reveal>
 
@@ -612,11 +612,11 @@ export default function Checkout() {
             <span className="flex items-center gap-3">
               <Zap size={18} className="shrink-0 text-accent" />
               <span>
-                <span className="block text-sm font-semibold">Comprar rápido</span>
-                <span className="block text-xs text-ink-soft">Usamos los datos que ya tenemos y salteás los pasos.</span>
+                <span className="block text-sm font-semibold">{tCopy('checkout_express_cta')}</span>
+                <span className="block text-xs text-ink-soft">{tCopy('checkout_express_hint')}</span>
               </span>
             </span>
-            <span className="shrink-0 text-sm font-medium text-accent">Usar</span>
+            <span className="shrink-0 text-sm font-medium text-accent">{tCopy('checkout_express_use')}</span>
           </button>
         </Reveal>
       )}
@@ -630,12 +630,12 @@ export default function Checkout() {
           ) : (
           <>
           <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
-            <h2 className="font-display text-lg font-semibold tracking-tight">1 · Contacto</h2>
+            <h2 className="font-display text-lg font-semibold tracking-tight">1 · {tCopy('checkout_step_contact')}</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <Input label="Nombre" required placeholder="María" autoComplete="given-name" {...field('firstName')} />
-              <Input label="Apellido" required placeholder="González" autoComplete="family-name" {...field('lastName')} />
-              <Input label="Email" type="email" required placeholder="tu@email.com" className="sm:col-span-2" autoComplete="email" {...field('email')} />
-              <Input label="Teléfono" type="tel" required placeholder="+54 11 ..." className="sm:col-span-2" autoComplete="tel" {...field('phone')} />
+              <Input label={tCopy('field_first_name')} required placeholder={tCopy('checkout_placeholder_first_name')} autoComplete="given-name" {...field('firstName')} />
+              <Input label={tCopy('field_last_name')} required placeholder={tCopy('checkout_placeholder_last_name')} autoComplete="family-name" {...field('lastName')} />
+              <Input label={tCopy('field_email')} type="email" required placeholder={tCopy('field_email_placeholder')} className="sm:col-span-2" autoComplete="email" {...field('email')} />
+              <Input label={tCopy('field_phone')} type="tel" required placeholder={tCopy('checkout_placeholder_phone')} className="sm:col-span-2" autoComplete="tel" {...field('phone')} />
             </div>
           </Reveal>
 
@@ -653,11 +653,11 @@ export default function Checkout() {
             </Reveal>
           ) : (
             <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
-              <h2 className="font-display text-lg font-semibold tracking-tight">2 · Envío</h2>
+              <h2 className="font-display text-lg font-semibold tracking-tight">2 · {tCopy('checkout_shipping_title')}</h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <Input label="Dirección" required placeholder="Calle y número" className="sm:col-span-2" autoComplete="street-address" {...field('address')} />
-                <Input label="Ciudad" required placeholder="Ciudad" autoComplete="address-level2" {...field('city')} />
-                <Input label="Código postal" required placeholder="CP" autoComplete="postal-code" {...field('postcode')} onBlur={() => { touch('postcode'); syncShippingRates(); }} />
+                <Input label={tCopy('field_address')} required placeholder={tCopy('checkout_placeholder_address')} className="sm:col-span-2" autoComplete="street-address" {...field('address')} />
+                <Input label={tCopy('field_city')} required placeholder={tCopy('checkout_placeholder_city')} autoComplete="address-level2" {...field('city')} />
+                <Input label={tCopy('field_postcode')} required placeholder={tCopy('checkout_placeholder_postcode')} autoComplete="postal-code" {...field('postcode')} onBlur={() => { touch('postcode'); syncShippingRates(); }} />
               </div>
             </Reveal>
           )}
@@ -684,11 +684,11 @@ export default function Checkout() {
           )}
 
           <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
-            <h2 className="font-display text-lg font-semibold tracking-tight">{express ? 'Pago' : '3 · Pago'}</h2>
+            <h2 className="font-display text-lg font-semibold tracking-tight">{express ? tCopy('checkout_step_payment') : `3 · ${tCopy('checkout_step_payment')}`}</h2>
             {noGateways ? (
               <div className="mt-5 flex items-start gap-3 rounded-xl2 border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
                 <AlertCircle size={17} className="mt-0.5 shrink-0" />
-                <p>No hay métodos de pago configurados. Contactanos para finalizar la compra.</p>
+                <p>{tCopy('checkout_no_gateways')}</p>
               </div>
             ) : (
             <div className="mt-5 space-y-3">
@@ -730,8 +730,8 @@ export default function Checkout() {
             {adjustment && (
               <p className={cn('mt-4 text-sm font-medium', adjustment.amount < 0 ? 'text-success' : 'text-ink-soft')} aria-live="polite">
                 {adjustment.amount < 0
-                  ? `Ahorrás ${formatPrice(-adjustment.amount)} pagando con ${payMethod?.short || payMethod?.title}.`
-                  : `Recargo de ${formatPrice(adjustment.amount)} por pagar con ${payMethod?.short || payMethod?.title}.`}
+                  ? tf('checkout_saving', { monto: formatPrice(-adjustment.amount), medio: payMethod?.short || payMethod?.title })
+                  : tf('checkout_surcharge', { monto: formatPrice(adjustment.amount), medio: payMethod?.short || payMethod?.title })}
               </p>
             )}
             {IS_WP && <CreditBox credit={server?.credit} />}
@@ -739,11 +739,11 @@ export default function Checkout() {
 
           {fiscalCfg && (
             <Reveal className="mj-panel rounded-xl3 border border-line glass p-7">
-              <h2 className="font-display text-lg font-semibold tracking-tight">{express ? 'Facturación' : '4 · Facturación'}</h2>
+              <h2 className="font-display text-lg font-semibold tracking-tight">{express ? tCopy('checkout_step_invoice') : `4 · ${tCopy('checkout_step_invoice')}`}</h2>
               <ChoiceGroup
                 options={[
-                  { value: 'no', title: 'No necesito factura' },
-                  { value: 'si', title: 'Sí, necesito factura', description: 'Se emite al completarse el pedido' },
+                  { value: 'no', title: tCopy('checkout_invoice_no') },
+                  { value: 'si', title: tCopy('checkout_invoice_yes'), description: tCopy('checkout_invoice_yes_hint') },
                 ]}
                 value={factura.solicita ? 'si' : 'no'}
                 onChange={(v) => {
@@ -757,11 +757,11 @@ export default function Checkout() {
                 <div className="mt-6 space-y-6 border-t border-line pt-6">
                   {puedeElegirTipo ? (
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Tipo de factura</p>
+                      <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">{tCopy('checkout_invoice_type')}</p>
                       <ChoiceGroup
                         options={[
-                          { value: 'A', title: 'Factura A', description: 'Responsable Inscripto — requiere CUIT' },
-                          { value: 'B', title: 'Factura B', description: 'Consumidor final, monotributo o exento' },
+                          { value: 'A', title: tf('checkout_invoice_letter', { letra: 'A' }), description: tCopy('checkout_invoice_a_hint') },
+                          { value: 'B', title: tf('checkout_invoice_letter', { letra: 'B' }), description: tCopy('checkout_invoice_b_hint') },
                         ]}
                         value={factura.tipo}
                         onChange={(v) => setFactura((f) => ({ ...f, tipo: v }))}
@@ -769,20 +769,20 @@ export default function Checkout() {
                     </div>
                   ) : (
                     <p className="rounded-xl2 border border-line bg-surface-2 p-3.5 text-sm text-ink-soft">
-                      Se emitirá <span className="font-semibold text-ink">Factura {cbteLetra}</span> con los datos que cargues acá.
+                      {tx('checkout_invoice_auto', { factura: <span className="font-semibold text-ink">{tf('checkout_invoice_letter', { letra: cbteLetra })}</span> })}
                     </p>
                   )}
 
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Receptor de la factura</p>
+                    <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">{tCopy('checkout_invoice_receiver')}</p>
                     <ChoiceGroup
                       options={[
                         {
                           value: 'mismo',
-                          title: 'Los mismos datos de la compra',
+                          title: tCopy('checkout_invoice_same'),
                           description: `${form.firstName} ${form.lastName}`.trim() || undefined,
                         },
-                        { value: 'otro', title: 'Otra persona o empresa' },
+                        { value: 'otro', title: tCopy('checkout_invoice_other') },
                       ]}
                       value={factura.receptor}
                       onChange={(v) => setFactura((f) => ({ ...f, receptor: v }))}
@@ -792,8 +792,8 @@ export default function Checkout() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     {factura.receptor === 'otro' && (
                       <Input
-                        label={esA ? 'Razón social' : 'Nombre o razón social'}
-                        placeholder={esA ? 'Empresa S.A.' : 'Nombre completo o razón social'}
+                        label={esA ? tCopy('checkout_business_name') : tCopy('fiscal_name')}
+                        placeholder={esA ? tCopy('checkout_placeholder_business') : tCopy('checkout_placeholder_fullname')}
                         className="sm:col-span-2"
                         maxLength={80}
                         value={factura.factNombre}
@@ -802,7 +802,7 @@ export default function Checkout() {
                     )}
                     {esA ? (
                       <Input
-                        label="CUIT del receptor"
+                        label={tCopy('checkout_invoice_cuit')}
                         inputMode="numeric"
                         placeholder="30-12345678-9"
                         className="sm:col-span-2"
@@ -812,16 +812,16 @@ export default function Checkout() {
                     ) : (
                       <>
                         <Select
-                          label="Tipo de documento"
+                          label={tCopy('fiscal_doc_type')}
                           value={factura.docTipo}
                           onChange={(e) => setFactura((f) => ({ ...f, docTipo: e.target.value }))}
                         >
-                          <option value="cf">Consumidor final (sin identificar)</option>
-                          <option value="dni">DNI</option>
-                          <option value="cuit">CUIT</option>
+                          <option value="cf">{tCopy('fiscal_doc_cf')}</option>
+                          <option value="dni">{tCopy('fiscal_doc_dni')}</option>
+                          <option value="cuit">{tCopy('fiscal_doc_cuit')}</option>
                         </Select>
                         <Input
-                          label="Número de documento"
+                          label={tCopy('fiscal_doc_number')}
                           inputMode="numeric"
                           placeholder={factura.docTipo === 'cuit' ? '30-12345678-9' : '12345678'}
                           disabled={factura.docTipo === 'cf'}
@@ -829,15 +829,15 @@ export default function Checkout() {
                           onChange={(e) => setFactura((f) => ({ ...f, docNro: e.target.value }))}
                         />
                         <Select
-                          label="Condición frente al IVA"
+                          label={tCopy('fiscal_iva')}
                           className="sm:col-span-2"
                           value={factura.condIva}
                           onChange={(e) => setFactura((f) => ({ ...f, condIva: e.target.value }))}
                         >
-                          <option value="cf">Consumidor Final</option>
-                          <option value="ri">Responsable Inscripto</option>
-                          <option value="monotributo">Monotributo</option>
-                          <option value="exento">Exento</option>
+                          <option value="cf">{tCopy('fiscal_iva_cf')}</option>
+                          <option value="ri">{tCopy('fiscal_iva_ri')}</option>
+                          <option value="monotributo">{tCopy('fiscal_iva_mono')}</option>
+                          <option value="exento">{tCopy('fiscal_iva_exento')}</option>
                         </Select>
                       </>
                     )}
@@ -858,7 +858,7 @@ export default function Checkout() {
         {/* Resumen */}
         <Reveal delay={0.15} className="lg:sticky lg:top-44 lg:self-start">
           <div className="mj-panel rounded-xl3 border border-line glass p-7">
-            <h2 className="font-display text-lg font-semibold tracking-tight">Tu pedido</h2>
+            <h2 className="font-display text-lg font-semibold tracking-tight">{tCopy('checkout_summary_title')}</h2>
             <ul className="mt-5 space-y-3">
               {items.map(({ product, qty }) => (
                 <li key={product.id} className="flex items-center gap-3">
@@ -876,7 +876,7 @@ export default function Checkout() {
             {/* Con MJ Envíos, la forma de envío se elige en su paso: acá no se repite. */}
             {!hasShipping() && shippingRates.length > 0 && (
               <div className="mt-5 space-y-2 border-t border-line pt-5">
-                <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">Método de envío</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">{tCopy('checkout_shipping_method')}</p>
                 {shippingRates.map((r) => (
                   <button
                     type="button"
@@ -896,25 +896,25 @@ export default function Checkout() {
                       </span>
                       {r.name}
                     </span>
-                    <span className="font-medium">{r.cost > 0 ? formatPrice(r.cost) : 'GRATIS'}</span>
+                    <span className="font-medium">{r.cost > 0 ? formatPrice(r.cost) : tCopy('cart_free')}</span>
                   </button>
                 ))}
               </div>
             )}
             <dl className="mt-6 space-y-2.5 border-t border-line pt-5 text-sm">
-              <div className="flex justify-between"><dt className="text-ink-soft">Subtotal</dt><dd>{formatPrice(subtotal)}</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-soft">{tCopy('cart_subtotal')}</dt><dd>{formatPrice(subtotal)}</dd></div>
               <div className="flex justify-between gap-3">
                 <dt className="text-ink-soft">
-                  Envío
+                  {tCopy('cart_shipping')}
                   {chosenRate && <span className="block text-xs text-ink-faint">{chosenRate.name}</span>}
                 </dt>
                 <dd className={shippingCost === 0 && !chosenRate?.coordinate ? 'font-semibold text-success' : ''}>
                   {chosenRate?.coordinate
-                    ? 'A coordinar'
+                    ? tCopy('cart_shipping_coordinate')
                     : shippingCost == null
-                      ? 'Se calcula al finalizar'
+                      ? tCopy('cart_shipping_pending')
                       : shippingCost === 0
-                        ? 'GRATIS'
+                        ? tCopy('cart_free')
                         : formatPrice(shippingCost)}
                 </dd>
               </div>
@@ -933,23 +933,23 @@ export default function Checkout() {
                 </div>
               ))}
               <div className="flex items-baseline justify-between border-t border-line pt-4">
-                <dt className="font-medium">Total</dt>
+                <dt className="font-medium">{tCopy('cart_total')}</dt>
                 <dd className="font-display text-2xl font-semibold">{formatPrice(total)}</dd>
               </div>
               {usdTotal != null && EXCHANGE_RATE && (
                 <div className="flex items-baseline justify-between">
-                  <dt className="text-ink-soft">En dólares</dt>
-                  <dd className="font-semibold">{formatUsd(usdTotal)} <span className="text-xs font-normal text-ink-faint">al dólar {EXCHANGE_RATE.formatted}</span></dd>
+                  <dt className="text-ink-soft">{tCopy('checkout_usd')}</dt>
+                  <dd className="font-semibold">{formatUsd(usdTotal)} <span className="text-xs font-normal text-ink-faint">{tf('checkout_usd_rate', { cotizacion: EXCHANGE_RATE.formatted })}</span></dd>
                 </div>
               )}
             </dl>
             <Button type="submit" size="lg" className="mt-6 w-full" disabled={placing || noGateways}>
               {placing ? <Loader2 size={15} className="animate-spin" /> : (express ? <Zap size={15} /> : <Lock size={15} />)}
-              {placing ? 'Procesando…' : `${express ? EXPRESS.label : 'Pagar'} ${formatPrice(total)}`}
+              {placing ? tCopy('checkout_processing') : `${express ? EXPRESS.label : tCopy('checkout_pay')} ${formatPrice(total)}`}
             </Button>
             {express && (
               <p className="mt-3 text-center text-xs text-ink-faint">
-                Se envía a {form.address}, {form.city}.
+                {tf('checkout_express_ships_to', { direccion: form.address, ciudad: form.city })}
               </p>
             )}
           </div>

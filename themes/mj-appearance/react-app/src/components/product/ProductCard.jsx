@@ -14,6 +14,7 @@ import { REVIEWS_ENABLED } from '@/lib/config';
 import { COLEGAS, makerOf } from '@/lib/colegas';
 import { staggerItem } from '@/components/motion/Reveal';
 import { cn } from '@/lib/format';
+import { t } from '@/lib/copy';
 
 function FloatAction({ icon: Icon, label, active, onClick }) {
   return (
@@ -98,10 +99,10 @@ export function ProductCard({ product, asStaggerItem = true, highlight }) {
 
           {/* badges */}
           <div className="mj-card__badges absolute left-3 top-3 flex flex-col items-start gap-1.5">
-            {product.is_new && <Badge tone="solid">Nuevo</Badge>}
+            {product.is_new && <Badge tone="solid">{t('product_badge_new')}</Badge>}
             {pct > 0 && <Badge tone="danger">-{pct}%</Badge>}
             {payBadge && <Badge tone="success">{payBadge}</Badge>}
-            {out && <Badge tone="neutral">Sin stock</Badge>}
+            {out && <Badge tone="neutral">{t('product_out_of_stock')}</Badge>}
           </div>
 
           {/* tiempo de entrega por SKU (plugin MJ Tiempos de Entrega) */}
@@ -128,9 +129,9 @@ export function ProductCard({ product, asStaggerItem = true, highlight }) {
 
           {/* acciones flotantes */}
           <div className="mj-card__actions absolute right-3 top-3 flex translate-x-3 flex-col gap-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-            <FloatAction icon={Heart} label="Agregar a favoritos" active={isWished} onClick={() => wish.toggle(product.id)} />
-            <FloatAction icon={Eye} label="Vista rápida" onClick={() => setQuickView(product)} />
-            <FloatAction icon={Scale} label="Comparar" active={isCompared} onClick={() => compare.toggle(product.id)} />
+            <FloatAction icon={Heart} label={t('product_wish_add')} active={isWished} onClick={() => wish.toggle(product.id)} />
+            <FloatAction icon={Eye} label={t('product_quick_view')} onClick={() => setQuickView(product)} />
+            <FloatAction icon={Scale} label={t('product_compare')} active={isCompared} onClick={() => compare.toggle(product.id)} />
           </div>
         </div>
 
@@ -158,7 +159,7 @@ export function ProductCard({ product, asStaggerItem = true, highlight }) {
             )}
           >
             <ShoppingBag size={15} />
-            {out ? 'Sin stock' : product.type === 'variable' ? 'Elegir opciones' : 'Añadir al carrito'}
+            {out ? t('product_out_of_stock') : product.type === 'variable' ? t('product_choose_options') : t('product_card_add')}
           </motion.button>
         </div>
       </Link>

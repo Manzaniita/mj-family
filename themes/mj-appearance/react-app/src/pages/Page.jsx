@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Section } from '@/components/layout/Layout';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { t } from '@/lib/copy';
 import { LoadError } from '@/components/ui/LoadError';
 import { NotFound } from '@/pages/Misc';
 import { BLOCKS } from '@/components/bloques/registry';
@@ -24,7 +25,7 @@ function parseProps(json) {
 /* Mientras llega la página: un encabezado y unos párrafos grises. */
 function PageSkeleton() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-24" aria-busy="true" aria-label="Cargando">
+    <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-24" aria-busy="true" aria-label={t('ui_loading')}>
       <div className="h-4 w-24 animate-pulse rounded bg-surface-2" />
       <div className="mt-4 h-12 w-2/3 max-w-md animate-pulse rounded bg-surface-2" />
       <div className="mt-10 max-w-3xl space-y-3">
@@ -109,7 +110,7 @@ export default function PageView({ path = '', home = false }) {
   if (state.status === 'error') {
     return (
       <Section>
-        <LoadError title="No pudimos cargar la página" onRetry={() => setAttempt((n) => n + 1)} />
+        <LoadError title={t('ui_page_load_error')} onRetry={() => setAttempt((n) => n + 1)} />
       </Section>
     );
   }

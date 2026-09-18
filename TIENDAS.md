@@ -140,7 +140,8 @@ Beauty Art, después MJ Turnos Online (1.3.0+), MJ Fidelidad, MJ Medios de Pago
 (1.5.0+), MJ Envíos (1.2.0+), Optimizador, Fotos Rápidas y MJ Core. Un cron
 real del hosting (cada 5 minutos, llamando a `wp-cron.php`) hace exactos la
 reserva provisoria de 1 hora y el recordatorio de 1 hora antes. Un plugin SMTP
-para que los mails lleguen.
+para que los mails lleguen. En PHP, `max_input_vars` en 3000 o más (el panel
+del tema manda muchos campos; si el hosting lo corta, avisa y no guarda).
 
 **Lo que el tema hijo ya propone** (todo editable): seña del 50 % por
 transferencia, reserva provisoria de 1 hora, comprobante obligatorio,

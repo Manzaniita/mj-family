@@ -54,7 +54,7 @@ export function CategoryShowcase({ slugs, limit = 4, layout = 'grid' } = {}) {
 
   if (layout === 'carousel') {
     return (
-      <Carousel cols={Math.min(4, Math.max(2, featured.length))} ariaLabel="Categorías">
+      <Carousel cols={Math.min(4, Math.max(2, featured.length))} ariaLabel={t('home_categories_carousel')}>
         {featured.map((c, i) => (
           <CategoryTile key={c.slug} category={c} cover={cover(c.slug)} index={i} />
         ))}
@@ -187,7 +187,7 @@ export function InstagramStrip({ limit = 6 } = {}) {
             target="_blank"
             rel="noreferrer"
             className="mj-ig__shot group relative block overflow-hidden rounded-xl2 border border-line"
-            aria-label="Ver en Instagram"
+            aria-label={t('home_instagram_view')}
           >
             <ProductImage
               product={p}

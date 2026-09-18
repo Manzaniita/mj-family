@@ -84,21 +84,21 @@ export function Login() {
 
   return (
     <AuthShell
-      title="Bienvenido de vuelta"
-      subtitle="Ingresá para ver tus pedidos y favoritos."
-      footer={<>¿No tenés cuenta? <Link to="/registro" className="font-medium text-accent hover:underline">Creá una</Link></>}
+      title={t('auth_login_title')}
+      subtitle={t('auth_login_subtitle')}
+      footer={<>{t('auth_login_no_account')} <Link to="/registro" className="font-medium text-accent hover:underline">{t('auth_login_register_link')}</Link></>}
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <Input
-          label="Usuario o email"
-          placeholder="tu@email.com"
+          label={t('auth_login_user')}
+          placeholder={t('field_email_placeholder')}
           autoComplete="username"
           value={form.username}
           onChange={set('username')}
           required
         />
         <Input
-          label="Contraseña"
+          label={t('field_password')}
           type="password"
           placeholder="••••••••"
           autoComplete="current-password"
@@ -114,14 +114,14 @@ export function Login() {
               onChange={set('remember')}
               className="size-4 accent-accent"
             />
-            Recordarme
+            {t('auth_remember')}
           </label>
-          <Link to="/recuperar" className="text-xs text-ink-soft hover:text-accent">¿Olvidaste tu contraseña?</Link>
+          <Link to="/recuperar" className="text-xs text-ink-soft hover:text-accent">{t('auth_forgot')}</Link>
         </div>
         {error && <ErrorBox>{error}</ErrorBox>}
         <Button type="submit" className="w-full" disabled={loading}>
           {loading && <Loader2 size={16} className="animate-spin" />}
-          Ingresar
+          {t('auth_login_submit')}
         </Button>
       </form>
     </AuthShell>
@@ -152,38 +152,38 @@ export function Register() {
   if (IS_WP && !WP?.registrationEnabled) {
     return (
       <AuthShell
-        title="Creá tu cuenta"
-        subtitle="El registro de cuentas nuevas no está disponible."
-        footer={<Link to="/login" className="font-medium text-accent hover:underline">Volver a ingresar</Link>}
+        title={t('auth_register_title')}
+        subtitle={t('auth_register_closed_subtitle')}
+        footer={<Link to="/login" className="font-medium text-accent hover:underline">{t('auth_back_to_login')}</Link>}
       >
         <div className="flex items-start gap-3 rounded-xl2 border border-line bg-surface p-4 text-sm text-ink-soft">
           <AlertCircle size={17} className="mt-0.5 shrink-0 text-accent" />
-          <p>El registro está deshabilitado. Si ya tenés una cuenta, ingresá con tus datos.</p>
+          <p>{t('auth_register_closed_text')}</p>
         </div>
-        <Button className="w-full" to="/login">Ir a ingresar</Button>
+        <Button className="w-full" to="/login">{t('auth_register_closed_cta')}</Button>
       </AuthShell>
     );
   }
 
   return (
     <AuthShell
-      title="Creá tu cuenta"
-      subtitle="Comprá más rápido y accedé a beneficios exclusivos."
-      footer={<>¿Ya tenés cuenta? <Link to="/login" className="font-medium text-accent hover:underline">Ingresá</Link></>}
+      title={t('auth_register_title')}
+      subtitle={t('auth_register_subtitle')}
+      footer={<>{t('auth_register_have_account')} <Link to="/login" className="font-medium text-accent hover:underline">{t('auth_register_login_link')}</Link></>}
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            label="Nombre"
-            placeholder="Tu nombre"
+            label={t('field_first_name')}
+            placeholder={t('field_name_placeholder')}
             autoComplete="given-name"
             value={form.first_name}
             onChange={set('first_name')}
             required
           />
           <Input
-            label="Apellido"
-            placeholder="Tu apellido"
+            label={t('field_last_name')}
+            placeholder={t('field_last_name_placeholder')}
             autoComplete="family-name"
             value={form.last_name}
             onChange={set('last_name')}
@@ -191,18 +191,18 @@ export function Register() {
           />
         </div>
         <Input
-          label="Email"
+          label={t('field_email')}
           type="email"
-          placeholder="tu@email.com"
+          placeholder={t('field_email_placeholder')}
           autoComplete="email"
           value={form.email}
           onChange={set('email')}
           required
         />
         <Input
-          label="Contraseña"
+          label={t('field_password')}
           type="password"
-          placeholder="Mínimo 6 caracteres"
+          placeholder={t('field_password_hint')}
           autoComplete="new-password"
           minLength={6}
           value={form.password}
@@ -212,7 +212,7 @@ export function Register() {
         {error && <ErrorBox>{error}</ErrorBox>}
         <Button type="submit" className="w-full" disabled={loading}>
           {loading && <Loader2 size={16} className="animate-spin" />}
-          Crear cuenta
+          {t('auth_register_submit')}
         </Button>
       </form>
     </AuthShell>
@@ -237,21 +237,21 @@ export function Recover() {
 
   return (
     <AuthShell
-      title="Recuperar contraseña"
-      subtitle="Te enviamos un enlace para restablecerla."
-      footer={<Link to="/login" className="font-medium text-accent hover:underline">Volver a ingresar</Link>}
+      title={t('auth_recover_title')}
+      subtitle={t('auth_recover_subtitle')}
+      footer={<Link to="/login" className="font-medium text-accent hover:underline">{t('auth_back_to_login')}</Link>}
     >
       {sent ? (
         <div className="flex items-start gap-3 rounded-xl2 border border-success/30 bg-success/10 p-4 text-sm text-success">
           <CheckCircle2 size={17} className="mt-0.5 shrink-0" />
-          <p>Si el email existe, te enviamos el enlace para restablecer tu contraseña.</p>
+          <p>{t('auth_recover_sent')}</p>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="space-y-4">
           <Input
-            label="Email"
+            label={t('field_email')}
             type="email"
-            placeholder="tu@email.com"
+            placeholder={t('field_email_placeholder')}
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -259,7 +259,7 @@ export function Recover() {
           />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 size={16} className="animate-spin" />}
-            Enviar enlace
+            {t('auth_recover_submit')}
           </Button>
         </form>
       )}

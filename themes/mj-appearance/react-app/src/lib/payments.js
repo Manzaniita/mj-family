@@ -12,6 +12,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { PAYMENT_PRICING, EXCHANGE_RATE } from './config';
 import { effectivePrice } from './api';
+import { tf, t } from './copy';
 
 export const PAY = PAYMENT_PRICING;
 
@@ -75,7 +76,7 @@ export const displayPrice = (product, method) => priceFor(product, method).price
 /** Badge para tarjetas ("10% OFF con transferencia") o ''. */
 export const badgeFor = (product, m) =>
   PAY?.showBadge !== false && m?.kind === 'discount' && m.mode === 'percent' && productEligible(product, m)
-    ? m.badge || `${m.value}% OFF con ${m.short || m.title}`
+    ? m.badge || tf('price_badge', { n: m.value, medio: m.short || m.title })
     : '';
 
 /** "Precios pagando con Transferencia (10% OFF)." para presupuestos, o ''. */
@@ -83,9 +84,9 @@ export const paymentNote = (m = findMethod(selectedMethodId())) => {
   if (!m || !adjusts(m)) return '';
   const tag =
     m.mode === 'percent'
-      ? (m.kind === 'discount' ? `${m.value}% OFF` : `+${m.value}%`)
-      : (m.kind === 'discount' ? 'con descuento' : 'con recargo');
-  return `Precios pagando con ${m.short || m.title} (${tag}).`;
+      ? (m.kind === 'discount' ? tf('price_off', { n: m.value }) : `+${m.value}%`)
+      : (m.kind === 'discount' ? t('price_note_discount') : t('price_note_surcharge'));
+  return tf('price_note', { medio: m.short || m.title, detalle: tag });
 };
 
 /**

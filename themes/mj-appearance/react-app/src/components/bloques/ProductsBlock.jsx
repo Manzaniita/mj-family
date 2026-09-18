@@ -90,12 +90,12 @@ export function ProductsBlock({
           title={head.title}
           subtitle={head.subtitle}
           linkTo={linkTo || undefined}
-          linkLabel={linkLabel || 'Ver todo'}
+          linkLabel={linkLabel || t('ui_view_all')}
         />
       )}
       {layout === 'carousel' && ready ? (
         <Reveal>
-          <Carousel cols={n} ariaLabel={head.title || 'Productos'}>
+          <Carousel cols={n} ariaLabel={head.title || t('ui_products')}>
             {list.map((p) => (
               <ProductCard key={p.id} product={p} asStaggerItem={false} />
             ))}

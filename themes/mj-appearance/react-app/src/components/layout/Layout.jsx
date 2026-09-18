@@ -17,6 +17,7 @@ import { useCart, useUI } from '@/store';
 import { useCatalog } from '@/store/catalog';
 import { TRANSITIONS } from '@/lib/motion';
 import { watchSystemTheme, syncThemeColor } from '@/lib/theme';
+import { t } from '@/lib/copy';
 
 /**
  * Clave de página para las transiciones: cada ruta es una página, salvo la
@@ -33,7 +34,7 @@ const scrollTop = () => window.scrollTo({ top: 0, behavior: 'instant' });
  */
 function PageFallback() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-24" aria-busy="true" aria-label="Cargando">
+    <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-24" aria-busy="true" aria-label={t('ui_loading')}>
       <div className="h-4 w-24 animate-pulse rounded bg-surface-2" />
       <div className="mt-4 h-12 w-2/3 max-w-md animate-pulse rounded bg-surface-2" />
       <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -71,7 +72,7 @@ export function Layout() {
 
   return (
     <>
-      <a href="#main" className="mj-skip-link">Saltar al contenido</a>
+      <a href="#main" className="mj-skip-link">{t('ui_skip_to_content')}</a>
       <Intro />
       <div className="mj-ambient" aria-hidden="true" />
       <Header />

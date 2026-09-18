@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Price } from '@/components/ui/Price';
 import { ProductImage } from '@/components/ui/ProductImage';
 import { EASE } from '@/lib/format';
+import { t } from '@/lib/copy';
 
 /**
  * Barra de compra fija (solo mobile) que aparece cuando el botón principal
@@ -21,7 +22,7 @@ export function MobileBuyBar({ product, priceProduct, visible, label, disabled, 
           exit={{ y: 72, opacity: 0 }}
           transition={{ duration: 0.35, ease: EASE }}
           role="region"
-          aria-label="Comprar"
+          aria-label={t('product_bar_label')}
         >
           <div className="flex items-center gap-3">
             <ProductImage product={product} className="size-11 shrink-0 rounded-(--mj-radius-md)" />

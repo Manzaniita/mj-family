@@ -13,6 +13,7 @@ import { useCatalog } from '@/store/catalog';
 import { COLEGAS, projectPath, paragraphsOf } from '@/lib/colegas';
 import { cn } from '@/lib/format';
 import { usePageMeta } from '@/lib/seo';
+import { t, tf, tn } from '@/lib/copy';
 
 /* Avatar de colega: foto o inicial sobre el color de acento. */
 function Avatar({ name, image, className }) {
@@ -112,7 +113,7 @@ export function ProjectPage() {
                 <div>
                   <p className="font-display text-2xl font-semibold tabular-nums">{colegaItems.length}</p>
                   <p className={cn('text-xs', cover ? 'text-white/60' : 'text-ink-faint')}>
-                    {colegaItems.length === 1 ? 'pieza' : 'piezas'}
+                    {tn('colegas_piece', colegaItems.length)}
                   </p>
                 </div>
               </div>
@@ -154,16 +155,16 @@ export function ProjectPage() {
           <SectionHeader
             eyebrow={project.productsEyebrow || undefined}
             title={productsTitle}
-            subtitle={`${shown.length} ${shown.length === 1 ? 'pieza' : 'piezas'}`}
+            subtitle={`${shown.length} ${tn('colegas_piece', shown.length)}`}
             linkTo={`/tienda${view === 'all' ? '' : `?quien=${view}`}`}
-            linkLabel={project.shopLink || 'Ver en la tienda'}
+            linkLabel={project.shopLink || t('colegas_shop_link')}
           />
           {shown.length > 0 ? (
             <ProductGrid products={shown.slice(0, 12)} />
           ) : (
             <Reveal className="mj-empty rounded-(--mj-radius-2xl) border border-line glass p-16 text-center">
-              <p className="display text-2xl">Todavía no hay piezas publicadas</p>
-              <Button className="mt-7" to="/tienda">Ver la tienda</Button>
+              <p className="display text-2xl">{t('colegas_empty')}</p>
+              <Button className="mt-7" to="/tienda">{t('ui_view_shop')}</Button>
             </Reveal>
           )}
         </div>
@@ -210,7 +211,7 @@ export function ColegaPage() {
           ))}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <span className="text-sm text-ink-faint">
-              {items.length} {items.length === 1 ? 'pieza' : 'piezas'}
+              {items.length} {tn('colegas_piece', items.length)}
             </span>
             {colega.instagram && (
               <Button size="sm" variant="secondary" href={colega.instagram} target="_blank" rel="noreferrer">
@@ -219,7 +220,7 @@ export function ColegaPage() {
             )}
             {colega.website && (
               <Button size="sm" variant="secondary" href={colega.website} target="_blank" rel="noreferrer">
-                <Globe size={14} /> Sitio web
+                <Globe size={14} /> {t('colegas_website')}
               </Button>
             )}
           </div>
@@ -231,8 +232,8 @@ export function ColegaPage() {
           <ProductGrid products={items} />
         ) : (
           <Reveal className="mj-empty rounded-(--mj-radius-2xl) border border-line glass p-16 text-center">
-            <p className="display text-2xl">Todavía no hay piezas publicadas</p>
-            <Button className="mt-7" to={projectPath()}>Volver a {project.name}</Button>
+            <p className="display text-2xl">{t('colegas_empty')}</p>
+            <Button className="mt-7" to={projectPath()}>{tf('colegas_back_to', { nombre: project.name })}</Button>
           </Reveal>
         )}
       </div>

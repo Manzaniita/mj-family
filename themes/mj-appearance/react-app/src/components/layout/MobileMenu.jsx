@@ -7,6 +7,7 @@ import { useUI, useWishlist, useCompare } from '@/store';
 import { useCatalog, buildMenu } from '@/store/catalog';
 import { NAV_HEADER, isExternalHref } from '@/lib/nav';
 import { iconByName } from '@/components/ui/DynamicIcon';
+import { t } from '@/lib/copy';
 
 export function MobileMenu() {
   const { mobileMenuOpen, setMobileMenuOpen } = useUI();
@@ -48,7 +49,7 @@ export function MobileMenu() {
   };
 
   return (
-    <Drawer open={mobileMenuOpen} onClose={close} title="Menú" side="left">
+    <Drawer open={mobileMenuOpen} onClose={close} title={t('nav_menu')} side="left">
       {/*
         Accesos rápidos (Apariencia → MJ Appearance → Barra de navegación): en
         desktop son botones del header, y acá arriba del todo. Es donde aparece
@@ -91,8 +92,8 @@ export function MobileMenu() {
       */}
       <div className="mt-4 flex flex-col border-t border-line pt-4">
         {[
-          { to: '/favoritos', label: 'Favoritos', icon: Heart, count: wishCount },
-          { to: '/comparar', label: 'Comparar', icon: Scale, count: compareCount },
+          { to: '/favoritos', label: t('nav_favorites'), icon: Heart, count: wishCount },
+          { to: '/comparar', label: t('nav_compare'), icon: Scale, count: compareCount },
         ].map(({ to, label, icon: Icon, count }) => (
           <Link key={to} to={to} onClick={close} className={rowClass}>
             <span className="flex items-center gap-2.5">

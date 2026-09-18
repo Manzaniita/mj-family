@@ -1,5 +1,6 @@
 import { CreditCard, ChevronDown } from 'lucide-react';
 import { PAYMENT_PRICING } from '@/lib/config';
+import { t, tf } from '@/lib/copy';
 import { payMethods, usePaymentMethod, selectedMethodId } from '@/lib/payments';
 import { cn } from '@/lib/format';
 
@@ -18,9 +19,9 @@ export function PaymentSelector({ className, variant = 'pill' }) {
   if (!PAYMENT_PRICING || PAYMENT_PRICING.showSelector === false || methods.length < 2) return null;
 
   const current = selectedMethodId(id);
-  const label = PAYMENT_PRICING.selectorLabel || 'Ver precios con';
+  const label = PAYMENT_PRICING.selectorLabel || t('price_selector_label');
   const optionText = (m) =>
-    `${m.short || m.title}${m.kind === 'discount' ? ` · ${m.value}% OFF` : m.kind === 'surcharge' ? ` · +${m.value}%` : ''}`;
+    `${m.short || m.title}${m.kind === 'discount' ? ` · ${tf('price_off', { n: m.value })}` : m.kind === 'surcharge' ? ` · +${m.value}%` : ''}`;
 
   const select = (
     <span className="relative flex items-center">

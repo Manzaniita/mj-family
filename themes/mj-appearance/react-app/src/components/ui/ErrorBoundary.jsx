@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import { reportClientError } from '@/lib/errors';
+import { t } from '@/lib/copy';
 
 /**
  * Red de seguridad: un error de JavaScript en una pantalla no puede dejar la
@@ -51,9 +52,9 @@ export class ErrorBoundary extends Component {
               <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
             </svg>
           </span>
-          <h1 className="display mt-6 text-2xl">Algo salió mal</h1>
+          <h1 className="display mt-6 text-2xl">{t('ui_error_title')}</h1>
           <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-            Ya quedó registrado para que lo revisemos. Probá recargar la página; si sigue pasando, escribinos.
+            {t('ui_error_text')}
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <button
@@ -61,14 +62,14 @@ export class ErrorBoundary extends Component {
               onClick={reload}
               className="mj-btn mj-btn--primary inline-flex h-11 items-center justify-center rounded-(--mj-radius-btn) bg-accent px-6 text-sm font-medium text-white"
             >
-              Recargar
+              {t('ui_error_reload')}
             </button>
             <button
               type="button"
               onClick={home}
               className="mj-btn mj-btn--secondary inline-flex h-11 items-center justify-center rounded-(--mj-radius-btn) border border-line px-6 text-sm font-medium text-ink"
             >
-              Ir al inicio
+              {t('ui_go_home')}
             </button>
           </div>
         </div>

@@ -10,6 +10,7 @@ import { useCart, useUI, useCatalog } from '@/store';
 import { effectivePrice } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import { IS_WP } from '@/lib/config';
+import { t, tf } from '@/lib/copy';
 import { useSelectedMethod, resolveAdjustment, displayPrice } from '@/lib/payments';
 
 /** Carrito flotante — drawer lateral, cross-sell incluido, sin cambiar de página. */
@@ -35,13 +36,13 @@ export function CartDrawer() {
     <Drawer
       open={cartOpen}
       onClose={() => setCartOpen(false)}
-      title={`Carrito${items.length ? ` · ${items.length}` : ''}`}
+      title={`${t('cart_drawer_title')}${items.length ? ` · ${items.length}` : ''}`}
       footer={
         items.length > 0 && (
           <div className="space-y-4">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-ink-soft">Subtotal</span>
+                <span className="text-sm text-ink-soft">{t('cart_subtotal')}</span>
                 <span className={adjustment ? 'text-sm font-medium' : 'font-display text-xl font-semibold'}>{formatPrice(subtotal)}</span>
               </div>
               {adjustment && (
@@ -53,7 +54,7 @@ export function CartDrawer() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Total</span>
+                    <span className="text-sm font-medium">{t('cart_total')}</span>
                     <span className="font-display text-xl font-semibold">{formatPrice(total)}</span>
                   </div>
                 </>
@@ -61,10 +62,10 @@ export function CartDrawer() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Button variant="secondary" onClick={() => { setCartOpen(false); navigate('/carrito'); }}>
-                Ver carrito
+                {t('cart_drawer_view')}
               </Button>
               <Button onClick={() => { setCartOpen(false); navigate('/checkout'); }}>
-                Finalizar <ArrowRight size={15} />
+                {t('cart_drawer_checkout')} <ArrowRight size={15} />
               </Button>
             </div>
           </div>
@@ -80,9 +81,9 @@ export function CartDrawer() {
           <span className="grid size-16 place-items-center rounded-full bg-surface-2 text-ink-faint">
             <ShoppingBag size={26} strokeWidth={1.5} />
           </span>
-          <p className="text-sm text-ink-soft">Tu carrito está vacío.</p>
+          <p className="text-sm text-ink-soft">{t('cart_drawer_empty')}</p>
           <Button size="sm" onClick={() => setCartOpen(false)} to="/tienda">
-            Explorar la tienda
+            {t('ui_explore_shop')}
           </Button>
         </div>
       ) : (
@@ -106,7 +107,7 @@ export function CartDrawer() {
                     <button
                       onClick={() => remove(product.id)}
                       className="text-ink-faint transition-colors hover:text-danger"
-                      aria-label="Quitar del carrito"
+                      aria-label={t('cart_drawer_remove')}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -125,7 +126,7 @@ export function CartDrawer() {
       {items.length > 0 && crossSell.length > 0 && (
         <div className="mt-8">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-ink-faint">
-            Completá tu setup
+            {t('cart_cross_sell')}
           </p>
           <div className="space-y-3">
             {crossSell.map((p) => (
@@ -138,7 +139,7 @@ export function CartDrawer() {
                 <button
                   onClick={() => add(p)}
                   className="grid size-8 shrink-0 place-items-center rounded-(--mj-radius-pill) bg-accent-soft text-accent transition-transform hover:scale-110"
-                  aria-label={`Agregar ${p.name}`}
+                  aria-label={tf('cart_add_aria', { nombre: p.name })}
                 >
                   <Plus size={15} />
                 </button>

@@ -1,9 +1,10 @@
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/format';
+import { tf } from '@/lib/copy';
 
 export function Rating({ value = 0, count, className }) {
   return (
-    <div className={cn('mj-rating flex items-center gap-1.5', className)} aria-label={`${value} de 5`}>
+    <div className={cn('mj-rating flex items-center gap-1.5', className)} aria-label={tf('ui_rating', { n: value })}>
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((i) => (
           <Star

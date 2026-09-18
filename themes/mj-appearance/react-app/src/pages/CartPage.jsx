@@ -49,12 +49,12 @@ export default function CartPage() {
     <>
       <Section className="mj-cart md:py-16">
         <Reveal className="mj-page-head">
-          <h1 className="display text-4xl md:text-6xl">Tu carrito</h1>
+          <h1 className="display text-4xl md:text-6xl">{t('cart_title')}</h1>
         </Reveal>
 
         {!hydrated && items.length === 0 ? (
           /* Esperando la sesión de WooCommerce: filas grises con la forma de un ítem. */
-          <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_380px]" aria-busy="true" aria-label="Cargando el carrito">
+          <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_380px]" aria-busy="true" aria-label={t('cart_loading')}>
             <div className="space-y-4">
               {Array.from({ length: 2 }).map((_, i) => (
                 <div key={i} className="flex gap-5 rounded-xl3 border border-line glass p-4 md:p-5">
@@ -72,7 +72,7 @@ export default function CartPage() {
         ) : loadError && items.length === 0 ? (
           <LoadError
             className="mt-12"
-            title="No pudimos leer tu carrito"
+            title={t('cart_load_error')}
             onRetry={() => useCart.getState().init()}
           />
         ) : items.length === 0 ? (
@@ -80,9 +80,9 @@ export default function CartPage() {
             <span className="mx-auto grid size-16 place-items-center rounded-full bg-surface-2 text-ink-faint">
               <ShoppingBag size={26} strokeWidth={1.5} />
             </span>
-            <p className="display mt-6 text-2xl">Todavía no agregaste nada</p>
-            <p className="mt-2 text-ink-soft">Tus productos te están esperando.</p>
-            <Button className="mt-8" to="/tienda">Explorar la tienda <ArrowRight size={15} /></Button>
+            <p className="display mt-6 text-2xl">{t('cart_empty_title')}</p>
+            <p className="mt-2 text-ink-soft">{t('cart_empty_text')}</p>
+            <Button className="mt-8" to="/tienda">{t('ui_explore_shop')} <ArrowRight size={15} /></Button>
           </Reveal>
         ) : (
           <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_380px]">
@@ -112,7 +112,7 @@ export default function CartPage() {
                               {product.name}
                             </Link>
                           </div>
-                          <button onClick={() => remove(product.id)} className="text-ink-faint transition-colors hover:text-danger" aria-label="Quitar">
+                          <button onClick={() => remove(product.id)} className="text-ink-faint transition-colors hover:text-danger" aria-label={t('cart_remove')}>
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -135,20 +135,20 @@ export default function CartPage() {
             {/* Resumen */}
             <div className="lg:sticky lg:top-44 lg:self-start">
               <div className="mj-summary rounded-xl3 border border-line glass p-7">
-                <h2 className="font-display text-xl font-semibold tracking-tight">Resumen</h2>
+                <h2 className="font-display text-xl font-semibold tracking-tight">{t('cart_summary_title')}</h2>
                 <PaymentSelector variant="block" className="mt-4" />
                 <dl className="mt-6 space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <dt className="text-ink-soft">Subtotal</dt>
+                    <dt className="text-ink-soft">{t('cart_subtotal')}</dt>
                     <dd className="font-medium">{formatPrice(subtotal)}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-ink-soft">Envío</dt>
+                    <dt className="text-ink-soft">{t('cart_shipping')}</dt>
                     <dd className={shippingCost === 0 ? 'font-semibold text-success' : 'font-medium'}>
                       {shippingCost == null
-                        ? 'Se calcula al finalizar'
+                        ? t('cart_shipping_pending')
                         : shippingCost === 0
-                          ? 'GRATIS'
+                          ? t('cart_free')
                           : formatPrice(shippingCost)}
                     </dd>
                   </div>
@@ -161,18 +161,18 @@ export default function CartPage() {
                     </div>
                   )}
                   <div className="flex justify-between border-t border-line pt-4 text-base">
-                    <dt className="font-medium">Total</dt>
+                    <dt className="font-medium">{t('cart_total')}</dt>
                     <dd className="font-display text-2xl font-semibold">{formatPrice(total)}</dd>
                   </div>
                 </dl>
                 <Button className="mt-7 w-full" size="lg" onClick={() => navigate('/checkout')}>
-                  Finalizar compra <ArrowRight size={16} />
+                  {t('cart_checkout')} <ArrowRight size={16} />
                 </Button>
                 <Button className="mt-3 w-full" variant="secondary" onClick={() => setQuoteOpen(true)}>
-                  <FileText size={16} /> Solicitar presupuesto
+                  <FileText size={16} /> {t('cart_quote')}
                 </Button>
                 <p className="mt-4 text-center text-xs text-ink-faint">
-                  {['Pago seguro', ...paymentTitles].join(' · ')}
+                  {[t('cart_secure'), ...paymentTitles].join(' · ')}
                 </p>
               </div>
             </div>
@@ -182,7 +182,7 @@ export default function CartPage() {
 
       {items.length > 0 && upsell.length > 0 && (
         <Section className="pt-0 md:pt-0">
-          <SectionHeader eyebrow="Antes de irte" title="Sumá a tu pedido" />
+          <SectionHeader eyebrow={t('cart_upsell_eyebrow')} title={t('cart_upsell_title')} />
           <ProductGrid products={upsell} />
         </Section>
       )}

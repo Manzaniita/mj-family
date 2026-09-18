@@ -3,6 +3,7 @@
  * Productos, categorías, carrito con sesión del servidor y checkout real.
  */
 import { WP } from './config';
+import { t } from './copy';
 
 /**
  * Nonces vivos.
@@ -230,7 +231,7 @@ export async function fetchStoreCatalog() {
       id: c.id,
       name: stripHtml(c.name),
       slug: c.slug,
-      description: stripHtml(c.description) || 'Explorá la colección.',
+      description: stripHtml(c.description) || t('shop_category_description'),
       hue: hueFromSlug(c.slug),
       count: c.count,
       image: c.image?.src ?? null,
@@ -275,7 +276,7 @@ export async function fetchReviews(limit = 4) {
     const rows = await req(`/products/reviews?per_page=${limit}&status=approved`);
     return (rows || []).map((r) => ({
       name: stripHtml(r.reviewer),
-      role: 'Compra verificada',
+      role: t('home_review_role'),
       text: stripHtml(r.review),
       rating: Number(r.rating) || 0,
     }));

@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useRef } from 'react';
 import { EASE } from '@/lib/format';
 import { useDialog, useScrollLock } from '@/lib/a11y';
+import { t } from '@/lib/copy';
 
 export function Modal({ open, onClose, children, wide = false, label }) {
   const panel = useRef(null);
@@ -35,7 +36,7 @@ export function Modal({ open, onClose, children, wide = false, label }) {
             <button
               onClick={onClose}
               className="absolute right-4 top-4 z-10 grid size-9 place-items-center rounded-(--mj-radius-pill) glass text-ink-soft transition-colors hover:text-ink"
-              aria-label="Cerrar"
+              aria-label={t('ui_close')}
             >
               <X size={17} />
             </button>

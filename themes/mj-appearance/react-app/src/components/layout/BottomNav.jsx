@@ -45,7 +45,7 @@ export function BottomNav() {
     <>
       <nav
         className="mj-bottomnav fixed inset-x-0 bottom-0 z-80 border-t border-line bg-bg/85 backdrop-blur-2xl lg:hidden"
-        aria-label="Navegación móvil"
+        aria-label={t('nav_mobile_label')}
       >
         <div className="flex items-stretch pb-[env(safe-area-inset-bottom)]">
           <Link to="/" className={itemClass(pathname === '/')} aria-label={t('nav_home_mobile')}>
@@ -116,11 +116,11 @@ export function BottomNav() {
               className="mx-auto max-w-xl px-4 pt-24"
             >
               <div className="mb-4 flex items-center justify-between">
-                <p className="font-display text-lg font-semibold tracking-tight">Buscar productos</p>
+                <p className="font-display text-lg font-semibold tracking-tight">{t('search_label')}</p>
                 <button
                   onClick={() => setSearchOpen(false)}
                   className="grid size-10 place-items-center rounded-full text-ink-soft hover:bg-surface"
-                  aria-label="Cerrar buscador"
+                  aria-label={t('search_close')}
                 >
                   <X size={20} />
                 </button>

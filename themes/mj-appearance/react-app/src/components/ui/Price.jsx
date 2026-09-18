@@ -1,6 +1,7 @@
 import { formatPrice, formatUsd, cn } from '@/lib/format';
 import { EXCHANGE_RATE, WP } from '@/lib/config';
 import { PAY, useSelectedMethod, priceFor } from '@/lib/payments';
+import { tf } from '@/lib/copy';
 
 /**
  * Precio del producto.
@@ -28,7 +29,7 @@ export function Price({ product, size = 'md', className, showUsd, method }) {
   const withUsd = usd != null && (showUsd ?? (usdMode === 'all' || (usdMode === 'product' && size === 'lg')));
 
   const caption = applied && m
-    ? `con ${m.short || m.title}${m.kind === 'discount' ? ` · ${m.value}% OFF` : ` · +${m.value}%`}`
+    ? `${tf('price_with_method', { medio: m.short || m.title })}${m.kind === 'discount' ? ` · ${tf('price_off', { n: m.value })}` : ` · +${m.value}%`}`
     : '';
 
   const sizes = {

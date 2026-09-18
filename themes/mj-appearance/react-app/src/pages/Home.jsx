@@ -144,7 +144,7 @@ function ClassicHome() {
       {catalogError && (
         <Section className="pb-0 md:pb-0">
           <LoadError
-            title="No pudimos cargar los productos"
+            title={t('ui_products_load_error')}
             onRetry={() => useCatalog.getState().init(true)}
           />
         </Section>

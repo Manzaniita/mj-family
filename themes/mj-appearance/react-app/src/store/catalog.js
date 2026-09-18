@@ -40,7 +40,7 @@ export const useCatalog = create((set, get) => ({
         console.warn('[mj] Store API no disponible.', e);
         set({
           products: [], categories: [], brands: [], ready: true, demo: false,
-          error: e?.message || 'No se pudo cargar el catálogo.',
+          error: e?.message || t('ui_catalog_error'),
         });
         return;
       }

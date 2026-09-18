@@ -2,6 +2,7 @@ import { Check } from 'lucide-react';
 import { PAYMENT_PRICING } from '@/lib/config';
 import { payMethods, usePaymentMethod, selectedMethodId, priceFor, usdTotalFor } from '@/lib/payments';
 import { formatPrice, formatUsd, cn } from '@/lib/format';
+import { t, tf } from '@/lib/copy';
 
 /**
  * Ficha: precio del producto con cada medio de pago (plugin MJ Medios de
@@ -21,7 +22,7 @@ export function PaymentPanel({ product }) {
 
   return (
     <div className="mj-paypanel mt-5 border-t border-line pt-4">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">Precio según medio de pago</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink-faint">{t('price_panel_title')}</p>
       <ul className="space-y-1.5" role="list">
         {rows.map(({ m, price, applied }) => {
           const active = m.id === current;
@@ -44,7 +45,7 @@ export function PaymentPanel({ product }) {
                   </span>
                   <span className="truncate font-medium">{m.short || m.title}</span>
                   {applied && m.kind === 'discount' && (
-                    <span className="shrink-0 rounded-(--mj-radius-badge) bg-success/15 px-1.5 py-0.5 text-[10px] font-bold text-success">{m.value}% OFF</span>
+                    <span className="shrink-0 rounded-(--mj-radius-badge) bg-success/15 px-1.5 py-0.5 text-[10px] font-bold text-success">{tf('price_off', { n: m.value })}</span>
                   )}
                   {applied && m.kind === 'surcharge' && (
                     <span className="shrink-0 rounded-(--mj-radius-badge) bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-ink-faint">+{m.value}%</span>

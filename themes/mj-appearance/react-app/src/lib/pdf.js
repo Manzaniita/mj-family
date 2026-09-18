@@ -5,6 +5,7 @@
 import { formatPrice } from './format';
 import { effectivePrice } from './api';
 import { SITE } from './config';
+import { t } from './copy';
 
 const MARGIN = 20;
 const PAGE_WIDTH = 210; // A4 en mm
@@ -80,7 +81,7 @@ export async function downloadQuotePdf({ title, rows = [], total = null, info = 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
     doc.setTextColor(0);
-    doc.text('Total', MARGIN, y);
+    doc.text(t('cart_total'), MARGIN, y);
     doc.text(formatPrice(total), PAGE_WIDTH - MARGIN, y, { align: 'right' });
     y += 8;
   }
@@ -109,7 +110,7 @@ export const cartRows = (items) =>
     const unit = effectivePrice(i.product);
     return {
       label: `${i.qty} × ${i.product.name}`,
-      detail: `${formatPrice(unit)} c/u`,
+      detail: `${formatPrice(unit)} ${t('consult_each')}`,
       amount: formatPrice(unit * i.qty),
     };
   });

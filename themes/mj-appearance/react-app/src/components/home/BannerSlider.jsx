@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { MaskReveal } from '@/components/motion/Reveal';
+import { t } from '@/lib/copy';
 import { WP } from '@/lib/config';
 
 /* Alto del slider según el ajuste del bloque (la portada clásica usa 'md'). */
@@ -63,10 +64,10 @@ export function BannerSlider({ images, autoplay = false, interval = 6, height = 
 
       {banners.length > 1 && (
         <>
-          <button onClick={() => go(-1)} className={`${arrowCls} left-3`} aria-label="Banner anterior">
+          <button onClick={() => go(-1)} className={`${arrowCls} left-3`} aria-label={t('ui_banner_prev')}>
             <ChevronLeft size={20} />
           </button>
-          <button onClick={() => go(1)} className={`${arrowCls} right-3`} aria-label="Banner siguiente">
+          <button onClick={() => go(1)} className={`${arrowCls} right-3`} aria-label={t('ui_banner_next')}>
             <ChevronRight size={20} />
           </button>
         </>

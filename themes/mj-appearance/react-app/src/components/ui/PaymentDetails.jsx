@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/format';
+import { t } from '@/lib/copy';
 
 /** Copia al portapapeles. Los navegadores de WhatsApp o Instagram a veces no dejan usar la API nueva. */
 async function copyText(text) {
@@ -35,8 +36,7 @@ async function copyText(text) {
   }
 }
 
-/* Solo si el plugin no manda sus textos (una versión vieja): los de fábrica del plugin. */
-const FALLBACK_TEXTS = { copy: 'Copiar', copied: 'Copiado' };
+/* Si el plugin no manda sus textos (una versión vieja), van los de Textos de la tienda. */
 
 function DetailRow({ label, value, copy, texts }) {
   const [copied, setCopied] = useState(false);
@@ -74,7 +74,7 @@ function DetailRow({ label, value, copy, texts }) {
 }
 
 export function PaymentDetails({ title = '', rows, texts, className = '' }) {
-  const labels = { copy: texts?.copy || FALLBACK_TEXTS.copy, copied: texts?.copied || FALLBACK_TEXTS.copied };
+  const labels = { copy: texts?.copy || t('pay_details_copy'), copied: texts?.copied || t('pay_details_copied') };
   const list = (Array.isArray(rows) ? rows : []).filter((r) => r && (r.label || r.value));
   if (!list.length) return null;
 

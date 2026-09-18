@@ -7,32 +7,34 @@
  * servidor al crear el pedido. Acá se trata de avisar antes de apretar.
  */
 
+import { t } from './copy';
+
 const digits = (v) => String(v || '').replace(/\D+/g, '');
 
 export const rules = {
-  required: (v) => (String(v ?? '').trim() ? '' : 'Completá este campo.'),
+  required: (v) => (String(v ?? '').trim() ? '' : t('validate_required')),
   email: (v) => {
     const s = String(v || '').trim();
     if (!s) return '';
-    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s) ? '' : 'Revisá el email: le falta el @ o el dominio.';
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s) ? '' : t('validate_email');
   },
   phone: (v) => {
     const s = String(v || '').trim();
     if (!s) return '';
     const d = digits(s);
-    if (d.length < 8) return 'El teléfono es muy corto: poné código de área y número.';
-    if (d.length > 15) return 'El teléfono es muy largo: revisalo.';
-    return /^[+\d\s().-]+$/.test(s) ? '' : 'El teléfono solo puede tener números, espacios y guiones.';
+    if (d.length < 8) return t('validate_phone_short');
+    if (d.length > 15) return t('validate_phone_long');
+    return /^[+\d\s().-]+$/.test(s) ? '' : t('validate_phone_chars');
   },
   postcode: (v) => {
     const s = String(v || '').trim().toUpperCase();
     if (!s) return '';
-    return /^(\d{4}|[A-Z]\d{4}[A-Z]{3})$/.test(s) ? '' : 'El código postal son 4 números (o el CPA completo).';
+    return /^(\d{4}|[A-Z]\d{4}[A-Z]{3})$/.test(s) ? '' : t('validate_postcode');
   },
   name: (v) => {
     const s = String(v || '').trim();
     if (!s) return '';
-    return s.length >= 2 ? '' : 'Es muy corto.';
+    return s.length >= 2 ? '' : t('validate_name');
   },
 };
 

@@ -5,6 +5,7 @@ import { useCart } from '@/store';
 import * as wc from '@/lib/wc';
 import { cn, formatPrice } from '@/lib/format';
 import { IS_WP, WP } from '@/lib/config';
+import { t } from '@/lib/copy';
 import {
   SHIPPING,
   shippingTexts,
@@ -221,7 +222,7 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
         <div>
           <Input
             name="postcode"
-            label={cpCfg.label || 'Código postal'}
+            label={cpCfg.label || t('field_postcode')}
             required={cpCfg.required !== false}
             inputMode="numeric"
             autoComplete="postal-code"
@@ -247,8 +248,8 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
 
         {/* Varias localidades comparten el mismo CP: que elija la suya. */}
         {cp.status === 'ok' && cp.cities.length > 1 && (
-          <Select label={labelOf('city', 'Localidad')} required={required('city')} {...field('city')}>
-            <option value="">Elegí tu localidad</option>
+          <Select label={labelOf('city', t('field_locality'))} required={required('city')} {...field('city')}>
+            <option value="">{t('shipping_choose_city')}</option>
             {cp.cities.map((c) => (
               <option key={`${c.nombre}-${c.provincia}`} value={c.nombre}>{c.nombre}</option>
             ))}
@@ -258,8 +259,8 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
         {/* CP válido que todavía no conocemos: provincia y localidad a mano. */}
         {cp.status !== 'ok' && (
           <>
-            <Select label={labelOf('state', 'Provincia')} required={required('state')} {...field('state')}>
-              <option value="">Elegí tu provincia</option>
+            <Select label={labelOf('state', t('field_state'))} required={required('state')} {...field('state')}>
+              <option value="">{t('shipping_choose_state')}</option>
               {states.map((s) => (
                 <option key={s.code} value={s.code}>{s.name}</option>
               ))}
@@ -267,10 +268,10 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
             <div className="relative">
               <Input
                 name="city"
-                label={labelOf('city', 'Localidad')}
+                label={labelOf('city', t('field_locality'))}
                 required={required('city')}
                 autoComplete="address-level2"
-                placeholder="Tu localidad"
+                placeholder={t('shipping_city_placeholder')}
                 error={errors.city || ''}
                 value={form.city ?? ''}
                 onChange={(e) => {
@@ -308,9 +309,9 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
         {askAddress && (
           <>
             <Input
-              label={labelOf('address_1', 'Calle y número')}
+              label={labelOf('address_1', t('field_address_1'))}
               required={required('address_1')}
-              placeholder="Av. Siempre Viva 742"
+              placeholder={t('shipping_address_placeholder')}
               className="sm:col-span-2"
               autoComplete="street-address"
               {...field('address')}
@@ -318,9 +319,9 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
             />
             {(!method || addressField(method, 'address_2')) && (
               <Input
-                label={labelOf('address_2', 'Piso, departamento o referencia')}
+                label={labelOf('address_2', t('field_address_2'))}
                 required={required('address_2', false)}
-                placeholder="3° B"
+                placeholder={t('shipping_address_2_placeholder')}
                 className="sm:col-span-2"
                 autoComplete="address-line2"
                 {...field('address2')}
@@ -333,14 +334,14 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
       {/* 2 · Formas de envío */}
       <div className="mt-7 border-t border-line pt-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
-          Cómo lo querés recibir
+          {t('shipping_methods_title')}
         </p>
 
         {!cpLooksValid(form.postcode) ? (
           <p className="mt-3 text-sm text-ink-soft">{cpCfg.ask}</p>
         ) : busy && rates.length === 0 ? (
           <p className="mt-3 flex items-center gap-2 text-sm text-ink-soft">
-            <Loader2 size={14} className="animate-spin" /> Calculando el envío…
+            <Loader2 size={14} className="animate-spin" /> {t('shipping_calculating')}
           </p>
         ) : rates.length === 0 ? (
           <div className="mt-3 flex items-start gap-3 rounded-xl2 border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
@@ -377,10 +378,10 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
                 </span>
                 <span className="shrink-0 text-sm font-medium">
                   {rate.coordinate
-                    ? <span className="text-ink-soft">A coordinar</span>
+                    ? <span className="text-ink-soft">{t('cart_shipping_coordinate')}</span>
                     : rate.cost > 0
                       ? formatPrice(rate.cost)
-                      : <span className="text-success">{texts.free || 'GRATIS'}</span>}
+                      : <span className="text-success">{texts.free || t('cart_free')}</span>}
                 </span>
               </button>
             ))}
@@ -392,13 +393,13 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
       {method?.needsBranch && (
         <div className="mt-7 border-t border-line pt-6">
           <Select
-            label={branchField(method)?.label || texts.branch || 'Sucursal'}
+            label={branchField(method)?.label || texts.branch || t('shipping_branch')}
             required={branchField(method)?.required !== false}
             value={extra.branch ?? ''}
             onChange={(e) => setExtraValue('branch', e.target.value)}
             disabled={branches.loading}
           >
-            <option value="">{branches.loading ? 'Buscando sucursales…' : 'Elegí la sucursal'}</option>
+            <option value="">{branches.loading ? t('shipping_branches_loading') : t('shipping_choose_branch')}</option>
             {branches.list.map((b) => (
               <option key={b.codigo} value={b.codigo}>
                 {[b.nombre, b.direccion, b.localidad].filter(Boolean).join(' · ')}
@@ -407,7 +408,7 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
           </Select>
           <p className="mt-1.5 text-xs text-ink-faint">
             {branches.list.length === 0 && !branches.loading
-              ? 'No encontramos sucursales para ese código postal. Escribinos y la coordinamos.'
+              ? t('shipping_no_branches')
               : (branchField(method)?.help || texts.branchHelp)}
           </p>
         </div>
@@ -430,7 +431,7 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
                   value={value}
                   onChange={(e) => setExtraValue(f.key, e.target.value)}
                 >
-                  <option value="">Elegí una opción</option>
+                  <option value="">{t('shipping_choose_option')}</option>
                   {f.options.map((option) => (
                     <option key={option} value={option}>{option}</option>
                   ))}

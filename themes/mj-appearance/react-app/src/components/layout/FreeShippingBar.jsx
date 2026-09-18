@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Truck, PartyPopper } from 'lucide-react';
 import { useCart } from '@/store';
 import { formatPrice, FREE_SHIPPING_THRESHOLD, EASE } from '@/lib/format';
+import { t, tx } from '@/lib/copy';
 
 /** Nivel 2 — progreso hacia envío gratis, se anima con cada cambio del carrito. */
 export function FreeShippingBar({ compact = false }) {
@@ -29,9 +30,12 @@ export function FreeShippingBar({ compact = false }) {
           </span>
           <p className="min-w-0 truncate text-xs text-ink-soft">
             {done ? (
-              <span className="font-semibold text-success">¡Tenés envío GRATIS! 🎉</span>
+              <span className="font-semibold text-success">{t('cart_free_shipping_done')}</span>
             ) : (
-              <>Te faltan <span className="font-semibold text-ink">{formatPrice(remaining)}</span> para envío <span className="font-semibold text-accent">GRATIS</span></>
+              tx('cart_free_shipping_left', {
+                monto: <span className="font-semibold text-ink">{formatPrice(remaining)}</span>,
+                gratis: <span className="font-semibold text-accent">{t('cart_free')}</span>,
+              })
             )}
           </p>
           <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2 min-w-16">

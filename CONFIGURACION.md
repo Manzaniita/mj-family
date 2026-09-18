@@ -228,6 +228,18 @@ Todo apagado o igual que antes por defecto.
 | Editor de bloques | **Galería de trabajos** (`mj/galeria`) | — | Fotos con su nombre abajo (el texto propio, o la leyenda o el alt de la biblioteca), columnas, formato, filtro por nombre y foto grande al tocar. Plantilla "Página de galería". |
 | Editor de bloques | Opiniones: **origen** | Automático | Automático = las reseñas de WooCommerce y, si no hay, las opiniones de MJ Turnos; o solo una de las dos. |
 
+**Todos los textos de la tienda son editables.** Desde 3.21, cada texto
+visible (Mi cuenta, checkout, carrito, ingreso y registro, buscador,
+favoritos, facturación, consultas, precios y medios de pago, errores…) está en
+Textos de la tienda, agrupado por pantalla, con el texto de siempre como
+default. Plurales y números con marcas (`{n}`, etc.), explicadas en cada campo.
+Quedan fijos solo nombres propios (Instagram, Facebook…), símbolos y los
+textos de los plugins, que se editan en su propio panel.
+
+**Guardado protegido:** el formulario manda cientos de campos. Si el hosting
+tiene un `max_input_vars` bajo y corta el envío, no se guarda nada y aparece
+el aviso con el límite del servidor (conviene 3000 o más).
+
 En **Mi cuenta**: con MJ Fidelidad aparece la tarjeta de sellos en el inicio;
 con MJ Medios de Pago, cada pedido que pide comprobante muestra "Pago:
 <estado>" junto a su estado (por ejemplo "Pago: Aprobado · Estado: Listo

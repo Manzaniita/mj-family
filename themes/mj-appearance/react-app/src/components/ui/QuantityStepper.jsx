@@ -1,4 +1,5 @@
 import { Minus, Plus } from 'lucide-react';
+import { t } from '@/lib/copy';
 
 export function QuantityStepper({ value, onChange, size = 'md', max, disabled = false }) {
   const h = size === 'sm' ? 'h-8' : 'h-10';
@@ -9,7 +10,7 @@ export function QuantityStepper({ value, onChange, size = 'md', max, disabled = 
         onClick={() => onChange(value - 1)}
         disabled={disabled}
         className="grid h-full w-9 place-items-center text-ink-soft transition-colors hover:text-ink disabled:pointer-events-none"
-        aria-label="Restar"
+        aria-label={t('ui_qty_less')}
       >
         <Minus size={14} />
       </button>
@@ -18,7 +19,7 @@ export function QuantityStepper({ value, onChange, size = 'md', max, disabled = 
         onClick={() => onChange(value + 1)}
         disabled={disabled || atMax}
         className="grid h-full w-9 place-items-center text-ink-soft transition-colors hover:text-ink disabled:pointer-events-none disabled:opacity-40"
-        aria-label="Sumar"
+        aria-label={t('ui_qty_more')}
       >
         <Plus size={14} />
       </button>

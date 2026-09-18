@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Counter, Magnetic, Parallax } from '@/components/motion/Reveal';
+import { t } from '@/lib/copy';
 import { useCatalog } from '@/store/catalog';
 import { WP, SITE, REVIEWS_ENABLED } from '@/lib/config';
 import { EASE, formatPrice, FREE_SHIPPING_THRESHOLD } from '@/lib/format';
@@ -42,8 +43,8 @@ export function Hero({ override } = {}) {
   // Rotación de fotos de fondo (una sola foto → fondo fijo, sin timer).
   useEffect(() => {
     if (images.length < 2) return undefined;
-    const t = setInterval(() => setIdx((i) => (i + 1) % images.length), 6000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setIdx((i) => (i + 1) % images.length), 6000);
+    return () => clearInterval(timer);
   }, [images.length]);
 
   const products = useCatalog((s) => s.products);
@@ -54,9 +55,9 @@ export function Hero({ override } = {}) {
     ? rated.reduce((n, p) => n + p.rating, 0) / rated.length
     : 0;
   const stats = [];
-  if (showStats && products.length > 0) stats.push([`${products.length}+`, 'productos']);
-  if (showStats && FREE_SHIPPING_THRESHOLD > 0) stats.push([formatPrice(FREE_SHIPPING_THRESHOLD), 'envío gratis desde']);
-  if (showStats && REVIEWS_ENABLED && avgRating > 0) stats.push([avgRating.toFixed(1).replace('.', ','), 'rating promedio']);
+  if (showStats && products.length > 0) stats.push([`${products.length}+`, t('home_hero_stat_products')]);
+  if (showStats && FREE_SHIPPING_THRESHOLD > 0) stats.push([formatPrice(FREE_SHIPPING_THRESHOLD), t('home_hero_stat_shipping')]);
+  if (showStats && REVIEWS_ENABLED && avgRating > 0) stats.push([avgRating.toFixed(1).replace('.', ','), t('home_hero_stat_rating')]);
 
   return (
     <section

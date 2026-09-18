@@ -1,6 +1,7 @@
 import { Children, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/format';
+import { t } from '@/lib/copy';
 
 /**
  * Carrusel horizontal con scroll nativo (snap) y flechas en desktop.
@@ -10,7 +11,7 @@ import { cn } from '@/lib/format';
  * El ancho de cada ítem lo pone globals.css (.mj-carousel__item) a partir de
  * --mj-cols, así una skin puede cambiarlo sin tocar el componente.
  */
-export function Carousel({ children, cols = 4, className, ariaLabel = 'Carrusel' }) {
+export function Carousel({ children, cols = 4, className, ariaLabel = t('ui_carousel') }) {
   const ref = useRef(null);
   const items = Children.toArray(children);
 
@@ -39,10 +40,10 @@ export function Carousel({ children, cols = 4, className, ariaLabel = 'Carrusel'
       </div>
       {items.length > cols && (
         <>
-          <button type="button" onClick={() => scroll(-1)} className={`${arrowCls} -left-4`} aria-label="Anterior">
+          <button type="button" onClick={() => scroll(-1)} className={`${arrowCls} -left-4`} aria-label={t('ui_prev')}>
             <ChevronLeft size={18} />
           </button>
-          <button type="button" onClick={() => scroll(1)} className={`${arrowCls} -right-4`} aria-label="Siguiente">
+          <button type="button" onClick={() => scroll(1)} className={`${arrowCls} -right-4`} aria-label={t('ui_next')}>
             <ChevronRight size={18} />
           </button>
         </>

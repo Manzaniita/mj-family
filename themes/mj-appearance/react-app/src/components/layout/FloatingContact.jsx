@@ -10,6 +10,7 @@ import { WHATSAPP_NUMBERS, SITE } from '@/lib/config';
 import { buildMessage, cartLines, cartTotal, productLines, whatsappUrl } from '@/lib/consult';
 import { downloadQuotePdf, cartRows, productRows } from '@/lib/pdf';
 import { EASE } from '@/lib/format';
+import { t as tCopy, tf, tn } from '@/lib/copy';
 
 /**
  * Botón flotante de consultas por WhatsApp.
@@ -35,35 +36,35 @@ export function FloatingContact() {
       list.push({
         id: 'product',
         icon: Package,
-        label: 'Este producto',
+        label: tCopy('consult_topic_product'),
         description: currentProduct.name,
         lines: () => productLines([currentProduct]),
         rows: () => productRows([currentProduct]),
         total: null,
-        title: `Hola! Quiero consultar sobre este producto de ${SITE.name}:`,
+        title: tf('consult_msg_product', { tienda: SITE.name }),
       });
     } else {
       list.push({
         id: 'store',
         icon: Store,
-        label: 'La tienda en general',
-        description: 'Consultas, horarios, envíos y más',
+        label: tCopy('consult_topic_store'),
+        description: tCopy('consult_topic_store_hint'),
         lines: () => [],
         rows: null,
         total: null,
-        title: `Hola! Quiero hacer una consulta sobre la tienda ${SITE.name}.`,
+        title: tf('consult_msg_store', { tienda: SITE.name }),
       });
     }
     if (cartItems.length > 0) {
       list.push({
         id: 'cart',
         icon: ShoppingBag,
-        label: 'Mi carrito',
-        description: `${cartItems.length} ${cartItems.length === 1 ? 'producto' : 'productos'}`,
+        label: tCopy('consult_topic_cart'),
+        description: tn('shop_count', cartItems.length),
         lines: () => cartLines(cartItems),
         rows: () => cartRows(cartItems),
         total: () => cartTotal(cartItems),
-        title: 'Hola! Quiero consultar sobre estos productos de mi carrito:',
+        title: tCopy('consult_msg_cart'),
       });
     }
     const wished = catalogProducts.filter((p) => wishIds.includes(p.id));
@@ -71,12 +72,12 @@ export function FloatingContact() {
       list.push({
         id: 'wishlist',
         icon: Heart,
-        label: 'Mis favoritos',
-        description: `${wished.length} ${wished.length === 1 ? 'producto' : 'productos'}`,
+        label: tCopy('consult_topic_wishlist'),
+        description: tn('shop_count', wished.length),
         lines: () => productLines(wished),
         rows: () => productRows(wished),
         total: null,
-        title: 'Hola! Quiero consultar sobre estos productos que tengo en favoritos:',
+        title: tCopy('consult_msg_wishlist'),
       });
     }
     const compared = catalogProducts.filter((p) => compareIds.includes(p.id));
@@ -84,12 +85,12 @@ export function FloatingContact() {
       list.push({
         id: 'compare',
         icon: Scale,
-        label: 'Mi comparación',
-        description: `${compared.length} ${compared.length === 1 ? 'producto' : 'productos'}`,
+        label: tCopy('consult_topic_compare'),
+        description: tn('shop_count', compared.length),
         lines: () => productLines(compared),
         rows: () => productRows(compared),
         total: null,
-        title: 'Hola! Quiero consultar sobre estos productos que estoy comparando:',
+        title: tCopy('consult_msg_compare'),
       });
     }
     return list;
@@ -124,7 +125,7 @@ export function FloatingContact() {
     setPdfBusy(true);
     try {
       await downloadQuotePdf({
-        title: `Consulta — ${topic.label}`,
+        title: tf('consult_pdf_title', { tema: topic.label }),
         rows: topic.rows(),
         total: typeof topic.total === 'function' ? topic.total() : topic.total,
         filename: `consulta-${topic.id}.pdf`,
@@ -142,7 +143,7 @@ export function FloatingContact() {
         initial={{ opacity: 0, scale: 0.6, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, ease: EASE, delay: 0.6 }}
-        aria-label="Consultar por WhatsApp"
+        aria-label={tCopy('consult_whatsapp')}
       >
         <MessageCircle size={24} />
       </motion.button>
@@ -151,7 +152,7 @@ export function FloatingContact() {
         <div className="p-7">
           {!topic && (
             <>
-              <h2 className="font-display text-2xl font-semibold tracking-tight">¿Sobre qué querés consultar?</h2>
+              <h2 className="font-display text-2xl font-semibold tracking-tight">{tCopy('consult_topic_title')}</h2>
               <div className="mt-6 space-y-3">
                 {topics.map((t) => {
                   const Icon = t.icon;
@@ -177,7 +178,7 @@ export function FloatingContact() {
 
           {topic && !seller && (
             <>
-              <h2 className="font-display text-2xl font-semibold tracking-tight">¿Con quién querés hablar?</h2>
+              <h2 className="font-display text-2xl font-semibold tracking-tight">{tCopy('consult_seller_title')}</h2>
               <div className="mt-6 space-y-3">
                 {WHATSAPP_NUMBERS.map((s, i) => (
                   <button
@@ -189,7 +190,7 @@ export function FloatingContact() {
                       <MessageCircle size={18} />
                     </span>
                     <span className="min-w-0">
-                      <span className="block font-medium">{s.name || 'Vendedor'}</span>
+                      <span className="block font-medium">{s.name || tCopy('consult_seller')}</span>
                       <span className="block truncate text-sm text-ink-faint">+{s.number}</span>
                     </span>
                   </button>
@@ -202,7 +203,7 @@ export function FloatingContact() {
           {topic && seller && (
             <>
               <h2 className="font-display text-2xl font-semibold tracking-tight">
-                {topic.label} · {seller.name || 'Vendedor'}
+                {topic.label} · {seller.name || tCopy('consult_seller')}
               </h2>
               <div className="mt-4 max-h-48 overflow-y-auto rounded-xl2 border border-line p-4">
                 <pre className="whitespace-pre-wrap font-sans text-sm text-ink-soft">{message}</pre>
@@ -212,11 +213,11 @@ export function FloatingContact() {
                   className="mj-btn inline-flex h-13 w-full items-center justify-center gap-2.5 rounded-(--mj-radius-btn) bg-[#25D366] px-8 font-medium text-white transition-all duration-300 hover:bg-[#25D366]/90"
                   onClick={() => window.open(whatsappUrl(seller.number, message), '_blank', 'noopener')}
                 >
-                  <MessageCircle size={16} /> Consultar por WhatsApp
+                  <MessageCircle size={16} /> {tCopy('consult_whatsapp')}
                 </button>
                 {topic.rows && (
                   <Button className="w-full" variant="secondary" onClick={handlePdf} disabled={pdfBusy}>
-                    <FileDown size={16} /> {pdfBusy ? 'Generando…' : 'Descargar PDF'}
+                    <FileDown size={16} /> {pdfBusy ? tCopy('consult_pdf_busy') : tCopy('consult_pdf')}
                   </Button>
                 )}
               </div>
@@ -235,7 +236,7 @@ function StepBack({ onClick }) {
       onClick={onClick}
       className="mt-5 inline-flex items-center gap-1.5 text-sm text-ink-faint transition-colors hover:text-ink"
     >
-      <ArrowLeft size={14} /> Volver
+      <ArrowLeft size={14} /> {tCopy('consult_back')}
     </button>
   );
 }

@@ -3,6 +3,7 @@ import { Banknote } from 'lucide-react';
 import { EXCHANGE_RATE, IS_WP, SITE } from '@/lib/config';
 import { getExchangeRate } from '@/lib/wc';
 import { cn } from '@/lib/format';
+import { t, tf } from '@/lib/copy';
 
 /**
  * Tipo de cambio en el header (plugin MJ Dólar). Arranca con el valor
@@ -32,9 +33,9 @@ export function ExchangeRate({ className }) {
 
   const updated = rate.updatedAt ? new Date(rate.updatedAt) : null;
   const title = updated && !Number.isNaN(updated.getTime())
-    ? `Cotización actualizada el ${updated.toLocaleDateString(SITE.locale, { day: 'numeric', month: 'short' })} a las ${updated.toLocaleTimeString(SITE.locale, { hour: '2-digit', minute: '2-digit' })}`
+    ? tf('rate_updated', { fecha: updated.toLocaleDateString(SITE.locale, { day: 'numeric', month: 'short' }), hora: updated.toLocaleTimeString(SITE.locale, { hour: '2-digit', minute: '2-digit' }) })
     : undefined;
-  const label = rate.label || 'Dólar';
+  const label = rate.label || t('rate_label');
 
   return (
     <span

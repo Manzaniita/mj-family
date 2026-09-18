@@ -54,7 +54,7 @@ function ThemeToggle() {
   const theme = useUI((s) => s.theme);
   const toggleTheme = useUI((s) => s.toggleTheme);
   const dark = theme === 'dark';
-  const label = dark ? 'Activar modo claro' : 'Activar modo oscuro';
+  const label = dark ? t('nav_theme_light') : t('nav_theme_dark');
   const Icon = dark ? SunMedium : MoonStar;
 
   return (
@@ -202,8 +202,8 @@ export function Header() {
                 </span>
                 {/* En el celular estos dos viven en el menú lateral: la barra no da para más. */}
                 <span className="hidden lg:contents">
-                  <IconAction to="/favoritos" icon={Heart} label="Favoritos" count={wishCount} />
-                  <IconAction to="/comparar" icon={Scale} label="Comparar" count={compareCount} />
+                  <IconAction to="/favoritos" icon={Heart} label={t('nav_favorites')} count={wishCount} />
+                  <IconAction to="/comparar" icon={Scale} label={t('nav_compare')} count={compareCount} />
                 </span>
                 <span className="hidden lg:contents">
                   <IconAction

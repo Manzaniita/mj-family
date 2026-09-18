@@ -22,7 +22,7 @@ import { getProductStock } from '@/lib/wc';
 import { reviews } from '@/data/catalog';
 import { useCart, useWishlist, useCompare, useUI, useRecentlyViewed, useCatalog } from '@/store';
 import { WP, REVIEWS_ENABLED, IS_WP } from '@/lib/config';
-import { t } from '@/lib/copy';
+import { t, tf, tn } from '@/lib/copy';
 import { COLEGAS, colegaOf, colegaPath } from '@/lib/colegas';
 import { iconByName } from '@/components/ui/DynamicIcon';
 import { useDialog } from '@/lib/a11y';
@@ -82,7 +82,7 @@ function Gallery({ product }) {
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openZoom(); } }}
           role="button"
           tabIndex={0}
-          aria-label="Ampliar imagen"
+          aria-label={t('product_zoom')}
         >
           <AnimatePresence mode="wait">
             <motion.div
@@ -112,7 +112,7 @@ function Gallery({ product }) {
                 'mj-gallery__thumb overflow-hidden rounded-xl2 border transition-all duration-300',
                 i === active ? 'border-accent shadow-glow' : 'border-line opacity-60 hover:opacity-100'
               )}
-              aria-label={`Imagen ${i + 1}`}
+              aria-label={tf('product_image_n', { n: i + 1 })}
             >
               <ProductImage product={product} src={src} image={sets[i]} sizes="80px" className="size-20" />
             </button>
@@ -161,15 +161,15 @@ function SkuRow({ sku }) {
   };
   return (
     <div className="mj-sku flex items-baseline justify-between gap-4">
-      <dt className="font-semibold uppercase tracking-[0.15em] text-ink-faint">SKU</dt>
+      <dt className="font-semibold uppercase tracking-[0.15em] text-ink-faint">{t('product_sku')}</dt>
       <dd className="flex items-center gap-1.5">
         <span className="mj-sku__value font-mono text-[13px] font-medium tabular-nums">{sku}</span>
         <button
           type="button"
           onClick={copy}
           className="mj-sku__copy grid size-6 place-items-center rounded-(--mj-radius-sm) text-ink-faint transition-colors hover:bg-surface hover:text-ink"
-          aria-label={copied ? 'SKU copiado' : 'Copiar SKU'}
-          title="Copiar SKU"
+          aria-label={copied ? t('product_sku_copied') : t('product_sku_copy')}
+          title={t('product_sku_copy')}
         >
           {copied ? <Check size={12} className="text-success" /> : <Copy size={12} />}
         </button>
@@ -268,15 +268,15 @@ export default function Product() {
         <Section className="grid min-h-[50vh] place-items-center">
           {catalogError ? (
             <LoadError
-              title="No pudimos cargar el producto"
+              title={t('product_load_error')}
               onRetry={() => useCatalog.getState().init(true)}
               className="w-full max-w-xl"
             />
           ) : (
             <div className="mj-empty w-full max-w-xl rounded-(--mj-radius-2xl) border border-line glass p-12 text-center">
-              <p className="display text-3xl">Este producto ya no está</p>
-              <p className="mt-3 text-ink-soft">Puede que se haya agotado o que el enlace esté vencido.</p>
-              <Button className="mt-8" to="/tienda">Ver la tienda</Button>
+              <p className="display text-3xl">{t('product_gone_title')}</p>
+              <p className="mt-3 text-ink-soft">{t('product_gone_text')}</p>
+              <Button className="mt-8" to="/tienda">{t('ui_view_shop')}</Button>
             </div>
           )}
         </Section>
@@ -383,7 +383,7 @@ export default function Product() {
   const handleAdd = () => {
     if (isVariable && !variation) {
       // Atributos completos pero sin variación que coincida → combinación inexistente.
-      useCart.getState().setError('Esa combinación no está disponible');
+      useCart.getState().setError(t('product_combo_toast'));
       return;
     }
     add(product, qty, variation ? { id: variation.id, ...(variationExtras ?? {}) } : null);
@@ -393,7 +393,7 @@ export default function Product() {
   // Barra mobile: mismas reglas que el CTA; si faltan opciones, lleva al panel.
   const needsOptions = isVariable && (!!missingAttr || !variation);
   const soldOut = out && !canBackorder;
-  const barLabel = soldOut ? 'Sin stock' : needsOptions ? 'Elegir opciones' : 'Agregar';
+  const barLabel = soldOut ? t('product_out_of_stock') : needsOptions ? t('product_choose_options') : t('product_bar_add');
   const handleBar = () => {
     if (needsOptions) {
       panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -407,7 +407,7 @@ export default function Product() {
       <Section className="mj-product md:py-14">
         {/* Breadcrumb */}
         <Reveal y={10} className="mj-breadcrumb mb-8 flex items-center gap-1.5 text-xs text-ink-faint">
-          <Link to="/" className="hover:text-ink">Inicio</Link>
+          <Link to="/" className="hover:text-ink">{t('nav_home')}</Link>
           <ChevronRight size={12} />
           <Link to={`/categoria/${product.category}`} className="capitalize hover:text-ink">{product.category}</Link>
           <ChevronRight size={12} />
@@ -421,9 +421,9 @@ export default function Product() {
           <div className="lg:sticky lg:top-44 lg:self-start">
             <Reveal delay={0.1}>
               <div className="mj-product__badges flex flex-wrap gap-2">
-                {product.is_new && <Badge tone="solid">Nuevo</Badge>}
-                {discountPct(product) > 0 && <Badge tone="danger">-{discountPct(product)}% OFF</Badge>}
-                <Badge tone={out ? 'neutral' : 'success'}>{out ? 'Sin stock' : 'En stock'}</Badge>
+                {product.is_new && <Badge tone="solid">{t('product_badge_new')}</Badge>}
+                {discountPct(product) > 0 && <Badge tone="danger">{tf('product_badge_off', { n: discountPct(product) })}</Badge>}
+                <Badge tone={out ? 'neutral' : 'success'}>{out ? t('product_out_of_stock') : t('product_in_stock')}</Badge>
               </div>
 
               <p className="mj-eyebrow mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-ink-faint">
@@ -462,11 +462,11 @@ export default function Product() {
                   >
                     {out
                       ? canBackorder
-                        ? 'Disponible bajo pedido'
-                        : 'Sin stock'
+                        ? t('product_backorder')
+                        : t('product_out_of_stock')
                       : stockInfo.manage_stock && stockInfo.stock_quantity != null
-                        ? `${stockInfo.stock_quantity} ${stockInfo.stock_quantity === 1 ? 'unidad disponible' : 'unidades disponibles'}`
-                        : 'En stock'}
+                        ? tn('product_units', stockInfo.stock_quantity)
+                        : t('product_in_stock')}
                   </p>
                 )}
 
@@ -482,7 +482,7 @@ export default function Product() {
                         {metaCats.length > 0 && (
                           <div className="flex items-baseline justify-between gap-4">
                             <dt className="font-semibold uppercase tracking-[0.15em] text-ink-faint">
-                              {metaCats.length === 1 ? 'Categoría' : 'Categorías'}
+                              {metaCats.length === 1 ? t('product_meta_category') : t('product_meta_categories')}
                             </dt>
                             <dd className="text-right font-medium">
                               {metaCats.map((c, i) => (
@@ -538,11 +538,11 @@ export default function Product() {
                     ))}
                     {missingAttr ? (
                       <p className="text-xs text-ink-faint">
-                        Elegí {missingAttr.name.toLowerCase()} para continuar.
+                        {tf('product_choose_to_continue', { opcion: missingAttr.name.toLowerCase() })}
                       </p>
                     ) : !variation ? (
                       <p className="text-xs text-danger">
-                        Esa combinación no está disponible.
+                        {t('product_combo_unavailable')}
                       </p>
                     ) : null}
                   </div>
@@ -560,7 +560,7 @@ export default function Product() {
                     onClick={handleAdd}
                   >
                     <ShoppingBag size={16} />
-                    {soldOut ? 'Sin stock' : missingAttr ? `Elegí ${missingAttr.name.toLowerCase()}` : 'Agregar al carrito'}
+                    {soldOut ? t('product_out_of_stock') : missingAttr ? tf('product_choose', { opcion: missingAttr.name.toLowerCase() }) : t('product_add_to_cart')}
                   </Button>
                 </div>
 
@@ -574,7 +574,7 @@ export default function Product() {
                     )}
                   >
                     <Heart size={15} className={isWished ? 'fill-current' : ''} />
-                    {isWished ? 'En favoritos' : 'Favorito'}
+                    {isWished ? t('product_wished') : t('product_wish')}
                   </button>
                   <button
                     onClick={() => compare.toggle(product.id)}
@@ -584,7 +584,7 @@ export default function Product() {
                       isCompared ? 'border-accent bg-accent-soft text-accent' : 'border-line text-ink-soft hover:text-ink'
                     )}
                   >
-                    <Scale size={15} /> Comparar
+                    <Scale size={15} /> {t('product_compare')}
                   </button>
                 </div>
               </div>
@@ -638,7 +638,7 @@ export default function Product() {
           <Tabs
             tabs={[
               {
-                label: 'Descripción',
+                label: t('product_tab_description'),
                 content: (
                   <div className="max-w-2xl space-y-4 text-ink-soft leading-relaxed">
                     <p>{product.description || product.tagline || ''}</p>
@@ -647,7 +647,7 @@ export default function Product() {
               },
               ...(product.specs?.length
                 ? [{
-                    label: 'Especificaciones',
+                    label: t('product_tab_specs'),
                     content: (
                       <dl className="mj-specs max-w-2xl divide-y divide-line rounded-xl3 border border-line overflow-hidden">
                         {product.specs.map(([k, v]) => (
@@ -663,7 +663,7 @@ export default function Product() {
               // Tab de opiniones demo (standalone) — se apaga si WP desactivó las valoraciones.
               ...(isDemo && REVIEWS_ENABLED
                 ? [{
-                    label: `Opiniones (${product.rating_count})`,
+                    label: tf('product_tab_reviews', { n: product.rating_count }),
                     content: (
                       <div className="grid max-w-4xl gap-4 md:grid-cols-2">
                         {reviews.slice(0, 2).map((r) => (

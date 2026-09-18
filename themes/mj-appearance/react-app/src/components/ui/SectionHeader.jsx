@@ -1,11 +1,12 @@
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Reveal } from '@/components/motion/Reveal';
+import { t } from '@/lib/copy';
 
 const linkCls =
   'mj-link-arrow group inline-flex items-center gap-2 text-sm font-medium text-ink-soft transition-colors hover:text-ink';
 
-export function SectionHeader({ eyebrow, title, subtitle, linkTo, linkLabel = 'Ver todo' }) {
+export function SectionHeader({ eyebrow, title, subtitle, linkTo, linkLabel = t('ui_view_all') }) {
   return (
     <Reveal className="mj-section-head mb-10 flex flex-wrap items-end justify-between gap-6 md:mb-14">
       <div className="max-w-2xl">

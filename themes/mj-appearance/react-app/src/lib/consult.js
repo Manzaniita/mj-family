@@ -4,6 +4,7 @@
  */
 import { formatPrice } from './format';
 import { effectivePrice } from './api';
+import { t } from './copy';
 
 export const productUrl = (p) =>
   `${typeof location !== 'undefined' ? location.origin : ''}/producto/${p.slug}`;
@@ -12,7 +13,7 @@ export const productUrl = (p) =>
 export const cartLines = (items) =>
   items.map((i) => {
     const unit = effectivePrice(i.product);
-    return `${i.qty} × ${i.product.name} — ${formatPrice(unit)} c/u = ${formatPrice(unit * i.qty)}`;
+    return `${i.qty} × ${i.product.name} — ${formatPrice(unit)} ${t('consult_each')} = ${formatPrice(unit * i.qty)}`;
   });
 
 /** Líneas "- Nombre — $X — url" para listas de productos (favoritos, comparador). */
@@ -29,7 +30,7 @@ export function buildMessage({ title, lines = [], total = null, footer = null })
   const parts = [title, ''];
   parts.push(...lines);
   if (total != null) {
-    parts.push('', `Total: ${formatPrice(total)}`);
+    parts.push('', `${t('cart_total')}: ${formatPrice(total)}`);
   }
   if (footer) {
     parts.push('', footer);

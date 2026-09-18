@@ -7,6 +7,7 @@ import { buildMessage, cartLines, whatsappUrl, mailUrl } from '@/lib/consult';
 import { downloadQuotePdf, cartRows } from '@/lib/pdf';
 import { formatPrice, cn } from '@/lib/format';
 import { paymentNote } from '@/lib/payments';
+import { t } from '@/lib/copy';
 
 /**
  * Presupuesto del carrito: ítems + total + la información configurada en
@@ -22,7 +23,7 @@ export function QuoteModal({ open, onClose, items, total, adjustment = null }) {
   const note = [paymentNote(), QUOTE_INFO].filter(Boolean).join('\n\n');
 
   const message = buildMessage({
-    title: 'Hola! Quiero pedir un presupuesto de estos productos:',
+    title: t('quote_message'),
     lines: [...cartLines(items), ...(adjustment ? [`${adjustment.label}: ${adjText}`] : [])],
     total,
     footer: note || null,
@@ -34,7 +35,7 @@ export function QuoteModal({ open, onClose, items, total, adjustment = null }) {
     setPdfBusy(true);
     try {
       await downloadQuotePdf({
-        title: 'Presupuesto',
+        title: t('quote_title'),
         rows: [...cartRows(items), ...(adjustment ? [{ label: adjustment.label, amount: adjText }] : [])],
         total,
         info: note,
@@ -48,7 +49,7 @@ export function QuoteModal({ open, onClose, items, total, adjustment = null }) {
   return (
     <Modal open={open} onClose={onClose}>
       <div className="p-7">
-        <h2 className="font-display text-2xl font-semibold tracking-tight">Presupuesto</h2>
+        <h2 className="font-display text-2xl font-semibold tracking-tight">{t('quote_title')}</h2>
 
         <ul className="mt-5 max-h-56 space-y-2 overflow-y-auto rounded-xl2 border border-line p-4 text-sm">
           {items.map((i) => (
@@ -68,7 +69,7 @@ export function QuoteModal({ open, onClose, items, total, adjustment = null }) {
             </li>
           )}
           <li className="flex items-baseline justify-between gap-3 border-t border-line pt-2 text-base">
-            <span className="font-medium">Total</span>
+            <span className="font-medium">{t('cart_total')}</span>
             <span className="font-display font-semibold">{formatPrice(total)}</span>
           </li>
         </ul>
@@ -81,16 +82,16 @@ export function QuoteModal({ open, onClose, items, total, adjustment = null }) {
 
         <div className="mt-6 space-y-3">
           <Button className="w-full" variant="secondary" onClick={handlePdf} disabled={pdfBusy}>
-            <FileDown size={16} /> {pdfBusy ? 'Generando…' : 'Descargar PDF'}
+            <FileDown size={16} /> {pdfBusy ? t('consult_pdf_busy') : t('consult_pdf')}
           </Button>
 
           {CONTACT.email && (
             <Button
               className="w-full"
               variant="secondary"
-              onClick={() => window.open(mailUrl(CONTACT.email, 'Presupuesto', message), '_self')}
+              onClick={() => window.open(mailUrl(CONTACT.email, t('quote_title'), message), '_self')}
             >
-              <Mail size={16} /> Enviar por mail
+              <Mail size={16} /> {t('quote_send_mail')}
             </Button>
           )}
 
@@ -109,7 +110,7 @@ export function QuoteModal({ open, onClose, items, total, adjustment = null }) {
                           : 'border-line text-ink-soft hover:text-ink'
                       )}
                     >
-                      {s.name || 'Vendedor'}
+                      {s.name || t('consult_seller')}
                     </button>
                   ))}
                 </div>
@@ -118,7 +119,7 @@ export function QuoteModal({ open, onClose, items, total, adjustment = null }) {
                 className="mj-btn inline-flex h-11 w-full items-center justify-center gap-2 rounded-(--mj-radius-btn) bg-[#25D366] px-6 text-sm font-medium text-white transition-all duration-300 hover:bg-[#25D366]/90"
                 onClick={() => window.open(whatsappUrl(seller.number, message), '_blank', 'noopener')}
               >
-                <MessageCircle size={16} /> Enviar por WhatsApp{seller?.name ? ` a ${seller.name}` : ''}
+                <MessageCircle size={16} /> {t('quote_send_whatsapp')}{seller?.name ? ` ${t('quote_send_to')} ${seller.name}` : ''}
               </button>
             </div>
           )}

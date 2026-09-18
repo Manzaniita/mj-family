@@ -7,6 +7,7 @@ import * as wc from '@/lib/wc';
 import { useCatalog } from './catalog';
 import { applyTheme, currentTheme, transitionTheme } from '@/lib/theme';
 import { usePaymentMethod, selectedMethodId } from '@/lib/payments';
+import { t, tn } from '@/lib/copy';
 
 export { useCatalog } from './catalog';
 export { useAuth, finishAuth } from './auth';
@@ -196,7 +197,7 @@ export const useCart = create(
             if (wanted && cart?.extensions?.mjpm?.method !== wanted) get().syncPaymentMethod(wanted);
           } catch (e) {
             console.warn('[mj] No se pudo leer el carrito del servidor.', e);
-            set({ hydrated: true, loadError: e?.message || 'No se pudo leer el carrito.' });
+            set({ hydrated: true, loadError: e?.message || t('cart_error_load') });
           }
         },
 
@@ -340,9 +341,7 @@ export const useCart = create(
           let next = qty;
           if (max >= 1 && qty > max) {
             next = max;
-            get().setError(
-              max === 1 ? 'Solo hay 1 unidad disponible' : `Solo hay ${max} unidades disponibles`
-            );
+            get().setError(tn('cart_stock_limit', max));
           }
           if (next === item.qty) return;
 

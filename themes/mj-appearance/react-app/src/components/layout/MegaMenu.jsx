@@ -7,6 +7,7 @@ import { isExternalHref } from '@/lib/nav';
 import { ProductImage } from '@/components/ui/ProductImage';
 import { Price } from '@/components/ui/Price';
 import { EASE } from '@/lib/format';
+import { t } from '@/lib/copy';
 
 const linkBase = 'mj-nav__link rounded-(--mj-radius-chip) px-4 py-3 text-[13px] font-medium transition-colors';
 
@@ -46,7 +47,7 @@ export function MegaMenu() {
     <nav
       className="mj-nav relative hidden lg:block hairline-b bg-bg/70 backdrop-blur-xl"
       onMouseLeave={() => setOpenSlug(null)}
-      aria-label="Navegación principal"
+      aria-label={t('nav_main_label')}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-center gap-1 px-8">
         {menu.map((item) => {
@@ -127,7 +128,7 @@ export function MegaMenu() {
             <div className="mx-auto grid max-w-7xl grid-cols-4 gap-8 px-8 py-10">
               <div className="flex flex-col justify-between">
                 <div>
-                  <p className="mj-eyebrow text-xs font-semibold uppercase tracking-[0.2em] text-accent">Categoría</p>
+                  <p className="mj-eyebrow text-xs font-semibold uppercase tracking-[0.2em] text-accent">{t('nav_mega_eyebrow')}</p>
                   <h3 className="display mt-3 text-4xl">{openCategory.name}</h3>
                   <p className="mt-3 text-sm text-ink-soft">{openCategory.description}</p>
                 </div>
@@ -136,7 +137,7 @@ export function MegaMenu() {
                   onClick={() => setOpenSlug(null)}
                   className="mj-link-arrow group mt-6 inline-flex items-center gap-2 text-sm font-medium text-accent"
                 >
-                  Explorar todo
+                  {t('nav_mega_link')}
                   <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </div>

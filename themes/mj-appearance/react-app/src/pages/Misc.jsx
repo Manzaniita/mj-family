@@ -16,7 +16,7 @@ import { Reveal, MaskReveal, Stagger, staggerItem, Counter } from '@/components/
 import { useWishlist, useCompare, useRecentlyViewed, useCatalog } from '@/store';
 import { faqs } from '@/data/catalog';
 import { WP, IS_WP, CONTACT, SOCIAL, SITE, REVIEWS_ENABLED, ABOUT } from '@/lib/config';
-import { t, BRAND_LABEL, LEGAL } from '@/lib/copy';
+import { t, tn, BRAND_LABEL, LEGAL } from '@/lib/copy';
 import { COLEGAS, projectPath, colegaPath, paragraphsOf } from '@/lib/colegas';
 import { TURNOS, bookingPath, servicesPath } from '@/lib/turnos';
 import { sendContact } from '@/lib/wc';
@@ -34,13 +34,13 @@ export function Wishlist() {
   const items = products.filter((p) => ids.includes(p.id));
   return (
     <Section className="md:py-16">
-      <PageHeader eyebrow="Tu selección" title="Favoritos" subtitle={items.length ? `${items.length} producto${items.length > 1 ? 's' : ''} guardado${items.length > 1 ? 's' : ''}.` : undefined} />
+      <PageHeader eyebrow={t('wishlist_eyebrow')} title={t('wishlist_title')} subtitle={items.length ? tn('wishlist_count', items.length) : undefined} />
       {items.length === 0 ? (
         <Reveal className="mt-12 mj-empty rounded-(--mj-radius-2xl) border border-line glass p-16 text-center">
           <Heart size={28} className="mx-auto text-ink-faint" />
-          <p className="display mt-5 text-2xl">Nada por acá todavía</p>
-          <p className="mt-2 text-ink-soft">Tocá el corazón en cualquier producto para guardarlo.</p>
-          <Button className="mt-7" to="/tienda">Explorar la tienda</Button>
+          <p className="display mt-5 text-2xl">{t('wishlist_empty_title')}</p>
+          <p className="mt-2 text-ink-soft">{t('wishlist_empty_text')}</p>
+          <Button className="mt-7" to="/tienda">{t('ui_explore_shop')}</Button>
         </Reveal>
       ) : (
         <div className="mt-12"><ProductGrid products={items} /></div>
@@ -56,24 +56,24 @@ export function Compare() {
   const products = useCatalog((s) => s.products);
   const items = products.filter((p) => ids.includes(p.id));
   const rows = [
-    ['Precio', (p) => formatPrice(displayPrice(p))],
+    [t('compare_price'), (p) => formatPrice(displayPrice(p))],
     [BRAND_LABEL.singular, (p) => p.brandName ?? p.brand ?? '—'],
     // Quién lo hizo (plugin MJ Colegas).
     ...(COLEGAS ? [[COLEGAS.labels.singular, (p) => p.colegaName ?? COLEGAS.house.name]] : []),
-    ['Categoría', (p) => p.category],
+    [t('compare_category'), (p) => p.category],
     // Valoraciones desactivadas en WooCommerce → sin fila de rating.
-    ...(REVIEWS_ENABLED ? [['Valoración', (p) => `${p.rating} ★ (${p.rating_count})`]] : []),
-    ['Stock', (p) => (p.stock_status === 'instock' ? 'Disponible' : 'Sin stock')],
+    ...(REVIEWS_ENABLED ? [[t('compare_rating'), (p) => `${p.rating} ★ (${p.rating_count})`]] : []),
+    [t('compare_stock'), (p) => (p.stock_status === 'instock' ? t('compare_in_stock') : t('compare_out_of_stock'))],
   ];
   return (
     <Section className="md:py-16">
-      <PageHeader eyebrow="Decisiones fáciles" title="Comparador" subtitle="Hasta 4 productos, lado a lado." />
+      <PageHeader eyebrow={t('compare_eyebrow')} title={t('compare_title')} subtitle={t('compare_subtitle')} />
       {items.length === 0 ? (
         <Reveal className="mt-12 mj-empty rounded-(--mj-radius-2xl) border border-line glass p-16 text-center">
           <Scale size={28} className="mx-auto text-ink-faint" />
-          <p className="display mt-5 text-2xl">Todavía no elegiste productos</p>
-          <p className="mt-2 text-ink-soft">Usá el ícono de balanza en las tarjetas para comparar.</p>
-          <Button className="mt-7" to="/tienda">Explorar la tienda</Button>
+          <p className="display mt-5 text-2xl">{t('compare_empty_title')}</p>
+          <p className="mt-2 text-ink-soft">{t('compare_empty_text')}</p>
+          <Button className="mt-7" to="/tienda">{t('ui_explore_shop')}</Button>
         </Reveal>
       ) : (
         <Reveal className="mt-12 overflow-x-auto rounded-xl3 border border-line glass">
@@ -87,7 +87,7 @@ export function Compare() {
                       <button
                         onClick={() => toggle(p.id)}
                         className="absolute -right-2 -top-2 z-10 grid size-7 place-items-center rounded-full glass text-ink-soft hover:text-danger"
-                        aria-label="Quitar de comparación"
+                        aria-label={t('compare_remove')}
                       >
                         <X size={13} />
                       </button>
@@ -113,7 +113,7 @@ export function Compare() {
                 <td className="p-5" />
                 {items.map((p) => (
                   <td key={p.id} className="p-5">
-                    <Button size="sm" to={`/producto/${p.slug}`}>Ver producto</Button>
+                    <Button size="sm" to={`/producto/${p.slug}`}>{t('compare_view')}</Button>
                   </td>
                 ))}
               </tr>
@@ -133,11 +133,11 @@ export function RecentlyViewed() {
   const items = ids.map((id) => products.find((p) => p.id === id)).filter(Boolean);
   return (
     <Section className="md:py-16">
-      <PageHeader eyebrow="Tu historial" title="Vistos recientemente" />
+      <PageHeader eyebrow={t('product_recent_eyebrow')} title={t('product_recent_title')} />
       {items.length === 0 ? (
         <Reveal className="mt-12 mj-empty rounded-(--mj-radius-2xl) border border-line glass p-16 text-center">
-          <p className="display text-2xl">Tu historial está vacío</p>
-          <Button className="mt-7" to="/tienda">Empezar a explorar</Button>
+          <p className="display text-2xl">{t('recent_empty_title')}</p>
+          <Button className="mt-7" to="/tienda">{t('recent_empty_cta')}</Button>
         </Reveal>
       ) : (
         <div className="mt-12"><ProductGrid products={items} /></div>
@@ -163,7 +163,7 @@ export function Brands() {
                 className="mj-brand-tile group flex aspect-4/3 flex-col items-center justify-center gap-2 rounded-xl3 border border-line glass transition-all duration-300 hover:border-accent/40 hover:shadow-glow"
               >
                 <span className="font-display text-2xl font-semibold tracking-tight">{b.name}</span>
-                <span className="text-xs text-ink-faint">{count} producto{count !== 1 && 's'}</span>
+                <span className="text-xs text-ink-faint">{tn('shop_count', count)}</span>
                 <ArrowRight size={16} className="mt-1 text-accent opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-1" />
               </Link>
             </motion.div>
@@ -213,7 +213,7 @@ export function ContactPanel({ showForm = true, showChannels = true, showMap = t
       setForm({ name: '', email: '', message: '', website: '' });
       setSent(true);
     } catch (err) {
-      setError(err?.data?.message || 'No se pudo enviar el mensaje. Probá de nuevo en unos minutos.');
+      setError(err?.data?.message || t('contact_error'));
     } finally {
       setSending(false);
     }
@@ -243,19 +243,19 @@ export function ContactPanel({ showForm = true, showChannels = true, showMap = t
             <div className="grid min-h-64 place-items-center text-center">
               <div>
                 <CheckCircle2 size={28} className="mx-auto text-success" />
-                <p className="display mt-5 text-2xl">Mensaje enviado</p>
-                <p className="mt-2 text-ink-soft">Te respondemos a la brevedad.</p>
+                <p className="display mt-5 text-2xl">{t('contact_sent_title')}</p>
+                <p className="mt-2 text-ink-soft">{t('contact_sent_text')}</p>
                 <Button className="mt-7" variant="secondary" onClick={() => setSent(false)}>
-                  Enviar otro mensaje
+                  {t('contact_send_another')}
                 </Button>
               </div>
             </div>
           ) : (
             <form className="relative grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
-              <Input label="Nombre" placeholder="Tu nombre" value={form.name} onChange={set('name')} required />
-              <Input label="Email" type="email" placeholder="tu@email.com" value={form.email} onChange={set('email')} required />
+              <Input label={t('field_first_name')} placeholder={t('field_name_placeholder')} value={form.name} onChange={set('name')} required />
+              <Input label={t('field_email')} type="email" placeholder={t('field_email_placeholder')} value={form.email} onChange={set('email')} required />
               <div className="sm:col-span-2">
-                <Textarea label="Mensaje" placeholder="Contanos…" value={form.message} onChange={set('message')} required />
+                <Textarea label={t('field_message')} placeholder={t('contact_message_placeholder')} value={form.message} onChange={set('message')} required />
               </div>
               {/* Honeypot anti-spam: fuera de la vista y del tab; los robots lo completan igual. */}
               <div className="absolute -left-[9999px] top-0 h-px w-px overflow-hidden" aria-hidden="true">
@@ -279,7 +279,7 @@ export function ContactPanel({ showForm = true, showChannels = true, showMap = t
               <div>
                 <Button type="submit" disabled={sending}>
                   {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-                  Enviar mensaje
+                  {t('contact_submit')}
                 </Button>
               </div>
             </form>
@@ -308,7 +308,7 @@ export function ContactPanel({ showForm = true, showChannels = true, showMap = t
             {map ? (
               <div className={cn('overflow-hidden rounded-xl3 border border-line', !showForm && 'lg:col-span-3')}>
                 <iframe
-                  title="Ubicación en Google Maps"
+                  title={t('contact_map_title')}
                   src={map}
                   loading="lazy"
                   allowFullScreen
@@ -369,9 +369,9 @@ export function AboutBody({ override } = {}) {
   const rated = products.filter((p) => p.rating > 0);
   const avg = rated.length ? rated.reduce((n, p) => n + p.rating, 0) / rated.length : 0;
   const autoStats = [
-    products.length > 0 && [String(products.length), 'Productos en catálogo'],
-    categories.length > 0 && [String(categories.length), 'Categorías'],
-    REVIEWS_ENABLED && avg > 0 && [`${avg.toFixed(1)} ★`, 'Valoración promedio'],
+    products.length > 0 && [String(products.length), t('about_stat_products')],
+    categories.length > 0 && [String(categories.length), t('about_stat_categories')],
+    REVIEWS_ENABLED && avg > 0 && [`${avg.toFixed(1)} ★`, t('about_stat_rating')],
   ].filter(Boolean);
   const stats = ABOUT.stats.length ? ABOUT.stats.map((s) => [s.n, s.label]) : autoStats;
 
@@ -396,7 +396,7 @@ export function AboutBody({ override } = {}) {
             ) : (
               <p className="mj-about__text mt-6 text-lg leading-relaxed text-ink-soft">
                 {SITE?.name || 'MJ Appearance'}{SITE?.tagline ? ` — ${SITE.tagline}` : ''}.
-                Cuidamos cada detalle para que comprar sea simple, transparente y seguro.
+                {' '}{t('about_fallback_text')}
               </p>
             )}
           </Reveal>
@@ -467,7 +467,7 @@ export function FAQ() {
   usePageMeta(t('seo_title_faq'), t('seo_desc_faq'));
   return (
     <Section className="md:py-16">
-      <PageHeader eyebrow="Ayuda" title="Preguntas frecuentes" subtitle={t('faq_subtitle')} />
+      <PageHeader eyebrow={t('faq_eyebrow')} title={t('faq_title')} subtitle={t('faq_subtitle')} />
       <FAQList />
     </Section>
   );
@@ -487,14 +487,14 @@ export function FAQList({ items, showContactCard = true } = {}) {
           <Accordion items={list} />
         ) : (
           <div className="rounded-xl3 border border-line glass p-12 text-center text-ink-soft">
-            Próximamente publicaremos las preguntas frecuentes.
+            {t('faq_empty')}
           </div>
         )}
       </Reveal>
       {showContactCard && (
         <Reveal className="mt-10 max-w-3xl rounded-xl3 border border-line glass p-8 text-center">
-          <p className="font-display text-lg font-semibold">¿No encontraste tu respuesta?</p>
-          <Button className="mt-4" variant="secondary" to="/contacto">Escribinos</Button>
+          <p className="font-display text-lg font-semibold">{t('faq_contact_title')}</p>
+          <Button className="mt-4" variant="secondary" to="/contacto">{t('faq_contact_cta')}</Button>
         </Reveal>
       )}
     </>
@@ -510,7 +510,7 @@ export function FAQList({ items, showContactCard = true } = {}) {
 function LegalPage({ title, sections }) {
   return (
     <Section className="md:py-16">
-      <PageHeader eyebrow="Legales" title={title} />
+      <PageHeader eyebrow={t('legal_eyebrow')} title={title} />
       <Reveal className="prose-custom mt-12 max-w-3xl space-y-8">
         {sections.map(({ h, body }, i) => (
           <div key={`${i}-${h}`}>
@@ -532,7 +532,7 @@ export function Privacy() {
     { h: '3. Cookies', body: 'Usamos cookies funcionales (carrito, sesión, preferencias de tema) y analíticas anónimas. Podés gestionarlas desde tu navegador.' },
     { h: '4. Tus derechos', body: `Podés solicitar acceso, rectificación o eliminación de tus datos ${contact}, conforme a la Ley 25.326 de Protección de Datos Personales.` },
   ];
-  return <LegalPage title="Política de privacidad" sections={LEGAL.privacy ?? fallback} />;
+  return <LegalPage title={t('legal_privacy_title')} sections={LEGAL.privacy ?? fallback} />;
 }
 
 export function Terms() {
@@ -543,7 +543,7 @@ export function Terms() {
     { h: '3. Envíos', body: 'Realizamos envíos a todo el país con seguimiento. Los plazos son estimados y comienzan a correr desde la acreditación del pago.' },
     { h: '4. Devoluciones', body: 'Podés arrepentirte de la compra dentro del plazo legal aplicable (Ley 24.240), con el producto sin uso y en su embalaje original.' },
   ];
-  return <LegalPage title="Términos y condiciones" sections={LEGAL.terms ?? fallback} />;
+  return <LegalPage title={t('legal_terms_title')} sections={LEGAL.terms ?? fallback} />;
 }
 
 /* ------------------------------ Mapa del sitio --------------------------- */
@@ -564,7 +564,7 @@ export function Sitemap() {
       ...(TURNOS ? [[TURNOS.menu.label, bookingPath()]] : []),
       [BRAND_LABEL.plural, '/marcas'],
     ]],
-    ['Categorías', categories.map((c) => [c.name, `/categoria/${c.slug}`])],
+    [t('sitemap_categories'), categories.map((c) => [c.name, `/categoria/${c.slug}`])],
     // Proyecto de colegas (plugin MJ Colegas): la página del proyecto y una por colega.
     ...(COLEGAS ? [[COLEGAS.project.name, [
       [COLEGAS.project.menuLabel, projectPath()],
@@ -572,12 +572,12 @@ export function Sitemap() {
     ]]] : []),
     [t('footer_group_account'), [
       [t('footer_link_account'), '/cuenta'],
-      ['Ingresar', '/login'],
-      ['Registro', '/registro'],
+      [t('sitemap_login'), '/login'],
+      [t('sitemap_register'), '/registro'],
       [t('footer_link_orders'), '/cuenta/pedidos'],
       [t('footer_link_wishlist'), '/favoritos'],
-      ['Comparador', '/comparar'],
-      ['Vistos recientemente', '/vistos-recientemente'],
+      [t('compare_title'), '/comparar'],
+      [t('product_recent_title'), '/vistos-recientemente'],
       [t('nav_cart'), '/carrito'],
     ]],
     [t('footer_group_help'), [
@@ -590,7 +590,7 @@ export function Sitemap() {
   ];
   return (
     <Section className="md:py-16">
-      <PageHeader eyebrow="Navegación" title="Mapa del sitio" />
+      <PageHeader eyebrow={t('sitemap_eyebrow')} title={t('sitemap_title')} />
       <div className="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
         {groups.map(([title, links]) => (
           <Reveal key={title}>
@@ -623,11 +623,11 @@ export function NotFound() {
         >
           404
         </motion.p>
-        <h1 className="display mt-2 text-2xl md:text-3xl">Esta página no existe</h1>
-        <p className="mt-3 text-ink-soft">Pero lo que buscás probablemente sí.</p>
+        <h1 className="display mt-2 text-2xl md:text-3xl">{t('notfound_title')}</h1>
+        <p className="mt-3 text-ink-soft">{t('notfound_text')}</p>
         <div className="mt-8 flex justify-center gap-3">
-          <Button to="/">Ir al inicio</Button>
-          <Button variant="secondary" to="/tienda">Ver la tienda</Button>
+          <Button to="/">{t('ui_go_home')}</Button>
+          <Button variant="secondary" to="/tienda">{t('ui_view_shop')}</Button>
         </div>
       </div>
     </Section>

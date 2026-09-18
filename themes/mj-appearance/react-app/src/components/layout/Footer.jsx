@@ -116,9 +116,9 @@ export function Footer() {
                   required
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); if (status === 'error') setStatus('idle'); }}
-                  placeholder="tu@email.com"
+                  placeholder={t('field_email_placeholder')}
                   className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
-                  aria-label="Email para newsletter"
+                  aria-label={t('footer_newsletter_email')}
                 />
               </div>
               <motion.button
@@ -126,7 +126,7 @@ export function Footer() {
                 whileTap={STILL ? undefined : { scale: 0.95 }}
                 disabled={status === 'sending'}
                 className={`mj-footer__submit grid size-12 shrink-0 place-items-center rounded-(--mj-radius-pill) text-white transition-colors ${status === 'ok' ? 'bg-success' : 'bg-accent shadow-glow'}`}
-                aria-label="Suscribirme"
+                aria-label={t('footer_newsletter_submit')}
               >
                 {status === 'ok'
                   ? <Check size={18} />
@@ -136,10 +136,10 @@ export function Footer() {
               </motion.button>
             </form>
             {status === 'ok' && (
-              <p className="mt-2 text-xs text-success">¡Listo! Te avisamos de las novedades.</p>
+              <p className="mt-2 text-xs text-success">{t('footer_newsletter_ok')}</p>
             )}
             {status === 'error' && (
-              <p className="mt-2 text-xs text-danger">No pudimos registrar tu email. Intentá de nuevo.</p>
+              <p className="mt-2 text-xs text-danger">{t('footer_newsletter_error')}</p>
             )}
           </div>
         </Reveal>
