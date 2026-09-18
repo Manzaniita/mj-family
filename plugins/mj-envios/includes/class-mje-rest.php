@@ -239,6 +239,8 @@ class MJE_REST {
 				'grupo'       => (string) $def['group'],
 				'correo'      => $carrier['label'],
 				'correoClave' => $carrier['key'],
+				/* Con qué se puede pagar: se avisa desde la ficha, no recién en el checkout. */
+				'pagos'       => MJE_Methods::payments_payload($def),
 			];
 		}
 

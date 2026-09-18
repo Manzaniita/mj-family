@@ -57,10 +57,16 @@ filtra nada. Podés combinar:
 - Monto del carrito, peso, cantidad de productos: desde y hasta.
 - Productos y categorías puntuales: "solo con estos" o "nunca con estos".
 - Quién compra: cualquiera, solo con cuenta, solo sin cuenta, o ciertos roles.
-- **Medios de pago.** Esta regla filtra en los dos sentidos: si decís que un
-  envío es "solo con efectivo", no aparece cuando el cliente eligió otra cosa —
-  y si lo eligió, en el checkout solo le quedan los medios permitidos. Así se
-  arma, por ejemplo, un reparto propio que se paga contra entrega.
+- **Medios de pago.** Si decís que un envío es "solo con efectivo", elegirlo
+  deja el checkout solo con efectivo. Así se arma, por ejemplo, un reparto
+  propio que se paga contra entrega.
+
+  Al cliente que venía con otro medio elegido el envío se le ofrece igual, con
+  el cartel de con qué se paga, y el medio se le cambia solo al elegirlo.
+  Esconderlo dejaba la regla peleándose consigo misma —el envío desaparecía por
+  el medio y el medio desaparecería por el envío— y lo que veía era una opción
+  que al tocarla volvía sola para atrás. Si aun así lo preferís escondido, está
+  en *Ajustes → General → Envío y medio de pago que no combinan*.
 
 ---
 
@@ -250,6 +256,12 @@ El cliente pone su código postal en la página del producto y ve cuánto sale y
 cuándo llega, con las mismas opciones y los mismos precios que el checkout, sin
 armar el carrito. Se prende y se escribe en *Ajustes → Textos*. El código postal
 le queda guardado, así no lo escribe de nuevo en cada producto.
+
+Con **Dejar elegido** prendido puede además tocar la opción que le sirve ahí
+mismo: al llegar al checkout aparece con el código postal puesto y ese envío
+marcado, sin volver a comparar. Es una preferencia, no una promesa —lo que se
+cobra lo decide el carrito con el destino real—, así que si ese envío ya no está
+disponible se elige como siempre.
 
 ---
 

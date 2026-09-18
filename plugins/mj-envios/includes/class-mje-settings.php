@@ -45,11 +45,19 @@ class MJE_Settings {
 			/* Facturación y envío ---------------------------------------- */
 			'billing_from_shipping' => 0, // 1 = la factura usa la dirección del envío (una sola dirección).
 
+			/* Envío y medio de pago que no combinan --------------------- */
+			'payments_conflict'  => 'avisar', // avisar | ocultar. Ver payments_conflict_choices().
+			'payments_only_text' => 'Solo con {medios}',
+			'payments_note_text' => 'El envío que elegiste se paga con {medios}.',
+
 			/* Cotizador en la ficha del producto -------------------------- */
 			'quote_product'   => 1,
 			'quote_title'     => '¿Cuánto sale el envío?',
 			'quote_button'    => 'Calcular',
 			'quote_help'      => 'Poné tu código postal y te decimos cuánto sale y cuándo llega.',
+			'quote_pick'      => 1, // El cliente puede dejar elegida una opción desde la ficha.
+			'quote_pick_help' => 'Tocá la que te sirva y la dejamos elegida para cuando termines la compra.',
+			'quote_picked'    => 'Lo dejamos elegido para tu compra',
 
 			/* Sucursales ------------------------------------------------- */
 			'branch_sort'     => 'cercania', // cercania | nombre
@@ -163,6 +171,24 @@ class MJE_Settings {
 		];
 	}
 
+	/**
+	 * Qué pasa cuando el medio de pago elegido no es de los que acepta un envío.
+	 *
+	 * Con "ocultar" la regla vale en los dos sentidos y se pelea consigo misma:
+	 * el envío desaparece porque el medio no corresponde, y el medio
+	 * desaparecería porque el envío no lo acepta. El cliente ve una opción que
+	 * al tocarla vuelve sola para atrás, sin saber por qué.
+	 *
+	 * Con "avisar" la regla vale en un solo sentido, que es el orden en que se
+	 * compra: el envío se elige primero y decide con qué se puede pagar.
+	 */
+	public static function payments_conflict_choices() {
+		return [
+			'avisar'  => 'Mostrarlo igual y avisar con qué se puede pagar',
+			'ocultar' => 'No ofrecer ese envío',
+		];
+	}
+
 	public static function branch_sort_choices() {
 		return [
 			'cercania' => 'Las más cercanas primero',
@@ -212,7 +238,7 @@ class MJE_Settings {
 		$in  = is_array($in) ? $in : [];
 		$out = [];
 
-		foreach (['enabled', 'replace_native', 'native_adopt', 'native_allow_zero', 'badges_enabled', 'quote_product', 'billing_from_shipping', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost', 'ready_enabled', 'ready_mail'] as $flag) {
+		foreach (['enabled', 'replace_native', 'native_adopt', 'native_allow_zero', 'badges_enabled', 'quote_product', 'quote_pick', 'billing_from_shipping', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost', 'ready_enabled', 'ready_mail'] as $flag) {
 			$out[$flag] = empty($in[$flag]) ? 0 : 1;
 		}
 
@@ -250,6 +276,9 @@ class MJE_Settings {
 		$error             = isset($in['on_error']) ? sanitize_key($in['on_error']) : $d['on_error'];
 		$out['on_error']   = array_key_exists($error, self::error_choices()) ? $error : $d['on_error'];
 
+		$conflict                  = isset($in['payments_conflict']) ? sanitize_key($in['payments_conflict']) : $d['payments_conflict'];
+		$out['payments_conflict']  = array_key_exists($conflict, self::payments_conflict_choices()) ? $conflict : $d['payments_conflict'];
+
 		/* Sucursales: cómo se ordenan y cuántas se le ofrecen al cliente. */
 		$sort               = isset($in['branch_sort']) ? sanitize_key($in['branch_sort']) : $d['branch_sort'];
 		$out['branch_sort'] = array_key_exists($sort, self::branch_sort_choices()) ? $sort : $d['branch_sort'];
@@ -282,7 +311,7 @@ class MJE_Settings {
 		$out['free_states']  = isset($in['free_states']) ? self::text_list($in['free_states']) : '';
 
 		/* Textos: si los vacían, vuelve el default (nunca queda una pantalla muda). */
-		foreach (['badge_cheapest', 'badge_fastest', 'quote_title', 'quote_button', 'quote_help', 'free_label', 'step_title', 'step_intro', 'cp_label', 'cp_help', 'cp_ask', 'cp_invalid', 'eta_text', 'eta_text_one', 'eta_text_day', 'branch_label', 'branch_help', 'pickup_label', 'track_subject', 'ready_label', 'ready_subject'] as $key) {
+		foreach (['badge_cheapest', 'badge_fastest', 'quote_title', 'quote_button', 'quote_help', 'quote_pick_help', 'quote_picked', 'payments_only_text', 'payments_note_text', 'free_label', 'step_title', 'step_intro', 'cp_label', 'cp_help', 'cp_ask', 'cp_invalid', 'eta_text', 'eta_text_one', 'eta_text_day', 'branch_label', 'branch_help', 'pickup_label', 'track_subject', 'ready_label', 'ready_subject'] as $key) {
 			$value     = isset($in[$key]) ? trim(sanitize_text_field($in[$key])) : '';
 			$out[$key] = '' !== $value ? mb_substr($value, 0, 190) : $d[$key];
 		}

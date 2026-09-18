@@ -784,10 +784,21 @@ class MJE_Methods {
 			}
 		}
 
-		/* Medio de pago vigente. */
-		$gateway = isset($ctx['gateway']) ? (string) $ctx['gateway'] : MJE_Cart::chosen_gateway();
-		if ('' !== $gateway && !self::allows_gateway($def, $gateway)) {
-			return false;
+		/*
+		 * Medio de pago vigente.
+		 *
+		 * Solo esconde el envío si así se configuró. Por defecto no: el envío se
+		 * elige antes que el pago y es el que manda, así que se ofrece igual con
+		 * el aviso de con qué se puede pagar (ver payments_conflict_choices()).
+		 * Escondiéndolo, la misma regla se peleaba consigo misma —el envío
+		 * desaparecía por el medio elegido y el medio desaparecía por el envío—
+		 * y el cliente veía una opción que al tocarla volvía sola para atrás.
+		 */
+		if ('ocultar' === (string) MJE_Settings::get('payments_conflict')) {
+			$gateway = isset($ctx['gateway']) ? (string) $ctx['gateway'] : MJE_Cart::chosen_gateway();
+			if ('' !== $gateway && !self::allows_gateway($def, $gateway)) {
+				return false;
+			}
 		}
 
 		return (bool) apply_filters('mje_method_available', true, $def, $package, $ctx);
@@ -839,6 +850,76 @@ class MJE_Methods {
 			return false;
 		}
 		return true;
+	}
+
+	/** Los medios de pago activos de la tienda: [id => título]. */
+	public static function store_gateways() {
+		static $cache = null;
+		if (null !== $cache) {
+			return $cache;
+		}
+		$out = [];
+		if (!function_exists('WC') || !WC()->payment_gateways()) {
+			return $out;
+		}
+		foreach (WC()->payment_gateways()->payment_gateways() as $gateway) {
+			if ($gateway instanceof WC_Payment_Gateway && 'yes' === $gateway->enabled) {
+				$out[$gateway->id] = wp_strip_all_tags((string) $gateway->get_title());
+			}
+		}
+		$cache = $out;
+		return $out;
+	}
+
+	/**
+	 * Con qué medios de pago se puede pagar este envío: [id => título].
+	 *
+	 * Vacío = con cualquiera. También queda vacío cuando la regla no deja
+	 * ninguno en pie (se configuró "solo" con un medio que después se dio de
+	 * baja): antes que un checkout sin forma de pagar, la regla se ignora. Es
+	 * la misma salida que ya tenía filter_gateways().
+	 */
+	public static function allowed_gateways(array $def) {
+		$all = self::store_gateways();
+		if ('todos' === (string) $def['payments_mode'] || !$all) {
+			return [];
+		}
+		$out = [];
+		foreach ($all as $id => $title) {
+			if (self::allows_gateway($def, $id)) {
+				$out[$id] = $title;
+			}
+		}
+		return count($out) === count($all) || !$out ? [] : $out;
+	}
+
+	/** "Transferencia bancaria", "Efectivo o Transferencia bancaria". */
+	public static function gateway_names(array $titles) {
+		$titles = array_values($titles);
+		if (count($titles) < 2) {
+			return (string) reset($titles);
+		}
+		$last = array_pop($titles);
+		return implode(', ', $titles) . ' o ' . $last;
+	}
+
+	/**
+	 * Lo que la tienda necesita saber del medio de pago de un método: con qué
+	 * se puede pagar y cómo decírselo al cliente.
+	 */
+	public static function payments_payload(array $def) {
+		$allow = self::allowed_gateways($def);
+		$names = $allow ? self::gateway_names($allow) : '';
+		$fill  = ['{medios}' => $names];
+		return [
+			'mode'  => (string) $def['payments_mode'],
+			'list'  => MJE_Settings::to_array($def['payments']),
+			/* Ids permitidos; vacío = cualquiera. */
+			'allow' => array_keys($allow),
+			/* El cartelito de la opción y el aviso del paso de pago. */
+			'tag'   => $names ? trim(strtr((string) MJE_Settings::get('payments_only_text'), $fill)) : '',
+			'note'  => $names ? trim(strtr((string) MJE_Settings::get('payments_note_text'), $fill)) : '',
+		];
 	}
 
 	/** ¿Este método admite ese medio de pago? (la misma regla filtra en los dos sentidos) */
@@ -926,10 +1007,7 @@ class MJE_Methods {
 				'eta'         => self::eta($def),
 				'fields'      => MJE_Fields::public_payload($def),
 				'needsBranch' => 'sucursal' === $def['destination'],
-				'payments'    => [
-					'mode' => (string) $def['payments_mode'],
-					'list' => MJE_Settings::to_array($def['payments']),
-				],
+				'payments'    => self::payments_payload($def),
 				'instructions' => (string) $def['instructions'],
 			];
 		}
@@ -965,10 +1043,14 @@ class MJE_Methods {
 			/* La dirección de la factura, ¿sale de la del envío? */
 			'billingFromShipping' => (bool) $s['billing_from_shipping'],
 			'quote'     => [
-				'enabled' => (bool) $s['quote_product'],
-				'title'   => (string) $s['quote_title'],
-				'button'  => (string) $s['quote_button'],
-				'help'    => (string) $s['quote_help'],
+				'enabled'  => (bool) $s['quote_product'],
+				'title'    => (string) $s['quote_title'],
+				'button'   => (string) $s['quote_button'],
+				'help'     => (string) $s['quote_help'],
+				/* El cliente puede dejar elegida una opción desde la ficha. */
+				'pick'     => (bool) $s['quote_pick'],
+				'pickHelp' => (string) $s['quote_pick_help'],
+				'picked'   => (string) $s['quote_picked'],
 			],
 			'freeFrom'  => (float) MJE_Rates::free_threshold(),
 			'pickup'    => MJE_Settings::origin(),

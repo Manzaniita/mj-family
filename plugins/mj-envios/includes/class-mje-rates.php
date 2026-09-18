@@ -45,11 +45,18 @@ class MJE_Rates {
 		}
 		$session = MJE_Cart::session_data();
 		$stamp   = [
-			'method'  => isset($session['method']) ? (string) $session['method'] : '',
-			'branch'  => isset($session['branch']) ? (string) $session['branch'] : '',
-			'city'    => isset($session['city']) ? (string) $session['city'] : '',
-			'gateway' => MJE_Cart::chosen_gateway(),
+			'method' => isset($session['method']) ? (string) $session['method'] : '',
+			'branch' => isset($session['branch']) ? (string) $session['branch'] : '',
+			'city'   => isset($session['city']) ? (string) $session['city'] : '',
 		];
+		/*
+		 * El medio de pago solo entra en la firma si además esconde envíos: si
+		 * no cambia la lista, meterlo obligaría a recotizar —y a molestar a la
+		 * API del correo— cada vez que el visitante mira un precio con otro medio.
+		 */
+		if ('ocultar' === (string) MJE_Settings::get('payments_conflict')) {
+			$stamp['gateway'] = MJE_Cart::chosen_gateway();
+		}
 		foreach ($packages as $index => $package) {
 			$packages[$index]['mje'] = $stamp;
 		}
@@ -740,6 +747,8 @@ class MJE_Rates {
 					/* Quién lo lleva: con esto el checkout arma una tarjeta por correo. */
 					'carrier'     => $carrier['label'],
 					'carrierKey'  => $carrier['key'],
+					/* Con qué se puede pagar este envío, y cómo decirlo. */
+					'payments'    => MJE_Methods::payments_payload($def),
 					'badges'      => [],
 				];
 
@@ -817,6 +826,16 @@ class MJE_Rates {
 	 */
 	public static function filter_gateways($gateways) {
 		if (!MJE_Settings::get('enabled') || !is_array($gateways) || is_admin()) {
+			return $gateways;
+		}
+		/*
+		 * La tienda React arma su paso de pago de una sola vez, al cargar la
+		 * página, y después cambia de envío sin recargar. Si la lista que se le
+		 * pasa ya viene recortada por el envío que había en la sesión, los
+		 * medios que se fueron no vuelven más. Por eso puede pedir la lista
+		 * entera con este filtro y recortarla ella, que sí ve el envío de ahora.
+		 */
+		if (!apply_filters('mje_filter_gateways', true)) {
 			return $gateways;
 		}
 		$def = MJE_Cart::chosen_method();

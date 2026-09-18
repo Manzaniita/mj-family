@@ -890,7 +890,7 @@ class MJE_Admin {
 
 		/* Medios de pago */
 		echo '<h4>Medios de pago</h4>';
-		echo '<p class="description">Filtra en los dos sentidos: el método no aparece si el cliente eligió un medio que no corresponde, y si eligió este método, en el checkout solo quedan los medios permitidos.</p>';
+		echo '<p class="description">Elegido este método, en el checkout solo quedan los medios permitidos. Qué ve el cliente que ya había elegido otro —el envío con el cartel, o nada— se decide una vez para toda la tienda en Ajustes → ' . esc_html('Envío y medio de pago que no combinan') . '.</p>';
 		echo '<table class="form-table">';
 		self::row('Regla', self::select_input('def[payments_mode]', MJE_Methods::payment_modes(), $def['payments_mode']));
 		self::row('Medios', self::payment_checklist($def), 'Los medios activos de la tienda, incluidos los propios de MJ Medios de Pago.');
@@ -1574,6 +1574,19 @@ class MJE_Admin {
 		);
 		self::settings_panel_end();
 
+		self::settings_panel(
+			'Envío y medio de pago que no combinan',
+			'Cada método puede pedir que se pague de cierta forma (pestaña Métodos → Medios de pago). Acá se decide qué ve el cliente cuando eligió otra.'
+		);
+		self::row(
+			'Si el medio elegido no corresponde',
+			self::select_input('settings[payments_conflict]', MJE_Settings::payments_conflict_choices(), $s['payments_conflict']),
+			'Avisar (lo recomendado): el envío se ofrece igual con el cartel de con qué se puede pagar, y al elegirlo el checkout deja solo esos medios. Ocultar: el envío no aparece, y el cliente no tiene cómo saber que existe ni por qué no está.'
+		);
+		self::row('Cartel en la opción', self::text_input('settings[payments_only_text]', $s['payments_only_text'], ['class' => 'large-text']), 'Se lee abajo del envío en el checkout y en la ficha del producto. Marca: <code>{medios}</code>.');
+		self::row('Aviso en el paso de pago', self::text_input('settings[payments_note_text]', $s['payments_note_text'], ['class' => 'large-text']), 'Se lee arriba de los medios de pago cuando el envío elegido deja solo algunos. Marca: <code>{medios}</code>.');
+		self::settings_panel_end();
+
 		self::settings_panel('MJ ERP');
 		self::row('Costo del correo', self::checkbox_input('settings[erp_cost]', $s['erp_cost'], 'Guardar en el pedido lo que cobró el correo, además de lo que pagó el cliente'), 'Es la diferencia entre lo que cobrás por el envío y lo que te cuesta.');
 		self::settings_panel_end();
@@ -1703,6 +1716,13 @@ class MJE_Admin {
 		self::row('Título', self::text_input('settings[quote_title]', $s['quote_title'], ['class' => 'large-text']));
 		self::row('Ayuda', self::text_input('settings[quote_help]', $s['quote_help'], ['class' => 'large-text']));
 		self::row('Botón', self::text_input('settings[quote_button]', $s['quote_button'], ['class' => 'regular-text']));
+		self::row(
+			'Dejar elegido',
+			self::checkbox_input('settings[quote_pick]', $s['quote_pick'], 'El cliente puede elegir ahí mismo cómo quiere recibirlo'),
+			'La opción que toque queda reservada para el checkout, junto con el código postal. Si al terminar la compra ese envío ya no está disponible (cambió el carrito o el destino), se elige como siempre y no pasa nada.'
+		);
+		self::row('Ayuda para elegir', self::text_input('settings[quote_pick_help]', $s['quote_pick_help'], ['class' => 'large-text']));
+		self::row('Confirmación', self::text_input('settings[quote_picked]', $s['quote_picked'], ['class' => 'large-text']), 'Lo que se lee cuando ya eligió una.');
 		self::settings_panel_end();
 
 		self::settings_panel('Código postal y destino');
