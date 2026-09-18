@@ -1,6 +1,6 @@
 # Versiones publicadas
 
-Generado por `tools/build-releases.ps1` el 2026-09-18 18:05.
+Generado por `tools/build-releases.ps1` el 2026-09-18 18:11.
 En `releases/` queda un solo zip por paquete: el de la versión que está
 hoy en el código. Los de versiones anteriores se borran — las que ya se
 publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
@@ -22,7 +22,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 | MJ Colegas | 1.0.1 | `mj-colegas-1.0.1.zip` | 23 KB | `f98db49d7143f507…` |
 | MJ Core | 1.0.1 | `mj-core-1.0.1.zip` | 20 KB | `8ee6f8500b9396b2…` |
 | MJ Dólar | 1.1.1 | `mj-dolar-1.1.1.zip` | 46 KB | `d19195735145f880…` |
-| MJ Envíos | 1.8.0 | `mj-envios-1.8.0.zip` | 146 KB | `47903ade90e4a6ac…` |
+| MJ Envíos | 1.8.1 | `mj-envios-1.8.1.zip` | 146 KB | `47f76e019a7c6323…` |
 | MJ ERP | 1.22.0 | `mj-erp-1.22.0.zip` | 680 KB | `23c1e275a69149cc…` |
 | MJ Fidelidad | 1.0.0 | `mj-fidelidad-1.0.0.zip` | 22 KB | `2a9c8348c97949e5…` |
 | MJ Fotos Rápidas | 1.3.0 | `mj-fotos-rapidas-1.3.0.zip` | 9 KB | `76305bd6dfd5c240…` |
@@ -38,7 +38,7 @@ de63247a0af14c833f9225af4858b4d4211f6ebe9379f7a70297ea1bdfad1a45  mj-appearance-
 f98db49d7143f507836e18c4b876555a11bbe486456755ef0800a4650765b21b  mj-colegas-1.0.1.zip
 8ee6f8500b9396b2bbe63baf2df21e071f8abb7aa6c63b48598756a19be95ba1  mj-core-1.0.1.zip
 d19195735145f8806a9d62fa5567495437d328ddbb9c9260362788d48856c6a1  mj-dolar-1.1.1.zip
-47903ade90e4a6ac1e2ce45ecc84315ec6aed9dde049a3bfbe5cfd2a288c60ee  mj-envios-1.8.0.zip
+47f76e019a7c6323e730d917809a908e27491b7c563d2985cd41d43175def806  mj-envios-1.8.1.zip
 23c1e275a69149cc20236d49b805bf045d754abde6189a6c757270054f655131  mj-erp-1.22.0.zip
 2a9c8348c97949e5c0c002710d0bda686abf4f602c741cb24b67e49638c64f8c  mj-fidelidad-1.0.0.zip
 76305bd6dfd5c240afebb2bd2ac9a10efe9741483ea84916293cbd3aff669531  mj-fotos-rapidas-1.3.0.zip

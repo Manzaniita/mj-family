@@ -53,11 +53,11 @@
         "Slug":  "mj-envios",
         "Name":  "MJ Envíos",
         "Type":  "plugin",
-        "Version":  "1.8.0",
+        "Version":  "1.8.1",
         "Parent":  null,
-        "Zip":  "mj-envios-1.8.0.zip",
+        "Zip":  "mj-envios-1.8.1.zip",
         "SizeKB":  146,
-        "Sha256":  "47903ade90e4a6ac1e2ce45ecc84315ec6aed9dde049a3bfbe5cfd2a288c60ee"
+        "Sha256":  "47f76e019a7c6323e730d917809a908e27491b7c563d2985cd41d43175def806"
     },
     {
         "Slug":  "mj-erp",
