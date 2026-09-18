@@ -1252,6 +1252,12 @@ dos destinos lejanos entre sí. Si el correo cotiza de verdad, los números tien
 que cambiar. Si no cambian, la columna «qué pasó» dice de dónde salió el precio
 —del correo o de tu tabla de respaldo—.
 
+La misma cotización suelta la usa el cotizador de la ficha del producto. Para
+que los dos digan la verdad, el paquete que se arma se le presenta al correo por
+donde él lo va a buscar: el plugin de Correo Argentino ignora el paquete que se
+le pasa y lee siempre el del carrito, así que sin eso cotizaría el destino
+equivocado —o ninguno, con el carrito vacío—.
+
 ### La factura y el envío son dos direcciones
 
 La de la **factura** es la que el cliente tiene guardada en su cuenta. La del

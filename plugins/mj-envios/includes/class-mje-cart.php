@@ -145,13 +145,19 @@ class MJE_Cart {
 	}
 
 	/** Las tarifas guardadas dejan de valer cuando cambia lo que las define. */
+	/**
+	 * Vuelve a calcular el envío cuando el cliente cambió algo que lo afecta.
+	 *
+	 * Alcanza con recalcular: MJE_Rates::sign_packages() estampa el método, la
+	 * sucursal, la localidad y el medio de pago dentro de cada paquete, y eso
+	 * entra en el hash con el que WooCommerce guarda las tarifas. Cambiar
+	 * cualquiera de esas cosas ya cambia el hash.
+	 *
+	 * Acá NO se toca la versión global de la caché de envíos: es un transient de
+	 * toda la tienda, y usarla acá hacía que un cliente eligiendo su sucursal le
+	 * tirara abajo las tarifas guardadas a todos los demás visitantes.
+	 */
 	private static function invalidate_rates() {
-		if (class_exists('WC_Cache_Helper')) {
-			WC_Cache_Helper::get_transient_version('shipping', true);
-		}
-		if (function_exists('WC') && WC()->session) {
-			WC()->session->set('shipping_for_package_0', null);
-		}
 		if (function_exists('WC') && WC()->cart) {
 			WC()->cart->calculate_shipping();
 		}

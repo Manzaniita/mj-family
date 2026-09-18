@@ -235,10 +235,30 @@ class MJE_Native {
 		if (!WC()->session) {
 			return;
 		}
+		/*
+		 * No alcanza con pasarle el paquete: el plugin de Correo Argentino ignora
+		 * el que recibe y lee siempre el del carrito
+		 * (Classes/correoargentino-shipping-method.php → updateDestinationPostcode
+		 * y getDimensions usan WC()->cart->get_shipping_packages()). Sin esto,
+		 * cotizaría el destino del carrito —o ninguno, si está vacío— y la ficha
+		 * del producto y la prueba del panel dirían cualquier cosa de él.
+		 *
+		 * Por eso el paquete se presenta también por el filtro que WooCommerce
+		 * usa para armar los del carrito, que es donde ese plugin va a buscarlo.
+		 * Se engancha justo para esta cotización y se desengancha siempre: es el
+		 * mismo filtro del que cuelgan sign_packages() y prime().
+		 */
+		$suplantar = function () use ($package) {
+			return [$package];
+		};
+		add_filter('woocommerce_cart_shipping_packages', $suplantar, 99);
+
 		try {
 			WC()->shipping()->calculate_shipping_for_package($package, $key);
 		} catch (Exception $e) {
 			MJE_Geo::log('nativo', 'cotización suelta: ' . $e->getMessage());
+		} finally {
+			remove_filter('woocommerce_cart_shipping_packages', $suplantar, 99);
 		}
 	}
 

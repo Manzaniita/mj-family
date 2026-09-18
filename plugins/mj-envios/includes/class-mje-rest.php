@@ -278,6 +278,9 @@ class MJE_REST {
 				$contents['mje'] = [
 					'key'        => 'mje',
 					'data'       => $product,
+					/* Los plugins de los correos leen el id y la cantidad para medir el bulto. */
+					'product_id' => $product->get_id(),
+					'variation_id' => 0,
 					'quantity'   => $qty,
 					'line_total' => (float) $product->get_price() * $qty,
 				];
