@@ -132,21 +132,37 @@ class MJE_REST {
 		$carrier = sanitize_key((string) $request->get_param('correo'));
 		$cp      = MJE_Geo::normalize_cp((string) $request->get_param('cp'));
 
+		$native = '';
 		if ('' !== $slug) {
 			$def = MJE_Methods::get($slug);
 			if (!$def) {
 				return new WP_Error('mje_no_method', 'Ese método de envío no existe.', ['status' => 404]);
 			}
 			$carrier = (string) $def['carrier'];
+			$native  = 'nativo' === (string) $def['type'] ? (string) $def['native_plugin'] : '';
 		}
-		if ('' === $carrier) {
+		if ('' === $carrier && '' === $native) {
 			return rest_ensure_response([]);
 		}
-		$rows = MJE_Carriers::branches($carrier, $cp);
-		if (!$rows && '' !== $cp) {
-			/* Sin sucursales en ese CP, se ofrecen todas las que haya cargadas. */
-			$rows = MJE_Carriers::branches($carrier, '');
+
+		/* Un correo con plugin propio trae sus sucursales por el puente; el resto, por su adaptador. */
+		if ('' !== $native) {
+			$rows = MJE_Native::branches($native, $cp);
+			if (!$rows && '' !== $cp) {
+				$rows = MJE_Native::branches($native, '');
+			}
+		} else {
+			$rows = MJE_Carriers::branches($carrier, $cp);
+			if (!$rows && '' !== $cp) {
+				/* Sin sucursales en ese CP, se ofrecen todas las que haya cargadas. */
+				$rows = MJE_Carriers::branches($carrier, '');
+			}
 		}
+
+		/* La más cómoda primero: por distancia si el correo publica coordenadas, si no por CP y localidad. */
+		$city = (string) $request->get_param('localidad');
+		$rows = MJE_Carriers::sort_branches($rows, $cp, $city, $request->get_param('lat'), $request->get_param('lon'));
+
 		return rest_ensure_response(array_map(function ($row) {
 			return [
 				'codigo'    => $row['code'],
@@ -156,6 +172,7 @@ class MJE_REST {
 				'provincia' => $row['state'],
 				'cp'        => $row['postcode'],
 				'horarios'  => $row['hours'],
+				'distancia' => isset($row['distance']) ? $row['distance'] : '',
 			];
 		}, $rows));
 	}
@@ -314,6 +331,7 @@ class MJE_REST {
 			'fields'      => is_array($data['fields']) ? array_map('strval', $data['fields']) : [],
 			'problems'    => array_values(MJE_Cart::problems()),
 			'freeFrom'    => (float) MJE_Rates::free_threshold(),
+			'rates'       => MJE_Rates::storefront_rates(),
 		];
 	}
 
@@ -326,6 +344,7 @@ class MJE_REST {
 			'fields'      => ['description' => 'Datos cargados para el envío.', 'type' => 'object', 'readonly' => true],
 			'problems'    => ['description' => 'Qué falta para poder cerrar la compra.', 'type' => 'array', 'readonly' => true],
 			'freeFrom'    => ['description' => 'Monto desde el que el envío es gratis (0 = no aplica).', 'type' => 'number', 'readonly' => true],
+			'rates'       => ['description' => 'Lo que la tienda dibuja de cada tarifa, por id de tarifa.', 'type' => 'object', 'readonly' => true],
 		];
 	}
 }

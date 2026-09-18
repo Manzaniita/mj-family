@@ -553,6 +553,11 @@ class MJE_Rates {
 			if ('' !== $eta) {
 				$rate->add_meta_data('_mje_eta', $eta);
 			}
+			/* El plazo en número, aparte del texto: es con lo que se compara cuál llega antes. */
+			$days = (int) $quote['days_max'] > 0 ? (int) $quote['days_max'] : (int) $quote['days_min'];
+			if ($days > 0) {
+				$rate->add_meta_data('_mje_days', (string) $days);
+			}
 			if ($quote['coordinate']) {
 				$rate->add_meta_data('_mje_note', (string) MJE_Settings::get('coordinate_text'));
 			}
@@ -598,6 +603,99 @@ class MJE_Rates {
 			$title  = $plugin ? $plugin->service_label($data['service']) : (string) $data['label'];
 			MJE_Methods::adopt($data['plugin'], $data['service'], $title, !empty($data['branch']));
 		}
+	}
+
+	/* --------------------------- Lo que ve la tienda --------------------- */
+
+	/**
+	 * Todo lo que el checkout necesita saber de cada tarifa, por id de tarifa.
+	 *
+	 * Va por `extensions.mje` de la Store API y no por la meta de la tarifa a
+	 * propósito: la meta viaja con guion bajo para no imprimirse en los emails
+	 * ni en el pedido, y depender de que además llegue entera a la tienda hacía
+	 * que un envío "a coordinar" se viera como GRATIS. Acá sale explícito.
+	 *
+	 * Los carteles de "más barato" y "más rápido" se calculan sobre la lista
+	 * final, que es el único momento en que se las puede comparar entre sí.
+	 */
+	public static function storefront_rates() {
+		if (!function_exists('WC') || !WC()->shipping()) {
+			return [];
+		}
+		$out   = [];
+		$costs = [];
+		$days  = [];
+
+		foreach (WC()->shipping()->get_packages() as $package) {
+			$rates = isset($package['rates']) && is_array($package['rates']) ? $package['rates'] : [];
+			foreach ($rates as $rate_id => $rate) {
+				if (!$rate instanceof WC_Shipping_Rate) {
+					continue;
+				}
+				$slug = self::slug_from_rate($rate_id);
+				$def  = '' !== $slug ? MJE_Methods::get($slug) : null;
+				if (!$def) {
+					continue;
+				}
+				$meta       = $rate->get_meta_data();
+				$coordinate = !empty($meta['_mje_coordinate']);
+				$plugin     = 'nativo' === (string) $def['type'] ? MJE_Native::get((string) $def['native_plugin']) : null;
+
+				$out[(string) $rate_id] = [
+					'slug'        => $slug,
+					'type'        => (string) $def['type'],
+					'destination' => (string) $def['destination'],
+					'description' => (string) $def['description'],
+					'icon'        => (string) $def['icon'],
+					'eta'         => isset($meta['_mje_eta']) ? (string) $meta['_mje_eta'] : '',
+					'note'        => isset($meta['_mje_note']) ? (string) $meta['_mje_note'] : '',
+					'coordinate'  => $coordinate,
+					'needsBranch' => 'sucursal' === (string) $def['destination'],
+					'carrier'     => $plugin ? $plugin->label() : '',
+					'badges'      => [],
+				];
+
+				if (!$coordinate) {
+					$costs[(string) $rate_id] = (float) $rate->get_cost();
+				}
+				if (!empty($meta['_mje_days'])) {
+					$days[(string) $rate_id] = (int) $meta['_mje_days'];
+				}
+			}
+		}
+
+		return self::add_badges($out, $costs, $days);
+	}
+
+	/**
+	 * Los carteles de la lista.
+	 *
+	 * Solo se ponen cuando hay con qué comparar y hay un ganador claro: con dos
+	 * envíos al mismo precio, "más barato" no le dice nada a nadie.
+	 */
+	private static function add_badges(array $out, array $costs, array $days) {
+		if (!MJE_Settings::get('badges_enabled') || count($out) < 2) {
+			return $out;
+		}
+		$cheapest = self::only_winner($costs);
+		if ('' !== $cheapest && isset($out[$cheapest])) {
+			$out[$cheapest]['badges'][] = (string) MJE_Settings::get('badge_cheapest');
+		}
+		$fastest = self::only_winner($days);
+		if ('' !== $fastest && isset($out[$fastest])) {
+			$out[$fastest]['badges'][] = (string) MJE_Settings::get('badge_fastest');
+		}
+		return $out;
+	}
+
+	/** La clave del mínimo, siempre que sea el único que lo alcanza. */
+	private static function only_winner(array $values) {
+		if (count($values) < 2) {
+			return '';
+		}
+		$min = min($values);
+		$won = array_keys($values, $min, true);
+		return 1 === count($won) ? (string) $won[0] : '';
 	}
 
 	/* --------------------------- Medios de pago -------------------------- */

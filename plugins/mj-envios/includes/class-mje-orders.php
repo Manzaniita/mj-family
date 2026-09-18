@@ -15,6 +15,8 @@ class MJE_Orders {
 	public static function init() {
 		/* Guardar el envío en el pedido: checkout clásico y Store API. */
 		add_action('woocommerce_checkout_create_order', [__CLASS__, 'stamp'], 20, 1);
+		/* La línea de envío guarda lo que el plugin del correo busca en ella. */
+		add_action('woocommerce_checkout_create_order_shipping_item', [__CLASS__, 'stamp_shipping_item'], 20, 4);
 		add_action('woocommerce_store_api_checkout_update_order_meta', [__CLASS__, 'stamp'], 20, 1);
 		add_action('woocommerce_store_api_checkout_order_processed', [__CLASS__, 'stamp_and_save'], 20, 1);
 		add_action('woocommerce_checkout_order_created', [__CLASS__, 'stamp_and_save'], 20, 1);
@@ -75,7 +77,7 @@ class MJE_Orders {
 		$branch = isset($fields['branch']) && '' !== $fields['branch'] ? (string) $fields['branch'] : (string) $data['branch'];
 		if ('' !== $branch) {
 			$order->update_meta_data('_mje_branch', $branch);
-			$order->update_meta_data('_mje_branch_name', MJE_Carriers::branch_name((string) $def['carrier'], $branch));
+			$order->update_meta_data('_mje_branch_name', MJE_Carriers::branch_name(MJE_Methods::branch_source($def), $branch));
 		}
 
 		/* Lo que cobra el correo, antes del margen: el costo real del envío. */
@@ -109,6 +111,9 @@ class MJE_Orders {
 			$order->update_meta_data('_mje_fields', $extra);
 		}
 
+		/* Lo que el plugin del correo necesita para reconocer el pedido como suyo. */
+		self::stamp_native($order, $def);
+
 		/* Con el retiro en el local no hay dirección de envío que valga: queda la del local. */
 		if ('local' === (string) $def['destination']) {
 			$origin = MJE_Settings::origin();
@@ -121,6 +126,57 @@ class MJE_Orders {
 				'phone'    => $origin['phone'],
 			]);
 		}
+	}
+
+	/**
+	 * El pedido, visto por el plugin del correo.
+	 *
+	 * Cuando el método elegido cotizó con el plugin oficial del correo, el
+	 * pedido sale con el método de MJ Envíos y ese plugin no lo reconocería: no
+	 * se le podría dar el alta ni imprimir el rótulo desde su propia pantalla.
+	 * Acá se le deja escrito lo que busca —el id de su tarifa y la sucursal
+	 * elegida—, cada adaptador en las claves que usa su plugin.
+	 */
+	private static function stamp_native($order, array $def) {
+		if ('nativo' !== (string) $def['type']) {
+			return;
+		}
+		$plugin = MJE_Native::get((string) $def['native_plugin']);
+		if (!$plugin) {
+			return;
+		}
+		$rate_id = self::rate_meta($order, '_mje_native_rate');
+		$code    = (string) $order->get_meta('_mje_branch');
+		$branch  = '' !== $code ? MJE_Native::branch($plugin->id(), $code) : [];
+		if ('' !== $code && empty($branch['code'])) {
+			/* La sucursal todavía no está en la tabla: al menos viaja el código. */
+			$branch = ['code' => $code, 'name' => (string) $order->get_meta('_mje_branch_name')];
+		}
+
+		$order->update_meta_data('_mje_native_plugin', $plugin->id());
+		if ('' !== $rate_id) {
+			$order->update_meta_data('_mje_native_rate', $rate_id);
+		}
+		$plugin->stamp_order($order, $rate_id, (string) $def['native_service'], $branch);
+	}
+
+	/**
+	 * La línea de envío, vista por el plugin del correo.
+	 *
+	 * Varios plugins guardan el id de su tarifa en la línea y lo leen de ahí
+	 * para saber con qué servicio se despachó. Se escribe al crearla, que es
+	 * cuando la tarifa elegida todavía está a mano.
+	 */
+	public static function stamp_shipping_item($item, $package_key, $package, $order) {
+		if (!$item instanceof WC_Order_Item_Shipping) {
+			return;
+		}
+		$rate_id = (string) $item->get_meta('_mje_native_rate');
+		$plugin  = MJE_Native::get((string) $item->get_meta('_mje_native_plugin'));
+		if ('' === $rate_id || !$plugin) {
+			return;
+		}
+		$plugin->stamp_item($item, $rate_id);
 	}
 
 	public static function stamp_and_save($order) {

@@ -311,6 +311,20 @@ class MJE_Methods {
 		return $copy['slug'];
 	}
 
+	/**
+	 * De dónde salen las sucursales de un método.
+	 *
+	 * Un método que cotiza con el plugin oficial del correo usa las sucursales
+	 * de ese plugin, guardadas aparte de las del adaptador propio: la misma
+	 * tienda puede tener las dos cosas con cuentas distintas.
+	 */
+	public static function branch_source(array $def) {
+		if ('nativo' === (string) $def['type'] && '' !== (string) $def['native_plugin']) {
+			return MJE_Native::carrier_key((string) $def['native_plugin']);
+		}
+		return (string) $def['carrier'];
+	}
+
 	/* ------------------------- Correos con plugin ------------------------ */
 
 	/**
