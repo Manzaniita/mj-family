@@ -1149,6 +1149,13 @@ quedar gratis. Ese número es el que anuncia la barra de "te faltan $X para el
 envío gratis" de la tienda: MJ Envíos se lo informa al tema, así que no hay que
 cargarlo dos veces.
 
+Ese umbral sirve **solo para anunciar**. El precio del envío que ve el cliente en
+el carrito y en el checkout es siempre el que calcula MJ Envíos, que además mira
+el método, la provincia y el mínimo propio de cada método. Si la tienda dedujera
+el gratis por su cuenta con solo el subtotal, un carrito que el servidor cobra se
+mostraría GRATIS y el total prometido quedaría por debajo del que cobra
+WooCommerce.
+
 ### Los grupos del checkout
 
 Sin grupos, cada método es una fila suelta. Con un correo conectado eso se
