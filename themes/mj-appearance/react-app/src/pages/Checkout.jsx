@@ -352,6 +352,11 @@ export default function Checkout() {
     ...(hasShipping() ? { state: ['required'] } : {}),
   };
   const [touched, setTouched] = useState({});
+  /*
+   * Lo que el servidor dice que falta del envío es la última red, no una
+   * bienvenida: se muestra recién cuando el cliente intentó cerrar la compra.
+   */
+  const [attempted, setAttempted] = useState(false);
   const errors = validateAll(form, schema);
   const shownErrors = Object.fromEntries(Object.entries(errors).filter(([key]) => touched[key]));
   const touch = (key) => setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
@@ -476,6 +481,7 @@ export default function Checkout() {
     setError(null);
 
     // Datos de contacto y envío: se avisa al lado de cada campo y se lleva el foco al primero.
+    setAttempted(true);
     if (!express && Object.keys(errors).length > 0) {
       setTouched(Object.fromEntries(Object.keys(schema).map((key) => [key, true])));
       setError(tCopy('checkout_error_fields'));
@@ -649,6 +655,7 @@ export default function Checkout() {
                 setExtra={setExtra}
                 errors={shownErrors}
                 onTouch={touch}
+                attempted={attempted}
               />
             </Reveal>
           ) : (
@@ -679,6 +686,7 @@ export default function Checkout() {
                 setExtra={setExtra}
                 errors={shownErrors}
                 onTouch={touch}
+                attempted={attempted}
               />
             </Reveal>
           )}

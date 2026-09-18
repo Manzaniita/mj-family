@@ -399,9 +399,30 @@ class MJE_Rates {
 				 */
 				$native = MJE_Native::find((string) $def['native_plugin'], (string) $def['native_service']);
 				if (!$native) {
-					$error = new WP_Error('mje_native_sin_tarifa', sprintf('%s no cotizó este destino.', MJE_Native::label_of((string) $def['native_plugin'])));
+					$excuse = MJE_Native::excuse((string) $def['native_plugin']);
+					$error  = new WP_Error('mje_native_sin_tarifa', sprintf(
+						'%s no cotizó este destino%s.',
+						MJE_Native::label_of((string) $def['native_plugin']),
+						'' !== $excuse ? ': ' . $excuse : ''
+					));
 					return (array) apply_filters('mje_quote', self::on_carrier_error($def, $package, $error, $out), $def, $package);
 				}
+
+				/*
+				 * Un correo que cobra $0 casi siempre es un correo que en realidad
+				 * no pudo cotizar: varios plugins devuelven una tarifa vacía en
+				 * lugar de no devolver nada. Ofrecerla sería regalar el envío, así
+				 * que por defecto no se ofrece. El que de verdad tenga un acuerdo
+				 * de envío sin cargo lo habilita en Ajustes.
+				 */
+				if ((float) $native['cost'] <= 0 && !MJE_Settings::get('native_allow_zero')) {
+					$error = new WP_Error('mje_native_cero', sprintf(
+						'%s devolvió un precio de $0, que casi siempre significa que no pudo cotizar.',
+						MJE_Native::label_of((string) $def['native_plugin'])
+					));
+					return (array) apply_filters('mje_quote', self::on_carrier_error($def, $package, $error, $out), $def, $package);
+				}
+
 				$out['cost']        = (float) $native['cost'];
 				$out['base']        = (float) $native['cost'];
 				$out['source']      = 'nativo';
@@ -430,6 +451,13 @@ class MJE_Rates {
 	/** Qué hacer cuando el correo no cotiza: lo que diga el ajuste general. */
 	private static function on_carrier_error(array $def, array $package, WP_Error $error, array $out) {
 		$out['error'] = $error->get_error_message();
+
+		/*
+		 * Acá NO se escribe en el cuaderno de errores: esto corre en cada cálculo
+		 * del carrito y un correo que no cubre un destino lo inundaría. El motivo
+		 * queda guardado aparte (MJE_Native::excuses) y se lee en el panel.
+		 */
+
 		switch ((string) MJE_Settings::get('on_error')) {
 			case 'coordinar':
 				$out['cost']       = 0.0;
@@ -658,7 +686,7 @@ class MJE_Rates {
 				}
 				$meta       = $rate->get_meta_data();
 				$coordinate = !empty($meta['_mje_coordinate']);
-				$plugin     = 'nativo' === (string) $def['type'] ? MJE_Native::get((string) $def['native_plugin']) : null;
+				$carrier    = MJE_Methods::carrier_of($def);
 
 				$out[(string) $rate_id] = [
 					'slug'        => $slug,
@@ -671,7 +699,9 @@ class MJE_Rates {
 					'note'        => isset($meta['_mje_note']) ? (string) $meta['_mje_note'] : '',
 					'coordinate'  => $coordinate,
 					'needsBranch' => 'sucursal' === (string) $def['destination'],
-					'carrier'     => $plugin ? $plugin->label() : '',
+					/* Quién lo lleva: con esto el checkout arma una tarjeta por correo. */
+					'carrier'     => $carrier['label'],
+					'carrierKey'  => $carrier['key'],
 					'badges'      => [],
 				];
 

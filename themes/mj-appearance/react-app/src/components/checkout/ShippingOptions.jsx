@@ -1,18 +1,20 @@
-import { Check } from 'lucide-react';
+import { Check, Truck } from 'lucide-react';
 import { cn, formatPrice } from '@/lib/format';
 import { t, tn } from '@/lib/copy';
 
 /**
- * La lista de formas de envío del checkout, en dos niveles.
+ * La lista de formas de envío del checkout, en tres niveles.
  *
- * Arriba, cómo querés recibir la compra: retiro en el local, envío a domicilio,
- * y los grupos que arme el dueño de la tienda ("Envío a todo el país"). Cuando
- * el cliente elige un grupo, se abren adentro las tarjetas de quién lo lleva
- * —Andreani, Correo Argentino, el que esté configurado— con su modo de entrega,
- * el plazo y el precio, para que elija la que más le convenga.
+ *   1. Cómo querés recibir la compra: retiro en el local, envío a domicilio, y
+ *      los grupos que arme el dueño de la tienda ("Envío a todo el país").
+ *   2. Al elegir un grupo, una tarjeta por correo: Andreani, Correo Argentino,
+ *      el que esté configurado.
+ *   3. Adentro de cada tarjeta, los modos que ofrece ESE correo —a domicilio, a
+ *      sucursal, rápido, lento— con su plazo y su precio.
  *
- * Qué grupos hay, cómo se llaman y qué cae adentro lo decide MJ Envíos: acá no
- * hay ningún correo ni ningún nombre escrito.
+ * Así el cliente compara primero entre correos y después entre modos, que es
+ * como lo piensa. Qué grupos hay, qué correos y qué modos lo decide MJ Envíos:
+ * acá no hay ningún nombre escrito.
  */
 
 /** El precio de una tarifa, como se lee. */
@@ -51,7 +53,22 @@ function Radio({ on }) {
   );
 }
 
-/** Una forma de envío suelta: la fila de siempre. */
+/** El cuerpo de una opción: nombre, carteles, descripción y plazo. */
+function OptionBody({ rate }) {
+  return (
+    <span className="min-w-0">
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="text-sm font-medium">{rate.name}</span>
+        <Badges rate={rate} />
+      </span>
+      {rate.description && <span className="block text-xs text-ink-faint">{rate.description}</span>}
+      {rate.eta && <span className="block text-xs text-ink-faint">{rate.eta}</span>}
+      {rate.note && <span className="block text-xs text-ink-faint">{rate.note}</span>}
+    </span>
+  );
+}
+
+/** Una forma de envío suelta: la fila de siempre, al nivel de arriba. */
 function RateRow({ rate, texts, onChoose }) {
   return (
     <button
@@ -64,15 +81,29 @@ function RateRow({ rate, texts, onChoose }) {
     >
       <span className="flex items-start gap-3">
         <Radio on={rate.selected} />
-        <span>
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-sm font-medium">{rate.name}</span>
-            <Badges rate={rate} />
-          </span>
-          {rate.description && <span className="block text-xs text-ink-faint">{rate.description}</span>}
-          {rate.eta && <span className="block text-xs text-ink-faint">{rate.eta}</span>}
-          {rate.note && <span className="block text-xs text-ink-faint">{rate.note}</span>}
-        </span>
+        <OptionBody rate={rate} />
+      </span>
+      <span className="shrink-0 text-sm font-medium">
+        <Price rate={rate} texts={texts} />
+      </span>
+    </button>
+  );
+}
+
+/** Un modo de entrega adentro de la tarjeta de un correo. */
+function OptionRow({ rate, texts, onChoose }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChoose(rate)}
+      className={cn(
+        'mj-choice flex w-full items-start justify-between gap-3 rounded-xl2 border p-3 text-left transition-all duration-200',
+        rate.selected ? 'border-accent bg-accent-soft' : 'border-transparent hover:border-line'
+      )}
+    >
+      <span className="flex min-w-0 items-start gap-3">
+        <Radio on={rate.selected} />
+        <OptionBody rate={rate} />
       </span>
       <span className="shrink-0 text-sm font-medium">
         <Price rate={rate} texts={texts} />
@@ -82,42 +113,31 @@ function RateRow({ rate, texts, onChoose }) {
 }
 
 /**
- * Una tarjeta de adentro de un grupo: quién lo lleva y con qué modo.
+ * La tarjeta de un correo, con todos sus modos adentro.
  *
- * El correo va arriba y en chico, y el modo de entrega es el título: es lo que
- * el cliente compara cuando ya decidió que el paquete viaja.
+ * Sin correo (un método propio que el dueño metió en el grupo) la tarjeta va sin
+ * encabezado: no hay a quién nombrar.
  */
-function CarrierCard({ rate, texts, onChoose }) {
+function CarrierCard({ carrier, rates, texts, onChoose }) {
   return (
-    <button
-      type="button"
-      onClick={() => onChoose(rate)}
+    <div
       className={cn(
-        'mj-choice flex w-full items-start justify-between gap-3 rounded-xl2 border p-3 text-left transition-all duration-200',
-        rate.selected ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:border-line-strong'
+        'mj-carrier rounded-xl2 border bg-surface p-2',
+        rates.some((r) => r.selected) ? 'border-accent/60' : 'border-line'
       )}
     >
-      <span className="flex min-w-0 items-start gap-3">
-        <Radio on={rate.selected} />
-        <span className="min-w-0">
-          {rate.carrier && (
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
-              {rate.carrier}
-            </span>
-          )}
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-sm font-medium">{rate.name}</span>
-            <Badges rate={rate} />
-          </span>
-          {rate.description && <span className="block text-xs text-ink-faint">{rate.description}</span>}
-          {rate.eta && <span className="block text-xs text-ink-faint">{rate.eta}</span>}
-          {rate.note && <span className="block text-xs text-ink-faint">{rate.note}</span>}
-        </span>
-      </span>
-      <span className="shrink-0 text-sm font-medium">
-        <Price rate={rate} texts={texts} />
-      </span>
-    </button>
+      {carrier && (
+        <p className="flex items-center gap-1.5 px-2 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
+          <Truck size={13} aria-hidden="true" />
+          {carrier}
+        </p>
+      )}
+      <div className="space-y-1">
+        {rates.map((rate) => (
+          <OptionRow key={rate.rate_id} rate={rate} texts={texts} onChoose={onChoose} />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -128,10 +148,27 @@ function cheapestOf(rates) {
   return payable.reduce((best, r) => (r.cost < best.cost ? r : best), payable[0]);
 }
 
-/** Un grupo cerrado se lee como una opción más; abierto, muestra sus tarjetas. */
+/** Cada correo con sus modos, en el orden en que llegaron las tarifas. */
+export function byCarrier(rates) {
+  const buckets = [];
+  const index = new Map();
+  rates.forEach((rate) => {
+    const key = rate.carrierKey || '';
+    if (!index.has(key)) {
+      index.set(key, { key, carrier: rate.carrier || '', rates: [] });
+      buckets.push(index.get(key));
+    }
+    index.get(key).rates.push(rate);
+  });
+  return buckets;
+}
+
+/** Un grupo cerrado se lee como una opción más; abierto, muestra sus correos. */
 function GroupRow({ group, rates, texts, onChoose }) {
   const open = rates.some((r) => r.selected);
   const cheapest = cheapestOf(rates);
+  const carriers = byCarrier(rates);
+  const named = carriers.filter((c) => c.carrier);
 
   return (
     <div
@@ -156,7 +193,12 @@ function GroupRow({ group, rates, texts, onChoose }) {
               {group.title}
             </span>
             {group.description && <span className="block text-xs text-ink-faint">{group.description}</span>}
-            <span className="block text-xs text-ink-faint">{tn('shipping_group', rates.length)}</span>
+            {/* Con quién se puede mandar dice más que cuántas opciones hay. */}
+            <span className="block text-xs text-ink-faint">
+              {named.length === carriers.length && named.length > 0
+                ? named.map((c) => c.carrier).join(' · ')
+                : tn('shipping_group', rates.length)}
+            </span>
           </span>
         </span>
         {!open && cheapest && (
@@ -174,9 +216,15 @@ function GroupRow({ group, rates, texts, onChoose }) {
       </button>
 
       {open && (
-        <div className="space-y-2 border-t border-line p-3">
-          {rates.map((rate) => (
-            <CarrierCard key={rate.rate_id} rate={rate} texts={texts} onChoose={onChoose} />
+        <div className="space-y-2 border-t border-line bg-bg-soft p-3">
+          {carriers.map((bucket) => (
+            <CarrierCard
+              key={bucket.key || 'propio'}
+              carrier={bucket.carrier}
+              rates={bucket.rates}
+              texts={texts}
+              onChoose={onChoose}
+            />
           ))}
         </div>
       )}

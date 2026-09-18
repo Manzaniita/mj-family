@@ -1142,6 +1142,12 @@ class MJE_Admin {
 				echo '<p class="mje-note">Todavía ningún método usa este correo. Se crean solos la primera vez que cotiza, si dejaste encendida la adopción automática en Ajustes.</p>';
 			}
 
+			/* Lo último que dijo el correo cuando no pudo cotizar: es el diagnóstico más útil. */
+			$excuse = MJE_Native::excuse($id);
+			if ('' !== $excuse) {
+				printf('<p><strong>%s</strong> %s</p>', esc_html('La última vez no pudo cotizar:'), esc_html($excuse));
+			}
+
 			$count = count(MJE_Carriers::stored_branches(MJE_Native::carrier_key($id)));
 			self::panel_end(sprintf(
 				'<span class="mje-note">%s sucursales guardadas de este correo.</span>',
@@ -1430,6 +1436,11 @@ class MJE_Admin {
 			$natives ? self::pill(count($natives) . ' conectados', 'info') : self::pill('ninguno', 'off')
 		);
 		self::row(
+			'Precio $0 del correo',
+			self::checkbox_input('settings[native_allow_zero]', $s['native_allow_zero'], 'Aceptar $0 como precio real'),
+			'Apagado (lo recomendado): un envío que el correo devuelve en $0 no se ofrece. Varios plugins de correo, cuando no pueden cotizar, en vez de no devolver nada devuelven una tarifa vacía de $0 — ofrecerla sería regalar el envío. Prendelo solo si de verdad tenés un acuerdo de envío sin cargo con el correo.'
+		);
+		self::row(
 			'Adopción automática',
 			self::checkbox_input('settings[native_adopt]', $s['native_adopt'], 'Cada servicio del correo que cotiza queda como método propio'),
 			'Es lo que hace que conectar un correo alcance: sus modos de entrega aparecen solos en la lista de métodos, con tus reglas ya aplicadas, y desde ahí les cambiás el nombre, el orden o las condiciones. Apagado, los métodos se cargan a mano.'
@@ -1559,6 +1570,7 @@ class MJE_Admin {
 		self::row('No se pudo cotizar', self::textarea('settings[error_text]', $s['error_text'], 2));
 		self::row('Plazo (de X a Y)', self::text_input('settings[eta_text]', $s['eta_text'], ['class' => 'large-text']), 'Marcas: <code>{min}</code> <code>{max}</code>.');
 		self::row('Plazo (un solo número)', self::text_input('settings[eta_text_one]', $s['eta_text_one'], ['class' => 'large-text']));
+		self::row('Plazo (un solo día)', self::text_input('settings[eta_text_day]', $s['eta_text_day'], ['class' => 'large-text']), 'Se usa cuando es exactamente un día: «1 días hábiles» no lo escribe nadie.');
 		self::settings_panel_end();
 
 		self::settings_panel(

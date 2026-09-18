@@ -221,7 +221,8 @@ class MJE_REST {
 			if (null === $quote['cost']) {
 				continue;
 			}
-			$out[] = [
+			$carrier = MJE_Methods::carrier_of($def);
+			$out[]   = [
 				'metodo'      => $slug,
 				'titulo'      => MJE_Methods::name($def),
 				'descripcion' => (string) $def['description'],
@@ -231,11 +232,28 @@ class MJE_REST {
 				'aCoordinar'  => (bool) $quote['coordinate'],
 				'plazo'       => MJE_Methods::eta(array_merge($def, ['days_min' => $quote['days_min'], 'days_max' => $quote['days_max']])),
 				'destino'     => (string) $def['destination'],
+				/* Los mismos tres niveles que el checkout: grupo, correo y modo. */
+				'grupo'       => (string) $def['group'],
+				'correo'      => $carrier['label'],
+				'correoClave' => $carrier['key'],
 			];
 		}
+
+		/*
+		 * Los motivos que dieron los correos que no pudieron cotizar: es mucho más
+		 * útil decir "Correo Argentino no tiene tarifas para ese destino" que
+		 * simplemente no mostrarlo.
+		 */
+		$avisos = [];
+		foreach (MJE_Native::excuses() as $plugin_id => $motivo) {
+			$avisos[] = sprintf('%s: %s.', MJE_Native::label_of($plugin_id), $motivo);
+		}
+
 		return rest_ensure_response([
 			'cp'       => $cp,
 			'opciones' => $out,
+			'grupos'   => MJE_Groups::public_payload(),
+			'avisos'   => $avisos,
 			'mensaje'  => $out ? '' : (string) MJE_Settings::get('none_text'),
 		]);
 	}
@@ -380,7 +398,23 @@ class MJE_REST {
 			'problems'    => array_values(MJE_Cart::problems()),
 			'freeFrom'    => (float) MJE_Rates::free_threshold(),
 			'rates'       => MJE_Rates::storefront_rates(),
+			'notices'     => self::carrier_notices(),
 		];
+	}
+
+	/**
+	 * Lo que dijeron los correos que no pudieron cotizar.
+	 *
+	 * Un envío que simplemente no aparece deja al cliente sin saber si el
+	 * problema es suyo o de la tienda. "Correo Argentino no tiene tarifas para
+	 * ese destino" le dice qué pasó y que no siga esperando.
+	 */
+	private static function carrier_notices() {
+		$out = [];
+		foreach (MJE_Native::excuses() as $plugin_id => $motivo) {
+			$out[] = sprintf('%s: %s.', MJE_Native::label_of($plugin_id), $motivo);
+		}
+		return $out;
 	}
 
 	public static function cart_schema() {
@@ -393,6 +427,7 @@ class MJE_REST {
 			'problems'    => ['description' => 'Qué falta para poder cerrar la compra.', 'type' => 'array', 'readonly' => true],
 			'freeFrom'    => ['description' => 'Monto desde el que el envío es gratis (0 = no aplica).', 'type' => 'number', 'readonly' => true],
 			'rates'       => ['description' => 'Lo que la tienda dibuja de cada tarifa, por id de tarifa.', 'type' => 'object', 'readonly' => true],
+			'notices'     => ['description' => 'Por qué algún correo no pudo cotizar este destino.', 'type' => 'array', 'readonly' => true],
 		];
 	}
 }

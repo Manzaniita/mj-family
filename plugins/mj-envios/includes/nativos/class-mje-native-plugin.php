@@ -99,6 +99,21 @@ abstract class MJE_Native_Plugin {
 	}
 
 	/**
+	 * ¿Esta tarifa suya es de relleno?
+	 *
+	 * Varios plugins, cuando NO pueden cotizar, igual emiten una tarifa de $0 con
+	 * un texto de aviso en el nombre ("completá la dirección", "supera las
+	 * medidas"). Para WooCommerce es una tarifa como cualquier otra, y si MJ
+	 * Envíos la tomara en serio ofrecería ese envío GRATIS. Un adaptador que
+	 * conoce esas tarifas las declara acá y el puente las ignora.
+	 *
+	 * → '' si es una tarifa real; si no, el motivo por el que no sirve.
+	 */
+	public function placeholder_reason($rate_id, $rate = null) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- La firma la usan los adaptadores que sí las reconocen.
+		return '';
+	}
+
+	/**
 	 * Las sucursales del correo, para que el cliente elija a dónde va.
 	 *
 	 * → [['code','name','address','city','state','postcode','hours','lat','lon'], ...]

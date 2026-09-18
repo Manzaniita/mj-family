@@ -146,6 +146,28 @@ class MJE_Native_Correo extends MJE_Native_Plugin {
 		return 0 === strpos((string) $service, 'sucursal');
 	}
 
+	/**
+	 * Las tarifas de relleno que emite cuando no puede cotizar.
+	 *
+	 * Su plugin, en lugar de no ofrecer nada, agrega una tarifa de $0 con el
+	 * motivo escrito en el nombre. Son tres, y todas se reconocen por el final
+	 * de su id (ver Classes/correoargentino-shipping-method.php).
+	 */
+	public function placeholder_reason($rate_id, $rate = null) {
+		$rate_id = (string) $rate_id;
+		$motivos = [
+			'_direccion_incompleta' => 'falta la dirección del cliente para poder cotizar',
+			'_excess_dimensions'    => 'el paquete supera el peso o las medidas que acepta',
+			'_error'                => 'no tiene tarifas para ese destino',
+		];
+		foreach ($motivos as $sufijo => $motivo) {
+			if (substr($rate_id, -strlen($sufijo)) === $sufijo) {
+				return $motivo;
+			}
+		}
+		return '';
+	}
+
 	/** El número de instancia que hay al final del id de una tarifa suya. */
 	private function instance_of($rate_id) {
 		if (preg_match('/_(\d+)(?:_|$)/', (string) $rate_id, $m)) {

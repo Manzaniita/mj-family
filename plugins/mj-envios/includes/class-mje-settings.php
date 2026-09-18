@@ -34,7 +34,8 @@ class MJE_Settings {
 			'replace_native'  => 1,   // Cuando hay métodos MJ, se ocultan las tarifas de las zonas de WooCommerce.
 
 			/* Correos con plugin propio (Andreani, Correo Argentino…) ---- */
-			'native_adopt'    => 1,   // Cada servicio suyo que cotiza queda como método propio, editable.
+			'native_adopt'       => 1, // Cada servicio suyo que cotiza queda como método propio, editable.
+			'native_allow_zero'  => 0, // Aceptar $0 como precio real del correo (casi siempre es "no pude cotizar").
 
 			/* Carteles de la lista del checkout -------------------------- */
 			'badges_enabled'  => 1,
@@ -119,6 +120,7 @@ class MJE_Settings {
 			'error_text'      => 'No pudimos cotizar en este momento. Elegí otra forma o escribinos.',
 			'eta_text'        => 'Llega en {min} a {max} días hábiles',
 			'eta_text_one'    => 'Llega en {max} días hábiles',
+			'eta_text_day'    => 'Llega en 1 día hábil', // Cuando es exactamente un día: el plural queda mal.
 			'branch_label'    => 'Sucursal donde lo retirás',
 			'branch_help'     => 'Elegí la sucursal que te quede más cómoda.',
 			'pickup_label'    => 'Retiro en el local',
@@ -207,7 +209,7 @@ class MJE_Settings {
 		$in  = is_array($in) ? $in : [];
 		$out = [];
 
-		foreach (['enabled', 'replace_native', 'native_adopt', 'badges_enabled', 'quote_product', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost', 'ready_enabled', 'ready_mail'] as $flag) {
+		foreach (['enabled', 'replace_native', 'native_adopt', 'native_allow_zero', 'badges_enabled', 'quote_product', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost', 'ready_enabled', 'ready_mail'] as $flag) {
 			$out[$flag] = empty($in[$flag]) ? 0 : 1;
 		}
 
@@ -277,7 +279,7 @@ class MJE_Settings {
 		$out['free_states']  = isset($in['free_states']) ? self::text_list($in['free_states']) : '';
 
 		/* Textos: si los vacían, vuelve el default (nunca queda una pantalla muda). */
-		foreach (['badge_cheapest', 'badge_fastest', 'quote_title', 'quote_button', 'quote_help', 'free_label', 'step_title', 'step_intro', 'cp_label', 'cp_help', 'cp_ask', 'cp_invalid', 'eta_text', 'eta_text_one', 'branch_label', 'branch_help', 'pickup_label', 'track_subject', 'ready_label', 'ready_subject'] as $key) {
+		foreach (['badge_cheapest', 'badge_fastest', 'quote_title', 'quote_button', 'quote_help', 'free_label', 'step_title', 'step_intro', 'cp_label', 'cp_help', 'cp_ask', 'cp_invalid', 'eta_text', 'eta_text_one', 'eta_text_day', 'branch_label', 'branch_help', 'pickup_label', 'track_subject', 'ready_label', 'ready_subject'] as $key) {
 			$value     = isset($in[$key]) ? trim(sanitize_text_field($in[$key])) : '';
 			$out[$key] = '' !== $value ? mb_substr($value, 0, 190) : $d[$key];
 		}

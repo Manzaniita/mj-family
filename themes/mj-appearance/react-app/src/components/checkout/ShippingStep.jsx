@@ -37,7 +37,7 @@ import {
  * `errors` ({ campo: mensaje }) y `onTouch(campo)` vienen del checkout, que
  * valida el formulario entero: acá solo se muestran al lado de cada campo.
  */
-export default function ShippingStep({ title, form, setForm, extra, setExtra, errors = {}, onTouch }) {
+export default function ShippingStep({ title, form, setForm, extra, setExtra, errors = {}, onTouch, attempted = false }) {
   const texts = shippingTexts();
   const cpCfg = cpConfig();
   const states = useMemo(provinces, []);
@@ -458,8 +458,21 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
         </p>
       )}
 
-      {/* Lo que el servidor dice que falta, por si algo quedó fuera de la vista. */}
-      {serverShipping?.problems?.length > 0 && (
+      {/* Por qué un correo no pudo cotizar: mejor decirlo que hacerlo desaparecer. */}
+      {serverShipping?.notices?.length > 0 && (
+        <ul className="mt-5 space-y-1 text-xs text-ink-faint" role="list">
+          {serverShipping.notices.map((notice) => (
+            <li key={notice}>{notice}</li>
+          ))}
+        </ul>
+      )}
+
+      {/*
+        * Lo que el servidor dice que falta, por si algo quedó fuera de la vista.
+        * Recién cuando el cliente intentó cerrar la compra: un formulario que
+        * grita "completá esto" antes de empezar a escribir molesta.
+        */}
+      {attempted && serverShipping?.problems?.length > 0 && (
         <ul className="mt-5 space-y-1 text-sm text-warning" aria-live="polite">
           {serverShipping.problems.map((problem) => (
             <li key={problem} className="flex items-start gap-2">

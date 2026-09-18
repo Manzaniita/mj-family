@@ -320,6 +320,29 @@ class MJE_Methods {
 	}
 
 	/**
+	 * Quién lleva el paquete de este método.
+	 *
+	 * → ['key' => clave estable para agrupar, 'label' => cómo se llama]
+	 *
+	 * Es lo que le permite al checkout mostrar una tarjeta por correo con todos
+	 * sus modos de entrega adentro, en vez de una lista larga de opciones
+	 * sueltas. Un método propio (tabla, precio fijo, retiro) no tiene correo: va
+	 * con la clave vacía y se muestra sin encabezado.
+	 */
+	public static function carrier_of(array $def) {
+		if ('nativo' === (string) $def['type'] && '' !== (string) $def['native_plugin']) {
+			$id = (string) $def['native_plugin'];
+			return ['key' => 'nativo:' . $id, 'label' => MJE_Native::label_of($id)];
+		}
+		if ('correo' === (string) $def['type'] && '' !== (string) $def['carrier']) {
+			$id      = (string) $def['carrier'];
+			$carrier = MJE_Carriers::get($id);
+			return ['key' => 'correo:' . $id, 'label' => $carrier ? $carrier->label() : ucfirst($id)];
+		}
+		return ['key' => '', 'label' => ''];
+	}
+
+	/**
 	 * De dónde salen las sucursales de un método.
 	 *
 	 * Un método que cotiza con el plugin oficial del correo usa las sucursales
@@ -847,9 +870,16 @@ class MJE_Methods {
 		}
 		$text = trim((string) $def['eta_text']);
 		if ('' === $text) {
-			$text = $min > 0 && $max > 0 && $min !== $max
-				? (string) MJE_Settings::get('eta_text')
-				: (string) MJE_Settings::get('eta_text_one');
+			$rango = $min > 0 && $max > 0 && $min !== $max;
+			$dia   = !$rango && 1 === ($max > 0 ? $max : $min);
+			/* Un solo día tiene su propio texto: "1 días hábiles" no lo escribe nadie. */
+			if ($rango) {
+				$text = (string) MJE_Settings::get('eta_text');
+			} elseif ($dia) {
+				$text = (string) MJE_Settings::get('eta_text_day');
+			} else {
+				$text = (string) MJE_Settings::get('eta_text_one');
+			}
 		}
 		return trim(strtr($text, [
 			'{min}' => (string) ($min > 0 ? $min : $max),

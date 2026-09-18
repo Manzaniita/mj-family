@@ -43,8 +43,14 @@ class MJE_Native {
 	/** Tarifas ajenas del cálculo en curso: rate_id => datos. */
 	private static $rates = [];
 
+	/** Por qué un correo no pudo cotizar esta vez: id del correo => motivo. */
+	private static $excuses = [];
+
 	/** Para el panel: qué se capturó la última vez, aunque haya sido otra carga. */
 	const TRANSIENT_SEEN = 'mje_native_seen';
+
+	/** El último motivo por el que cada correo no pudo cotizar. */
+	const TRANSIENT_EXCUSES = 'mje_native_excuses';
 
 	public static function init() {
 		/* La sucursal elegida se anota en el plugin del correo antes de cotizar. */
@@ -133,7 +139,8 @@ class MJE_Native {
 	 * puente se capture a sí mismo.
 	 */
 	public static function capture($rates) {
-		self::$rates = [];
+		self::$rates   = [];
+		self::$excuses = [];
 		if (!is_array($rates)) {
 			return;
 		}
@@ -147,6 +154,21 @@ class MJE_Native {
 				continue;
 			}
 			$plugin  = self::by_method($method_id);
+
+			/*
+			 * Una tarifa de relleno NO es una tarifa: es el correo diciendo que
+			 * no puede cotizar, con $0 y el motivo escrito en el nombre. Tomarla
+			 * en serio sería ofrecer ese envío gratis. Se anota el motivo, que
+			 * es justo lo que hay que mostrarle al dueño en el panel.
+			 */
+			if ($plugin) {
+				$reason = $plugin->placeholder_reason($rate_id, $rate);
+				if ('' !== $reason) {
+					self::$excuses[$plugin->id()] = $reason;
+					continue;
+				}
+			}
+
 			$service = $plugin ? $plugin->service_of($rate_id) : '';
 
 			self::$rates[(string) $rate_id] = [
@@ -174,6 +196,17 @@ class MJE_Native {
 		if ($seen) {
 			set_transient(self::TRANSIENT_SEEN, $seen, WEEK_IN_SECONDS);
 		}
+		/*
+		 * El motivo también se guarda, porque en el panel no hay carrito que
+		 * calcular. Solo cuando cambió: esto corre en cada cálculo del carrito y
+		 * no puede escribir en la base cada vez.
+		 */
+		if (self::$excuses) {
+			$stored = get_transient(self::TRANSIENT_EXCUSES);
+			if (!is_array($stored) || $stored !== self::$excuses) {
+				set_transient(self::TRANSIENT_EXCUSES, self::$excuses, DAY_IN_SECONDS);
+			}
+		}
 	}
 
 	/**
@@ -198,6 +231,55 @@ class MJE_Native {
 	/** Las tarifas ajenas del cálculo en curso. */
 	public static function rates() {
 		return self::$rates;
+	}
+
+	/**
+	 * Por qué un correo no cotizó esta vez, dicho por él mismo.
+	 *
+	 * Vale para el panel y para el checkout: "Correo Argentino no tiene tarifas
+	 * para ese destino" es infinitamente más útil que un envío que no aparece.
+	 */
+	public static function excuses() {
+		$out = self::$excuses;
+
+		/*
+		 * Un correo conectado, puesto en una zona y que no devolvió NADA tampoco
+		 * cotizó. Se resuelve acá y no en capture() porque mirar las zonas
+		 * cuesta consultas, y capture() corre en cada cálculo del carrito;
+		 * esto, en cambio, se pregunta una vez por respuesta.
+		 */
+		foreach (self::all() as $id => $plugin) {
+			if (isset($out[$id]) || self::rates_of($id) || !$plugin->connected() || !$plugin->in_any_zone()) {
+				continue;
+			}
+			$out[$id] = 'no devolvió ninguna tarifa para ese destino';
+		}
+		return $out;
+	}
+
+	/** ¿Este correo aportó alguna tarifa en el cálculo en curso? */
+	private static function rates_of($plugin_id) {
+		foreach (self::$rates as $data) {
+			if ($data['plugin'] === $plugin_id) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * El motivo de un correo, sea de este cálculo o del último que hubo.
+	 *
+	 * En el panel no hay carrito que calcular, así que ahí vale el guardado: es
+	 * lo que le permite al dueño ver por qué su correo no está apareciendo.
+	 */
+	public static function excuse($plugin_id) {
+		$plugin_id = sanitize_key((string) $plugin_id);
+		if (isset(self::$excuses[$plugin_id])) {
+			return self::$excuses[$plugin_id];
+		}
+		$stored = get_transient(self::TRANSIENT_EXCUSES);
+		return is_array($stored) && isset($stored[$plugin_id]) ? (string) $stored[$plugin_id] : '';
 	}
 
 	/** Una tarifa ajena puntual. */
