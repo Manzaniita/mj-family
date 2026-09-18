@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, Clock } from 'lucide-react';
+import { ArrowRight, CalendarSync, Check, ChevronDown, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { TURNOS, tcopy, serviceBookingPath, serviceDeposit, formatDuration } from '@/lib/turnos';
+import { TURNOS, tcopy, serviceBookingPath, serviceDeposit, formatDuration, maintenanceText } from '@/lib/turnos';
 import { formatPrice, cn } from '@/lib/format';
 
 /**
@@ -14,8 +14,42 @@ import { formatPrice, cn } from '@/lib/format';
  *    preseleccionado, sin descripción ni botón (portada);
  *  - onSelect: la tarjeta es un botón (paso 1 del wizard de reserva) y
  *    `selected` la marca como elegida.
+ * En la tarjeta completa, si el servicio las tiene: las secciones de
+ * información (Qué incluye, Cuidados… plegables) y el mantenimiento recomendado.
  * Todos los textos salen del plugin (tcopy); los precios, de formatPrice.
  */
+
+/**
+ * Título de un grupo de servicios (agrupados por categoría). Sin categoría
+ * (los que quedan al final) no lleva título.
+ */
+export function ServiceGroupHeading({ category, as: Tag = 'h2', small = false, className }) {
+  if (!category) return null;
+  return (
+    <div className={cn('mj-service-group__head', className)}>
+      <Tag className={cn('mj-service-group__title display', small ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl')}>{category.name}</Tag>
+      {category.description && <p className="mj-service-group__desc mt-2 max-w-2xl text-ink-soft">{category.description}</p>}
+    </div>
+  );
+}
+
+/* Secciones de información del servicio: plegables y compactas (details/summary nativo). */
+function Sections({ sections }) {
+  if (!sections?.length) return null;
+  return (
+    <div className="mj-service-card__sections mt-4 divide-y divide-line border-y border-line">
+      {sections.map((s) => (
+        <details key={s.key} className="mj-service-card__section group/section">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-2.5 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
+            {s.label}
+            <ChevronDown size={15} className="shrink-0 text-ink-faint transition-transform duration-300 group-open/section:rotate-180" aria-hidden="true" />
+          </summary>
+          <p className="pb-3 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{s.text}</p>
+        </details>
+      ))}
+    </div>
+  );
+}
 
 /* Tono de fondo estable por servicio cuando no hay foto ni color (misma idea que lib/wc.js). */
 const hueOf = (text) => {
@@ -76,6 +110,9 @@ export function ServiceCard({ service, compact = false, selected = false, onSele
   const description = compact ? '' : service.excerpt || firstParagraph(service.description);
   const selectable = typeof onSelect === 'function';
   const bookable = service.bookable !== false;
+  /* Tarjeta completa (página de servicios): la única que muestra secciones y mantenimiento. */
+  const full = !compact && !selectable;
+  const maintenance = full ? maintenanceText(service) : '';
 
   const body = (
     <div className={cn('mj-service-card__body', compact ? 'p-4' : 'p-5 md:p-6')}>
@@ -122,6 +159,13 @@ export function ServiceCard({ service, compact = false, selected = false, onSele
           {tcopy('label_deposit')}: {formatPrice(deposit)}
         </p>
       )}
+      {full && maintenance && (
+        <p className="mj-service-card__maintenance mt-3 inline-flex items-start gap-1.5 text-xs text-ink-soft">
+          <CalendarSync size={13} className="mt-px shrink-0 text-accent" aria-hidden="true" />
+          {maintenance}
+        </p>
+      )}
+      {full && <Sections sections={service.sections} />}
       {!compact && !selectable && bookable && (
         <div className="mj-service-card__cta mt-5">
           <Button size="sm" to={serviceBookingPath(service.slug)}>

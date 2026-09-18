@@ -5,7 +5,7 @@ import Shop from '@/pages/Shop';
 import Product from '@/pages/Product';
 import CartPage from '@/pages/CartPage';
 import { COLEGAS } from '@/lib/colegas';
-import { TURNOS } from '@/lib/turnos';
+import { TURNOS, accountsEnabled } from '@/lib/turnos';
 import { lazyPage } from '@/lib/lazy';
 import { pageRoute, extraPageRoutes } from '@/lib/pages';
 
@@ -36,6 +36,7 @@ const AccountAddresses = account('AccountAddresses');
 const AccountFavorites = account('AccountFavorites');
 const AccountDownloads = account('AccountDownloads');
 const AccountSettings = account('AccountSettings');
+const AccountBookings = account('AccountBookings');
 const auth = (name) => lazyPage(() => import('@/pages/Auth'), name);
 const Login = auth('Login');
 const Register = auth('Register');
@@ -79,6 +80,8 @@ export default function App() {
             <Route path="favoritos" element={<AccountFavorites />} />
             <Route path="descargas" element={<AccountDownloads />} />
             <Route path="configuracion" element={<AccountSettings />} />
+            {/* Mis turnos (plugin MJ Turnos Online, con las cuentas de clientas prendidas). */}
+            {accountsEnabled() && <Route path="turnos" element={<AccountBookings />} />}
           </Route>
           <Route path="/mi-cuenta" element={<Navigate to="/cuenta" replace />} />
           <Route path="/login" element={<Login />} />

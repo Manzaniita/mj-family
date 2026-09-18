@@ -3,6 +3,7 @@
  * precio, reserva de turnos online (con seña, confirmación manual o
  * automática) y página de estado de cada reserva. La SPA muestra: página de
  * servicios (/{servicesSlug}), reserva (/{slug}), estado (/{slug}/t/{token}),
+ * "Mis turnos" en Mi cuenta (/cuenta/turnos, solo con cuentas de clientas),
  * secciones en la portada, enlaces en el menú, la barra inferior y el header.
  *
  * Sin plugin → TURNOS = null y nada de esto se renderiza.
@@ -63,6 +64,57 @@ export const TURNOS_COPY_DEFAULTS = {
   booking_status_not_found: 'No encontramos ese turno. Revisá el link o escribinos.',
   booking_new_booking: 'Hacer otra reserva',
   booking_whatsapp_label: 'WhatsApp',
+  // Cuenta en la reserva
+  booking_account_title: 'Tu cuenta',
+  booking_account_text: 'Creá una contraseña: con tu cuenta ves tus turnos y la próxima vez no tenés que cargar todo de nuevo.',
+  booking_account_optional: 'Crear mi cuenta con estos datos',
+  booking_password_label: 'Contraseña',
+  booking_password_hint: 'Mínimo {min} caracteres.',
+  booking_account_login: 'Ya tengo cuenta: ingresar',
+  booking_logged_as: 'Reservás como {nombre}.',
+  booking_not_you: '¿No sos vos? Salir',
+  // Seña con saldo a favor y comprobante
+  booking_credit_applied: 'Se usan {monto} de tu saldo a favor.',
+  booking_deposit_to_pay: 'A transferir',
+  booking_receipt_title: 'Comprobante de la transferencia',
+  // Reprogramar
+  booking_reschedule_button: 'Reprogramar',
+  booking_reschedule_title: 'Elegí el nuevo día y horario',
+  booking_reschedule_confirm: 'Confirmar el cambio',
+  booking_reschedule_keep: 'Faltan {horas} h o más para tu turno: si reprogramás, la seña se conserva.',
+  booking_reschedule_lose: 'Faltan menos de {horas} h para tu turno: si reprogramás, la seña no se conserva y vas a tener que abonar una nueva.',
+  booking_reschedule_blocked: 'Faltan menos de {horas} h para tu turno: ya no se puede reprogramar desde acá.',
+  booking_rescheduled_done: '¡Listo! Tu turno quedó para el {fecha} a las {hora}.',
+  // Cancelar según las reglas (el servidor los manda ya armados en cancelTerms.text)
+  booking_cancel_keep: 'Cancelás con {horas} h o más de anticipación: tu seña queda como saldo a favor para el próximo turno.',
+  booking_cancel_lose: 'Faltan menos de {horas} h para tu turno: si cancelás, la seña no se devuelve.',
+  // Cuando cancela la dueña
+  booking_offer_title: 'Tuvimos que cancelar tu turno',
+  booking_offer_text: 'Perdón por el cambio. Tu seña no se pierde: elegí qué preferís.',
+  booking_offer_reschedule: 'Elegir otro día',
+  booking_offer_refund: 'Pedir la devolución',
+  booking_offer_credit: 'Dejarla como saldo a favor',
+  booking_offer_refund_done: 'Listo: te avisamos cuando hagamos la devolución.',
+  booking_offer_refunded: 'La seña ya te fue devuelta.',
+  booking_offer_credit_done: 'Listo: la seña quedó como saldo a favor en tu cuenta.',
+  // Mis turnos
+  my_bookings_title: 'Mis turnos',
+  my_bookings_empty: 'Todavía no tenés turnos.',
+  my_bookings_upcoming: 'Próximos',
+  my_bookings_past: 'Anteriores',
+  my_bookings_view: 'Ver turno',
+  my_bookings_login: 'Ingresá a tu cuenta para ver tus turnos.',
+  my_bookings_book: 'Reservar un turno',
+  // Opinión
+  review_title: 'Contanos cómo te fue',
+  review_text: 'Tu opinión ayuda a otras personas a animarse.',
+  review_rating_label: 'Tu puntaje',
+  review_body_label: 'Tu opinión',
+  review_name_label: 'Tu nombre (como querés que aparezca)',
+  review_submit: 'Enviar opinión',
+  review_thanks: '¡Gracias por tu opinión!',
+  review_thanks_pending: '¡Gracias! La vamos a publicar después de leerla.',
+  review_section_title: 'Opiniones',
   services_eyebrow: 'Servicios',
   services_title: 'Servicios',
   services_subtitle: '',
@@ -74,6 +126,14 @@ export const TURNOS_COPY_DEFAULTS = {
   label_from: 'desde',
   label_minutes: 'min',
   label_hours: 'h',
+  label_credit: 'Saldo a favor',
+  label_maintenance: 'Mantenimiento recomendado: cada {periodo}',
+  label_day: 'día',
+  label_days: 'días',
+  label_week: 'semana',
+  label_weeks: 'semanas',
+  label_month: 'mes',
+  label_months: 'meses',
 };
 
 export const TURNOS_STATUS_DEFAULTS = {
@@ -89,7 +149,9 @@ export const TURNOS_STATUS_DEFAULTS = {
 export const TURNOS_STATUSES = Object.keys(TURNOS_STATUS_DEFAULTS);
 
 const CONFIRM_MODES = ['deposit', 'manual', 'auto'];
-const FIELD_TYPES = ['text', 'tel', 'email', 'textarea', 'select', 'number'];
+const FIELD_TYPES = ['text', 'tel', 'email', 'textarea', 'select', 'radio', 'number', 'date'];
+const ACCOUNT_MODES = ['off', 'optional', 'required'];
+const MAINTENANCE_UNITS = ['days', 'weeks', 'months'];
 
 /* ---------------------------------------------------------------------------
  * Normalización de window.MJ.turnos (defaults defensivos campo por campo)
@@ -100,6 +162,46 @@ const text = (value, fallback = '') => (typeof value === 'string' && value.trim(
 const num = (value, fallback = 0) => (Number.isFinite(Number(value)) && value !== null && value !== '' ? Number(value) : fallback);
 const bool = (value, fallback = true) => (typeof value === 'boolean' ? value : fallback);
 const pick = (value, allowed, fallback) => (allowed.includes(value) ? value : fallback);
+
+/** Categoría (de la config o de un servicio): { id, slug, name, description, order }. */
+function normalizeCategory(c) {
+  return {
+    id: Number(c.id),
+    slug: str(c.slug, String(c.id)),
+    name: String(c.name),
+    description: str(c.description),
+    order: num(c.order, 0),
+  };
+}
+
+const categoryList = (value) =>
+  (Array.isArray(value) ? value : []).filter((c) => c && c.id && typeof c.name === 'string' && c.name !== '').map(normalizeCategory);
+
+/** Secciones informativas del servicio (solo las que tienen texto). */
+const sectionList = (value) =>
+  (Array.isArray(value) ? value : [])
+    .filter((s) => s && typeof s.text === 'string' && s.text.trim() !== '')
+    .map((s, i) => ({ key: str(s.key, `s${i}`), label: text(s.label, ''), text: s.text }));
+
+/** Mantenimiento recomendado: null o { value, unit, label }. */
+function normalizeMaintenance(m) {
+  if (!m || typeof m !== 'object' || !(num(m.value, 0) > 0)) return null;
+  return { value: num(m.value, 0), unit: pick(m.unit, MAINTENANCE_UNITS, 'weeks'), label: str(m.label) };
+}
+
+/** Opinión pública: { id, name, rating (1-5), body, serviceId, serviceName, date, dateLabel }. */
+export function normalizeReview(r) {
+  return {
+    id: Number(r?.id) || 0,
+    name: str(r?.name),
+    rating: Math.min(5, Math.max(0, Math.round(num(r?.rating, 0)))),
+    body: str(r?.body),
+    serviceId: Number(r?.serviceId) || 0,
+    serviceName: str(r?.serviceName),
+    date: str(r?.date),
+    dateLabel: str(r?.dateLabel),
+  };
+}
 
 /** Servicio público (mjto_service_public) con todos sus campos garantizados. */
 function normalizeService(s) {
@@ -119,6 +221,9 @@ function normalizeService(s) {
     order: num(s.order, 0),
     active: bool(s.active, true),
     bookable: bool(s.bookable, true),
+    categories: categoryList(s.categories),
+    sections: sectionList(s.sections),
+    maintenance: normalizeMaintenance(s.maintenance),
   };
 }
 
@@ -167,6 +272,9 @@ function normalize(raw) {
   const schedule = raw.schedule || {};
   const deposit = raw.deposit || {};
   const cancel = raw.cancel || {};
+  const reschedule = raw.reschedule || {};
+  const account = raw.account || {};
+  const reviews = raw.reviews || {};
 
   const copy = { ...TURNOS_COPY_DEFAULTS };
   for (const key of Object.keys(TURNOS_COPY_DEFAULTS)) {
@@ -253,6 +361,28 @@ function normalize(raw) {
       allowed: bool(cancel.allowed, true),
       hoursBefore: Math.max(0, num(cancel.hoursBefore, 24)),
     },
+    /* Todo lo de acá abajo viene apagado por defecto (plugin 1.3.0): sin el dato, nada cambia. */
+    reschedule: {
+      allowed: bool(reschedule.allowed, false),
+      hoursBefore: Math.max(0, num(reschedule.hoursBefore, 48)),
+    },
+    creditEnabled: bool(raw.creditEnabled, false),
+    account: {
+      mode: pick(account.mode, ACCOUNT_MODES, 'off'),
+      passwordMin: Math.max(6, Math.round(num(account.passwordMin, 8))),
+      loggedIn: bool(account.loggedIn, false),
+      prefill: bool(account.prefill, false),
+      myBookingsUrl: str(account.myBookingsUrl),
+    },
+    categories: categoryList(raw.categories),
+    groupByCategory: bool(raw.groupByCategory, false),
+    reviews: {
+      enabled: bool(reviews.enabled, false),
+      count: Math.max(0, Math.round(num(reviews.count, 0))),
+      average: Math.max(0, num(reviews.average, 0)),
+      items: (Array.isArray(reviews.items) ? reviews.items : []).filter((r) => r && typeof r === 'object').map(normalizeReview),
+    },
+    logoutUrl: str(raw.logoutUrl),
     priceVisible: bool(raw.priceVisible, true),
     currency: { ...CUR, ...(raw.currency && typeof raw.currency === 'object' ? raw.currency : {}) },
     restUrl: restBase.endsWith('/') ? restBase : `${restBase}/`,
@@ -282,7 +412,29 @@ export const serviceBookingPath = (serviceSlug) =>
   serviceSlug ? `${bookingPath()}?servicio=${encodeURIComponent(String(serviceSlug))}` : bookingPath();
 
 /** Login con vuelta a la reserva (la dueña entra y el plugin le muestra el panel). */
-export const bookingLoginPath = () => `/login?redirect=${encodeURIComponent(bookingPath())}`;
+export const bookingLoginPath = (back) => `/login?redirect=${encodeURIComponent(back || bookingPath())}`;
+
+/** "Mis turnos" dentro de Mi cuenta del tema (inc: filtro mjto_my_bookings_url). */
+export const myBookingsPath = () => '/cuenta/turnos';
+
+/** ¿Hay cuentas de clientas (Turnos → Ajustes → Cuentas distinto de "off")? */
+export const accountsEnabled = () => !!TURNOS && TURNOS.account.mode !== 'off';
+
+/**
+ * Link a "Mis turnos": si la URL que manda el plugin es de este sitio se
+ * devuelve como path; si no, tal cual. '' = no mostrar.
+ */
+export function myBookingsHref(url) {
+  const value = String(url || '').trim();
+  if (!value) return '';
+  if (typeof window === 'undefined') return value;
+  try {
+    const u = new URL(value, window.location.origin);
+    return u.origin === window.location.origin ? `${u.pathname}${u.search}${u.hash}` : value;
+  } catch {
+    return value;
+  }
+}
 
 /* ---------------------------------------------------------------------------
  * Textos, servicios y formato
@@ -315,6 +467,42 @@ export function serviceDeposit(service) {
   const { type, amount, percent } = TURNOS.deposit;
   if (type === 'percent') return round((Number(service.price) || 0) * percent / 100);
   return round(amount);
+}
+
+/**
+ * Servicios agrupados por categoría (Turnos → Servicios → Categorías), en el
+ * orden de TURNOS.categories; los que no tienen categoría van al final
+ * (category = null). Cada servicio va una sola vez, en su primera categoría.
+ * Devuelve null si no corresponde agrupar (ajuste apagado, sin categorías o
+ * ningún servicio con categoría): la pantalla muestra la grilla de siempre.
+ */
+export function groupServicesByCategory(services) {
+  if (!TURNOS?.groupByCategory || !TURNOS.categories.length || !Array.isArray(services)) return null;
+  const order = TURNOS.categories;
+  const buckets = new Map(order.map((c) => [c.id, []]));
+  const rest = [];
+  for (const svc of services) {
+    const ids = (svc.categories || []).map((c) => c.id);
+    const first = order.find((c) => ids.includes(c.id));
+    if (first) buckets.get(first.id).push(svc);
+    else rest.push(svc);
+  }
+  const groups = order.filter((c) => buckets.get(c.id).length > 0).map((c) => ({ category: c, services: buckets.get(c.id) }));
+  if (!groups.length) return null;
+  if (rest.length) groups.push({ category: null, services: rest });
+  return groups;
+}
+
+/** "Mantenimiento recomendado: cada 4 semanas" (label_maintenance con {periodo}), o ''. */
+export function maintenanceText(service) {
+  const m = service?.maintenance;
+  if (!m) return '';
+  let periodo = m.label;
+  if (!periodo) {
+    const keys = { days: ['label_day', 'label_days'], weeks: ['label_week', 'label_weeks'], months: ['label_month', 'label_months'] }[m.unit];
+    periodo = `${m.value} ${tcopy(m.value === 1 ? keys[0] : keys[1])}`;
+  }
+  return fillTemplate(tcopy('label_maintenance'), { periodo });
 }
 
 /** "2 h 30 min", "45 min", "1 h" — con las etiquetas del plugin (label_hours / label_minutes). */
@@ -436,9 +624,14 @@ export const getTurnosConfig = () => req('config');
 /**
  * Disponibilidad de un servicio entre dos fechas ISO (máx. 62 días).
  * → { days: { 'YYYY-MM-DD': ['09:00', '09:30', …] }, timezone, now }
+ * Con `token` es la disponibilidad para reprogramar ese turno (usa su
+ * duración y no cuenta su propio horario): no se manda service_id.
  */
-export const getAvailability = (serviceId, from, to) =>
-  req(`availability?service_id=${encodeURIComponent(serviceId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+export const getAvailability = (serviceId, from, to, token = '') =>
+  req(
+    `availability?${token ? `token=${encodeURIComponent(token)}` : `service_id=${encodeURIComponent(serviceId)}`}` +
+      `&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+  );
 
 /**
  * Crea la reserva. payload: { service_id, date, time, first_name, last_name, phone,
@@ -451,12 +644,42 @@ export const createBooking = (payload) => req('bookings', { method: 'POST', body
 /** Estado de una reserva por token → { status, statusLabel, appointment, deposit, whatsapp, canCancel, depositNotified }. */
 export const getBooking = (token) => req(`bookings/${encodeURIComponent(token)}`);
 
-/** Cancela la reserva (si el plugin lo permite) → { ok, status, statusLabel }. */
+/**
+ * Reprograma el turno → vista del turno resultante. Con rescheduleTerms.mode
+ * 'new' vuelve OTRO token (turno nuevo que espera seña).
+ * 409 mjto_slot_taken, 400 mjto_cannot_reschedule / mjto_reschedule_same.
+ */
+export const rescheduleBooking = (token, date, time) =>
+  req(`bookings/${encodeURIComponent(token)}/reschedule`, { method: 'POST', body: { date, time } });
+
+/** La dueña canceló: la clienta elige 'refund' o 'credit' → vista del turno. ('reschedule' va por rescheduleBooking.) */
+export const chooseOffer = (token, choice) =>
+  req(`bookings/${encodeURIComponent(token)}/choice`, { method: 'POST', body: { choice } });
+
+/** Opinión de un turno atendido → { ok, status: 'approved'|'pending', message, review }. */
+export const submitReview = (token, { rating, body = '', name = '' }) =>
+  req(`bookings/${encodeURIComponent(token)}/review`, { method: 'POST', body: { rating, body, name } });
+
+/** Opiniones publicadas → { count, average, items: [review] }. */
+export const getReviews = ({ limit = 12, serviceId = 0 } = {}) =>
+  req(`reviews?limit=${encodeURIComponent(limit)}${serviceId ? `&service_id=${encodeURIComponent(serviceId)}` : ''}`);
+
+/**
+ * Con sesión: datos para precargar la reserva →
+ * { user: {id, name, email}, client: {firstName, lastName, phone, email, locality, birthdate, extra}, credit }.
+ */
+export const getMe = () => req('me');
+
+/** Con sesión: "Mis turnos" → { upcoming: [item], past: [item], credit, movements: [...] }. 401 sin sesión. */
+export const getMyBookings = () => req('me/bookings');
+
+/** Cancela la reserva (si el plugin lo permite) → { ok, status, statusLabel, booking: vista }. */
 export const cancelBooking = (token) => req(`bookings/${encodeURIComponent(token)}/cancel`, { method: 'POST' });
 
 /** "Ya transferí la seña" → { ok }. */
 export const notifyDeposit = (token, note = '') =>
   req(`bookings/${encodeURIComponent(token)}/deposit-notice`, { method: 'POST', body: { note } });
 
-/** ¿El error de createBooking es "horario tomado"? (409) */
-export const isSlotTakenError = (error) => error?.status === 409 || error?.code === 'mjto_slot_taken';
+/** ¿El error de createBooking es "horario tomado"? (409, salvo el de la cuenta que ya existe) */
+export const isSlotTakenError = (error) =>
+  error?.code === 'mjto_slot_taken' || (error?.status === 409 && error?.code !== 'mjto_account_exists');

@@ -3,9 +3,9 @@ import { CalendarDays, Sparkles } from 'lucide-react';
 import { Section } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { Reveal, Stagger, staggerItem } from '@/components/motion/Reveal';
-import { ServiceCard } from '@/components/turnos/ServiceCard';
+import { ServiceCard, ServiceGroupHeading } from '@/components/turnos/ServiceCard';
 import { NotFound } from '@/pages/Misc';
-import { TURNOS, tcopy, bookingPath } from '@/lib/turnos';
+import { TURNOS, tcopy, bookingPath, groupServicesByCategory } from '@/lib/turnos';
 import { cn } from '@/lib/format';
 import { usePageMeta } from '@/lib/seo';
 
@@ -23,7 +23,9 @@ export function PageHeader({ eyebrow, title, subtitle, className }) {
 /**
  * Página de servicios (/{servicesSlug}) del plugin MJ Turnos Online: grilla de
  * tarjetas con foto/color, nombre, descripción, duración, precio, seña y botón
- * de reserva; estado vacío y un cierre con el llamado a reservar.
+ * de reserva; estado vacío y un cierre con el llamado a reservar. Con
+ * categorías (y "agrupar por categoría" prendido) va un bloque por categoría,
+ * en el orden del plugin, y los servicios sin categoría al final.
  * Textos: Turnos → Ajustes → Textos (services_*, booking_*, header_cta).
  */
 export function ServicesPage() {
@@ -33,6 +35,17 @@ export function ServicesPage() {
   const services = TURNOS.services
     .filter((s) => s.active !== false)
     .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+  const groups = groupServicesByCategory(services);
+
+  const grid = (list, spacing = 'mt-12') => (
+    <Stagger className={cn('mj-services__grid grid gap-5 sm:grid-cols-2 lg:grid-cols-3', spacing)}>
+      {list.map((service) => (
+        <motion.div key={service.id} variants={staggerItem}>
+          <ServiceCard service={service} />
+        </motion.div>
+      ))}
+    </Stagger>
+  );
 
   return (
     <Section className="mj-services md:py-16">
@@ -45,13 +58,18 @@ export function ServicesPage() {
         </Reveal>
       ) : (
         <>
-          <Stagger className="mj-services__grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((service) => (
-              <motion.div key={service.id} variants={staggerItem}>
-                <ServiceCard service={service} />
-              </motion.div>
-            ))}
-          </Stagger>
+          {groups
+            ? groups.map(({ category, services: list }) => (
+                <section key={category ? category.id : 'sin-categoria'} className="mj-services__group mt-12 md:mt-16">
+                  {category && (
+                    <Reveal>
+                      <ServiceGroupHeading category={category} />
+                    </Reveal>
+                  )}
+                  {grid(list, category ? 'mt-6' : 'mt-0')}
+                </section>
+              ))
+            : grid(services)}
 
           <Reveal className="mj-services__cta mt-16 flex flex-col items-center gap-5 rounded-(--mj-radius-2xl) border border-line glass p-10 text-center md:flex-row md:justify-between md:text-left">
             <div className="max-w-xl">

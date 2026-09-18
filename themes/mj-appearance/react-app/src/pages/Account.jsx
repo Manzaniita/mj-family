@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet, useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { LayoutDashboard, Package, MapPin, Heart, Download, Settings, LogOut, Loader2, AlertCircle, CheckCircle2, ArrowLeft, RotateCcw, MessageCircle, XCircle, Plus, ChevronRight, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, Package, MapPin, Heart, Download, Settings, LogOut, Loader2, AlertCircle, CheckCircle2, ArrowLeft, RotateCcw, MessageCircle, XCircle, Plus, ChevronRight, ExternalLink, CalendarDays, Wallet } from 'lucide-react';
 import { Section } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
@@ -18,10 +18,16 @@ import { formatPrice, formatUsd, isValidCuit, cn } from '@/lib/format';
 import { fieldLabel } from '@/lib/envios';
 import { usePageMeta } from '@/lib/seo';
 import { t as tCopy } from '@/lib/copy';
+import {
+  TURNOS, tcopy as turnosCopy, accountsEnabled, bookingPath, statusPath, statusLabel as turnoStatusLabel,
+  formatDateLong, getMyBookings,
+} from '@/lib/turnos';
 
 const nav = [
   { to: '/cuenta', end: true, icon: LayoutDashboard, label: 'Resumen' },
   { to: '/cuenta/pedidos', icon: Package, label: 'Pedidos' },
+  /* "Mis turnos" (plugin MJ Turnos Online): solo con las cuentas de clientas prendidas. */
+  ...(accountsEnabled() ? [{ to: '/cuenta/turnos', icon: CalendarDays, label: turnosCopy('my_bookings_title') }] : []),
   { to: '/cuenta/direcciones', icon: MapPin, label: 'Direcciones' },
   { to: '/cuenta/favoritos', icon: Heart, label: 'Favoritos' },
   { to: '/cuenta/descargas', icon: Download, label: 'Descargas' },
@@ -1011,6 +1017,152 @@ export function AccountSettings() {
           <FormMessage msg={msg} />
         </div>
       </form>
+    </Reveal>
+  );
+}
+
+/* ------------------------------ Mis turnos -------------------------------- */
+
+/** Tono del badge según el estado del turno (mismo criterio que la página del turno). */
+const turnoTone = (status) =>
+  ({
+    confirmed: 'success',
+    completed: 'success',
+    cancelled: 'danger',
+    no_show: 'danger',
+    pending: 'accent',
+    awaiting_deposit: 'accent',
+  })[status] ?? 'neutral';
+
+/** Un turno de la lista: fecha, hora, servicio y estado; abre su página (ahí están las acciones). */
+function TurnoRow({ item }) {
+  const when = [item.date ? formatDateLong(item.date) : item.dateLabel, item.time && `${item.time}${item.endTime ? ` – ${item.endTime}` : ''}`]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <Link
+      to={statusPath(item.token)}
+      className={cn(
+        'mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl2 border p-4 transition-colors',
+        item.needsAction ? 'border-accent/40 bg-accent-soft hover:border-accent' : 'border-line hover:border-accent/40'
+      )}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-2 font-medium">
+          {item.needsAction && <AlertCircle size={15} className="shrink-0 text-accent" aria-hidden="true" />}
+          <span className="truncate">{item.serviceName}</span>
+        </p>
+        <p className="mt-0.5 text-xs capitalize text-ink-faint tabular-nums">{when}</p>
+      </div>
+      <Badge tone={turnoTone(item.status)}>{item.statusLabel || turnoStatusLabel(item.status)}</Badge>
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-accent">
+        {turnosCopy('my_bookings_view')}
+        <ChevronRight size={14} aria-hidden="true" />
+      </span>
+    </Link>
+  );
+}
+
+/**
+ * Mi cuenta → Mis turnos (plugin MJ Turnos Online, cuentas prendidas): los
+ * próximos y los anteriores (GET /me/bookings), el saldo a favor con sus
+ * movimientos y el botón para reservar. Los textos salen del plugin.
+ */
+export function AccountBookings() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(IS_WP);
+  const [error, setError] = useState('');
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!IS_WP || !TURNOS) return undefined;
+    let live = true;
+    setLoading(true);
+    setError('');
+    getMyBookings()
+      .then((res) => { if (live) setData(res); })
+      .catch((e) => {
+        if (!live) return;
+        setError(e?.status === 401 ? turnosCopy('my_bookings_login') : e?.message || turnosCopy('my_bookings_login'));
+      })
+      .finally(() => { if (live) setLoading(false); });
+    return () => { live = false; };
+  }, [tick]);
+
+  if (!TURNOS) return null;
+  if (loading) return <Spinner />;
+
+  const upcoming = Array.isArray(data?.upcoming) ? data.upcoming : [];
+  const past = Array.isArray(data?.past) ? data.past : [];
+  const credit = Number(data?.credit) || 0;
+  const movements = Array.isArray(data?.movements) ? data.movements : [];
+
+  return (
+    <Reveal className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2 className="font-display text-xl font-semibold">{turnosCopy('my_bookings_title')}</h2>
+        <Button size="sm" to={bookingPath()}>
+          <CalendarDays size={15} /> {turnosCopy('my_bookings_book')}
+        </Button>
+      </div>
+
+      {error ? (
+        <div className="mj-empty rounded-xl3 border border-line glass p-10 text-center">
+          <AlertCircle size={26} className="mx-auto text-ink-faint" />
+          <p className="mt-4 text-ink-soft">{error}</p>
+          <Button className="mt-5" size="sm" variant="secondary" onClick={() => setTick((n) => n + 1)}>
+            <RotateCcw size={15} /> {turnosCopy('booking_retry')}
+          </Button>
+        </div>
+      ) : (
+        <>
+          {credit > 0 && (
+            <div className="mj-panel rounded-xl3 border border-line glass p-6">
+              <p className="flex items-center gap-2 text-sm font-medium text-ink-soft">
+                <Wallet size={16} className="text-accent" aria-hidden="true" /> {turnosCopy('label_credit')}
+              </p>
+              <p className="mt-2 font-display text-3xl font-semibold tracking-tight">{formatPrice(credit)}</p>
+              {movements.length > 0 && (
+                <ul className="mt-5 divide-y divide-line text-sm">
+                  {movements.map((m) => (
+                    <li key={m.id} className="flex items-center justify-between gap-4 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate">{m.reason}</p>
+                        <p className="text-xs text-ink-faint">{m.dateLabel}</p>
+                      </div>
+                      <p className={cn('shrink-0 font-medium', Number(m.amount) < 0 ? 'text-ink-soft' : 'text-success')}>
+                        {Number(m.amount) < 0 ? '- ' : '+ '}{formatPrice(Math.abs(Number(m.amount) || 0))}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {upcoming.length === 0 && past.length === 0 ? (
+            <div className="mj-empty rounded-xl3 border border-line glass p-12 text-center">
+              <CalendarDays size={28} className="mx-auto text-ink-faint" />
+              <p className="mt-4 text-ink-soft">{turnosCopy('my_bookings_empty')}</p>
+            </div>
+          ) : (
+            <>
+              {upcoming.length > 0 && (
+                <div className="mj-panel rounded-xl3 border border-line glass p-6">
+                  <h3 className="font-display text-lg font-semibold">{turnosCopy('my_bookings_upcoming')}</h3>
+                  {upcoming.map((item) => <TurnoRow key={item.token} item={item} />)}
+                </div>
+              )}
+              {past.length > 0 && (
+                <div className="mj-panel rounded-xl3 border border-line glass p-6">
+                  <h3 className="font-display text-lg font-semibold">{turnosCopy('my_bookings_past')}</h3>
+                  {past.map((item) => <TurnoRow key={item.token} item={item} />)}
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
     </Reveal>
   );
 }

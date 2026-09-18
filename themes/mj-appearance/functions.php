@@ -14,7 +14,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_VERSION', '3.19.0');
+define('MJ_VERSION', '3.20.0');
 
 /*
  * Versión de la librería de íconos que usa el panel de ajustes. Se puede fijar
@@ -509,6 +509,34 @@ function mj_spa_handles_path($path) {
 	 */
 	return (bool) apply_filters('mj_spa_handles_path', false, $path, $parts);
 }
+
+/*
+ * MJ Turnos Online: "Mis turnos" vive en Mi cuenta (/cuenta/turnos). Los mails
+ * y la página de cada turno del plugin llevan ahí (filtro mjto_my_bookings_url;
+ * el ajuste "Dirección de Mis turnos" del plugin, si está cargado, manda igual).
+ * La ruta responde 200 solo con las cuentas de clientas prendidas, igual que la
+ * SPA (App.jsx); el noindex ya lo pone la raíz "cuenta" (inc/seo.php).
+ * Sin el plugin, nada de esto se dispara.
+ */
+/**
+ * Ruta de "Mis turnos" dentro de Mi cuenta. Es la del router de la SPA
+ * (App.jsx monta la cuenta en /cuenta), no mj_account_path(): ese ajuste es
+ * adónde se llega después de ingresar y puede ser una subpantalla.
+ */
+function mj_turnos_account_route() {
+	return 'cuenta/turnos';
+}
+
+add_filter('mjto_my_bookings_url', function () {
+	return home_url('/' . mj_turnos_account_route());
+});
+
+add_filter('mj_spa_routes', function ($routes) {
+	if (function_exists('mjto_account_mode') && 'off' !== mjto_account_mode()) {
+		$routes[] = mj_turnos_account_route();
+	}
+	return $routes;
+});
 
 /*
  * Favicon: el ícono del sitio (Ajustes → Generales / Personalizador) si está
