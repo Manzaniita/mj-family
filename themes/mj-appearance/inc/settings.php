@@ -88,6 +88,12 @@ function mj_option_defaults() {
 		'login_remember_default'  => 1,  // "Recordarme" viene marcado.
 		'login_reload'            => 1,  // Recargar la tienda al iniciar/cerrar sesión.
 		'account_path'            => '', // Ruta de "mi cuenta" en la SPA (vacío = /cuenta).
+		/* 3.19 — frenos de los endpoints públicos (inc/rest.php). 0 = sin freno. */
+		'rate_limit_auth'         => 10, // Intentos fallidos de login, registros y recuperaciones por IP en la ventana.
+		'rate_limit_contact'      => 5,  // Envíos del formulario de contacto y newsletter por IP en la ventana.
+		'rate_limit_window'       => 10, // Minutos de la ventana de los contadores.
+		'catalog_stock_quantity'  => 0,  // Publicar la cantidad de stock de cada producto en el buscador (la Store API no lo hace).
+		'catalog_stock_cache'     => 10, // Minutos que se cachea el listado de SKU y stock del catálogo.
 		/* Compra rápida: quien ya tiene sus datos guardados compra sin volver a cargarlos. */
 		'express_checkout'        => 1,  // Ofrecer la compra rápida a quien ya compró antes.
 		'express_auto'            => 1,  // Entrar directo en modo rápido (si no, hay que pedirlo).
@@ -641,6 +647,16 @@ function mj_sanitize_options($input) {
 	$out['session_days']           = min(365, max(0, isset($input['session_days']) ? absint($input['session_days']) : 0));
 	$out['session_days_remember']  = min(365, max(0, isset($input['session_days_remember']) ? absint($input['session_days_remember']) : 0));
 	$out['login_remember_default'] = !empty($input['login_remember_default']) ? 1 : 0;
+
+	/* Frenos de los endpoints públicos: 0 apaga el freno; el tope evita un número absurdo por error. */
+	$out['rate_limit_auth']        = min(1000, max(0, isset($input['rate_limit_auth']) ? absint($input['rate_limit_auth']) : 0));
+	$out['rate_limit_contact']     = min(1000, max(0, isset($input['rate_limit_contact']) ? absint($input['rate_limit_contact']) : 0));
+	$out['rate_limit_window']      = min(1440, max(1, isset($input['rate_limit_window']) ? absint($input['rate_limit_window']) : 10));
+	$out['catalog_stock_quantity'] = !empty($input['catalog_stock_quantity']) ? 1 : 0;
+	$out['catalog_stock_cache']    = min(1440, max(1, isset($input['catalog_stock_cache']) ? absint($input['catalog_stock_cache']) : 10));
+	if (function_exists('mj_catalog_stock_flush')) {
+		mj_catalog_stock_flush();
+	}
 	$out['login_reload']           = !empty($input['login_reload']) ? 1 : 0;
 	$out['express_checkout']       = !empty($input['express_checkout']) ? 1 : 0;
 	$out['express_auto']           = !empty($input['express_auto']) ? 1 : 0;
@@ -1089,6 +1105,38 @@ function mj_render_settings_page() {
 							<label for="mj_session_days_remember">días con "Recordarme" marcado</label>
 						</p>
 						<p class="description">Cuánto dura la sesión de un cliente antes de tener que volver a entrar. 0 = lo que use WordPress (2 días, o 14 con "Recordarme"). Máximo 365. Sin "Recordarme", el navegador además cierra la sesión al cerrarse; con "Recordarme" queda guardada todos los días que pongas acá.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="mj_rate_limit_auth">Freno por IP</label></th>
+					<td>
+						<p style="margin:6px 0;">
+							<input type="number" id="mj_rate_limit_auth" name="mj_options[rate_limit_auth]" value="<?php echo esc_attr((string) (int) $o['rate_limit_auth']); ?>" min="0" max="1000" step="1" class="small-text" />
+							<label for="mj_rate_limit_auth">intentos fallidos de acceso, registros y recuperaciones de contraseña</label>
+						</p>
+						<p style="margin:6px 0;">
+							<input type="number" id="mj_rate_limit_contact" name="mj_options[rate_limit_contact]" value="<?php echo esc_attr((string) (int) $o['rate_limit_contact']); ?>" min="0" max="1000" step="1" class="small-text" />
+							<label for="mj_rate_limit_contact">envíos del formulario de contacto y del newsletter</label>
+						</p>
+						<p style="margin:6px 0;">
+							<input type="number" id="mj_rate_limit_window" name="mj_options[rate_limit_window]" value="<?php echo esc_attr((string) (int) $o['rate_limit_window']); ?>" min="1" max="1440" step="1" class="small-text" />
+							<label for="mj_rate_limit_window">minutos de ventana</label>
+						</p>
+						<p class="description">Cuántos intentos se aceptan desde una misma IP antes de frenarla unos minutos. Protege el acceso de la fuerza bruta y el contacto del spam. 0 = sin freno. Si el sitio está detrás de Cloudflare o un proxy que no reescribe la IP, todas las visitas comparten una y conviene el filtro <code>mj_client_ip</code> (ver <code>CONFIGURACION.md</code>).</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">Stock en el buscador</th>
+					<td>
+						<label for="mj_catalog_stock_quantity">
+							<input type="checkbox" id="mj_catalog_stock_quantity" name="mj_options[catalog_stock_quantity]" value="1" <?php checked((int) $o['catalog_stock_quantity'], 1); ?> />
+							Mostrar la cantidad exacta de stock en los resultados del buscador ("12 en stock").
+						</label>
+						<p style="margin:8px 0 0;">
+							<input type="number" id="mj_catalog_stock_cache" name="mj_options[catalog_stock_cache]" value="<?php echo esc_attr((string) (int) $o['catalog_stock_cache']); ?>" min="1" max="1440" step="1" class="small-text" />
+							<label for="mj_catalog_stock_cache">minutos de caché del listado</label>
+						</p>
+						<p class="description">Desmarcado, el buscador dice solo "En stock" o "Sin stock", que es lo que la tienda de WooCommerce publica. La cantidad es un dato que cualquiera puede leer de la dirección pública. El listado se guarda en caché y se renueva solo cuando cambia un producto o su stock.</p>
 					</td>
 				</tr>
 				<tr>

@@ -121,6 +121,76 @@ function mj_rest_require_login() {
 	return new WP_Error('mj_not_logged_in', 'Tenés que iniciar sesión.', ['status' => 401]);
 }
 
+/* -------------------------------------------------------------------------
+ * Freno por IP para los endpoints públicos
+ *
+ * Login, registro, recuperar contraseña y contacto son puertas abiertas a
+ * cualquiera: sin un tope, un robot prueba contraseñas contra
+ * wp_authenticate() o usa el formulario de contacto como relay de spam. El
+ * contador vive en un transient por IP y por puerta, con la ventana y los
+ * topes de Apariencia → MJ Appearance → Sesión y acceso.
+ *
+ * Solo se mira REMOTE_ADDR: las cabeceras de proxy se falsifican. Detrás de
+ * Cloudflare o un balanceador, el filtro `mj_client_ip` devuelve la IP real
+ * (mismo criterio que MJ Turnos Online).
+ * ---------------------------------------------------------------------- */
+
+/* IP del visitante (o 'unknown' si no hay una válida: todos al mismo cubo). */
+function mj_rest_client_ip() {
+	$ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+	$ip = (string) apply_filters('mj_client_ip', $ip);
+	return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : 'unknown';
+}
+
+/* Tope de intentos de una puerta ('auth' | 'contact'); 0 = sin freno. */
+function mj_rest_rate_limit($bucket) {
+	$options = mj_get_options();
+	$key     = 'contact' === $bucket ? 'rate_limit_contact' : 'rate_limit_auth';
+	$limit   = isset($options[$key]) ? (int) $options[$key] : 0;
+	return max(0, (int) apply_filters('mj_rest_rate_limit', $limit, $bucket));
+}
+
+/* Ventana del contador, en segundos. */
+function mj_rest_rate_window() {
+	$options = mj_get_options();
+	$minutes = isset($options['rate_limit_window']) ? (int) $options['rate_limit_window'] : 10;
+	return max(1, $minutes) * MINUTE_IN_SECONDS;
+}
+
+function mj_rest_rate_key($bucket) {
+	return 'mj_rl_' . sanitize_key($bucket) . '_' . md5(mj_rest_client_ip());
+}
+
+/* ¿Esta IP ya llegó al tope de esa puerta? Devuelve el WP_Error 429 listo, o null. */
+function mj_rest_rate_limited($bucket) {
+	$limit = mj_rest_rate_limit($bucket);
+	if ($limit <= 0) {
+		return null;
+	}
+	if ((int) get_transient(mj_rest_rate_key($bucket)) < $limit) {
+		return null;
+	}
+	return new WP_Error(
+		'mj_rate_limited',
+		'Demasiados intentos. Esperá unos minutos y volvé a probar.',
+		['status' => 429]
+	);
+}
+
+/* Suma un intento de esa puerta para esta IP. */
+function mj_rest_rate_hit($bucket) {
+	if (mj_rest_rate_limit($bucket) <= 0) {
+		return;
+	}
+	$key = mj_rest_rate_key($bucket);
+	set_transient($key, ((int) get_transient($key)) + 1, mj_rest_rate_window());
+}
+
+/* Un login correcto limpia el contador: los intentos fallidos eran de esa misma persona. */
+function mj_rest_rate_reset($bucket) {
+	delete_transient(mj_rest_rate_key($bucket));
+}
+
 /* Claves permitidas por grupo de dirección (sin el prefijo billing_/shipping_). */
 function mj_address_fields($type) {
 	$fields = ['first_name', 'last_name', 'company', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country'];
@@ -183,6 +253,11 @@ function mj_rest_session(WP_REST_Request $request) {
  * 401 y parece que la sesión "no se recordó".
  */
 function mj_rest_login(WP_REST_Request $request) {
+	$limited = mj_rest_rate_limited('auth');
+	if ($limited) {
+		return $limited;
+	}
+
 	$username = (string) $request->get_param('username');
 	$password = (string) $request->get_param('password');
 
@@ -193,8 +268,11 @@ function mj_rest_login(WP_REST_Request $request) {
 
 	$user = wp_authenticate($username, $password);
 	if (is_wp_error($user)) {
+		/* Cuentan solo los fallidos: quien entra bien no gasta cupo. */
+		mj_rest_rate_hit('auth');
 		return new WP_Error('mj_invalid_credentials', 'Credenciales inválidas.', ['status' => 401]);
 	}
+	mj_rest_rate_reset('auth');
 
 	wp_set_current_user($user->ID);
 	wp_set_auth_cookie($user->ID, $remember);
@@ -210,6 +288,13 @@ function mj_rest_register(WP_REST_Request $request) {
 	if ('yes' !== get_option('woocommerce_enable_myaccount_registration')) {
 		return new WP_Error('mj_registration_disabled', 'El registro de cuentas está deshabilitado.', ['status' => 403]);
 	}
+
+	/* Cada intento cuenta, salga bien o mal: crear cuentas en serie es el abuso que se frena. */
+	$limited = mj_rest_rate_limited('auth');
+	if ($limited) {
+		return $limited;
+	}
+	mj_rest_rate_hit('auth');
 
 	$email      = sanitize_email((string) $request->get_param('email'));
 	$password   = (string) $request->get_param('password');
@@ -274,6 +359,13 @@ function mj_rest_logout(WP_REST_Request $request) {
 
 /* POST /auth/recover {login} — SIEMPRE {ok:true} (anti-enumeración). */
 function mj_rest_recover(WP_REST_Request $request) {
+	/* Sin freno, cada pedido dispara un mail: es la puerta más fácil de usar para molestar. */
+	$limited = mj_rest_rate_limited('auth');
+	if ($limited) {
+		return $limited;
+	}
+	mj_rest_rate_hit('auth');
+
 	$login = sanitize_text_field((string) $request->get_param('login'));
 
 	if ('' !== $login) {
@@ -587,6 +679,21 @@ function mj_rest_order_cancel(WP_REST_Request $request) {
 
 /* POST /contact {kind: 'contact'|'newsletter', name?, email, message?} */
 function mj_rest_contact(WP_REST_Request $request) {
+	/*
+	 * Honeypot: la SPA manda un campo `website` oculto que una persona nunca
+	 * completa. Si viene con algo, es un robot: se le contesta "ok" para que no
+	 * insista con otra variante, y no se manda nada.
+	 */
+	if ('' !== trim((string) $request->get_param('website'))) {
+		mj_rest_rate_hit('contact');
+		return rest_ensure_response(['ok' => true]);
+	}
+
+	$limited = mj_rest_rate_limited('contact');
+	if ($limited) {
+		return $limited;
+	}
+
 	$kind    = 'newsletter' === $request->get_param('kind') ? 'newsletter' : 'contact';
 	$name    = sanitize_text_field((string) $request->get_param('name'));
 	$email   = sanitize_email((string) $request->get_param('email'));
@@ -595,6 +702,9 @@ function mj_rest_contact(WP_REST_Request $request) {
 	if (!is_email($email)) {
 		return new WP_Error('mj_invalid_email', 'Ingresá un email válido.', ['status' => 400]);
 	}
+
+	/* Cuenta recién acá: un email mal escrito no gasta cupo, un envío sí. */
+	mj_rest_rate_hit('contact');
 
 	$options = mj_get_options();
 	$to      = !empty($options['contact_email']) ? $options['contact_email'] : get_option('admin_email');
@@ -640,24 +750,78 @@ function mj_stock_data($product) {
 }
 
 /* GET /catalog-stock → [{id, sku, stock_quantity}] de todo el catálogo publicado.
+ *
  * Lo consume la SPA al cargar el catálogo: la Store API expone el SKU pero no
- * la cantidad de stock, y el buscador la muestra en cada resultado. */
+ * la cantidad de stock. La cantidad viaja solo si el ajuste "Mostrar la
+ * cantidad de stock en el buscador" está prendido: la Store API no la publica
+ * a propósito, y sin ella el buscador dice "En stock" / "Sin stock", que es lo
+ * que sabe por la Store API.
+ *
+ * Es público y lo pide cada visitante en su primera carga, así que no
+ * instancia productos: lee la tabla de búsqueda de WooCommerce
+ * (wc_product_meta_lookup) en una consulta, y el resultado queda en un
+ * transient que se vacía cuando cambia un producto o su stock. */
 function mj_rest_catalog_stock() {
+	global $wpdb;
+
 	if (!function_exists('wc_get_products')) {
 		return new WP_Error('mj_no_woo', 'WooCommerce no está disponible.', ['status' => 404]);
 	}
 
-	$out = [];
-	foreach (wc_get_products(['limit' => -1, 'status' => 'publish']) as $product) {
-		$out[] = [
-			'id'             => $product->get_id(),
-			'sku'            => (string) $product->get_sku(),
-			'stock_quantity' => $product->get_manage_stock() ? $product->get_stock_quantity() : null,
-		];
+	$options  = mj_get_options();
+	$with_qty = !empty($options['catalog_stock_quantity']);
+	$minutes  = max(1, (int) $options['catalog_stock_cache']);
+	$key      = 'mj_catalog_stock_' . ($with_qty ? 'qty' : 'sku');
+
+	$out = get_transient($key);
+	if (!is_array($out)) {
+		$lookup = $wpdb->prefix . 'wc_product_meta_lookup';
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- nombres de tabla de WordPress y WooCommerce, no del visitante.
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare(
+				"SELECT l.product_id, l.sku, l.stock_quantity
+				FROM {$lookup} l INNER JOIN {$wpdb->posts} p ON p.ID = l.product_id
+				WHERE p.post_type = %s AND p.post_status = %s
+				ORDER BY l.product_id ASC",
+				'product',
+				'publish'
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		$out = [];
+		foreach ((array) $rows as $row) {
+			$item = [
+				'id'  => (int) $row['product_id'],
+				'sku' => (string) $row['sku'],
+			];
+			if ($with_qty) {
+				$item['stock_quantity'] = null === $row['stock_quantity'] ? null : (int) $row['stock_quantity'];
+			}
+			$out[] = $item;
+		}
+		set_transient($key, $out, $minutes * MINUTE_IN_SECONDS);
 	}
 
-	return rest_ensure_response($out);
+	$response = rest_ensure_response($out);
+	$response->header('Cache-Control', 'public, max-age=' . ($minutes * MINUTE_IN_SECONDS));
+	return $response;
 }
+
+/* El catálogo cacheado se vacía apenas cambia un producto o su stock. */
+function mj_catalog_stock_flush() {
+	delete_transient('mj_catalog_stock_qty');
+	delete_transient('mj_catalog_stock_sku');
+}
+add_action('woocommerce_product_set_stock', 'mj_catalog_stock_flush');
+add_action('woocommerce_variation_set_stock', 'mj_catalog_stock_flush');
+add_action('woocommerce_product_set_stock_status', 'mj_catalog_stock_flush');
+add_action('woocommerce_update_product', 'mj_catalog_stock_flush');
+add_action('woocommerce_new_product', 'mj_catalog_stock_flush');
+add_action('woocommerce_delete_product', 'mj_catalog_stock_flush');
+add_action('woocommerce_trash_product', 'mj_catalog_stock_flush');
+add_action('save_post_product', 'mj_catalog_stock_flush');
 
 /* GET /product-stock/{id} → stock del producto + precio/stock de variaciones. */
 function mj_rest_product_stock(WP_REST_Request $request) {

@@ -191,7 +191,8 @@ export function Contact() {
  * de una página de WordPress, que puede apagar cada parte.
  */
 export function ContactPanel({ showForm = true, showChannels = true, showMap = true }) {
-  const [form, setForm] = useState({ name: '', email: '', message: '' });
+  // `website` es el honeypot: un campo oculto que una persona nunca completa. Si llega con algo, el servidor lo descarta.
+  const [form, setForm] = useState({ name: '', email: '', message: '', website: '' });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -207,8 +208,9 @@ export function ContactPanel({ showForm = true, showChannels = true, showMap = t
         name: form.name.trim(),
         email: form.email.trim(),
         message: form.message.trim(),
+        website: form.website,
       });
-      setForm({ name: '', email: '', message: '' });
+      setForm({ name: '', email: '', message: '', website: '' });
       setSent(true);
     } catch (err) {
       setError(err?.data?.message || 'No se pudo enviar el mensaje. Probá de nuevo en unos minutos.');
@@ -245,11 +247,24 @@ export function ContactPanel({ showForm = true, showChannels = true, showMap = t
               </div>
             </div>
           ) : (
-            <form className="grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
+            <form className="relative grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>
               <Input label="Nombre" placeholder="Tu nombre" value={form.name} onChange={set('name')} required />
               <Input label="Email" type="email" placeholder="tu@email.com" value={form.email} onChange={set('email')} required />
               <div className="sm:col-span-2">
                 <Textarea label="Mensaje" placeholder="Contanos…" value={form.message} onChange={set('message')} required />
+              </div>
+              {/* Honeypot anti-spam: fuera de la vista y del tab; los robots lo completan igual. */}
+              <div className="absolute -left-[9999px] top-0 h-px w-px overflow-hidden" aria-hidden="true">
+                <label htmlFor="mj-contact-website">Sitio web</label>
+                <input
+                  id="mj-contact-website"
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={form.website}
+                  onChange={set('website')}
+                />
               </div>
               {error && (
                 <div className="flex items-start gap-3 rounded-xl2 border border-danger/30 bg-danger/10 p-4 text-sm text-danger sm:col-span-2">

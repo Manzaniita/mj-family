@@ -3,7 +3,7 @@ Theme Name: GlossyHair
 Author: MJ
 Description: Tema hijo de MJ Appearance para GlossyHair — salón de alisados profesionales que también vende productos de cuidado capilar. Skin "glossy": blanco de día y ciruela profunda de noche, acento fucsia con un degradado fucsia → rosa → durazno que brilla en el hero, tipografía sans moderna (Urbanist para los títulos, Manrope para el texto), esquinas generosas, botones pill con reflejo y sombras rosadas. Propone los textos de cada pantalla para un salón que vende productos (portada, tienda como "Productos", pie, menú, "Sobre mí") y, con el plugin MJ Turnos Online activo, los de la reserva de turnos y la página de tratamientos, además de un orden de portada pensado para el salón (tratamientos, reserva, sobre mí y después los productos). Hereda toda la lógica del padre (ajustes, REST, frontend React); todo se sigue ajustando desde Apariencia → MJ Appearance y Turnos → Ajustes.
 Template: mj-appearance
-Version: 1.1.0
+Version: 1.1.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: mj-glossyhair

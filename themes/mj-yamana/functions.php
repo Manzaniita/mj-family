@@ -22,7 +22,7 @@ defined('ABSPATH') || exit;
 define('MJ_YAMANA_VERSION', '1.1.0');
 
 /* Versión mínima del tema padre (la que trae la API de skins). */
-define('MJ_YAMANA_REQUIRES', '3.6.0');
+define('MJ_YAMANA_REQUIRES', '3.19.0');
 
 /* Identidad de la skin: <html data-skin="yamana"> y window.MJ.skin. */
 add_filter('mj_skin', fn () => 'yamana');

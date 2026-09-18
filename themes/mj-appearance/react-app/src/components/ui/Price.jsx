@@ -1,5 +1,5 @@
 import { formatPrice, formatUsd, cn } from '@/lib/format';
-import { EXCHANGE_RATE } from '@/lib/config';
+import { EXCHANGE_RATE, WP } from '@/lib/config';
 import { PAY, useSelectedMethod, priceFor } from '@/lib/payments';
 
 /**
@@ -59,6 +59,12 @@ export function Price({ product, size = 'md', className, showUsd, method }) {
           )}
         >
           {formatUsd(usd)}
+        </span>
+      )}
+      {/* Plugin MJ ERP: un revendedor con sesión ve el precio de su lista, y se le avisa (window.MJ.resellerPriceNotice). */}
+      {size === 'lg' && WP?.resellerPriceNotice && (
+        <span className="mj-price__notice basis-full mt-1 text-xs font-medium text-accent">
+          {WP.resellerPriceNotice}
         </span>
       )}
     </div>

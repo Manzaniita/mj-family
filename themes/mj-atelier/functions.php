@@ -21,7 +21,7 @@ defined('ABSPATH') || exit;
 define('MJ_ATELIER_VERSION', '1.1.0');
 
 /* Versión mínima del tema padre (la que trae la API de skins). */
-define('MJ_ATELIER_REQUIRES', '3.6.0');
+define('MJ_ATELIER_REQUIRES', '3.19.0');
 
 /* Identidad de la skin: <html data-skin="atelier"> y window.MJ.skin. */
 add_filter('mj_skin', fn () => 'atelier');
