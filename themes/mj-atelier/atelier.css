@@ -44,12 +44,16 @@
 
 /* --------------------------------------------------------------------------
  * 2. Paletas derivadas (superficies, líneas, estados) con tinte cálido
+ *
+ * Las líneas son hairlines a propósito, pero tienen que verse: acá el borde es
+ * lo único que separa una tarjeta del papel (no hay sombra ni vidrio), así que
+ * por debajo de esto las cajas del checkout desaparecían contra el fondo.
  * -------------------------------------------------------------------------- */
 [data-theme='light'] {
-	--mj-surface: rgb(28 25 23 / 0.035);
-	--mj-surface-2: rgb(28 25 23 / 0.06);
-	--mj-line: rgb(28 25 23 / 0.12);
-	--mj-line-strong: rgb(28 25 23 / 0.26);
+	--mj-surface: rgb(28 25 23 / 0.05);
+	--mj-surface-2: rgb(28 25 23 / 0.08);
+	--mj-line: rgb(28 25 23 / 0.18);
+	--mj-line-strong: rgb(28 25 23 / 0.34);
 	--mj-success: #2f6b3a;
 	--mj-warning: #9a5b12;
 	--mj-danger: #b3313f;
@@ -63,10 +67,10 @@
 }
 
 [data-theme='dark'] {
-	--mj-surface: rgb(255 248 238 / 0.04);
-	--mj-surface-2: rgb(255 248 238 / 0.07);
-	--mj-line: rgb(255 248 238 / 0.11);
-	--mj-line-strong: rgb(255 248 238 / 0.24);
+	--mj-surface: rgb(255 248 238 / 0.06);
+	--mj-surface-2: rgb(255 248 238 / 0.10);
+	--mj-line: rgb(255 248 238 / 0.16);
+	--mj-line-strong: rgb(255 248 238 / 0.32);
 	--mj-success: #8fd3a0;
 	--mj-warning: #e2b06b;
 	--mj-danger: #f08a95;
@@ -150,6 +154,15 @@ h1.display,
 	letter-spacing: 0.26em;
 	font-weight: 600;
 	font-size: 10px;
+}
+
+/*
+ * La etiqueta de un campo no es un adorno: dice qué hay que escribir ahí. Con
+ * el tracking editorial a 10px se leía peor que el resto del formulario.
+ */
+.mj-field__label {
+	letter-spacing: 0.14em;
+	font-size: 11px;
 }
 
 .mj-card__title {

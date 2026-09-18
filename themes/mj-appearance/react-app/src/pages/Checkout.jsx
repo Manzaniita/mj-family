@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Lock, Check, ChevronLeft, Loader2, AlertCircle, Zap, Pencil, Wallet } from 'lucide-react';
+import { Lock, Check, ChevronLeft, CreditCard, Loader2, AlertCircle, Zap, Pencil, Wallet } from 'lucide-react';
 import { Section } from '@/components/layout/Layout';
 import { Input, Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -16,7 +16,17 @@ import { IS_WP, WP, EXCHANGE_RATE, EXPRESS } from '@/lib/config';
 import * as wc from '@/lib/wc';
 import { formatPrice, formatUsd, isValidCuit, cn } from '@/lib/format';
 import { PAY, usePaymentMethod, selectedMethodId, findMethod, resolveAdjustment, usdTotalFor } from '@/lib/payments';
-import { billingFromShipping, formFields, hasShipping, methodBySlug, missingFor, shippingTexts } from '@/lib/envios';
+import {
+  billingFromShipping,
+  forgetQuote,
+  formFields,
+  gatewaysFor,
+  hasShipping,
+  methodBySlug,
+  missingFor,
+  rememberedQuote,
+  shippingTexts,
+} from '@/lib/envios';
 import { usePageMeta } from '@/lib/seo';
 import { validateAll, focusFirstError } from '@/lib/validate';
 import { t as tCopy, tf, tx } from '@/lib/copy';
@@ -270,6 +280,7 @@ export default function Checkout() {
    * las dos apuntan al mismo lugar y esto queda sin usar.
    */
   const [envio, setEnvio] = useState({ address: '', address2: '', city: '', state: '', postcode: '' });
+
   // Paso 4 · Facturación. fiscalCfg = config del emisor según el plugin
   // (null = plugin inactivo o todavía no respondió → el paso no se muestra).
   const [fiscalCfg, setFiscalCfg] = useState(null);
@@ -408,7 +419,25 @@ export default function Checkout() {
   const usdTotal = usdTotalFor(total, payMethod);
   const shippingRates = shippingRatesRaw;
   const chosenRate = shippingRates.find((r) => r.selected) ?? null;
+
+  /*
+   * Con qué se puede pagar el envío elegido.
+   *
+   * El envío se elige antes que el pago y es el que manda: un método que pide
+   * transferencia deja el paso de pago solo con transferencia, y se dice por
+   * qué. Al revés —esconder el envío porque el medio no corresponde— el cliente
+   * ve una opción que al tocarla vuelve sola para atrás y nadie entiende nada.
+   * La regla y su texto salen de MJ Envíos; sin el plugin no sobra nada.
+   */
+  const gateways = useMemo(() => gatewaysFor(chosenRate, paymentMethods), [chosenRate]);
+  const payNote = gateways.length < paymentMethods.length ? chosenRate?.payments?.note || '' : '';
   const noGateways = IS_WP && paymentMethods.length === 0;
+
+  /* El medio que había elegido puede no servir para el envío que eligió después. */
+  useEffect(() => {
+    if (!gateways.length || gateways.some((m) => m.id === payment)) return;
+    choosePayment(gateways[0].id);
+  }, [gateways, payment]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Tipo de comprobante resultante (misma lógica que el plugin): emisor RI
   // deja elegir A/B salvo config forzada; monotributo/exento siempre emite C.
@@ -456,6 +485,17 @@ export default function Checkout() {
       return next;
     });
   };
+
+  /*
+   * El código postal que el cliente ya usó para cotizar en la ficha del
+   * producto. Entra como destino del envío —nunca como dirección de la
+   * factura— y solo si todavía no cargó otro: el último que escribió él manda.
+   */
+  useEffect(() => {
+    const cp = rememberedQuote()?.cp;
+    if (!cp) return;
+    setDestino((f) => (String(f.postcode || '').trim() ? f : { ...f, postcode: cp }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [touched, setTouched] = useState({});
   /*
@@ -688,6 +728,8 @@ export default function Checkout() {
         return;
       }
       setOrderId(order?.order_id ?? null);
+      /* El envío que venía elegido desde la ficha ya cumplió: no vale para la próxima compra. */
+      forgetQuote();
       setPlacedMethod(payMethod);
       setPlacedUsd(usdTotal);
       setPlaced(true);
@@ -824,7 +866,13 @@ export default function Checkout() {
               </div>
             ) : (
             <div className="mt-5 space-y-3">
-              {paymentMethods.map((m) => (
+              {payNote && (
+                <p className="flex items-start gap-2 rounded-xl2 border border-line bg-surface p-3 text-xs text-ink-soft" aria-live="polite">
+                  <CreditCard size={14} className="mt-px shrink-0" aria-hidden="true" />
+                  {payNote}
+                </p>
+              )}
+              {gateways.map((m) => (
                 <button
                   type="button"
                   key={m.id}

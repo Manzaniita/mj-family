@@ -166,9 +166,19 @@ function mj_app_config() {
 	$woo     = class_exists('WooCommerce');
 	$options = mj_get_options();
 
-	/* Medios de pago disponibles (gateways habilitados en WooCommerce). */
+	/*
+	 * Medios de pago disponibles (gateways habilitados en WooCommerce).
+	 *
+	 * La lista se arma una sola vez, al cargar la página, y después la tienda
+	 * cambia de envío sin recargar. Por eso se pide ENTERA: MJ Envíos recorta
+	 * los medios según el envío que haya en la sesión, y con la lista recortada
+	 * los medios que se fueron no volverían nunca. El recorte lo hace el
+	 * checkout, que sí sabe qué envío está elegido ahora (ver el filtro
+	 * mje_filter_gateways). Sin el plugin, el filtro no existe y no cambia nada.
+	 */
 	$gateways = [];
 	if ($woo && function_exists('WC') && WC()->payment_gateways()) {
+		add_filter('mje_filter_gateways', '__return_false');
 		foreach (WC()->payment_gateways()->get_available_payment_gateways() as $id => $gw) {
 			$gateways[] = [
 				'id'          => $id,
@@ -176,6 +186,7 @@ function mj_app_config() {
 				'description' => wp_strip_all_tags($gw->get_description() ?: ''),
 			];
 		}
+		remove_filter('mje_filter_gateways', '__return_false');
 	}
 
 	/* Moneda de la tienda (defaults ARS si WooCommerce está inactivo). */

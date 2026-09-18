@@ -1,6 +1,8 @@
 import { cn } from '@/lib/format';
 
-const labelCls = 'mj-field__label mb-1.5 block text-xs font-medium uppercase tracking-wider text-ink-faint';
+/* La etiqueta dice qué va en el campo: va con el texto secundario, no con el tenue,
+   que está pensado para lo que se puede ignorar sin perderse nada. */
+const labelCls = 'mj-field__label mb-1.5 block text-xs font-medium uppercase tracking-wider text-ink-soft';
 const fieldCls =
   'mj-input w-full rounded-(--mj-radius-input) border border-line bg-surface px-4 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-accent/60 focus:bg-surface-2 outline-none';
 

@@ -19,6 +19,7 @@ import {
   cpLooksValid,
   debounce,
   formFields,
+  rememberedQuote,
 } from '@/lib/envios';
 
 /**
@@ -212,6 +213,24 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
     if (rate.slug) await syncShipping({ method: rate.slug, fields: allFields() });
     setBusy(false);
   };
+
+  /*
+   * El envío que el cliente dejó elegido en la ficha del producto.
+   *
+   * Se aplica una sola vez, cuando llegan las tarifas de su destino: ya comparó
+   * allá, no tiene por qué volver a hacerlo. Si ese envío no está en la lista
+   * (cambió el carrito, o el destino), queda el que eligió WooCommerce y no
+   * pasa nada. Una sola vez también quiere decir que si después elige otro, no
+   * se lo volvemos a cambiar.
+   */
+  const applied = useRef(false);
+  useEffect(() => {
+    if (applied.current || rates.length === 0) return;
+    applied.current = true;
+    const slug = rememberedQuote()?.slug;
+    const wanted = slug ? rates.find((r) => r.slug === slug) : null;
+    if (wanted && !wanted.selected) chooseRate(wanted);
+  }, [rates]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Autocompletado de localidad cuando el CP no está en la tabla. */
   const searchCities = useRef(

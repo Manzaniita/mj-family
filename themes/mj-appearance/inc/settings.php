@@ -64,6 +64,14 @@ function mj_option_defaults() {
 		'color_ink_dark'          => '',
 		'color_bg_light'          => '',
 		'color_ink_light'         => '',
+		/*
+		 * Cuánto se ve el texto que no es el principal, en porcentaje del color
+		 * de texto elegido. Son los dos escalones de abajo: `soft` para
+		 * descripciones y bajadas, `faint` para etiquetas, plazos y ayudas.
+		 * Bajos, el texto chico se camufla con el fondo; por eso el piso es 40.
+		 */
+		'ink_soft'                => 78,
+		'ink_faint'               => 58,
 		'font_display'            => '',
 		'font_sans'               => '',
 		/* 3.4 — logo, marca, textos, portada y legales. */
@@ -1276,6 +1284,10 @@ function mj_sanitize_options($input) {
 		$out[$color_key] = $hex ? $hex : '';
 	}
 
+	/* Fuerza del texto secundario: sin piso, un 10 % deja la tienda ilegible. */
+	$out['ink_soft']  = min(100, max(40, isset($input['ink_soft']) ? absint($input['ink_soft']) : 78));
+	$out['ink_faint'] = min($out['ink_soft'], max(30, isset($input['ink_faint']) ? absint($input['ink_faint']) : 58));
+
 	foreach (['font_display', 'font_sans'] as $font_key) {
 		$font = isset($input[$font_key]) ? sanitize_text_field((string) $input[$font_key]) : '';
 		$out[$font_key] = in_array($font, mj_font_choices(), true) ? $font : '';
@@ -1639,6 +1651,20 @@ function mj_render_settings_page() {
 						<?php endforeach; ?>
 						<button type="button" class="button mj-color-reset" style="margin-top:6px;">Restaurar colores por defecto</button>
 						<p class="description">Los tonos secundarios (fondos suaves, bordes, glow) se derivan automáticamente de estos colores. Con un tema hijo activo, "por defecto" es la paleta de ese tema hijo.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">Fuerza del texto secundario</th>
+					<td>
+						<p style="display:flex; align-items:center; gap:10px; margin:6px 0;">
+							<input type="number" id="mj_ink_soft" name="mj_options[ink_soft]" value="<?php echo esc_attr((int) $o['ink_soft']); ?>" min="40" max="100" step="1" style="width:80px;" />
+							<label for="mj_ink_soft">Descripciones y bajadas (%)</label>
+						</p>
+						<p style="display:flex; align-items:center; gap:10px; margin:6px 0;">
+							<input type="number" id="mj_ink_faint" name="mj_options[ink_faint]" value="<?php echo esc_attr((int) $o['ink_faint']); ?>" min="30" max="100" step="1" style="width:80px;" />
+							<label for="mj_ink_faint">Etiquetas, plazos y ayudas (%)</label>
+						</p>
+						<p class="description">Cuánto del color de texto se usa para lo que no es el texto principal. Más bajo, más delicado; demasiado bajo, las palabras se camuflan con el fondo. Con paletas de poco contraste (marfil sobre papel, marfil sobre carbón) conviene no bajar de 75 y 55.</p>
 					</td>
 				</tr>
 				<tr>

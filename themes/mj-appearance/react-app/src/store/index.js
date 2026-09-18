@@ -81,6 +81,8 @@ function mapServerShipping(cart) {
         carrierKey: own.carrierKey ?? '',
         badges: Array.isArray(own.badges) ? own.badges : [],
         needsBranch: own.needsBranch ?? false,
+        // Con qué medios se puede pagar este envío: { allow: [ids], tag, note }. Vacío = con cualquiera.
+        payments: own.payments ?? null,
       };
     })
   );

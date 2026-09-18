@@ -755,6 +755,52 @@ que está ahí mismo y volvé a mirar.
 Andreani que sale $0 sin que hayas puesto envío gratis, un pedido que el panel
 de Andreani no reconoce, o el checkout que se queda pensando al elegir sucursal.
 
+## 12. MJ Envíos 1.10: el envío que pide cierta forma de pago
+
+En **MJ Importaciones**. Necesitás un método con *Medios de pago → Solo con
+estos* y un solo medio marcado (por ejemplo, transferencia).
+
+1. **Se ofrece igual, con el cartel.** En el checkout elegí **otro** medio de
+   pago (efectivo) y mirá la lista de envíos.
+   **Qué tiene que pasar:** el envío está, se puede elegir, y abajo del nombre
+   dice con qué se puede pagar. **No** puede pasar que la opción se marque y
+   vuelva sola al envío anterior: ese era el problema que esto arregla.
+2. **Elegirlo recorta el pago.** Elegí ese envío y bajá al paso de pago.
+   **Qué tiene que pasar:** quedan solo los medios que acepta, con el aviso
+   arriba explicando por qué, y el que estaba elegido cambió solo al permitido.
+   Los precios de la tienda acompañan el cambio.
+3. **Volver atrás devuelve los medios.** Elegí de nuevo un envío sin regla (el
+   retiro en el local).
+   **Qué tiene que pasar:** vuelven todos los medios de pago, sin recargar la
+   página. Recargá igual: siguen todos.
+4. **El comportamiento viejo sigue disponible.** En *Ajustes → General → Envío y
+   medio de pago que no combinan* elegí *No ofrecer ese envío* y volvé al
+   checkout con el medio que no corresponde.
+   **Qué tiene que pasar:** ese envío no aparece. Volvelo a *Mostrarlo igual y
+   avisar* antes de seguir.
+5. **Dejar elegido desde la ficha.** Con *Ajustes → Textos → Cotizador →
+   Dejar elegido* prendido, entrá a un producto, cotizá tu código postal y tocá
+   una opción.
+   **Qué tiene que pasar:** queda marcada y aparece la confirmación. Agregá el
+   producto al carrito y andá al checkout: el código postal ya está puesto (y
+   **no** cambió la dirección de facturación de tu cuenta) y ese envío está
+   elegido. Cambiá el envío a mano: no se vuelve a cambiar solo.
+6. **La foto acompaña.** En la ficha de un producto, en una pantalla ancha,
+   scrolleá hasta la descripción.
+   **Qué tiene que pasar:** la foto baja con el panel de compra en vez de dejar
+   la mitad izquierda en blanco, y se suelta al llegar a la descripción. En una
+   pantalla baja tiene que entrar entera, con sus miniaturas, sin quedar cortada.
+7. **Se lee.** Mirá el checkout y la ficha en modo día y en modo noche.
+   **Qué tiene que pasar:** las etiquetas («QUIÉN RECIBE»), los plazos y las
+   ayudas se leen sin esforzar la vista, y los bordes de las cajas se ven. El
+   desplegable de sucursales tiene el texto sobre un fondo opaco, no marfil
+   sobre blanco. Si algo sigue flojo, subí *MJ Appearance → Diseño y marca →
+   Fuerza del texto secundario*.
+
+**Señal de que algo está mal:** una opción de envío que no se deja marcar, un
+medio de pago que desapareció y no vuelve, o un pedido que WooCommerce rechaza
+por «medio de pago no disponible».
+
 ## Cuando termines
 
 1. Volvé los registros a **Solo los errores**.

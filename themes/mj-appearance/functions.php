@@ -14,7 +14,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_VERSION', '3.29.0');
+define('MJ_VERSION', '3.30.0');
 
 /*
  * Versión de la librería de íconos que usa el panel de ajustes. Se puede fijar
@@ -245,6 +245,24 @@ function mj_design_var_sets() {
 	$dark  = [];
 	$light = [];
 
+	/*
+	 * Los dos escalones del texto secundario, en tanto por uno del color de
+	 * texto. Salen de un ajuste y no de un número acá: una paleta de mucho
+	 * contraste (blanco sobre negro) aguanta valores bajos, y una delicada
+	 * (marfil sobre papel) necesita subirlos o las palabras se camuflan.
+	 */
+	$soft  = round(max(40, min(100, (int) $o['ink_soft'])) / 100, 2);
+	$faint = round(max(30, min(100, (int) $o['ink_faint'])) / 100, 2);
+
+	/*
+	 * El color de texto, aunque nadie haya elegido uno: el ajuste de fuerza
+	 * tiene que valer también en una tienda que dejó la paleta como vino. Con
+	 * un tema hijo activo, el que "vino" ya es el de la skin.
+	 */
+	$base_colors = mj_color_defaults();
+	$ink_dark    = '' !== $o['color_ink_dark'] ? $o['color_ink_dark'] : $base_colors['color_ink_dark'];
+	$ink_light   = '' !== $o['color_ink_light'] ? $o['color_ink_light'] : $base_colors['color_ink_light'];
+
 	if ($rgb = mj_hex_rgb($o['color_accent'])) {
 		$base    = "{$rgb[0]} {$rgb[1]} {$rgb[2]}";
 		$dark[]  = "--mj-accent: {$o['color_accent']}";
@@ -258,21 +276,21 @@ function mj_design_var_sets() {
 		$dark[] = "--mj-bg: {$o['color_bg_dark']}";
 		$dark[] = '--mj-bg-soft: ' . mj_shade($rgb, 0.04);
 	}
-	if ($rgb = mj_hex_rgb($o['color_ink_dark'])) {
+	if ($rgb = mj_hex_rgb($ink_dark)) {
 		$base   = "{$rgb[0]} {$rgb[1]} {$rgb[2]}";
-		$dark[] = "--mj-ink: {$o['color_ink_dark']}";
-		$dark[] = "--mj-ink-soft: rgb({$base} / 0.64)";
-		$dark[] = "--mj-ink-faint: rgb({$base} / 0.38)";
+		$dark[] = "--mj-ink: {$ink_dark}";
+		$dark[] = "--mj-ink-soft: rgb({$base} / {$soft})";
+		$dark[] = "--mj-ink-faint: rgb({$base} / {$faint})";
 	}
 	if ($rgb = mj_hex_rgb($o['color_bg_light'])) {
 		$light[] = "--mj-bg: {$o['color_bg_light']}";
 		$light[] = '--mj-bg-soft: ' . mj_shade($rgb, -0.05);
 	}
-	if ($rgb = mj_hex_rgb($o['color_ink_light'])) {
+	if ($rgb = mj_hex_rgb($ink_light)) {
 		$base    = "{$rgb[0]} {$rgb[1]} {$rgb[2]}";
-		$light[] = "--mj-ink: {$o['color_ink_light']}";
-		$light[] = "--mj-ink-soft: rgb({$base} / 0.62)";
-		$light[] = "--mj-ink-faint: rgb({$base} / 0.38)";
+		$light[] = "--mj-ink: {$ink_light}";
+		$light[] = "--mj-ink-soft: rgb({$base} / {$soft})";
+		$light[] = "--mj-ink-faint: rgb({$base} / {$faint})";
 	}
 
 	/*

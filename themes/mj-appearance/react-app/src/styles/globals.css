@@ -96,8 +96,8 @@
   --mj-line: rgb(255 255 255 / 0.08);
   --mj-line-strong: rgb(255 255 255 / 0.16);
   --mj-ink: #f5f5f7;
-  --mj-ink-soft: rgb(245 245 247 / 0.64);
-  --mj-ink-faint: rgb(245 245 247 / 0.38);
+  --mj-ink-soft: rgb(245 245 247 / 0.78);
+  --mj-ink-faint: rgb(245 245 247 / 0.58);
   --mj-accent: #6e6bff;
   --mj-accent-soft: rgb(110 107 255 / 0.14);
   --mj-accent-glow: rgb(110 107 255 / 0.35);
@@ -118,8 +118,8 @@
   --mj-line: rgb(10 10 12 / 0.08);
   --mj-line-strong: rgb(10 10 12 / 0.16);
   --mj-ink: #0a0a0c;
-  --mj-ink-soft: rgb(10 10 12 / 0.62);
-  --mj-ink-faint: rgb(10 10 12 / 0.38);
+  --mj-ink-soft: rgb(10 10 12 / 0.78);
+  --mj-ink-faint: rgb(10 10 12 / 0.58);
   --mj-accent: #5a57e8;
   --mj-accent-soft: rgb(90 87 232 / 0.1);
   --mj-accent-glow: rgb(90 87 232 / 0.25);
@@ -340,6 +340,21 @@ input:focus-visible:not([type='checkbox']):not([type='radio']):not([type='range'
 textarea:focus-visible,
 select:focus-visible {
   outline: none;
+}
+
+/* ---------------------------------------------------------------------------
+   El desplegable de un <select>
+
+   La lista de opciones la dibuja el sistema operativo, no la página, y ahí no
+   llegan ni el fondo translúcido del campo ni sus clases. Sin un fondo OPACO y
+   un color propios, las opciones salían con el texto del tema sobre el fondo
+   del sistema —marfil sobre blanco en el modo noche— y no se leía nada. Pasó
+   con la lista de sucursales del checkout, que es larga y no se puede adivinar.
+--------------------------------------------------------------------------- */
+select option,
+select optgroup {
+  background-color: var(--mj-bg-soft);
+  color: var(--mj-ink);
 }
 
 /* ---------------------------------------------------------------------------

@@ -30,6 +30,7 @@ export const shippingGroups = () => (Array.isArray(SHIPPING?.groups) ? SHIPPING.
 
 /** El cotizador de la ficha del producto: si se muestra y con qué textos. */
 export const quoteConfig = () => SHIPPING?.quote ?? { enabled: false, title: '', button: '', help: '' };
+
 export const cpConfig = () => SHIPPING?.cp ?? {};
 export const provinces = () => {
   const states = SHIPPING?.states ?? {};
@@ -37,6 +38,57 @@ export const provinces = () => {
 };
 
 export const methodBySlug = (slug) => (SHIPPING?.methods ?? []).find((m) => m.slug === slug) ?? null;
+
+/*
+ * Lo que el cliente dejó elegido en la ficha del producto: su código postal y
+ * la forma de envío que le gustó. El checkout lo usa para llegar con el destino
+ * puesto y esa opción marcada, en vez de hacerle repetir todo.
+ *
+ * Es una preferencia, no una promesa: el carrito puede no ser el mismo que el
+ * producto que cotizó. Si al llegar al checkout ese envío ya no está, se elige
+ * como siempre y no pasa nada.
+ */
+const QUOTE_KEY = 'mj_envio';
+
+export function rememberQuote(quote) {
+  try {
+    window.localStorage.setItem(QUOTE_KEY, JSON.stringify(quote));
+  } catch {
+    /* Navegación privada o almacenamiento bloqueado: el cotizador anda igual. */
+  }
+}
+
+export function rememberedQuote() {
+  try {
+    const raw = window.localStorage.getItem(QUOTE_KEY);
+    const saved = raw ? JSON.parse(raw) : null;
+    return saved && typeof saved === 'object' ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+export function forgetQuote() {
+  try {
+    window.localStorage.removeItem(QUOTE_KEY);
+  } catch {
+    /* Ídem: no poder olvidarlo no rompe nada. */
+  }
+}
+
+/**
+ * Los medios de pago que acepta una forma de envío, sobre la lista de la tienda.
+ *
+ * `allow` vacío (o sin plugin) = se puede pagar con cualquiera. Lo que sobra
+ * nunca es la lista entera: el servidor ya se encarga de que una regla mal
+ * configurada no deje un checkout sin ninguna forma de pagar.
+ */
+export function gatewaysFor(rate, methods) {
+  const allow = rate?.payments?.allow;
+  if (!Array.isArray(allow) || allow.length === 0) return methods;
+  const left = methods.filter((m) => allow.includes(m.id));
+  return left.length ? left : methods;
+}
 
 /*
  * Los datos de contacto los pide el paso 1 y los de la dirección el bloque de

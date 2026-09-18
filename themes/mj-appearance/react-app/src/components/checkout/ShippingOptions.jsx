@@ -1,4 +1,4 @@
-import { Check, Truck } from 'lucide-react';
+import { Check, CreditCard, Truck } from 'lucide-react';
 import { cn, formatPrice } from '@/lib/format';
 import { t, tn } from '@/lib/copy';
 
@@ -24,6 +24,25 @@ function Price({ rate, texts }) {
   return <span className="text-success">{texts.free || t('cart_free')}</span>;
 }
 
+/**
+ * Con qué se puede pagar este envío, cuando no es con cualquier cosa.
+ *
+ * El envío se muestra igual aunque el cliente haya elegido otro medio: al
+ * elegirlo, el paso de pago se queda solo con los que acepta. Decirlo acá es lo
+ * que evita que parezca que la opción "no se deja marcar". El texto sale de MJ
+ * Envíos, que es el que sabe qué medios son.
+ */
+export function PayTag({ rate }) {
+  const tag = rate.payments?.tag;
+  if (!tag) return null;
+  return (
+    <span className="mt-0.5 flex items-center gap-1 text-xs text-ink-soft">
+      <CreditCard size={12} className="shrink-0" aria-hidden="true" />
+      {tag}
+    </span>
+  );
+}
+
 function Badges({ rate }) {
   if (!rate.badges?.length) return null;
   return (
@@ -40,7 +59,7 @@ function Badges({ rate }) {
   );
 }
 
-function Radio({ on }) {
+export function Radio({ on }) {
   return (
     <span
       className={cn(
@@ -69,6 +88,7 @@ function OptionBody({ rate, short }) {
       {rate.description && <span className="block text-xs text-ink-faint">{rate.description}</span>}
       {rate.eta && <span className="block text-xs text-ink-faint">{rate.eta}</span>}
       {rate.note && <span className="block text-xs text-ink-faint">{rate.note}</span>}
+      <PayTag rate={rate} />
     </span>
   );
 }
@@ -210,6 +230,7 @@ function GroupRow({ group, rates, texts, onChoose }) {
             </span>
             {rate.eta && <span className="block text-xs text-ink-faint">{rate.eta}</span>}
             {rate.note && <span className="block text-xs text-ink-faint">{rate.note}</span>}
+            <PayTag rate={rate} />
           </span>
         </span>
         <span className="shrink-0 text-sm font-medium">

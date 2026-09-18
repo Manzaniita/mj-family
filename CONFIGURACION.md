@@ -21,7 +21,7 @@ administración, arriba del nombre del sitio.
 
 | Sección | Qué se configura |
 | --- | --- |
-| **Diseño y marca** | Logo (y variante para modo noche), tema de arranque, efecto al cambiar de tema (instantáneo, fundido o círculo), nivel de animación, intro, paleta completa, tipografías. |
+| **Diseño y marca** | Logo (y variante para modo noche), tema de arranque, efecto al cambiar de tema (instantáneo, fundido o círculo), nivel de animación, intro, paleta completa, fuerza del texto secundario, tipografías. |
 | **Sesión y acceso** | Quién ve la barra de administración, si la tienda recarga al iniciar sesión, si "Recordarme" viene marcado, cuánto dura la sesión, ruta de "Mi cuenta". |
 | **Skin** | Qué propone el tema hijo activo, si se usan sus propuestas, y sus paletas alternativas (se aplican con un botón). |
 | **Barra de navegación** | Qué ítems tiene el menú, en qué orden, cómo se llaman, a dónde llevan, quién los ve y si van en el menú o como botón del header. |
@@ -246,6 +246,22 @@ con MJ Medios de Pago, cada pedido que pide comprobante muestra "Pago:
 para retirar").
 
 ---
+
+### La fuerza del texto secundario
+
+La paleta define **un** color de texto. Lo que no es el texto principal se
+deriva de él en dos escalones: `soft` para descripciones y bajadas, `faint` para
+etiquetas, plazos y ayudas. Cuánto de ese color se usa en cada escalón se elige
+en **Diseño y marca → Fuerza del texto secundario**, en porcentaje.
+
+No es un detalle estético: una paleta de mucho contraste (blanco sobre negro)
+aguanta valores bajos y queda elegante, pero una delicada —marfil sobre papel,
+marfil sobre carbón, que es lo que propone MJ Atelier— con los mismos valores
+deja las palabras camufladas contra el fondo. Los defaults son 78 y 58; con
+paletas cálidas conviene no bajar de 75 y 55.
+
+El piso es 40 y 30: por debajo de eso la tienda no se lee, así que el panel no
+lo deja guardar.
 
 ## 2. Temas hijo (skins)
 
@@ -1058,9 +1074,21 @@ códigos postales (sueltos, en rango `1000-1999` o con comodín `58*`), monto de
 carrito, peso, cantidad, productos y categorías puntuales, quién compra (con
 cuenta, sin cuenta, ciertos roles) y **medios de pago**.
 
-La regla de medios de pago vale **en los dos sentidos**: un envío "solo con
-efectivo" no aparece si el cliente eligió otra cosa, y si lo eligió, el checkout
-solo le ofrece los medios permitidos.
+### Un envío que pide cierta forma de pago
+
+Un método puede pedir que se pague de cierta forma («solo con transferencia»,
+«con todo menos efectivo»). Elegido ese envío, **el checkout deja solo esos
+medios** y dice por qué.
+
+Al revés no: el envío se ofrece igual aunque el cliente venga con otro medio
+elegido, con el cartel de con qué se paga. Esconderlo dejaba la regla peleándose
+consigo misma —el envío desaparecía por el medio elegido y el medio desaparecería
+por el envío— y lo que veía el cliente era una opción que al tocarla volvía sola
+para atrás, sin ningún cartel que lo explicara.
+
+Se cambia en **Ajustes → General → Envío y medio de pago que no combinan**, junto
+con los dos textos: el cartel que se lee en la opción y el aviso del paso de
+pago. Ahí también está *No ofrecer ese envío*, que es el comportamiento viejo.
 
 ### Los datos del cliente, y la regla de heredar
 
@@ -1244,6 +1272,12 @@ producto: el cliente pone su código postal y ve cuánto sale y cuándo llega, c
 las mismas opciones y los mismos precios que el checkout, sin armar el carrito.
 El título, la ayuda y el botón se escriben ahí. El código postal queda guardado
 en el navegador del cliente, así no lo escribe de nuevo en cada producto.
+
+Con **Dejar elegido** prendido, además puede tocar la opción que le sirve y queda
+reservada: al llegar al checkout aparece el código postal puesto y ese envío
+marcado. Es una preferencia, no una promesa —lo que se cobra lo decide el
+carrito con el destino real—, así que si ese envío ya no está disponible se elige
+como siempre y no pasa nada. La elección se olvida cuando el pedido se cierra.
 
 ### La pantalla de envíos
 

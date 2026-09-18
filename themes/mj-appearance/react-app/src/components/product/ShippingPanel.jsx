@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Truck } from 'lucide-react';
+import { Check, Loader2, Truck } from 'lucide-react';
 import * as wc from '@/lib/wc';
 import { formatPrice, cn } from '@/lib/format';
 import { IS_WP } from '@/lib/config';
-import { quoteConfig, shippingTexts, cpConfig, cpLooksValid } from '@/lib/envios';
-import { buildEntries, byCarrier } from '@/components/checkout/ShippingOptions';
+import { quoteConfig, shippingTexts, cpConfig, cpLooksValid, rememberQuote, rememberedQuote } from '@/lib/envios';
+import { buildEntries, byCarrier, PayTag, Radio } from '@/components/checkout/ShippingOptions';
 import { t } from '@/lib/copy';
 
 /* El último código postal consultado, para no volver a escribirlo en cada producto. */
@@ -44,6 +44,7 @@ function asRates(opciones) {
     group: o.grupo || '',
     carrier: o.correo || '',
     carrierKey: o.correoClave || '',
+    payments: o.pagos || null,
     badges: [],
     selected: false,
   }));
@@ -56,17 +57,55 @@ function Price({ rate, texts }) {
   return <span className="font-medium text-success">{texts.free || t('cart_free')}</span>;
 }
 
-/** Una opción: el modo, su plazo y su precio. */
-function Option({ rate, texts, inset }) {
+/** El nombre de la opción, su plazo y con qué se paga. */
+function Name({ rate, inset }) {
   return (
-    <li className={cn('flex items-baseline justify-between gap-3 text-sm', inset && 'pl-3')}>
-      <span className="min-w-0">
-        <span className="block">{inset ? rate.short || rate.name : rate.name}</span>
-        {rate.eta && <span className="block text-xs text-ink-faint">{rate.eta}</span>}
-      </span>
-      <span className="shrink-0 text-right">
-        <Price rate={rate} texts={texts} />
-      </span>
+    <span className="min-w-0">
+      <span className="block">{inset ? rate.short || rate.name : rate.name}</span>
+      {rate.eta && <span className="block text-xs text-ink-faint">{rate.eta}</span>}
+      <PayTag rate={rate} />
+    </span>
+  );
+}
+
+/**
+ * Una opción del cotizador.
+ *
+ * Con "Dejar elegido" apagado se lee y nada más. Prendido, tocarla la reserva
+ * para el checkout: el cliente ya comparó acá, no tiene por qué volver a
+ * hacerlo al final. Lo que elige es una preferencia, no una promesa —lo que se
+ * cobra lo decide el carrito con el destino real.
+ */
+function Option({ rate, texts, inset, pick, chosen, onChoose }) {
+  if (!pick) {
+    return (
+      <li className={cn('flex items-start justify-between gap-3 text-sm', inset && 'pl-3')}>
+        <Name rate={rate} inset={inset} />
+        <span className="shrink-0 text-right">
+          <Price rate={rate} texts={texts} />
+        </span>
+      </li>
+    );
+  }
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onChoose(rate)}
+        aria-pressed={chosen}
+        className={cn(
+          'mj-choice flex w-full items-start justify-between gap-2 rounded-xl2 border px-2 py-1.5 text-left text-sm transition-colors',
+          chosen ? 'border-accent bg-accent-soft' : 'border-transparent hover:border-line'
+        )}
+      >
+        <span className="flex min-w-0 items-start gap-2">
+          <Radio on={chosen} />
+          <Name rate={rate} inset={inset} />
+        </span>
+        <span className="shrink-0 text-right">
+          <Price rate={rate} texts={texts} />
+        </span>
+      </button>
     </li>
   );
 }
@@ -86,6 +125,8 @@ export function ShippingPanel({ product }) {
 
   const [cp, setCp] = useState(rememberedCp);
   const [state, setState] = useState({ status: 'idle', rates: [], groups: [], notices: [], error: '' });
+  /* La opción que dejó elegida (el slug del método), acá y en el checkout. */
+  const [picked, setPicked] = useState(() => rememberedQuote()?.slug || '');
 
   /* Con un código postal ya guardado, la primera respuesta llega sin pedir nada. */
   useEffect(() => {
@@ -104,6 +145,8 @@ export function ShippingPanel({ product }) {
       const data = await wc.quoteShipping({ cp: value, producto: product.id, cantidad: 1 });
       const rates = asRates(data?.opciones);
       rememberCp(value);
+      /* Otro destino puede no tener el envío que había elegido: se suelta la marca. */
+      setPicked((slug) => (rates.some((r) => r.rate_id === slug) ? slug : ''));
       setState({
         status: 'done',
         rates,
@@ -116,7 +159,15 @@ export function ShippingPanel({ product }) {
     }
   }
 
+  /** Dejar una opción elegida para el checkout. */
+  const choose = (rate) => {
+    setPicked(rate.rate_id);
+    rememberQuote({ cp, slug: rate.rate_id });
+  };
+
   const entries = buildEntries(state.rates, state.groups);
+  const pick = !!config.pick && state.rates.length > 0;
+  const opts = { texts, pick, onChoose: choose };
 
   return (
     <div className="mj-shippanel mt-5 border-t border-line pt-4">
@@ -152,13 +203,14 @@ export function ShippingPanel({ product }) {
 
       {config.help && state.status === 'idle' && <p className="mt-1.5 text-xs text-ink-faint">{config.help}</p>}
       {state.error && <p className="mt-2 text-xs text-warning">{state.error}</p>}
+      {pick && !picked && config.pickHelp && <p className="mt-2 text-xs text-ink-faint">{config.pickHelp}</p>}
 
       {entries.length > 0 && (
         <div className="mt-3 space-y-3">
           {entries.map((entry) =>
             entry.kind === 'rate' ? (
               <ul key={entry.key} className="space-y-1.5" role="list">
-                <Option rate={entry.rate} texts={texts} />
+                <Option rate={entry.rate} chosen={picked === entry.rate.rate_id} {...opts} />
               </ul>
             ) : (
               <div key={entry.key}>
@@ -176,7 +228,13 @@ export function ShippingPanel({ product }) {
                       )}
                       <ul className="space-y-1.5" role="list">
                         {bucket.rates.map((rate) => (
-                          <Option key={rate.rate_id} rate={rate} texts={texts} inset={!!bucket.carrier} />
+                          <Option
+                            key={rate.rate_id}
+                            rate={rate}
+                            inset={!!bucket.carrier}
+                            chosen={picked === rate.rate_id}
+                            {...opts}
+                          />
                         ))}
                       </ul>
                     </div>
@@ -186,6 +244,14 @@ export function ShippingPanel({ product }) {
             )
           )}
         </div>
+      )}
+
+      {/* Ya eligió: se lo confirmamos, para que no lo vuelva a pensar en el checkout. */}
+      {pick && picked && config.picked && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-success" aria-live="polite">
+          <Check size={13} className="shrink-0" aria-hidden="true" />
+          {config.picked}
+        </p>
       )}
 
       {/* Por qué un correo no pudo cotizar: mejor decirlo que hacerlo desaparecer. */}

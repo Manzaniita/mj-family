@@ -18,7 +18,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_ATELIER_VERSION', '1.1.0');
+define('MJ_ATELIER_VERSION', '1.2.0');
 
 /* Versión mínima del tema padre (la que trae la API de skins). */
 define('MJ_ATELIER_REQUIRES', '3.19.0');

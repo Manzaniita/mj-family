@@ -74,9 +74,21 @@ function Gallery({ product }) {
 
   const openZoom = () => setZoom(true);
 
+  /*
+   * La foto acompaña al panel de compra hasta que termina la ficha.
+   *
+   * El panel de la derecha es bastante más alto (precio, medios de pago,
+   * cotizador, stock), así que sin esto la mitad izquierda quedaba en blanco
+   * desde la mitad de la página. Pegada, se suelta sola donde arranca la
+   * descripción, que es donde termina la grilla.
+   *
+   * El ancho máximo es lo que hace que sirva en una pantalla baja: la foto es
+   * cuadrada, así que limitarle el ancho le limita el alto, y entra entera con
+   * sus miniaturas sin que haya que scrollear una imagen clavada.
+   */
   return (
-    <div className="mj-gallery">
-      <MaskReveal className="rounded-(--mj-radius-2xl)">
+    <div className="mj-gallery lg:sticky lg:top-28 lg:self-start">
+      <MaskReveal className="rounded-(--mj-radius-2xl) lg:mx-auto lg:w-full lg:max-w-[calc(100vh-13rem)]">
         <div
           className="mj-gallery__main group relative cursor-zoom-in overflow-hidden rounded-(--mj-radius-2xl) border border-line"
           onClick={openZoom}
@@ -103,7 +115,7 @@ function Gallery({ product }) {
       </MaskReveal>
 
       {images.length > 1 && (
-        <div className="mj-gallery__thumbs mt-4 flex gap-3" role="list">
+        <div className="mj-gallery__thumbs mt-4 flex gap-3 lg:mx-auto lg:w-full lg:max-w-[calc(100vh-13rem)]" role="list">
           {images.map((src, i) => (
             <button
               key={i}
