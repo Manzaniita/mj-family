@@ -735,6 +735,10 @@ que está ahí mismo y volvé a mirar.
    poné tu código postal.
    **Qué tiene que pasar:** salen las mismas opciones y los mismos precios que
    en el checkout. Recargá la página: el código postal quedó cargado.
+   Después, con algo en el carrito y con la sesión iniciada, recargá la ficha
+   dos o tres veces: Andreani y Correo Argentino tienen que seguir apareciendo
+   con precio, nunca con «no devolvió ninguna tarifa». En el checkout, con esos
+   correos cotizando, tampoco tiene que aparecer ese cartel.
 11. **El pedido que el correo reconoce.** Comprá con un envío de Andreani y
    abrí el pedido en **su** pantalla (menú Andreani).
    **Qué tiene que pasar:** el pedido figura ahí con el modo de entrega

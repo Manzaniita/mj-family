@@ -46,11 +46,20 @@ class MJE_Native {
 	/** Por qué un correo no pudo cotizar esta vez: id del correo => motivo. */
 	private static $excuses = [];
 
+	/** ¿Corrió la captura en esta carga? Si no, no hay cálculo del que hablar. */
+	private static $captured = false;
+
+	/** ¿Es una cotización suelta (ficha, prueba del panel)? No es la del carrito. */
+	private static $loose = false;
+
 	/** Para el panel: qué se capturó la última vez, aunque haya sido otra carga. */
 	const TRANSIENT_SEEN = 'mje_native_seen';
 
 	/** El último motivo por el que cada correo no pudo cotizar. */
 	const TRANSIENT_EXCUSES = 'mje_native_excuses';
+
+	/** En la sesión del cliente: qué dijo cada correo la última vez que se calculó su carrito. */
+	const SESSION_LAST = 'mje_native_last';
 
 	public static function init() {
 		/* La sucursal elegida se anota en el plugin del correo antes de cotizar. */
@@ -141,8 +150,9 @@ class MJE_Native {
 	 * puente se capture a sí mismo.
 	 */
 	public static function capture($rates) {
-		self::$rates   = [];
-		self::$excuses = [];
+		self::$rates    = [];
+		self::$excuses  = [];
+		self::$captured = true;
 		if (!is_array($rates)) {
 			return;
 		}
@@ -209,6 +219,22 @@ class MJE_Native {
 				set_transient(self::TRANSIENT_EXCUSES, self::$excuses, DAY_IN_SECONDS);
 			}
 		}
+		/*
+		 * Y en la sesión del cliente, lo de su carrito. Mientras el paquete no
+		 * cambie, WooCommerce devuelve las tarifas guardadas sin calcular, y en
+		 * esas respuestas la captura no corre: sin esto el checkout afirmaba "no
+		 * devolvió ninguna tarifa" al lado de los precios de ese mismo correo.
+		 * Solo se escribe cuando cambió, como el transient de arriba.
+		 */
+		if (!self::$loose && function_exists('WC') && WC()->session) {
+			$last = [
+				'excuses' => self::$excuses,
+				'quoted'  => self::quoted(),
+			];
+			if (WC()->session->get(self::SESSION_LAST) !== $last) {
+				WC()->session->set(self::SESSION_LAST, $last);
+			}
+		}
 	}
 
 	/**
@@ -253,12 +279,30 @@ class MJE_Native {
 		};
 		add_filter('woocommerce_cart_shipping_packages', $suplantar, 99);
 
+		/*
+		 * Y se calcula siempre de nuevo. WooCommerce guarda en la sesión las
+		 * tarifas de cada paquete y, si el paquete no cambió, devuelve lo guardado
+		 * SIN pasar por woocommerce_package_rates: la captura no corría y los
+		 * correos quedaban mudos. Al cliente con carrito o con cuenta —que tiene
+		 * sesión— la segunda consulta del mismo producto al mismo código postal le
+		 * decía "no devolvió ninguna tarifa", y la ficha la hace sola al abrirse
+		 * con el código postal recordado. Tampoco se deja guardado después: no es
+		 * un paquete del carrito. Cuesta lo mismo que la primera consulta: Andreani
+		 * guarda la suya un rato, Correo Argentino pregunta cada vez, y el freno de
+		 * /cotizar es el que pone el techo.
+		 */
+		$guardado = 'shipping_for_package_' . $key;
+		WC()->session->set($guardado, null);
+		self::$loose = true;
+
 		try {
 			WC()->shipping()->calculate_shipping_for_package($package, $key);
 		} catch (Exception $e) {
 			MJE_Geo::log('nativo', 'cotización suelta: ' . $e->getMessage());
 		} finally {
 			remove_filter('woocommerce_cart_shipping_packages', $suplantar, 99);
+			WC()->session->set($guardado, null);
+			self::$loose = false;
 		}
 	}
 
@@ -274,7 +318,22 @@ class MJE_Native {
 	 * para ese destino" es infinitamente más útil que un envío que no aparece.
 	 */
 	public static function excuses() {
-		$out = self::$excuses;
+		$out    = self::$excuses;
+		$quoted = self::quoted();
+
+		/*
+		 * Si en esta carga no se calculó nada, WooCommerce usó las tarifas que
+		 * tenía guardadas: lo que vale es lo que dijeron los correos cuando se
+		 * calcularon. Sin ese dato no se puede afirmar nada de nadie.
+		 */
+		if (!self::$captured) {
+			$last = function_exists('WC') && WC()->session ? WC()->session->get(self::SESSION_LAST) : null;
+			if (!is_array($last)) {
+				return [];
+			}
+			$out    = isset($last['excuses']) && is_array($last['excuses']) ? $last['excuses'] : [];
+			$quoted = isset($last['quoted']) && is_array($last['quoted']) ? $last['quoted'] : [];
+		}
 
 		/*
 		 * Un correo conectado, puesto en una zona y que no devolvió NADA tampoco
@@ -283,7 +342,7 @@ class MJE_Native {
 		 * esto, en cambio, se pregunta una vez por respuesta.
 		 */
 		foreach (self::all() as $id => $plugin) {
-			if (isset($out[$id]) || self::rates_of($id) || !$plugin->connected() || !$plugin->in_any_zone()) {
+			if (isset($out[$id]) || in_array($id, $quoted, true) || !$plugin->connected() || !$plugin->in_any_zone()) {
 				continue;
 			}
 			$out[$id] = 'no devolvió ninguna tarifa para ese destino';
@@ -291,14 +350,15 @@ class MJE_Native {
 		return $out;
 	}
 
-	/** ¿Este correo aportó alguna tarifa en el cálculo en curso? */
-	private static function rates_of($plugin_id) {
+	/** Los correos que aportaron alguna tarifa en el cálculo en curso. */
+	private static function quoted() {
+		$out = [];
 		foreach (self::$rates as $data) {
-			if ($data['plugin'] === $plugin_id) {
-				return true;
+			if ('' !== $data['plugin'] && !in_array($data['plugin'], $out, true)) {
+				$out[] = $data['plugin'];
 			}
 		}
-		return false;
+		return $out;
 	}
 
 	/**

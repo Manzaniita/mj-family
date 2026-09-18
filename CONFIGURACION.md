@@ -1308,6 +1308,14 @@ donde él lo va a buscar: el plugin de Correo Argentino ignora el paquete que se
 le pasa y lee siempre el del carrito, así que sin eso cotizaría el destino
 equivocado —o ninguno, con el carrito vacío—.
 
+Y se pregunta de nuevo cada vez. WooCommerce guarda las tarifas ya calculadas
+en la sesión del cliente y, para el mismo producto y el mismo código postal,
+devuelve lo guardado sin que los correos vuelvan a hablar; para el cotizador
+eso era silencio, y al cliente con carrito o con cuenta le decía «no devolvió
+ninguna tarifa» desde la segunda consulta. Andreani guarda su cotización un
+rato; Correo Argentino le pregunta a su API cada vez. El techo lo pone el freno
+de `/cotizar` (60 consultas por hora por IP, filtro `mje_quote_rate_limit`).
+
 ### La factura y el envío son dos direcciones
 
 La de la **factura** es la que el cliente tiene guardada en su cuenta. La del
