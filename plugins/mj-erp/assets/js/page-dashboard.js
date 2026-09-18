@@ -146,6 +146,45 @@
 		'</div>';
 	}
 
+	/**
+	 * Fila de cajas: el saldo de cada una, en su moneda. Solo si la Caja está prendida y hay cajas.
+	 */
+	function cashCardHtml(data) {
+		const info = data && data.cash;
+		if (!info || !info.enabled || !Array.isArray(info.balances) || !info.balances.length) return '';
+		const boxes = info.balances.slice(0, 4);
+		const money = function (v, cur) {
+			const n = num(v);
+			return MJ.fmt.money(n, cur, Math.abs(n - Math.round(n)) < 0.005 ? 0 : 2);
+		};
+		return '<div class="mj-grid mj-grid--' + Math.min(4, Math.max(2, boxes.length)) + ' mj-mb">' +
+			boxes.map(function (b) {
+				return kpi({
+					icon: 'dollar', label: b.name, money: true, className: num(b.balance) < -0.004 ? 'mj-kpi--danger' : '',
+					href: MJ.router.link('/caja', { caja: b.id }),
+					value: money(b.balance, b.currency),
+					sub: 'Hoy: +' + money(b.today_in, b.currency) + ' · −' + money(b.today_out, b.currency) + (b.closed_today ? ' · cerrada' : ''),
+				});
+			}).join('') +
+		'</div>';
+	}
+
+	/**
+	 * Aviso de ventas bajo costo en el mes: un precio mal cargado o un costo viejo se ven acá primero.
+	 */
+	function belowCostAlertHtml(data) {
+		const info = data && data.reports;
+		if (!info || !info.enabled || !info.below_cost_alert) return '';
+		const n = parseInt(info.below_cost_month, 10) || 0;
+		if (!n) return '';
+		return '<div class="mj-mb">' + MJ.ui.alert(
+			(n === 1 ? 'Este mes hay 1 producto vendido por debajo de su costo. ' : 'Este mes hay ' + MJ.fmt.int(n) + ' productos vendidos por debajo de su costo. ') +
+			'<a class="mj-link" href="' + h(MJ.router.link('/reportes', { tab: 'below' })) + '">Ver cuáles</a>.',
+			'warning',
+			{ html: true }
+		) + '</div>';
+	}
+
 	function recentTable(rows) {
 		if (!rows || !rows.length) {
 			return MJ.ui.empty({
@@ -236,7 +275,9 @@
 			}) +
 		'</div>';
 
+		html += belowCostAlertHtml(data);
 		html += salesCardHtml(data);
+		html += cashCardHtml(data);
 		html += consignmentCardHtml(data);
 
 		html += '<div class="mj-grid mj-grid--sidebar">' +
@@ -252,6 +293,8 @@
 						'<a class="mj-btn mj-btn--primary mj-btn--block" href="' + h(MJ.router.link('/ventas/nueva')) + '">' + MJ.icon('cash') + '<span>Nueva venta</span></a>' +
 						'<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/compras', { new: 1 })) + '">' + MJ.icon('plus') + '<span>Nueva compra</span></a>' +
 						'<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/ventas')) + '">' + MJ.icon('list') + '<span>Ver ventas</span></a>' +
+					(MJ.setting('cash_enabled', true) !== false ? '<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/caja')) + '">' + MJ.icon('dollar') + '<span>Caja</span></a>' : '') +
+					(MJ.setting('reports_enabled', true) !== false ? '<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/reportes')) + '">' + MJ.icon('chart') + '<span>Reportes</span></a>' : '') +
 						'<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/proveedores')) + '">' + MJ.icon('users') + '<span>Proveedores</span></a>' +
 						'<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/productos')) + '">' + MJ.icon('box') + '<span>Productos y costos</span></a>' +
 						'<a class="mj-btn mj-btn--block" href="' + h(MJ.router.link('/configuracion')) + '">' + MJ.icon('settings') + '<span>Configuración</span></a>' +

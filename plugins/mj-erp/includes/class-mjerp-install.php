@@ -52,6 +52,8 @@ class MJERP_Install {
 			'sale_returns',
 			'sale_return_items',
 			'rma',
+			'cash_movements',
+			'cash_closures',
 		);
 	}
 
@@ -240,6 +242,11 @@ class MJERP_Install {
 		if ( version_compare( $from, '1.15.0', '<' ) ) {
 			self::migrate_1150_item_deliveries();
 		}
+
+		/*
+		 * 1.10, 1.11, 1.12 y 1.16 no tienen bloque a propósito: solo agregaron columnas o tablas
+		 * (1.16: cash_movements y cash_closures) y dbDelta las crea en install(), que corre antes.
+		 */
 
 		/**
 		 * Fires so other code can run its own migrations.
@@ -666,6 +673,9 @@ class MJERP_Install {
 		$returns    = self::table( 'sale_returns' );
 		$ret_items  = self::table( 'sale_return_items' );
 		$rma        = self::table( 'rma' );
+
+		$cash_moves    = self::table( 'cash_movements' );
+		$cash_closures = self::table( 'cash_closures' );
 
 		$sql = array();
 
@@ -1301,6 +1311,58 @@ class MJERP_Install {
 	KEY sale_id (sale_id),
 	KEY supplier_id (supplier_id),
 	KEY product (product_id,variation_id)
+) {$charset_collate};";
+
+		/*
+		 * Caja. Lo que entra y sale de cada caja ya está anotado en los cobros, las cobranzas de
+		 * revendedores, los gastos de las compras y los reintegros: la Caja los lee de ahí. Esta
+		 * tabla guarda solo lo que no viene de otra pantalla: un gasto suelto, un retiro, un aporte,
+		 * un ajuste, y las dos patas de una transferencia entre cajas (`transfer_id` las ata).
+		 * El saldo es la suma de todo eso y no se guarda en ninguna columna.
+		 */
+		$sql[] = "CREATE TABLE {$cash_moves} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	cashbox_id BIGINT UNSIGNED NOT NULL,
+	movement_date DATE NULL,
+	kind VARCHAR(30) NOT NULL DEFAULT 'otro',
+	direction VARCHAR(10) NOT NULL DEFAULT 'ingreso',
+	amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+	currency VARCHAR(3) NOT NULL DEFAULT 'ARS',
+	rate DECIMAL(18,6) NOT NULL DEFAULT 1,
+	amount_base DECIMAL(18,4) NOT NULL DEFAULT 0,
+	concept VARCHAR(255) NULL,
+	reference VARCHAR(190) NULL,
+	transfer_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+	created_by BIGINT UNSIGNED NULL,
+	created_at DATETIME NULL,
+	PRIMARY KEY  (id),
+	KEY cashbox_id (cashbox_id),
+	KEY movement_date (movement_date),
+	KEY transfer_id (transfer_id)
+) {$charset_collate};";
+
+		/*
+		 * Cierres de caja: la foto de un día. Lo esperado sale del libro; lo contado lo escribe quien
+		 * cierra; la diferencia queda a la vista y no se corrige sola.
+		 */
+		$sql[] = "CREATE TABLE {$cash_closures} (
+	id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	cashbox_id BIGINT UNSIGNED NOT NULL,
+	closure_date DATE NOT NULL,
+	currency VARCHAR(3) NOT NULL DEFAULT 'ARS',
+	opening_balance DECIMAL(18,4) NOT NULL DEFAULT 0,
+	income_total DECIMAL(18,4) NOT NULL DEFAULT 0,
+	expense_total DECIMAL(18,4) NOT NULL DEFAULT 0,
+	expected_balance DECIMAL(18,4) NOT NULL DEFAULT 0,
+	counted_balance DECIMAL(18,4) NOT NULL DEFAULT 0,
+	difference DECIMAL(18,4) NOT NULL DEFAULT 0,
+	movements_count INT NOT NULL DEFAULT 0,
+	note VARCHAR(255) NULL,
+	closed_by BIGINT UNSIGNED NULL,
+	closed_at DATETIME NULL,
+	PRIMARY KEY  (id),
+	UNIQUE KEY cashbox_day (cashbox_id,closure_date),
+	KEY closure_date (closure_date)
 ) {$charset_collate};";
 
 		$report = array();

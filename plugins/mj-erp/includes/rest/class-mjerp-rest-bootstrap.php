@@ -74,6 +74,8 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 			'roles'            => $this->roles(),
 			'consignment'      => $this->consignment_info(),
 			'sales'            => $this->sales_info(),
+			'cash'             => $this->cash_info(),
+			'reports'          => $this->reports_info(),
 			'app_url'          => $this->app_url(),
 			'home_url'         => home_url( '/' ),
 			'admin_url'        => admin_url(),
@@ -89,6 +91,64 @@ class MJERP_REST_Bootstrap extends MJERP_REST_Controller {
 		$data = apply_filters( 'mjerp_rest_bootstrap', $data );
 
 		return $this->ok( $data );
+	}
+
+	/**
+	 * Caja: si está prendida, quién puede deshacer, y el saldo de cada caja para el inicio.
+	 *
+	 * @return array
+	 */
+	protected function cash_info() {
+		$info = array(
+			'enabled'         => false,
+			'closure_enabled' => false,
+			'require_reason'  => true,
+			'kinds'           => array(),
+			'can_manage'      => false,
+			'balances'        => array(),
+		);
+
+		if ( ! class_exists( 'MJERP_Cash_Repo' ) ) {
+			return $info;
+		}
+
+		$info['enabled']         = MJERP_Cash_Repo::enabled();
+		$info['closure_enabled'] = MJERP_Helpers::bool( $this->setting( 'cash_closure_enabled', true ) );
+		$info['require_reason']  = MJERP_Helpers::bool( $this->setting( 'cash_require_reason', true ) );
+		$info['kinds']           = $this->key_label_list( $this->setting( 'cash_kinds', array() ) );
+		$info['can_manage']      = MJERP_Capabilities::can_manage_sales();
+		if ( $info['enabled'] ) {
+			$info['balances'] = MJERP_Cash_Repo::balances_summary();
+		}
+
+		return $info;
+	}
+
+	/**
+	 * Reportes: si están prendidos y cuántos productos se vendieron bajo costo este mes.
+	 *
+	 * @return array
+	 */
+	protected function reports_info() {
+		$info = array(
+			'enabled'          => false,
+			'below_cost_alert' => false,
+			'min_margin_pct'   => 0,
+			'below_cost_month' => 0,
+		);
+
+		if ( ! class_exists( 'MJERP_Reports_Repo' ) ) {
+			return $info;
+		}
+
+		$info['enabled']          = MJERP_Reports_Repo::enabled();
+		$info['below_cost_alert'] = MJERP_Helpers::bool( $this->setting( 'reports_below_cost_alert', true ) );
+		$info['min_margin_pct']   = (int) $this->setting( 'reports_min_margin_pct', 0 );
+		if ( $info['enabled'] && $info['below_cost_alert'] ) {
+			$info['below_cost_month'] = MJERP_Reports_Repo::below_cost_count( current_time( 'Y-m-01' ), current_time( 'Y-m-d' ) );
+		}
+
+		return $info;
 	}
 
 	/**

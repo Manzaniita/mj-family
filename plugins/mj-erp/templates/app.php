@@ -51,8 +51,9 @@ $mjerp_scripts = array(
 	'page-sale.js',
 	'page-sale-new.js',
 	'page-rma.js',
+	'page-caja.js',
+	'page-reportes.js',
 	'page-settings.js',
-	'page-soon.js',
 	'app.js',
 );
 $mjerp_optional_scripts = array( 'calc.js' );

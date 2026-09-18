@@ -368,7 +368,6 @@ class MJERP_Settings {
 			'sales_consignment_allocation' => 'fifo',
 			'sales_consignment_approval' => 'auto',
 			'sales_consignment_partial_lines' => true,
-			'sales_consignment_payment_method' => 'cuenta_corriente',
 
 			/* --- Clientes ------------------------------------------------------------------ */
 
@@ -434,7 +433,54 @@ class MJERP_Settings {
 			/* Precio que ve un revendedor logueado en la tienda. */
 			'shop_price_mode'            => 'publico',
 			'shop_price_list'            => 'mayorista',
+			// Al lado del precio, un aviso de que ese es su precio (lo pinta la tienda; MJ_Pricing lo expone).
 			'shop_price_notice'          => true,
+			'shop_price_notice_text'     => 'Precio de tu lista',
+
+			/* --- Caja ---------------------------------------------------------------------- */
+
+			/*
+			 * Saldo y movimientos por caja. Los cobros, las cobranzas de revendedores, los gastos de
+			 * las compras y los reintegros ya dicen de qué caja salen o a cuál entran: la Caja los
+			 * lee de ahí. Lo que se suma acá es lo que no viene de ninguna otra pantalla: un gasto
+			 * suelto, un retiro, un aporte, pasar plata de una caja a otra, y el cierre del día.
+			 */
+			'cash_enabled'               => true,
+			// Un movimiento a mano pide el concepto escrito: es lo único que después explica la plata.
+			'cash_require_reason'        => true,
+			// Conceptos que se ofrecen al cargar un ingreso o un egreso a mano.
+			'cash_kinds'                 => array(
+				array(
+					'key'   => 'gasto',
+					'label' => 'Gasto',
+				),
+				array(
+					'key'   => 'retiro',
+					'label' => 'Retiro',
+				),
+				array(
+					'key'   => 'aporte',
+					'label' => 'Aporte',
+				),
+				array(
+					'key'   => 'ajuste',
+					'label' => 'Ajuste de caja',
+				),
+				array(
+					'key'   => 'otro',
+					'label' => 'Otro',
+				),
+			),
+			// Cierre de caja: se cuenta lo que hay y queda anotada la diferencia contra lo esperado.
+			'cash_closure_enabled'       => true,
+
+			/* --- Reportes ------------------------------------------------------------------ */
+
+			'reports_enabled'            => true,
+			// Avisar en Reportes (y en el inicio) cuando algo se vendió por debajo de su costo.
+			'reports_below_cost_alert'   => true,
+			// Margen mínimo (en %) por debajo del cual un producto se marca en rojo. 0 = solo bajo costo.
+			'reports_min_margin_pct'     => 0,
 
 			/* Permisos del portal, por defecto y por rol (por usuario viven en su ficha). */
 			'portal_permissions'         => array(
@@ -1541,7 +1587,22 @@ class MJERP_Settings {
 			case 'credit_shop_show_reason':
 			case 'credit_shop_auto':
 			case 'shop_price_notice':
+			case 'cash_enabled':
+			case 'cash_require_reason':
+			case 'cash_closure_enabled':
+			case 'reports_enabled':
+			case 'reports_below_cost_alert':
 				return MJERP_Helpers::bool( $value );
+
+			case 'shop_price_notice_text':
+				$notice = self::text( $value, 120 );
+				return '' === $notice ? $default : $notice;
+
+			case 'cash_kinds':
+				return self::keyed_rows( $value, false );
+
+			case 'reports_min_margin_pct':
+				return max( 0, min( 100, self::int( $value, $default ) ) );
 
 			case 'sales_delivery_methods':
 				// El cuarto argumento trae la marca "ya queda entregada" de cada método.
@@ -1612,7 +1673,6 @@ class MJERP_Settings {
 			case 'sales_default_delivery_method':
 			case 'sales_shop_delivery_method':
 			case 'sales_default_payment_method':
-			case 'sales_consignment_payment_method':
 			case 'sales_price_list':
 			case 'shop_price_list':
 				return is_scalar( $value ) ? sanitize_key( (string) $value ) : $default;
@@ -1997,10 +2057,21 @@ class MJERP_Settings {
 		}
 
 		$method_keys = wp_list_pluck( $s['sales_payment_methods'], 'key' );
-		foreach ( array( 'sales_default_payment_method', 'sales_consignment_payment_method' ) as $mk ) {
+		foreach ( array( 'sales_default_payment_method' ) as $mk ) {
 			if ( ! in_array( (string) $s[ $mk ], $method_keys, true ) ) {
 				$s[ $mk ] = in_array( $defaults[ $mk ], $method_keys, true ) ? $defaults[ $mk ] : (string) reset( $method_keys );
 			}
+		}
+
+		// Caja: sin conceptos no se puede cargar un movimiento a mano, y «otro» es la salida de siempre.
+		if ( ! is_array( $s['cash_kinds'] ) || empty( $s['cash_kinds'] ) ) {
+			$s['cash_kinds'] = $defaults['cash_kinds'];
+		}
+		if ( ! in_array( 'otro', wp_list_pluck( $s['cash_kinds'], 'key' ), true ) ) {
+			$s['cash_kinds'][] = array(
+				'key'   => 'otro',
+				'label' => 'Otro',
+			);
 		}
 
 		// Price lists used by the sales module may reference a list that was later deleted.

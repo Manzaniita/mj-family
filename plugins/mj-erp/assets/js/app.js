@@ -32,8 +32,8 @@
 		{ name: 'consignaciones', pattern: '/consignaciones', page: 'consignees', nav: 'consignaciones' },
 		{ name: 'consignee', pattern: '/consignaciones/revendedor/:id', page: 'consignee', nav: 'consignaciones' },
 		{ name: 'consignment', pattern: '/consignaciones/entrega/:id', page: 'consignment', nav: 'consignaciones' },
-		{ name: 'caja', pattern: '/caja', page: 'soon', nav: 'caja' },
-		{ name: 'reportes', pattern: '/reportes', page: 'soon', nav: 'reportes' },
+		{ name: 'caja', pattern: '/caja', page: 'caja', nav: 'caja' },
+		{ name: 'reportes', pattern: '/reportes', page: 'reportes', nav: 'reportes' },
 	];
 
 	const NAV = [
@@ -41,14 +41,14 @@
 		{ key: 'sales', path: '/ventas', label: 'Ventas', icon: 'cash', badge: 'salesUnpaid', badgeTitle: 'Ventas con saldo, cobros a confirmar y entregas pendientes' },
 		// Solo para quien corrige ventas, y si la lista de RMA está prendida (Configuración → Ventas).
 		{ key: 'rma', path: '/rma', label: 'RMA', icon: 'archive', badge: 'rmaOpen', badgeTitle: 'Productos fallados esperando el reclamo al proveedor', when: rmaVisible },
+		// Caja y Reportes se apagan desde Configuración → Caja y reportes.
+		{ key: 'caja', path: '/caja', label: 'Caja', icon: 'dollar', when: cashVisible },
+		{ key: 'reportes', path: '/reportes', label: 'Reportes', icon: 'chart', badge: 'belowCost', badgeTitle: 'Productos vendidos por debajo del costo este mes', when: reportsVisible },
 		{ key: 'purchases', path: '/compras', label: 'Compras', icon: 'cart' },
 		{ key: 'consignaciones', path: '/consignaciones', label: 'Consignaciones', icon: 'layers', badge: 'consignmentPending', badgeTitle: 'Ventas y pagos de revendedores esperando confirmación' },
 		{ key: 'customers', path: '/clientes', label: 'Clientes', icon: 'user' },
 		{ key: 'suppliers', path: '/proveedores', label: 'Proveedores', icon: 'users' },
 		{ key: 'products', path: '/productos', label: 'Productos', icon: 'box' },
-		{ group: 'Próximamente' },
-		{ key: 'caja', path: '/caja', label: 'Caja', icon: 'dollar', soon: true },
-		{ key: 'reportes', path: '/reportes', label: 'Reportes', icon: 'chart', soon: true },
 		{ divider: true },
 		{ key: 'settings', path: '/configuracion', label: 'Configuración', icon: 'settings' },
 	];
@@ -84,12 +84,25 @@
 			const rma = MJ.state.bootstrap && MJ.state.bootstrap.sales && MJ.state.bootstrap.sales.rma;
 			return rma ? parseInt(rma.open_count, 10) || 0 : 0;
 		}
+		if (key === 'belowCost') {
+			const rep = MJ.state.bootstrap && MJ.state.bootstrap.reports;
+			return rep && rep.below_cost_alert ? parseInt(rep.below_cost_month, 10) || 0 : 0;
+		}
 		return 0;
 	}
 
 	function rmaVisible() {
 		const info = MJ.state.bootstrap && MJ.state.bootstrap.sales;
 		return !!(info && info.can_manage && info.rma && info.rma.enabled);
+	}
+
+	// Se leen de los ajustes y no del bootstrap: así el menú cambia apenas se guarda la configuración.
+	function cashVisible() {
+		return MJ.setting('cash_enabled', true) !== false;
+	}
+
+	function reportsVisible() {
+		return MJ.setting('reports_enabled', true) !== false;
 	}
 
 	let root = null;
@@ -419,6 +432,12 @@
 		if (brand) brand.textContent = appTitle();
 		setTitle(refs.title ? refs.title.textContent : '');
 		refreshShopLink();
+		// Caja y Reportes se prenden y apagan desde la configuración: el menú lo refleja al guardar.
+		if (refs.nav) {
+			refs.nav.innerHTML = navHtml();
+			const route = ROUTES.find(function (r) { return r.name === current.name; });
+			if (route) setActiveNav(route.nav);
+		}
 	});
 	MJ.events.on('bootstrap:loaded', function () {
 		if (refs.footer) refs.footer.innerHTML = footerHtml();

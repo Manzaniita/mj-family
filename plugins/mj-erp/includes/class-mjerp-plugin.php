@@ -87,6 +87,8 @@ final class MJERP_Plugin {
 			'includes/repositories/class-mjerp-customer-credit-repo.php',
 			'includes/repositories/class-mjerp-returns-repo.php',
 			'includes/repositories/class-mjerp-rma-repo.php',
+			'includes/repositories/class-mjerp-cash-repo.php',
+			'includes/repositories/class-mjerp-reports-repo.php',
 			'includes/class-mjerp-sales.php',
 			'includes/class-mjerp-orders.php',
 			'includes/class-mjerp-sale-editor.php',
@@ -108,6 +110,8 @@ final class MJERP_Plugin {
 			'includes/rest/class-mjerp-rest-sales.php',
 			'includes/rest/class-mjerp-rest-credit.php',
 			'includes/rest/class-mjerp-rest-returns.php',
+			'includes/rest/class-mjerp-rest-cash.php',
+			'includes/rest/class-mjerp-rest-reports.php',
 			'includes/rest/class-mjerp-rest-portal.php',
 			'includes/rest/class-mjerp-rest.php',
 		);
@@ -135,13 +139,6 @@ final class MJERP_Plugin {
 	 * Constructor: boots the plugin.
 	 */
 	private function __construct() {
-		// WP 6.7+ expects translations to load on/after `init` (avoids early wp_get_current_user() calls).
-		if ( did_action( 'init' ) ) {
-			$this->load_textdomain();
-		} else {
-			add_action( 'init', array( $this, 'load_textdomain' ), 0 );
-		}
-
 		// Harmless when WooCommerce is absent; declared early so it always runs on `before_woocommerce_init`.
 		add_action( 'before_woocommerce_init', array( $this, 'declare_wc_compatibility' ) );
 
@@ -200,15 +197,6 @@ final class MJERP_Plugin {
 	 * Prevents cloning.
 	 */
 	private function __clone() {}
-
-	/**
-	 * Loads the text domain.
-	 *
-	 * @return void
-	 */
-	public function load_textdomain() {
-		load_plugin_textdomain( 'mj-erp', false, dirname( MJERP_BASENAME ) . '/languages' );
-	}
 
 	/**
 	 * Requires every include file. Returns false (and records the missing ones) when any is absent.

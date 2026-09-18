@@ -50,6 +50,63 @@ class MJERP_Pricing {
 		add_filter( 'woocommerce_variation_prices_price', array( __CLASS__, 'filter_variation_price' ), 20, 3 );
 		add_filter( 'woocommerce_variation_prices_regular_price', array( __CLASS__, 'filter_variation_price' ), 20, 3 );
 		add_filter( 'woocommerce_get_variation_prices_hash', array( __CLASS__, 'filter_prices_hash' ), 20, 1 );
+
+		// «Avisarle que está viendo su precio»: en un tema clásico, al lado del precio; en la tienda de
+		// MJ Appearance, como dato de window.MJ (el tema lo pinta debajo del precio si está).
+		add_filter( 'woocommerce_get_price_html', array( __CLASS__, 'filter_price_html' ), 20, 2 );
+		add_filter( 'mj_app_config', array( __CLASS__, 'filter_app_config' ), 20, 1 );
+	}
+
+	/**
+	 * Text shown next to the price when the visitor is priced from a list ('' = no notice).
+	 *
+	 * @return string
+	 */
+	public static function notice_text() : string {
+		if ( ! self::is_active() || ! MJERP_Helpers::bool( MJERP_Settings::get( 'shop_price_notice', true ) ) ) {
+			return '';
+		}
+		$text = trim( (string) MJERP_Settings::get( 'shop_price_notice_text', 'Precio de tu lista' ) );
+
+		/**
+		 * Filters the notice a reseller sees next to their price.
+		 *
+		 * @param string $text Notice text ('' hides it).
+		 * @param string $list Price list key that applies.
+		 */
+		return (string) apply_filters( 'mjerp_shop_price_notice', $text, self::current_list() );
+	}
+
+	/**
+	 * Appends the notice to the price HTML (classic templates and the Store API `price_html`).
+	 *
+	 * @param string     $html    Price HTML.
+	 * @param WC_Product $product Product.
+	 * @return string
+	 */
+	public static function filter_price_html( $html, $product ) {
+		$text = self::notice_text();
+		if ( '' === $text || ! $product instanceof WC_Product || null === self::price_for( $product->get_id(), self::current_list() ) ) {
+			return $html;
+		}
+		return $html . ' <span class="mjerp-price-notice">' . esc_html( $text ) . '</span>';
+	}
+
+	/**
+	 * Hands the notice to the MJ Appearance storefront (`window.MJ.resellerPriceNotice`).
+	 *
+	 * @param array $config Storefront config.
+	 * @return array
+	 */
+	public static function filter_app_config( $config ) {
+		if ( ! is_array( $config ) ) {
+			return $config;
+		}
+		$text = self::notice_text();
+		if ( '' !== $text ) {
+			$config['resellerPriceNotice'] = $text;
+		}
+		return $config;
 	}
 
 	/**

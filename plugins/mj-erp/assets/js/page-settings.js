@@ -47,6 +47,7 @@
 		{ key: 'general', label: 'General', icon: 'settings' },
 		{ key: 'ventas', label: 'Ventas', icon: 'cash' },
 		{ key: 'clientes', label: 'Clientes', icon: 'user' },
+		{ key: 'caja', label: 'Caja y reportes', icon: 'dollar' },
 		{ key: 'compras', label: 'Compras', icon: 'cart' },
 		{ key: 'precios', label: 'Listas de precio', icon: 'tag' },
 		{ key: 'stock', label: 'Recepción y stock', icon: 'box' },
@@ -78,8 +79,10 @@
 		sales_capture_shop_orders: 'ventas', sales_capture_manual_orders: 'ventas', sales_capture_payment: 'ventas',
 		sales_capture_on: 'ventas', sales_capture_statuses: 'ventas', sales_void_statuses: 'ventas',
 		sales_consignment_enabled: 'ventas', sales_consignment_allocation: 'ventas', sales_consignment_approval: 'ventas',
-		sales_consignment_partial_lines: 'ventas', sales_consignment_payment_method: 'ventas',
-		shop_price_mode: 'ventas', shop_price_list: 'ventas', shop_price_notice: 'ventas',
+		sales_consignment_partial_lines: 'ventas',
+		shop_price_mode: 'ventas', shop_price_list: 'ventas', shop_price_notice: 'ventas', shop_price_notice_text: 'ventas',
+		cash_enabled: 'caja', cash_require_reason: 'caja', cash_kinds: 'caja', cash_closure_enabled: 'caja',
+		reports_enabled: 'caja', reports_below_cost_alert: 'caja', reports_min_margin_pct: 'caja',
 		sales_price_rounding_mode: 'ventas', sales_price_rounding: 'ventas',
 		sales_pos_per_page: 'ventas', sales_pos_images: 'ventas', sales_pos_steps_width: 'ventas',
 		sales_delivery_enabled: 'ventas', sales_delivery_methods: 'ventas',
@@ -293,10 +296,23 @@
 		sales_consignment_allocation: 'fifo',
 		sales_consignment_approval: 'auto',
 		sales_consignment_partial_lines: true,
-		sales_consignment_payment_method: 'cuenta_corriente',
 		shop_price_mode: 'publico',
 		shop_price_list: 'mayorista',
 		shop_price_notice: true,
+		shop_price_notice_text: 'Precio de tu lista',
+		cash_enabled: true,
+		cash_require_reason: true,
+		cash_kinds: [
+			{ key: 'gasto', label: 'Gasto' },
+			{ key: 'retiro', label: 'Retiro' },
+			{ key: 'aporte', label: 'Aporte' },
+			{ key: 'ajuste', label: 'Ajuste de caja' },
+			{ key: 'otro', label: 'Otro' },
+		],
+		cash_closure_enabled: true,
+		reports_enabled: true,
+		reports_below_cost_alert: true,
+		reports_min_margin_pct: 0,
 		allowed_roles: ['administrator', 'shop_manager'],
 		new_product_status: 'draft',
 		delete_data_on_uninstall: false,
@@ -680,7 +696,6 @@
 		m.sales_default_channel = pickKey(src.sales_default_channel, channelKeys, DEFAULTS.sales_default_channel);
 		m.sales_shop_channel = pickKey(src.sales_shop_channel, channelKeys, DEFAULTS.sales_shop_channel);
 		m.sales_default_payment_method = pickKey(src.sales_default_payment_method, methodKeys, DEFAULTS.sales_default_payment_method);
-		m.sales_consignment_payment_method = pickKey(src.sales_consignment_payment_method, methodKeys, DEFAULTS.sales_consignment_payment_method);
 		m.sales_default_cashbox = Math.max(0, toInt(src.sales_default_cashbox, DEFAULTS.sales_default_cashbox));
 
 		const salesList = str(src.sales_price_list !== undefined ? src.sales_price_list : m.sales_price_list);
@@ -770,6 +785,16 @@
 		m.returns_code_prefix = str(src.returns_code_prefix !== undefined ? src.returns_code_prefix : m.returns_code_prefix).trim() || DEFAULTS.returns_code_prefix;
 		m.rma_enabled = toBool(src.rma_enabled, DEFAULTS.rma_enabled);
 		m.rma_code_prefix = str(src.rma_code_prefix !== undefined ? src.rma_code_prefix : m.rma_code_prefix).trim() || DEFAULTS.rma_code_prefix;
+		m.shop_price_notice_text = str(src.shop_price_notice_text !== undefined ? src.shop_price_notice_text : m.shop_price_notice_text).trim() || DEFAULTS.shop_price_notice_text;
+
+		/* Caja y reportes. */
+		m.cash_enabled = toBool(src.cash_enabled, DEFAULTS.cash_enabled);
+		m.cash_require_reason = toBool(src.cash_require_reason, DEFAULTS.cash_require_reason);
+		m.cash_kinds = normalizePairs(src.cash_kinds !== undefined ? src.cash_kinds : m.cash_kinds, DEFAULTS.cash_kinds, false);
+		m.cash_closure_enabled = toBool(src.cash_closure_enabled, DEFAULTS.cash_closure_enabled);
+		m.reports_enabled = toBool(src.reports_enabled, DEFAULTS.reports_enabled);
+		m.reports_below_cost_alert = toBool(src.reports_below_cost_alert, DEFAULTS.reports_below_cost_alert);
+		m.reports_min_margin_pct = Math.max(0, Math.min(100, toInt(src.reports_min_margin_pct, DEFAULTS.reports_min_margin_pct)));
 
 		m.delete_data_on_uninstall = toBool(src.delete_data_on_uninstall, DEFAULTS.delete_data_on_uninstall);
 		return m;
@@ -1078,6 +1103,15 @@
 			returns_code_prefix: str(m.returns_code_prefix).trim() || DEFAULTS.returns_code_prefix,
 			rma_enabled: !!m.rma_enabled,
 			rma_code_prefix: str(m.rma_code_prefix).trim() || DEFAULTS.rma_code_prefix,
+			shop_price_notice_text: str(m.shop_price_notice_text).trim() || DEFAULTS.shop_price_notice_text,
+
+			cash_enabled: !!m.cash_enabled,
+			cash_require_reason: !!m.cash_require_reason,
+			cash_kinds: normalizePairs(m.cash_kinds, DEFAULTS.cash_kinds, false),
+			cash_closure_enabled: !!m.cash_closure_enabled,
+			reports_enabled: !!m.reports_enabled,
+			reports_below_cost_alert: !!m.reports_below_cost_alert,
+			reports_min_margin_pct: Math.max(0, Math.min(100, toInt(m.reports_min_margin_pct, 0))),
 
 			customers_enabled: !!m.customers_enabled,
 			customers_doc_types: normalizePairs(m.customers_doc_types, DEFAULTS.customers_doc_types, false),
@@ -1118,7 +1152,6 @@
 			sales_consignment_allocation: pickEnum(m.sales_consignment_allocation, ['fifo', 'lifo'], DEFAULTS.sales_consignment_allocation),
 			sales_consignment_approval: pickEnum(m.sales_consignment_approval, ['auto', 'pendiente'], DEFAULTS.sales_consignment_approval),
 			sales_consignment_partial_lines: !!m.sales_consignment_partial_lines,
-			sales_consignment_payment_method: inList(m.sales_consignment_payment_method, methodKeys, DEFAULTS.sales_consignment_payment_method),
 			shop_price_mode: pickEnum(m.shop_price_mode, ['publico', 'lista'], DEFAULTS.shop_price_mode),
 			shop_price_list: seenList[str(m.shop_price_list)] ? str(m.shop_price_list) : (priceLists.length ? priceLists[0].key : ''),
 			shop_price_notice: !!m.shop_price_notice,
@@ -1525,6 +1558,19 @@
 			],
 			addLabel: 'Agregar tipo de documento',
 			emptyText: 'Sin tipos de documento: la ficha del cliente no va a pedir documento.',
+		},
+		cash_kinds: {
+			name: 'cash_kinds',
+			showHead: true,
+			fields: [
+				{ key: 'label', label: 'Nombre', placeholder: 'Gasto', maxlength: 80, width: '1 1 200px' },
+				{ key: 'key', label: 'Clave', placeholder: 'se genera del nombre', maxlength: 40, mono: true, width: '1 1 160px' },
+			],
+			addLabel: 'Agregar concepto',
+			emptyText: 'Sin conceptos: los movimientos a mano van a quedar como «Otro».',
+			locked: function (row) { return slugify(row && row.key) === 'otro'; },
+			lockedField: function (row, field) { return field === 'key'; },
+			lockedTitle: 'El concepto «Otro» no se puede eliminar: es el comodín.',
 		},
 		sales_channels: {
 			name: 'sales_channels',
@@ -2544,10 +2590,7 @@
 					hint: 'La venta ya ocurrió en la tienda, así que lo normal es que se imputen solas.',
 				}) +
 			'</div>' +
-			selectFieldHtml({
-				key: 'sales_consignment_payment_method', label: 'Medio de pago de esa parte', value: str(m.sales_consignment_payment_method), options: salesMethodOptionsFrom(m),
-				hint: 'Lo que sale de la consignación no se cobra en la venta: va a su cuenta corriente.',
-			})
+			'<p class="mj-small mj-muted">Lo que sale de la consignación no se cobra en la venta: va a la cuenta corriente del revendedor.</p>'
 		) +
 		sectionHtml('Precio que ve un revendedor en la tienda', 'Mientras esté con su sesión iniciada.',
 			selectFieldHtml({
@@ -2559,6 +2602,47 @@
 			}) +
 			checkboxFieldHtml({
 				key: 'shop_price_notice', label: 'Avisarle que está viendo su precio', checked: !!m.shop_price_notice,
+				hint: 'En la tienda (tema MJ Appearance 3.19 o más nuevo) aparece este texto debajo del precio; en un tema clásico, al lado.',
+			}) +
+			textFieldHtml({
+				key: 'shop_price_notice_text', label: 'Texto del aviso', value: str(m.shop_price_notice_text), maxlength: 120, placeholder: 'Precio de tu lista',
+			})
+		);
+	}
+
+	/* --- Caja y reportes ----------------------------------------------------------- */
+
+	function panelCajaHtml(m) {
+		return sectionHtml('Caja', 'Saldo y movimientos por caja. Los cobros, las cobranzas de revendedores, los gastos de las compras y los reintegros ya dicen de qué caja salen o a cuál entran: acá se lee eso, y se suma lo que no viene de ninguna otra pantalla.',
+			checkboxFieldHtml({
+				key: 'cash_enabled', label: 'Mostrar Caja en el menú', checked: !!m.cash_enabled,
+				hint: 'Apagado, el menú no la muestra y su API rechaza todo. Las cajas se siguen usando como hasta ahora en los medios de pago y los gastos.',
+			}) +
+			checkboxFieldHtml({
+				key: 'cash_require_reason', label: 'Pedir el concepto escrito en cada movimiento a mano', checked: !!m.cash_require_reason,
+				hint: 'Además del tipo (gasto, retiro, aporte…), una línea que diga de qué se trató. Es lo único que después explica la plata.',
+			}) +
+			checkboxFieldHtml({
+				key: 'cash_closure_enabled', label: 'Cierre de caja', checked: !!m.cash_closure_enabled,
+				hint: 'El botón «Cerrar caja»: se cuenta lo que hay, y queda anotado lo esperado, lo contado y la diferencia. Lo deshace solo quien puede corregir ventas.',
+			}) +
+			'<div class="mj-field">' +
+				'<span class="mj-field__label">Conceptos de los movimientos a mano</span>' +
+				'<div data-region="editor-cash_kinds">' + listEditorHtml(EDITORS.cash_kinds, m.cash_kinds) + '</div>' +
+				'<div class="mj-field__hint">Lo que se elige al cargar un ingreso o un egreso suelto. «Otro» siempre queda.</div>' +
+			'</div>'
+		) +
+		sectionHtml('Reportes', 'Rentabilidad real: precio de venta menos costo landed, por producto, por canal y por mes, con lo que se vendió por debajo del costo.',
+			checkboxFieldHtml({
+				key: 'reports_enabled', label: 'Mostrar Reportes en el menú', checked: !!m.reports_enabled,
+			}) +
+			checkboxFieldHtml({
+				key: 'reports_below_cost_alert', label: 'Avisar cuando algo se vendió por debajo de su costo', checked: !!m.reports_below_cost_alert,
+				hint: 'En Reportes y en el inicio. Una venta bajo costo puede ser un precio mal cargado o un costo desactualizado: las dos cosas conviene verlas rápido.',
+			}) +
+			textFieldHtml({
+				key: 'reports_min_margin_pct', label: 'Margen mínimo (%)', value: numText(m.reports_min_margin_pct), kind: 'number', inputmode: 'numeric', maxlength: 3, placeholder: '0',
+				hint: 'Los productos con un margen menor a este porcentaje se marcan en rojo. 0 = solo los vendidos bajo costo.',
 			})
 		);
 	}
@@ -2863,6 +2947,7 @@
 			general: panelGeneralHtml(m),
 			ventas: panelVentasHtml(m),
 			clientes: panelClientesHtml(m),
+			caja: panelCajaHtml(m),
 			compras: panelComprasHtml(m),
 			precios: panelPreciosHtml(m),
 			stock: panelStockHtml(m),
@@ -3016,7 +3101,7 @@
 
 				const pairs = [
 					{ keys: ['sales_default_channel', 'sales_shop_channel'], options: channelOptionsFrom(m) },
-					{ keys: ['sales_default_payment_method', 'sales_consignment_payment_method'], options: salesMethodOptionsFrom(m) },
+					{ keys: ['sales_default_payment_method'], options: salesMethodOptionsFrom(m) },
 					{ keys: ['sales_default_delivery_method', 'sales_shop_delivery_method'], options: deliveryOptionsFrom(m) },
 				];
 

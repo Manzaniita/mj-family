@@ -2866,38 +2866,6 @@ html[data-theme="light"] .mj-input[type="date"]::-webkit-calendar-picker-indicat
 	padding: var(--mj-sp-5) var(--mj-sp-3);
 }
 
-/* --- Próximamente ------------------------------------------------------------ */
-
-.mj-soon {
-	max-width: 680px;
-	margin: 0 auto;
-}
-
-.mj-soon__list {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-	width: 100%;
-	max-width: 380px;
-	margin: var(--mj-sp-3) auto 0;
-	padding: 0;
-	list-style: none;
-	text-align: left;
-}
-
-.mj-soon__list li {
-	display: flex;
-	align-items: center;
-	gap: var(--mj-sp-2);
-}
-
-.mj-soon__list .mj-icon {
-	flex: 0 0 auto;
-	width: 14px;
-	height: 14px;
-	color: var(--mj-success);
-}
-
 /* ==========================================================================
    16. PIEZAS VARIAS: iconos, avatar, thumbs, 403
    ========================================================================== */
@@ -5395,3 +5363,24 @@ th.mj-truncate {
 		grid-template-columns: minmax(0, 1fr);
 	}
 }
+
+/* ------------------------------------------------------------------ */
+/* Reportes: barra de vendido / ganancia por mes, y filas marcadas      */
+/* ------------------------------------------------------------------ */
+.mj-report-bar {
+	position: relative;
+	height: 10px;
+	border-radius: 999px;
+	background: var(--mj-surface-3);
+	overflow: hidden;
+	min-width: 80px;
+}
+.mj-report-bar__total,
+.mj-report-bar__profit {
+	position: absolute;
+	inset: 0 auto 0 0;
+	border-radius: 999px;
+}
+.mj-report-bar__total { background: var(--mj-primary-border); }
+.mj-report-bar__profit { background: var(--mj-primary); }
+.mj-table tr.is-flagged td { background: rgba(220, 38, 38, 0.06); }

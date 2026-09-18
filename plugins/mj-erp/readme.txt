@@ -5,7 +5,7 @@ Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
 WC requires at least: 7.0
-Stable tag: 1.5.0
+Stable tag: 1.22.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,46 @@ Sí, el plugin declara compatibilidad con `custom_order_tables`.
 3. Configuración del ERP.
 
 == Changelog ==
+
+= 1.22.0 =
+* **Caja.** Saldo y movimientos por caja, en su moneda. Los cobros de ventas, las devoluciones, las cobranzas de revendedores, los gastos de las compras y los reintegros de saldo entran solos con la caja que ya tenían; lo que no viene de otra pantalla (un gasto suelto, un retiro, un aporte, un ajuste) se carga a mano con su concepto, y la plata se pasa de una caja a otra con una transferencia. Cierre de caja diario: se cuenta lo que hay y queda anotada la diferencia contra lo esperado. Dos tablas nuevas (`cash_movements`, `cash_closures`).
+* **Reportes.** Rentabilidad real: precio de venta menos costo landed, por producto, por canal, por mes y por cliente, con margen y markup, el aviso de lo vendido por debajo del costo (también en el inicio) y exportación a CSV. Todo sale del costo congelado al día de cada venta.
+* Configuración → **Caja y reportes**: prender o apagar cada módulo, conceptos de los movimientos a mano, si piden el concepto, el cierre de caja, el aviso de bajo costo y el margen mínimo.
+* **Permisos.** Anular, borrar y cambiar los datos de una venta lo hace solo quien puede corregir ventas, como ya pasaba con editar sus productos y sus cobros.
+* **Borrar una venta** con devoluciones, RMA o movimientos de saldo ya no se puede (se anula); al borrar se va también su historial.
+* **Desinstalar** borra todas las tablas (faltaban clientes y la bitácora de consignación), la opción de puesta al día de pedidos, la sugerencia de vincular cuentas y las metas de pedido con HPOS.
+* «Avisarle que está viendo su precio» ahora hace algo: el aviso va al lado del precio en un tema clásico y a la tienda de MJ Appearance (3.19 o más nuevo) por `window.MJ`. El texto se configura.
+* Se quitó el ajuste «Medio de pago de esa parte» de las ventas de revendedores en la tienda, que no hacía nada.
+* Sin traducciones: el plugin es en castellano y no lleva `languages/` ni carga un text domain.
+
+= 1.21.0 =
+* Corregir ventas que ya tienen cobros, y corregir cada cobro aparte (medio, importe, caja, fecha) con motivo.
+
+= 1.20.0 =
+* Entregar una parte de la venta, producto por producto, y cambiar cómo o dónde se entrega.
+
+= 1.19.1 =
+* El cliente ve en «Mi cuenta» el motivo de un ajuste de saldo.
+
+= 1.19.0 =
+* Editar el saldo a favor desde Clientes (a favor, en contra, o usarlo para pagar una venta), con motivo y venta relacionada.
+* El pedido de WooCommerce sigue a la venta: cobrada queda procesando, entregada queda completado, con una puesta al día única de los pedidos atrasados.
+
+= 1.18.1 =
+* El Cobrado se muestra en pesos, «A revendedores» muestra lo que vendieron los revendedores, y una devolución puede ser total sin llevarse nada.
+
+= 1.18.0 =
+* Devoluciones, cambios y garantías de ventas cobradas, y la lista de RMA de lo fallado.
+* Saldo a favor de los clientes, en la moneda en que pagaron, usable al pagar en la tienda.
+
+= 1.17.0 =
+* Editar los productos de una venta sin cobrar, historial de cada venta, y lo que sale de una consignación se descuenta una vez y vuelve al anular.
+
+= 1.16.0 a 1.16.2 =
+* Cobrar sin escribir el importe, pesos exactos, el Cobrado corregido y los dólares también en pesos al dólar de hoy.
+
+= 1.6.0 a 1.15.0 =
+* Entregas (1.6), ventas comprometidas (1.7), tipo de cambio en cada cobro (1.8), cobros en moneda base (1.9), moneda de los cobros corregida (1.13), estados de pedido sincronizados (1.14) y entrega por producto (1.15). El detalle de cada versión está en el historial del repositorio.
 
 = 1.5.0 =
 * **Comprobante de los pagos de reventa.** Cuando un revendedor avisa un pago desde su panel, puede adjuntar la foto o el PDF de la transferencia. Aprobar ese comprobante confirma el pago: baja su saldo y se imputa a sus ventas, igual que si lo confirmaras a mano.
