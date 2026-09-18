@@ -16,6 +16,9 @@ export const hasShipping = () => !!(SHIPPING?.enabled && Array.isArray(SHIPPING.
 
 export const shippingTexts = () => SHIPPING?.texts ?? {};
 
+/** Los grupos del checkout: juntan varias formas de envío abajo de un título. */
+export const shippingGroups = () => (Array.isArray(SHIPPING?.groups) ? SHIPPING.groups : []);
+
 /** El cotizador de la ficha del producto: si se muestra y con qué textos. */
 export const quoteConfig = () => SHIPPING?.quote ?? { enabled: false, title: '', button: '', help: '' };
 export const cpConfig = () => SHIPPING?.cp ?? {};

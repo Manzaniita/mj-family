@@ -457,6 +457,9 @@ export const COPY_DEFAULTS = {
   shipping_choose_branch: 'Elegí la sucursal',
   shipping_no_branches: 'No encontramos sucursales para ese código postal. Escribinos y la coordinamos.',
   shipping_choose_option: 'Elegí una opción',
+  shipping_group_one: '{n} opción para elegir',
+  shipping_group_other: '{n} opciones para elegir',
+  shipping_group_from: 'desde',
   // Formularios
   field_first_name: 'Nombre',
   field_last_name: 'Apellido',

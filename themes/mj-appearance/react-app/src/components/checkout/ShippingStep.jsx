@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Loader2, AlertCircle, MapPin } from 'lucide-react';
+import { Loader2, AlertCircle, MapPin } from 'lucide-react';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { useCart } from '@/store';
 import * as wc from '@/lib/wc';
-import { cn, formatPrice } from '@/lib/format';
 import { IS_WP, WP } from '@/lib/config';
 import { t } from '@/lib/copy';
+import ShippingOptions from '@/components/checkout/ShippingOptions';
 import {
   SHIPPING,
   shippingTexts,
+  shippingGroups,
   cpConfig,
   provinces,
   methodBySlug,
@@ -40,6 +41,7 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
   const texts = shippingTexts();
   const cpCfg = cpConfig();
   const states = useMemo(provinces, []);
+  const groups = useMemo(shippingGroups, []);
 
   const cartShipping = useCart((s) => s.shipping);
   const serverShipping = useCart((s) => s.server?.shipping);
@@ -349,54 +351,7 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
             <p>{texts.none}</p>
           </div>
         ) : (
-          <div className="mt-3 space-y-2">
-            {rates.map((rate) => (
-              <button
-                type="button"
-                key={rate.rate_id}
-                onClick={() => chooseRate(rate)}
-                className={cn(
-                  'mj-choice flex w-full items-center justify-between gap-3 rounded-xl2 border p-4 text-left transition-all duration-200',
-                  rate.selected ? 'border-accent bg-accent-soft' : 'border-line hover:border-line-strong'
-                )}
-              >
-                <span className="flex items-start gap-3">
-                  <span
-                    className={cn(
-                      'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 transition-colors',
-                      rate.selected ? 'border-accent bg-accent' : 'border-line-strong'
-                    )}
-                  >
-                    {rate.selected && <Check size={11} className="text-white" strokeWidth={3} />}
-                  </span>
-                  <span>
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="text-sm font-medium">{rate.name}</span>
-                      {/* Los carteles los decide el servidor: solo aparecen cuando hay un ganador claro. */}
-                      {(rate.badges ?? []).map((badge) => (
-                        <span
-                          key={badge}
-                          className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success"
-                        >
-                          {badge}
-                        </span>
-                      ))}
-                    </span>
-                    {rate.description && <span className="block text-xs text-ink-faint">{rate.description}</span>}
-                    {rate.eta && <span className="block text-xs text-ink-faint">{rate.eta}</span>}
-                    {rate.note && <span className="block text-xs text-ink-faint">{rate.note}</span>}
-                  </span>
-                </span>
-                <span className="shrink-0 text-sm font-medium">
-                  {rate.coordinate
-                    ? <span className="text-ink-soft">{t('cart_shipping_coordinate')}</span>
-                    : rate.cost > 0
-                      ? formatPrice(rate.cost)
-                      : <span className="text-success">{texts.free || t('cart_free')}</span>}
-                </span>
-              </button>
-            ))}
-          </div>
+          <ShippingOptions rates={rates} groups={groups} texts={texts} onChoose={chooseRate} />
         )}
       </div>
 

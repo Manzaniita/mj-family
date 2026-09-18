@@ -201,12 +201,33 @@ Cotización → Sucursales*, junto con cuántas mostrar.
 
 ---
 
+## Grupos: que la lista no se llene de opciones sueltas
+
+Un correo conectado trae varios servicios ("estándar", "sucursal", "expreso"), y
+si cada uno es una fila más el cliente no sabe qué está comparando. Un **grupo**
+los junta abajo de un solo título: el cliente ve *Envío a todo el país*, lo
+elige, y ahí se le abren las tarjetas de quién lo lleva, con el modo de entrega,
+el plazo y el precio. Antes de abrirlo ve *desde $X*.
+
+Se administran en **Métodos → Grupos** (nombre, descripción, emoji, orden), y a
+qué grupo va cada método se elige en su ficha. Lo que quede sin grupo se sigue
+viendo suelto, como el retiro en el local.
+
+**El primero se crea solo:** cuando un correo conectado cotiza por primera vez,
+sus servicios se adoptan dentro de un grupo con **el nombre de la zona de envío
+de WooCommerce** donde está ese correo. Es la agrupación que ya hiciste vos.
+Renombralo cuando quieras. Borrar un grupo no borra ningún método: los deja
+sueltos.
+
+---
+
 ## El más barato y el más rápido
 
 En la lista del checkout se le marca al cliente cuál es el envío más barato y
 cuál el más rápido. Los dos carteles se escriben (o se apagan) en *Ajustes →
 General*. Solo aparecen cuando hay con qué comparar y hay un ganador claro: con
-dos envíos al mismo precio no se marca nada.
+dos envíos al mismo precio no se marca nada, y se compara solo entre las
+opciones que se ven juntas (las de un grupo entre sí, las sueltas entre sí).
 
 ---
 

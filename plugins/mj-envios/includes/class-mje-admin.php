@@ -40,6 +40,8 @@ class MJE_Admin {
 		add_action('admin_post_mje_delete_method', [__CLASS__, 'delete_method']);
 		add_action('admin_post_mje_duplicate_method', [__CLASS__, 'duplicate_method']);
 		add_action('admin_post_mje_toggle_method', [__CLASS__, 'toggle_method']);
+		add_action('admin_post_mje_save_group', [__CLASS__, 'save_group']);
+		add_action('admin_post_mje_delete_group', [__CLASS__, 'delete_group']);
 		add_action('admin_post_mje_save_fields', [__CLASS__, 'save_fields']);
 		add_action('admin_post_mje_save_settings', [__CLASS__, 'save_settings']);
 		add_action('admin_post_mje_save_carrier', [__CLASS__, 'save_carrier']);
@@ -109,6 +111,8 @@ class MJE_Admin {
 				'method'   => 'Método guardado.',
 				'deleted'  => 'Método borrado.',
 				'copied'   => 'Método duplicado. Está apagado hasta que lo revises.',
+				'group'    => 'Grupo guardado.',
+				'group_deleted' => 'Grupo borrado. Los métodos que tenía adentro quedaron sueltos.',
 				'toggled'  => 'Listo.',
 				'fields'   => 'Datos del cliente guardados.',
 				'settings' => 'Ajustes guardados.',
@@ -189,6 +193,13 @@ class MJE_Admin {
 				$edit = isset($_GET['metodo']) ? sanitize_key(wp_unslash($_GET['metodo'])) : '';
 				if ('' !== $edit || isset($_GET['nuevo'])) {
 					self::screen_method($edit);
+					break;
+				}
+				$views = ['metodos' => 'Métodos', 'grupos' => 'Grupos'];
+				$view  = self::current_view($views);
+				self::subnav('metodos', $views, $view);
+				if ('grupos' === $view) {
+					self::screen_groups();
 				} else {
 					self::screen_methods();
 				}
@@ -400,6 +411,86 @@ class MJE_Admin {
 		}
 	}
 
+	/* ------------------------------- Grupos ------------------------------ */
+
+	/**
+	 * Los grupos del checkout.
+	 *
+	 * Un grupo junta varios métodos abajo de un solo título, y recién al
+	 * elegirlo el cliente ve las tarjetas de adentro con su plazo y su precio.
+	 * Es lo que evita que un correo conectado llene la lista de opciones
+	 * parecidas ("estándar", "sucursal", "expreso") al mismo nivel que el retiro
+	 * en el local.
+	 *
+	 * El primero lo crea sola la adopción de un correo, con el nombre de la zona
+	 * de envío donde está ese correo. Desde acá se renombra, se reordena o se
+	 * borra: borrar un grupo no borra ningún método, los deja sueltos.
+	 */
+	private static function screen_groups() {
+		$groups = MJE_Groups::all();
+
+		echo '<p class="mje-intro">Un grupo junta varias formas de envío abajo de un solo título. El cliente elige el grupo y ahí se le abren las opciones de adentro, con quién lo lleva, cuánto tarda y cuánto sale.</p>';
+
+		if (!$groups) {
+			echo '<div class="mje-empty"><p>Todavía no hay ningún grupo. Se crea uno solo la primera vez que un correo conectado cotiza, con el nombre de su zona de envío — o lo creás vos acá abajo.</p></div>';
+		} else {
+			echo '<table class="widefat striped mje-methods"><thead><tr><th>Grupo</th><th>Qué tiene adentro</th><th>Orden</th><th>Estado</th><th></th></tr></thead><tbody>';
+			foreach ($groups as $slug => $def) {
+				$inside = MJE_Groups::methods($slug);
+				$names  = [];
+				foreach ($inside as $method) {
+					$names[] = MJE_Methods::name($method) . (empty($method['enabled']) ? ' (apagado)' : '');
+				}
+
+				echo '<tr><td>';
+				printf('<strong>%s</strong>', esc_html(trim((string) $def['icon'] . ' ' . (string) $def['title'])));
+				if ('' !== (string) $def['description']) {
+					printf('<br><span class="mje-note">%s</span>', esc_html($def['description']));
+				}
+				echo '</td><td>';
+				echo $names
+					? esc_html(implode(' · ', $names))
+					: '<span class="mje-note">' . esc_html('Nada todavía. Se asigna desde la ficha de cada método.') . '</span>';
+				echo '</td>';
+				printf('<td>%d</td>', (int) $def['order']);
+				printf('<td>%s</td>', empty($def['enabled']) ? self::pill('apagado', 'off') : self::pill('activo', 'ok')); // phpcs:ignore WordPress.Security.EscapeOutput -- pill() ya escapa.
+				printf(
+					'<td class="mje-actions"><a href="%s" class="mje-delete">Borrar</a></td>',
+					esc_url(wp_nonce_url(admin_url('admin-post.php?action=mje_delete_group&grupo=' . rawurlencode($slug)), 'mje_group_' . $slug))
+				);
+				echo '</tr>';
+
+				/* La fila de edición, abierta: son cuatro campos, no vale la pena una pantalla aparte. */
+				echo '<tr class="mje-subrow"><td colspan="5">';
+				echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="mje-inline">';
+				wp_nonce_field('mje_save_group');
+				echo '<input type="hidden" name="action" value="mje_save_group">';
+				echo '<input type="hidden" name="slug" value="' . esc_attr($slug) . '">';
+				echo self::text_input('grupo[title]', $def['title'], ['class' => 'regular-text', 'placeholder' => 'Nombre']) . ' '; // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+				echo self::text_input('grupo[description]', $def['description'], ['class' => 'regular-text', 'placeholder' => 'Descripción']) . ' '; // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+				echo self::text_input('grupo[icon]', $def['icon'], ['class' => 'small-text', 'placeholder' => '📦']) . ' '; // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+				echo self::text_input('grupo[order]', $def['order'], ['type' => 'number', 'class' => 'small-text']) . ' '; // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+				echo self::checkbox_input('grupo[enabled]', $def['enabled'], 'Activo') . ' '; // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+				submit_button('Guardar', 'secondary', 'submit', false);
+				echo '</form></td></tr>';
+			}
+			echo '</tbody></table>';
+		}
+
+		self::panel('Crear un grupo', 'El nombre es lo que lee el cliente arriba de las opciones.');
+		echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="mje-inline">';
+		wp_nonce_field('mje_save_group');
+		echo '<input type="hidden" name="action" value="mje_save_group">';
+		echo '<input type="hidden" name="slug" value="">';
+		echo self::text_input('grupo[title]', '', ['class' => 'regular-text', 'placeholder' => 'Envío a todo el país']) . ' '; // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo self::text_input('grupo[description]', '', ['class' => 'regular-text', 'placeholder' => 'Elegí con qué correo']) . ' '; // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo self::text_input('grupo[icon]', '', ['class' => 'small-text', 'placeholder' => '📦']) . ' '; // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo '<input type="hidden" name="grupo[enabled]" value="1">';
+		submit_button('Crear grupo', 'primary', 'submit', false);
+		echo '</form>';
+		self::panel_end();
+	}
+
 	/* ---------------------------- Tarjetas ------------------------------- */
 
 	/**
@@ -478,8 +569,9 @@ class MJE_Admin {
 			return;
 		}
 
+		$groups = MJE_Groups::choices();
 		echo '<table class="widefat striped mje-methods"><thead><tr>';
-		echo '<th>Método</th><th>Cómo cobra</th><th>Entrega</th><th>Condiciones</th><th>Estado</th><th></th>';
+		echo '<th>Método</th><th>Cómo cobra</th><th>Entrega</th><th>Se muestra en</th><th>Condiciones</th><th>Estado</th><th></th>';
 		echo '</tr></thead><tbody>';
 
 		foreach ($methods as $slug => $def) {
@@ -493,7 +585,11 @@ class MJE_Admin {
 			} elseif ('correo' === $def['type']) {
 				$carrier = MJE_Carriers::get((string) $def['carrier']);
 				$price   = $carrier ? $carrier->label() . ($carrier->connected() ? '' : ' (sin conectar)') : 'Correo sin elegir';
+			} elseif ('nativo' === $def['type']) {
+				$price = MJE_Native::label_of((string) $def['native_plugin']);
 			}
+
+			$group = isset($groups[$def['group']]) ? $groups[$def['group']] : '';
 
 			echo '<tr>';
 			printf(
@@ -504,6 +600,10 @@ class MJE_Admin {
 			);
 			printf('<td>%s<br><span class="description">%s</span></td>', esc_html(isset($types[$def['type']]) ? $types[$def['type']] : $def['type']), esc_html($price));
 			printf('<td>%s</td>', esc_html(isset($dests[$def['destination']]) ? $dests[$def['destination']] : $def['destination']));
+			printf(
+				'<td>%s</td>',
+				'' !== $group ? esc_html($group) : '<span class="mje-note">' . esc_html('La lista, suelto') . '</span>'
+			);
 			printf('<td>%s</td>', esc_html(self::conditions_summary($def)));
 			printf(
 				'<td>%s</td>',
@@ -580,6 +680,11 @@ class MJE_Admin {
 		self::row('Emoji', self::text_input('def[icon]', $def['icon'], ['class' => 'small-text', 'placeholder' => '🚚']));
 		self::row('Estado', self::checkbox_input('def[enabled]', $def['enabled'], 'Se ofrece en la tienda'));
 		self::row('Orden', self::text_input('def[order]', $def['order'], ['type' => 'number', 'class' => 'small-text']), 'Más chico, más arriba.');
+		self::row(
+			'Grupo',
+			self::select_input('def[group]', ['' => '— Se muestra suelto —'] + MJE_Groups::choices(), $def['group']),
+			'Los métodos de un mismo grupo se muestran juntos: el cliente elige el grupo y ahí se le abren las tarjetas de adentro. Los grupos se crean en la pestaña Grupos.'
+		);
 		echo '</table>';
 
 		/* --- Precio --- */
@@ -1569,6 +1674,21 @@ class MJE_Admin {
 			MJE_Methods::save($slug, $def);
 		}
 		self::back(['tab' => 'metodos', 'saved' => 'toggled']);
+	}
+
+	public static function save_group() {
+		self::guard('mje_save_group');
+		$slug = isset($_POST['slug']) ? sanitize_key(wp_unslash($_POST['slug'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
+		$def  = isset($_POST['grupo']) && is_array($_POST['grupo']) ? wp_unslash($_POST['grupo']) : []; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput -- Nonce en guard(); lo sanea MJE_Groups::sanitize().
+		MJE_Groups::save($slug, $def);
+		self::back(['tab' => 'metodos', 'vista' => 'grupos', 'saved' => 'group']);
+	}
+
+	public static function delete_group() {
+		$slug = isset($_GET['grupo']) ? sanitize_key(wp_unslash($_GET['grupo'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- El nonce se verifica en la línea siguiente.
+		self::guard('mje_group_' . $slug);
+		MJE_Groups::delete($slug);
+		self::back(['tab' => 'metodos', 'vista' => 'grupos', 'saved' => 'group_deleted']);
 	}
 
 	public static function save_fields() {

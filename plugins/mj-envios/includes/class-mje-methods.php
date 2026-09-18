@@ -102,6 +102,7 @@ class MJE_Methods {
 			'icon'             => '',   // Emoji, si querés que lleve uno.
 			'enabled'          => 1,
 			'order'            => 0,
+			'group'            => '',   // Grupo del checkout ('' = se muestra suelto). Ver MJE_Groups.
 
 			/* Qué es y de dónde sale el precio ---------------------------- */
 			'type'             => 'tabla',
@@ -369,7 +370,7 @@ class MJE_Methods {
 	 * ENCENDIDO porque su tarifa ya se estaba mostrando en la tienda: adoptarla
 	 * no puede hacerla desaparecer.
 	 */
-	public static function adopt($plugin_id, $service, $title, $branch = false) {
+	public static function adopt($plugin_id, $service, $title, $branch = false, $group = '') {
 		$plugin_id = sanitize_key((string) $plugin_id);
 		if ('' === $plugin_id) {
 			return null;
@@ -390,6 +391,7 @@ class MJE_Methods {
 			'native_adopted' => 1,
 			'enabled'        => 1,
 			'order'          => 50,
+			'group'          => sanitize_key((string) $group),
 		], self::defaults());
 
 		/* Sin vaciar cachés: esto corre dentro del cálculo del carrito. */
@@ -465,6 +467,8 @@ class MJE_Methods {
 
 		$out['enabled'] = empty($in['enabled']) ? 0 : 1;
 		$out['order']   = isset($in['order']) ? max(0, min(9999, (int) $in['order'])) : 0;
+		/* El grupo se guarda aunque ya no exista: borrar un grupo no rompe el método. */
+		$out['group']   = isset($in['group']) ? sanitize_key($in['group']) : '';
 
 		$type         = isset($in['type']) ? sanitize_key($in['type']) : $d['type'];
 		$out['type']  = array_key_exists($type, self::all_types()) ? $type : $d['type'];
@@ -874,6 +878,7 @@ class MJE_Methods {
 				'type'        => (string) $def['type'],
 				'destination' => (string) $def['destination'],
 				'carrier'     => (string) $def['carrier'],
+				'group'       => (string) $def['group'],
 				'eta'         => self::eta($def),
 				'fields'      => MJE_Fields::public_payload($def),
 				'needsBranch' => 'sucursal' === $def['destination'],
@@ -890,6 +895,7 @@ class MJE_Methods {
 			'country'   => MJE_Geo::country(),
 			'states'    => MJE_Geo::states(),
 			'methods'   => $methods,
+			'groups'    => MJE_Groups::public_payload(),
 			'labels'    => MJE_Fields::labels(),
 			'cp'        => [
 				'label'    => (string) $s['cp_label'],

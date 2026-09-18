@@ -163,9 +163,21 @@ class MJE_Native_Andreani extends MJE_Native_Plugin {
 		return parent::service_of($rate_id);
 	}
 
+	/**
+	 * El nombre del modo de entrega, presentable.
+	 *
+	 * Andreani devuelve el suyo como venga ("estándar", "sucursal"): acá solo se
+	 * le pone la mayúscula inicial. No se traduce ni se reemplaza por una lista
+	 * propia, porque el que manda es el nombre que figura en tu contrato.
+	 */
 	public function service_label($service) {
 		$service = trim((string) $service);
-		return '' === $service ? 'Andreani' : $service;
+		if ('' === $service) {
+			return 'Andreani';
+		}
+		return function_exists('mb_convert_case')
+			? mb_convert_case(mb_substr($service, 0, 1), MB_CASE_UPPER) . mb_substr($service, 1)
+			: ucfirst($service);
 	}
 
 	/* ------------------------------ Sucursales --------------------------- */

@@ -1126,12 +1126,42 @@ quedar gratis. Ese número es el que anuncia la barra de "te faltan $X para el
 envío gratis" de la tienda: MJ Envíos se lo informa al tema, así que no hay que
 cargarlo dos veces.
 
+### Los grupos del checkout
+
+Sin grupos, cada método es una fila suelta. Con un correo conectado eso se
+vuelve una lista larga de opciones parecidas —«estándar», «sucursal»,
+«expreso»— al mismo nivel que el retiro en el local, y el cliente no sabe qué
+está comparando.
+
+Un **grupo** junta varias abajo de un solo título. El cliente ve
+«Envío a todo el país», lo elige, y recién ahí se le abren las tarjetas de quién
+lo lleva —Andreani, Correo Argentino, el que esté configurado— con su modo de
+entrega, el plazo y el precio. Antes de abrirlo ve «desde $X», que es el más
+barato de adentro.
+
+Se administran en **Envíos → Métodos → Grupos**: nombre, descripción, emoji,
+orden y si está activo. A qué grupo va cada método se elige en su ficha; lo que
+queda sin grupo se sigue viendo suelto, como el retiro en el local.
+
+**El primero se crea solo.** Cuando un correo conectado cotiza por primera vez,
+sus servicios se adoptan dentro de un grupo que lleva **el nombre de la zona de
+envío de WooCommerce** donde está ese correo. Si tu zona se llama «Envío a todo
+el país», el grupo se llama así. Es la agrupación que ya hiciste vos, no una
+inventada por el plugin, y se renombra desde el panel cuando quieras.
+
+Borrar un grupo no borra ningún método: los que tenía adentro vuelven a verse
+sueltos.
+
 ### Los carteles del checkout
 
 En **Ajustes → General → Carteles de la lista** se prenden y se escriben los dos
 carteles que marcan el envío **más barato** y el **más rápido**. Solo aparecen
 cuando hay con qué comparar y hay un ganador claro: con dos envíos al mismo
 precio no se marca nada, porque no le diría nada a nadie.
+
+Se comparan solo entre las opciones que el cliente ve juntas: las de un grupo
+entre sí, y las sueltas entre sí. Marcar como «más barato» a un envío de
+Andreani frente a un retiro en el local sería comparar peras con manzanas.
 
 ### Las sucursales
 

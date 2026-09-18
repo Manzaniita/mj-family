@@ -504,7 +504,7 @@ class MJE_Rates {
 		 * API lo que su propio plugin ya preguntó.
 		 */
 		MJE_Native::capture($rates);
-		self::adopt_native();
+		self::adopt_native(self::zone_name($package));
 
 		$ctx = [
 			'subtotal' => self::package_subtotal($package),
@@ -591,18 +591,37 @@ class MJE_Rates {
 	 * condiciones o se apagan. Sin esto habría que cargar a mano un método por
 	 * cada servicio de cada correo.
 	 */
-	private static function adopt_native() {
+	private static function adopt_native($zone = '') {
 		if (!MJE_Settings::get('native_adopt') || !MJE_Native::any()) {
 			return;
 		}
+		$group = null;
 		foreach (MJE_Native::rates() as $data) {
 			if ('' === $data['plugin'] || MJE_Methods::by_native($data['plugin'], $data['service'])) {
 				continue;
 			}
+			/*
+			 * Todo lo que cotiza un correo va junto, abajo del nombre de la zona
+			 * de envío donde está ese correo: es la agrupación que ya hizo el
+			 * dueño de la tienda, no una inventada acá. El grupo se crea una
+			 * sola vez y después se renombra desde el panel.
+			 */
+			if (null === $group) {
+				$group = '' !== $zone ? MJE_Groups::ensure($zone, false) : '';
+			}
 			$plugin = MJE_Native::get($data['plugin']);
 			$title  = $plugin ? $plugin->service_label($data['service']) : (string) $data['label'];
-			MJE_Methods::adopt($data['plugin'], $data['service'], $title, !empty($data['branch']));
+			MJE_Methods::adopt($data['plugin'], $data['service'], $title, !empty($data['branch']), $group);
 		}
+	}
+
+	/** El nombre de la zona de envío de WooCommerce que cubre este destino. */
+	private static function zone_name(array $package) {
+		if (!class_exists('WC_Shipping_Zones')) {
+			return '';
+		}
+		$zone = WC_Shipping_Zones::get_zone_matching_package($package);
+		return $zone ? (string) $zone->get_zone_name() : '';
 	}
 
 	/* --------------------------- Lo que ve la tienda --------------------- */
@@ -643,6 +662,7 @@ class MJE_Rates {
 
 				$out[(string) $rate_id] = [
 					'slug'        => $slug,
+					'group'       => (string) $def['group'],
 					'type'        => (string) $def['type'],
 					'destination' => (string) $def['destination'],
 					'description' => (string) $def['description'],
@@ -670,20 +690,39 @@ class MJE_Rates {
 	/**
 	 * Los carteles de la lista.
 	 *
+	 * Se comparan solo entre las opciones que el cliente ve juntas: las de un
+	 * grupo entre sí, y las sueltas entre sí. Marcar como "más barato" a un
+	 * envío de Andreani frente a un retiro en el local sería comparar peras con
+	 * manzanas.
+	 *
 	 * Solo se ponen cuando hay con qué comparar y hay un ganador claro: con dos
 	 * envíos al mismo precio, "más barato" no le dice nada a nadie.
 	 */
 	private static function add_badges(array $out, array $costs, array $days) {
-		if (!MJE_Settings::get('badges_enabled') || count($out) < 2) {
+		if (!MJE_Settings::get('badges_enabled')) {
 			return $out;
 		}
-		$cheapest = self::only_winner($costs);
-		if ('' !== $cheapest && isset($out[$cheapest])) {
-			$out[$cheapest]['badges'][] = (string) MJE_Settings::get('badge_cheapest');
+		/* Cada tarifa a su bolsa: la de su grupo, o la de las sueltas. */
+		$bags = [];
+		foreach ($out as $rate_id => $data) {
+			$bags[(string) $data['group']][] = $rate_id;
 		}
-		$fastest = self::only_winner($days);
-		if ('' !== $fastest && isset($out[$fastest])) {
-			$out[$fastest]['badges'][] = (string) MJE_Settings::get('badge_fastest');
+
+		foreach ($bags as $ids) {
+			if (count($ids) < 2) {
+				continue;
+			}
+			$bag_costs = array_intersect_key($costs, array_flip($ids));
+			$bag_days  = array_intersect_key($days, array_flip($ids));
+
+			$cheapest = self::only_winner($bag_costs);
+			if ('' !== $cheapest && isset($out[$cheapest])) {
+				$out[$cheapest]['badges'][] = (string) MJE_Settings::get('badge_cheapest');
+			}
+			$fastest = self::only_winner($bag_days);
+			if ('' !== $fastest && isset($out[$fastest])) {
+				$out[$fastest]['badges'][] = (string) MJE_Settings::get('badge_fastest');
+			}
 		}
 		return $out;
 	}
