@@ -599,6 +599,7 @@ function mj_copy_fields() {
 		'checkout_express_title'          => ['Finalizar compra (checkout)', 'Compra rápida — tus datos', 'Tus datos', 'text'],
 		'checkout_express_change'         => ['Finalizar compra (checkout)', 'Compra rápida — cambiar', 'Cambiar', 'text'],
 		'checkout_express_ships_to'       => ['Finalizar compra (checkout)', 'Compra rápida — a dónde se envía', 'Se envía a {direccion}, {ciudad}.', 'text', '{direccion} y {ciudad} se reemplazan.'],
+		'checkout_express_ship_label'     => ['Finalizar compra (checkout)', 'Compra rápida — etiqueta del envío', 'Envío a:', 'text', 'Solo aparece cuando el envío va a otra dirección que la factura.'],
 		'checkout_step_contact'           => ['Finalizar compra (checkout)', 'Paso 1 — contacto', 'Contacto', 'text', 'El número del paso lo pone la tienda.'],
 		'checkout_shipping_title'         => ['Finalizar compra (checkout)', 'Paso 2 — envío', 'Envío', 'text', 'Con MJ Envíos, manda el título del plugin.'],
 		'checkout_step_payment'           => ['Finalizar compra (checkout)', 'Paso 3 — pago', 'Pago', 'text'],

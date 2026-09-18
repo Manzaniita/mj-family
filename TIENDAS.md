@@ -139,7 +139,7 @@ fidelidad. Crema cálido, bordó y negro, Cormorant Garamond + Jost, modo día,
 Instagram). El logo lo sube Jaz en Apariencia → MJ Appearance.
 
 **Qué se instala, en este orden (todo a mano la primera vez):** WordPress y
-WooCommerce, después MJ Appearance (3.27.0 o más nuevo) y el tema hijo Jaz
+WooCommerce, después MJ Appearance (3.28.0 o más nuevo) y el tema hijo Jaz
 Beauty Art, después MJ Turnos Online (1.3.0+), MJ Fidelidad, MJ Medios de Pago
 (1.5.0+), MJ Envíos (1.8.0+), Optimizador, Fotos Rápidas y MJ Core. Un cron
 real del hosting (cada 5 minutos, llamando a `wp-cron.php`) hace exactos la

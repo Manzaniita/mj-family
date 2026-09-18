@@ -433,38 +433,56 @@ export const getPage = ({ path = '', id = 0, preview = false } = {}) =>
 /**
  * Cierra el pedido.
  *
- * `form` es el destino del ENVÍO (lo que el cliente cargó con su código postal).
- * `billingAddress`, si viene, es la dirección de FACTURACIÓN que el cliente ya
- * tiene guardada en su cuenta: son dos cosas distintas, y cambiar el código
- * postal para ver cuánto sale el envío no puede reescribirle la cuenta. Sin
- * dirección guardada se factura a la del envío, que es la única que hay.
+ * Son dos direcciones distintas y se mandan por separado:
+ *
+ *   ENVÍO        lo que el cliente cargó con su código postal (`shipping`).
+ *   FACTURACIÓN  la que ya tiene guardada en su cuenta (`billingAddress`).
+ *
+ * Cambiar el código postal para ver cuánto sale el envío no puede reescribirle
+ * la dirección de la cuenta, que es lo que pasaba cuando se mandaba la misma
+ * para las dos cosas. Quien no tenga una guardada —un cliente sin cuenta, por
+ * ejemplo— factura a la del envío: es la única que hay, y WooCommerce no acepta
+ * un pedido sin dirección de facturación.
  */
-export async function placeOrder({ billing, billingAddress, paymentMethod, additionalFields }) {
-  const address = {
+export async function placeOrder({ billing, shipping, billingAddress, paymentMethod, additionalFields }) {
+  const destino = shipping || billing;
+  const country = WP?.baseCountry || 'AR';
+
+  const shippingAddress = {
     first_name: billing.firstName,
     last_name: billing.lastName,
-    address_1: billing.address,
+    address_1: destino.address,
     // Piso/depto y provincia: los correos no pueden despachar sin esto.
-    address_2: billing.address2 || '',
-    city: billing.city,
-    state: billing.state || '',
-    postcode: billing.postcode,
-    country: WP?.baseCountry || 'AR',
-    email: billing.email,
-    phone: billing.phone,
+    address_2: destino.address2 || '',
+    city: destino.city,
+    state: destino.state || '',
+    postcode: destino.postcode,
+    country,
   };
-  const { email, phone, ...shipping } = address;
-  const invoice = billingAddress
-    ? { ...billingAddress, first_name: billingAddress.first_name || address.first_name, last_name: billingAddress.last_name || address.last_name, email: address.email, phone: billingAddress.phone || address.phone }
-    : address;
+
+  const guardada = billingAddress && (billingAddress.address_1 || billingAddress.postcode) ? billingAddress : null;
+  const facturacion = guardada
+    ? {
+        first_name: guardada.first_name || billing.firstName,
+        last_name: guardada.last_name || billing.lastName,
+        address_1: guardada.address_1 || '',
+        address_2: guardada.address_2 || '',
+        city: guardada.city || '',
+        state: guardada.state || '',
+        postcode: guardada.postcode || '',
+        country: guardada.country || country,
+      }
+    : { ...shippingAddress };
+
   return req('/checkout', {
     method: 'POST',
     body: {
-      billing_address: invoice,
-      shipping_address: shipping,
+      billing_address: { ...facturacion, email: billing.email, phone: billing.phone },
+      shipping_address: shippingAddress,
       payment_method: paymentMethod,
       // Campos fiscales del paso 4 (los registra y valida el plugin MJ Facturador).
       ...(additionalFields ? { additional_fields: additionalFields } : {}),
     },
   });
 }
+

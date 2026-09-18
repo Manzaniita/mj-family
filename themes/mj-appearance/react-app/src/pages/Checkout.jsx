@@ -81,19 +81,39 @@ function isComplete(form) {
   return keys.every((key) => String(form[key] || '').trim() !== '');
 }
 
-/** Resumen compacto de a dónde va el pedido, con un botón para volver al formulario. */
-function ExpressSummary({ form, onEdit }) {
+/* Los campos que forman una dirección: los únicos que cambian con el código postal. */
+const ADDRESS_KEYS = ['address', 'address2', 'city', 'state', 'postcode'];
+
+/** Una dirección en una línea, como se lee. */
+const addressLine = (a) =>
+  [[a.address, a.address2].filter(Boolean).join(', '), a.city, a.postcode ? `(${a.postcode})` : '']
+    .filter(Boolean)
+    .join(', ')
+    .replace(', (', ' (');
+
+/**
+ * Resumen compacto de los datos del cliente, con un botón para volver al formulario.
+ *
+ * `shipping` se muestra aparte solo cuando el envío va a otra dirección que la
+ * de la factura: si son la misma, repetirla no le dice nada a nadie.
+ */
+function ExpressSummary({ form, shipping, onEdit }) {
+  const billingLine = addressLine(form);
+  const shippingLine = shipping ? addressLine(shipping) : '';
+  const differ = shippingLine && shippingLine !== billingLine;
+
   return (
     <div className="mj-panel rounded-xl3 border border-line glass p-7">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="font-display text-lg font-semibold tracking-tight">{tCopy('checkout_express_title')}</h2>
           <p className="mt-3 text-sm text-ink">{form.firstName} {form.lastName}</p>
-          <p className="text-sm text-ink-soft">
-            {[form.address, form.address2].filter(Boolean).join(', ')}
-            {form.city ? `, ${form.city}` : ''}
-            {form.postcode ? ` (${form.postcode})` : ''}
-          </p>
+          <p className="text-sm text-ink-soft">{billingLine}</p>
+          {differ && (
+            <p className="text-sm text-ink-soft">
+              <span className="text-ink-faint">{tCopy('checkout_express_ship_label')}</span> {shippingLine}
+            </p>
+          )}
           <p className="text-sm text-ink-soft">{form.email} · {form.phone}</p>
         </div>
         <button
@@ -242,6 +262,14 @@ export default function Checkout() {
    * null = no tiene ninguna guardada, y entonces se factura a la del envío.
    */
   const [accountBilling, setAccountBilling] = useState(null);
+  /*
+   * El destino del ENVÍO. Va aparte de `form`, que es el contacto y la
+   * dirección de FACTURACIÓN: el código postal que el cliente usa para ver
+   * cuánto sale el envío no puede reescribirle la dirección de su cuenta.
+   * Cuando el plugin de envíos no está, o el dueño configuró que sean la misma,
+   * las dos apuntan al mismo lugar y esto queda sin usar.
+   */
+  const [envio, setEnvio] = useState({ address: '', address2: '', city: '', state: '', postcode: '' });
   // Paso 4 · Facturación. fiscalCfg = config del emisor según el plugin
   // (null = plugin inactivo o todavía no respondió → el paso no se muestra).
   const [fiscalCfg, setFiscalCfg] = useState(null);
@@ -286,10 +314,16 @@ export default function Checkout() {
     wc.getAccount()
       .then((acc) => {
         const b = acc?.addresses?.billing ?? {};
-        /* La dirección de envío manda si está cargada; si no, la de facturación. */
         const s = acc?.addresses?.shipping ?? {};
 
-        /* La de la factura queda guardada tal cual, sin mezclarse con la del envío. */
+        /*
+         * Cada dirección a lo suyo, con la otra de red: la factura usa la de
+         * facturación, el envío la de envío, y si a una le falta algo se completa
+         * con la otra, que es mejor que dejarla vacía.
+         */
+        const asBilling = (key) => b[key] || s[key] || '';
+        const asShipping = (key) => s[key] || b[key] || '';
+
         if (!billingFromShipping() && (b.address_1 || b.postcode)) {
           setAccountBilling({
             first_name: b.first_name || '',
@@ -303,17 +337,24 @@ export default function Checkout() {
             phone: b.phone || '',
           });
         }
-        const pick = (key) => s[key] || b[key] || '';
+
         const filled = {
-          firstName: pick('first_name'),
-          lastName: pick('last_name'),
+          firstName: asBilling('first_name'),
+          lastName: asBilling('last_name'),
           email: b.email || WP.user.email || '',
           phone: b.phone || '',
-          address: pick('address_1'),
-          address2: pick('address_2'),
-          city: pick('city'),
-          state: pick('state'),
-          postcode: pick('postcode'),
+          address: asBilling('address_1'),
+          address2: asBilling('address_2'),
+          city: asBilling('city'),
+          state: asBilling('state'),
+          postcode: asBilling('postcode'),
+        };
+        const destino = {
+          address: asShipping('address_1'),
+          address2: asShipping('address_2'),
+          city: asShipping('city'),
+          state: asShipping('state'),
+          postcode: asShipping('postcode'),
         };
 
         setForm((f) => {
@@ -323,13 +364,21 @@ export default function Checkout() {
           });
           return merged;
         });
+        setEnvio((e) => {
+          const merged = { ...e };
+          Object.keys(destino).forEach((key) => {
+            if (!String(merged[key] || '').trim()) merged[key] = destino[key];
+          });
+          return merged;
+        });
 
-        if (EXPRESS.enabled && isComplete(filled)) {
+        const completo = { ...filled, ...destino };
+        if (EXPRESS.enabled && isComplete(completo)) {
           setExpressReady(true);
           setExpress(EXPRESS.auto);
           // El envío se calcula ya mismo: en modo rápido no hay un blur del CP que lo dispare, y
           // el total tiene que estar bien antes de que alguien apriete el botón.
-          prefetchShipping(filled);
+          prefetchShipping(completo);
         }
       })
       .catch(() => {});
@@ -385,20 +434,51 @@ export default function Checkout() {
     postcode: ['required', 'postcode'],
     ...(hasShipping() ? { state: ['required'] } : {}),
   };
+  /*
+   * Con envíos propios hay dos direcciones; sin ellos (o si el dueño las juntó
+   * en Ajustes) hay una sola y todo apunta al mismo lugar.
+   */
+  const unaSolaDireccion = !hasShipping() || billingFromShipping();
+  const destino = unaSolaDireccion ? form : { ...form, ...envio };
+
+  /** Escribir en el destino del envío, sin tocar la dirección de la factura. */
+  const setDestino = (updater) => {
+    if (unaSolaDireccion) {
+      setForm(updater);
+      return;
+    }
+    setEnvio((prev) => {
+      const merged = typeof updater === 'function' ? updater({ ...form, ...prev }) : updater;
+      const next = { ...prev };
+      ADDRESS_KEYS.forEach((key) => {
+        if (key in merged) next[key] = merged[key];
+      });
+      return next;
+    });
+  };
+
   const [touched, setTouched] = useState({});
   /*
    * Lo que el servidor dice que falta del envío es la última red, no una
    * bienvenida: se muestra recién cuando el cliente intentó cerrar la compra.
    */
   const [attempted, setAttempted] = useState(false);
-  const errors = validateAll(form, schema);
+  const errors = validateAll(destino, schema);
   const shownErrors = Object.fromEntries(Object.entries(errors).filter(([key]) => touched[key]));
   const touch = (key) => setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
 
+  /*
+   * Los campos de dirección escriben en el destino del envío; el resto
+   * (nombre, email, teléfono) en los datos del cliente.
+   */
   const field = (key) => ({
     name: key,
-    value: form[key],
-    onChange: (e) => setForm((f) => ({ ...f, [key]: e.target.value })),
+    value: destino[key],
+    onChange: (e) => {
+      const value = e.target.value;
+      const write = ADDRESS_KEYS.includes(key) ? setDestino : setForm;
+      write((f) => ({ ...f, [key]: value }));
+    },
     onBlur: () => touch(key),
     error: shownErrors[key] || '',
   });
@@ -415,7 +495,7 @@ export default function Checkout() {
    * tarifas nuevas: sin adoptarlas, el resumen seguiría mostrando las del
    * destino anterior. Si ninguna quedó elegida, se toma la primera.
    */
-  const syncShippingRates = async (data = form) => {
+  const syncShippingRates = async (data = destino) => {
     if (!IS_WP || String(data.postcode || '').trim().length < 4) return;
     const { syncAddress, selectRate } = useCart.getState();
     await syncAddress({
@@ -574,11 +654,11 @@ export default function Checkout() {
       }
       const missing = missingFor(rate.slug ? methodBySlug(rate.slug) : null, {
         ...extra,
-        postcode: form.postcode,
-        state: form.state,
-        city: form.city,
-        address_1: form.address,
-        address_2: form.address2,
+        postcode: destino.postcode,
+        state: destino.state,
+        city: destino.city,
+        address_1: destino.address,
+        address_2: destino.address2,
       });
       if (missing.length) {
         setError(tf('checkout_error_missing', { datos: missing.join(', ') }));
@@ -586,15 +666,21 @@ export default function Checkout() {
       }
       /* Lo último que escribió puede estar esperando su turno: se manda ahora. */
       await useCart.getState().syncShipping({
-        fields: { ...formFields(form), ...extra },
+        fields: { ...formFields(destino), ...extra },
         branch: extra.branch || '',
-        city: form.city || '',
+        city: destino.city || '',
       });
     }
 
     setPlacing(true);
     try {
-      const order = await wc.placeOrder({ billing: form, billingAddress: accountBilling, paymentMethod: payment, additionalFields });
+      const order = await wc.placeOrder({
+        billing: form,
+        shipping: destino,
+        billingAddress: accountBilling,
+        paymentMethod: payment,
+        additionalFields,
+      });
       const redirect = order?.payment_result?.redirect_url;
       if (redirect && !redirect.includes('order-received')) {
         // Pasarelas externas (p. ej. Mercado Pago) requieren redirección
@@ -665,7 +751,11 @@ export default function Checkout() {
         <div className="space-y-8">
           {express ? (
             <Reveal>
-              <ExpressSummary form={form} onEdit={() => setExpress(false)} />
+              <ExpressSummary
+                form={form}
+                shipping={unaSolaDireccion ? null : destino}
+                onEdit={() => setExpress(false)}
+              />
             </Reveal>
           ) : (
           <>
@@ -683,8 +773,8 @@ export default function Checkout() {
             <Reveal>
               <ShippingStep
                 title={`2 · ${SHIPPING_TITLE}`}
-                form={form}
-                setForm={setForm}
+                form={destino}
+                setForm={setDestino}
                 extra={extra}
                 setExtra={setExtra}
                 errors={shownErrors}
@@ -714,8 +804,8 @@ export default function Checkout() {
             <Reveal>
               <ShippingStep
                 title={SHIPPING_TITLE}
-                form={form}
-                setForm={setForm}
+                form={destino}
+                setForm={setDestino}
                 extra={extra}
                 setExtra={setExtra}
                 errors={shownErrors}
@@ -991,7 +1081,7 @@ export default function Checkout() {
             </Button>
             {express && (
               <p className="mt-3 text-center text-xs text-ink-faint">
-                {tf('checkout_express_ships_to', { direccion: form.address, ciudad: form.city })}
+                {tf('checkout_express_ships_to', { direccion: destino.address, ciudad: destino.city })}
               </p>
             )}
           </div>

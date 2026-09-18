@@ -1258,9 +1258,13 @@ La de la **factura** es la que el cliente tiene guardada en su cuenta. La del
 **envío** es la que se calcula con el código postal. Cambiar el código postal
 para ver cuánto sale el envío no le toca la cuenta a nadie.
 
+En el checkout son **dos campos distintos**: el cliente cambia el código postal
+del envío para ver cuánto sale y su dirección de facturación queda como estaba.
+Cuando las dos difieren, el resumen muestra las dos.
+
 Se cambia en *Ajustes → General → Facturación y envío*. Quien no tenga dirección
 guardada factura a la del envío igual, esté como esté el ajuste: es la única que
-hay.
+hay, y WooCommerce no acepta un pedido sin dirección de facturación.
 
 ### Con MJ ERP
 

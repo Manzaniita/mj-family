@@ -385,6 +385,7 @@ export const COPY_DEFAULTS = {
   checkout_express_title: 'Tus datos',
   checkout_express_change: 'Cambiar',
   checkout_express_ships_to: 'Se envía a {direccion}, {ciudad}.',
+  checkout_express_ship_label: 'Envío a:',
   checkout_step_contact: 'Contacto',
   checkout_shipping_title: 'Envío',
   checkout_step_payment: 'Pago',
