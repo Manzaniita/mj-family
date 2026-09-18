@@ -1,6 +1,6 @@
 # Versiones publicadas
 
-Generado por `tools/build-releases.ps1` el 2026-09-18 17:24.
+Generado por `tools/build-releases.ps1` el 2026-09-18 17:46.
 En `releases/` queda un solo zip por paquete: el de la versión que está
 hoy en el código. Los de versiones anteriores se borran — las que ya se
 publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
@@ -9,7 +9,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 
 | Tema | Versión | Archivo | Tamaño | SHA-256 |
 | --- | --- | --- | ---: | --- |
-| MJ Appearance | 3.26.0 | `mj-appearance-3.26.0.zip` | 583 KB | `9c7516bc653940de…` |
+| MJ Appearance | 3.27.0 | `mj-appearance-3.27.0.zip` | 584 KB | `d13b59a833ec15c8…` |
 | MJ Atelier | 1.1.1 | `mj-atelier-1.1.1.zip` | 607 KB | `5ca3482249ade323…` |
 | GlossyHair | 1.1.1 | `mj-glossyhair-1.1.1.zip` | 90 KB | `9c424a3c54cdeec0…` |
 | Jaz Beauty Art | 1.0.0 | `mj-jazbeauty-1.0.0.zip` | 15 KB | `2173e090ec13bb14…` |
@@ -22,7 +22,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 | MJ Colegas | 1.0.1 | `mj-colegas-1.0.1.zip` | 23 KB | `f98db49d7143f507…` |
 | MJ Core | 1.0.1 | `mj-core-1.0.1.zip` | 20 KB | `8ee6f8500b9396b2…` |
 | MJ Dólar | 1.1.1 | `mj-dolar-1.1.1.zip` | 46 KB | `d19195735145f880…` |
-| MJ Envíos | 1.7.0 | `mj-envios-1.7.0.zip` | 142 KB | `43aaaa8658fd8486…` |
+| MJ Envíos | 1.8.0 | `mj-envios-1.8.0.zip` | 146 KB | `47903ade90e4a6ac…` |
 | MJ ERP | 1.22.0 | `mj-erp-1.22.0.zip` | 680 KB | `23c1e275a69149cc…` |
 | MJ Fidelidad | 1.0.0 | `mj-fidelidad-1.0.0.zip` | 22 KB | `2a9c8348c97949e5…` |
 | MJ Fotos Rápidas | 1.3.0 | `mj-fotos-rapidas-1.3.0.zip` | 9 KB | `76305bd6dfd5c240…` |
@@ -33,12 +33,12 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 ## SHA-256 completos
 
 ```
-9c7516bc653940de1503d46f58d0c613cb994810701144605b3e5e38cf5dea45  mj-appearance-3.26.0.zip
+d13b59a833ec15c8806bfe6f2daf3ae30d3c10724d3e4425ef84c81bc76c7593  mj-appearance-3.27.0.zip
 5ca3482249ade323e9d2e17b3c5ea8872b217b4ff698894c1ffd467db7ab9087  mj-atelier-1.1.1.zip
 f98db49d7143f507836e18c4b876555a11bbe486456755ef0800a4650765b21b  mj-colegas-1.0.1.zip
 8ee6f8500b9396b2bbe63baf2df21e071f8abb7aa6c63b48598756a19be95ba1  mj-core-1.0.1.zip
 d19195735145f8806a9d62fa5567495437d328ddbb9c9260362788d48856c6a1  mj-dolar-1.1.1.zip
-43aaaa8658fd8486b70bb99be7b03849b32715d22d2f7337e94c9f29cd6c7ca5  mj-envios-1.7.0.zip
+47903ade90e4a6ac1e2ce45ecc84315ec6aed9dde049a3bfbe5cfd2a288c60ee  mj-envios-1.8.0.zip
 23c1e275a69149cc20236d49b805bf045d754abde6189a6c757270054f655131  mj-erp-1.22.0.zip
 2a9c8348c97949e5c0c002710d0bda686abf4f602c741cb24b67e49638c64f8c  mj-fidelidad-1.0.0.zip
 76305bd6dfd5c240afebb2bd2ac9a10efe9741483ea84916293cbd3aff669531  mj-fotos-rapidas-1.3.0.zip
