@@ -1100,6 +1100,22 @@ el plugin del correo, así aparece en **su** pantalla de envíos y se le puede d
 el alta o imprimir el rótulo desde ahí. Dar de alta el envío sigue siendo cosa de
 ese plugin: MJ Envíos no inventa envíos.
 
+### Cuando un correo devuelve $0
+
+Varios plugins de correo, cuando **no pueden** cotizar, en lugar de no devolver
+nada devuelven una tarifa de **$0** con el motivo escrito en el nombre (el de
+Correo Argentino tiene tres: dirección incompleta, paquete fuera de medidas, sin
+tarifas para ese destino). Para WooCommerce es una tarifa como cualquier otra.
+
+MJ Envíos las reconoce y las ignora, y además tiene una regla general: **un
+correo que devuelve $0 no se ofrece**, porque casi siempre significa que no pudo
+cotizar. Se cambia en *Ajustes → General → Precio $0 del correo*, y solo tiene
+sentido prenderlo si de verdad tenés un acuerdo de envío sin cargo.
+
+El motivo no se pierde: se muestra en la ficha del correo («La última vez no
+pudo cotizar: …»), en el checkout y en el cotizador de la ficha del producto.
+Un envío que no aparece sin explicación es lo más difícil de diagnosticar.
+
 ### Los correos sin plugin propio
 
 Se configuran en **Envíos → Correos → Configurados acá**. Un correo sin
@@ -1133,11 +1149,17 @@ vuelve una lista larga de opciones parecidas —«estándar», «sucursal»,
 «expreso»— al mismo nivel que el retiro en el local, y el cliente no sabe qué
 está comparando.
 
-Un **grupo** junta varias abajo de un solo título. El cliente ve
-«Envío a todo el país», lo elige, y recién ahí se le abren las tarjetas de quién
-lo lleva —Andreani, Correo Argentino, el que esté configurado— con su modo de
-entrega, el plazo y el precio. Antes de abrirlo ve «desde $X», que es el más
-barato de adentro.
+Un **grupo** junta varias abajo de un solo título, y adentro se lee en tres
+niveles:
+
+1. El cliente ve «Envío a todo el país» y con qué correos se puede mandar.
+2. Lo elige y se abre **una tarjeta por correo**: Andreani, Correo Argentino, el
+   que esté configurado.
+3. Adentro de cada tarjeta, los modos que ofrece ese correo —a domicilio, a
+   sucursal, rápido, lento— con su plazo y su precio.
+
+Antes de abrirlo ve «desde $X», que es el más barato de adentro. Es el orden en
+que lo piensa el que compra: primero con quién, después cómo.
 
 Se administran en **Envíos → Métodos → Grupos**: nombre, descripción, emoji,
 orden y si está activo. A qué grupo va cada método se elige en su ficha; lo que

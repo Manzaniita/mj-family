@@ -144,6 +144,18 @@ propia pantalla de envíos y le podés dar el alta o imprimir el rótulo desde a
 
 ---
 
+## Cuando el correo devuelve $0
+
+Varios plugins de correo, cuando no pueden cotizar, en vez de no devolver nada
+devuelven una tarifa de **$0** con el motivo en el nombre. MJ Envíos las
+reconoce y las ignora, y además nunca ofrece un envío de correo en $0: casi
+siempre es "no pude cotizar" disfrazado de regalo. Si de verdad tenés un acuerdo
+sin cargo, se habilita en *Ajustes → General → Precio $0 del correo*.
+
+El motivo se muestra en la ficha del correo, en el checkout y en el cotizador.
+
+---
+
 ## Correos sin plugin propio
 
 Pestaña **Correos → Configurados acá**. Cada uno pide sus datos: URL de la API,
@@ -205,9 +217,10 @@ Cotización → Sucursales*, junto con cuántas mostrar.
 
 Un correo conectado trae varios servicios ("estándar", "sucursal", "expreso"), y
 si cada uno es una fila más el cliente no sabe qué está comparando. Un **grupo**
-los junta abajo de un solo título: el cliente ve *Envío a todo el país*, lo
-elige, y ahí se le abren las tarjetas de quién lo lleva, con el modo de entrega,
-el plazo y el precio. Antes de abrirlo ve *desde $X*.
+los junta abajo de un solo título y los ordena en tres niveles: el cliente ve
+*Envío a todo el país* (y con qué correos se puede mandar), lo elige, y ahí se
+le abre **una tarjeta por correo** con los modos que ofrece ese correo, cada uno
+con su plazo y su precio. Antes de abrirlo ve *desde $X*.
 
 Se administran en **Métodos → Grupos** (nombre, descripción, emoji, orden), y a
 qué grupo va cada método se elige en su ficha. Lo que quede sin grupo se sigue
