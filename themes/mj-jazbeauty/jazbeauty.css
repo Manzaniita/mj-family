@@ -1,0 +1,161 @@
+/* ==========================================================================
+   Jaz Beauty Art — skin cálida: crema + bordó + negro (tema hijo de MJ Appearance)
+   --------------------------------------------------------------------------
+   Carga después del CSS del padre y de su inline de diseño. No redefine
+   --mj-accent / --mj-bg / --mj-ink: llegan desde Apariencia → MJ Appearance
+   (con la paleta de Jaz como propuesta), así los selectores de color siguen
+   mandando. Todo lo "bordó claro" sale del acento con color-mix().
+
+   Personalidad: mucho aire, esquinas suaves, líneas finas, sin brillos ni
+   sombras de color, títulos en Cormorant Garamond y texto en Jost. Nada se
+   mueve: la animación la apaga el nivel "Ninguna" del padre y acá tampoco se
+   agrega ninguna.
+   ========================================================================== */
+
+/* 1. Forma y tipografía -------------------------------------------------- */
+:root,
+[data-skin='jazbeauty'] {
+	--mj-radius-sm: 8px;
+	--mj-radius-md: 12px;
+	--mj-radius-lg: 16px;
+	--mj-radius-xl: 20px;
+	--mj-radius-2xl: 24px;
+	--mj-radius-btn: 9999px;
+	--mj-radius-chip: 9999px;
+	--mj-radius-badge: 9999px;
+	--mj-radius-input: 12px;
+	--mj-radius-pill: 9999px;
+
+	--mj-display-weight: 600;
+	--mj-display-tracking: -0.01em;
+	--mj-display-leading: 1.08;
+
+	--mj-glass-blur: 0px;
+	--mj-hero-gradient: linear-gradient(90deg, var(--mj-accent), var(--mj-accent));
+
+	--jz-line: color-mix(in srgb, var(--mj-ink) 12%, transparent);
+	--jz-soft: color-mix(in srgb, var(--mj-accent) 8%, var(--mj-bg));
+	--jz-card: color-mix(in srgb, #fff 55%, var(--mj-bg));
+}
+
+[data-skin='jazbeauty'][data-theme='dark'],
+[data-skin='jazbeauty'] [data-theme='dark'] {
+	--jz-card: color-mix(in srgb, var(--mj-ink) 6%, var(--mj-bg));
+	--jz-soft: color-mix(in srgb, var(--mj-accent) 18%, var(--mj-bg));
+}
+
+[data-skin='jazbeauty'] body {
+	font-size: 17px;
+	line-height: 1.65;
+	letter-spacing: 0.005em;
+}
+
+[data-skin='jazbeauty'] .display,
+[data-skin='jazbeauty'] h1,
+[data-skin='jazbeauty'] h2,
+[data-skin='jazbeauty'] h3 {
+	font-weight: var(--mj-display-weight);
+}
+
+/* Eyebrows: versalitas finas en bordó. */
+[data-skin='jazbeauty'] .mj-eyebrow {
+	letter-spacing: 0.24em;
+	font-weight: 500;
+	color: var(--mj-accent);
+}
+
+/* 2. Superficies: tarjetas claras con línea fina, sin vidrio ni sombras de color */
+[data-skin='jazbeauty'] .glass,
+[data-skin='jazbeauty'] .mj-card,
+[data-skin='jazbeauty'] .mj-service-card,
+[data-skin='jazbeauty'] .mj-booking__summary,
+[data-skin='jazbeauty'] .mj-booking__appointment {
+	background: var(--jz-card);
+	border-color: var(--jz-line);
+	box-shadow: none;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
+[data-skin='jazbeauty'] .shadow-glow,
+[data-skin='jazbeauty'] .mj-btn {
+	box-shadow: none;
+}
+
+/* 3. Botones: bordó liso, texto crema, un poco más altos para el pulgar */
+[data-skin='jazbeauty'] .mj-btn--primary,
+[data-skin='jazbeauty'] .wp-block-button:not(.is-style-outline) .wp-block-button__link {
+	background: var(--mj-accent);
+	color: #fbf5ee;
+	border-color: var(--mj-accent);
+}
+
+[data-skin='jazbeauty'] .mj-btn,
+[data-skin='jazbeauty'] .wp-block-button__link {
+	min-height: 48px;
+	letter-spacing: 0.04em;
+}
+
+[data-skin='jazbeauty'] .wp-block-button.is-style-outline .wp-block-button__link {
+	border: 1px solid var(--mj-accent);
+	color: var(--mj-accent);
+	background: transparent;
+}
+
+/* Accesos de la portada: una grilla de dos columnas en el celular, prolija. */
+[data-skin='jazbeauty'] .wp-block-buttons {
+	gap: 12px;
+}
+
+@media (max-width: 640px) {
+	[data-skin='jazbeauty'] .wp-block-buttons {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+	}
+
+	[data-skin='jazbeauty'] .wp-block-buttons .wp-block-button,
+	[data-skin='jazbeauty'] .wp-block-buttons .wp-block-button__link {
+		width: 100%;
+		text-align: center;
+	}
+}
+
+/* 4. Hero: sobrio, con mucho aire; el título destacado va en bordó liso. */
+[data-skin='jazbeauty'] .mj-hero {
+	background: var(--mj-bg);
+}
+
+[data-skin='jazbeauty'] .mj-hero .text-gradient,
+[data-skin='jazbeauty'] .mj-hero__highlight {
+	background: none;
+	-webkit-text-fill-color: currentColor;
+	color: var(--mj-accent);
+	font-style: italic;
+}
+
+/* 5. Reserva: pasos y horarios más grandes y fáciles de tocar. */
+[data-skin='jazbeauty'] .mj-booking__step--active {
+	background: var(--mj-accent);
+	border-color: var(--mj-accent);
+}
+
+[data-skin='jazbeauty'] .mj-booking__deposit {
+	background: var(--jz-soft);
+	border-color: color-mix(in srgb, var(--mj-accent) 25%, transparent);
+}
+
+[data-skin='jazbeauty'] .mj-booking__field input,
+[data-skin='jazbeauty'] .mj-booking__field select,
+[data-skin='jazbeauty'] .mj-booking__field textarea {
+	min-height: 48px;
+	background: var(--jz-card);
+}
+
+/* 6. Nada se mueve (por si una pantalla no pasa por el nivel de animación). */
+[data-skin='jazbeauty'] *,
+[data-skin='jazbeauty'] *::before,
+[data-skin='jazbeauty'] *::after {
+	animation-duration: 0s !important;
+	animation-iteration-count: 1 !important;
+	scroll-behavior: auto !important;
+}
