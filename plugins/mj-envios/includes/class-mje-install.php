@@ -8,6 +8,8 @@
  *   mje_quotes   caché de cotizaciones de los correos, para no preguntar el
  *                mismo destino y peso dos veces.
  *   mje_branches sucursales de los correos, traídas por API o cargadas a mano.
+ *                Guardan latitud y longitud cuando el correo las publica, que
+ *                es lo que permite ofrecerle al cliente la más cercana.
  *
  * Corre en la activación y también en cada carga cuando la versión guardada
  * quedó atrás: subir el zip nuevo encima del viejo alcanza para que aparezca
@@ -21,7 +23,7 @@ class MJE_Install {
 	const OPTION_DB_VERSION = 'mje_db_version';
 
 	/** Subir este número cuando cambie el esquema. */
-	const DB_VERSION = '1';
+	const DB_VERSION = '2';
 
 	const CRON_CLEAN = 'mje_clean';
 
@@ -122,6 +124,8 @@ class MJE_Install {
 	state VARCHAR(120) NULL,
 	postcode VARCHAR(12) NULL,
 	hours VARCHAR(255) NULL,
+	lat DECIMAL(10,7) NULL,
+	lon DECIMAL(10,7) NULL,
 	enabled TINYINT(1) NOT NULL DEFAULT 1,
 	source VARCHAR(20) NOT NULL DEFAULT 'manual',
 	updated_at DATETIME NULL,

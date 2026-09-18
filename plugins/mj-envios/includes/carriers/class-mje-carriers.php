@@ -256,9 +256,86 @@ class MJE_Carriers {
 				'state'    => (string) $row['state'],
 				'postcode' => (string) $row['postcode'],
 				'hours'    => (string) $row['hours'],
+				'lat'      => isset($row['lat']) ? (string) $row['lat'] : '',
+				'lon'      => isset($row['lon']) ? (string) $row['lon'] : '',
 			];
 		}
 		return $out;
+	}
+
+	/**
+	 * Las mismas sucursales, ordenadas por lo que diga el ajuste.
+	 *
+	 * "Más cercanas primero" necesita un punto de referencia: si el correo
+	 * publica las coordenadas de sus sucursales y sabemos dónde está el cliente,
+	 * se ordena por distancia real; si no, primero las del mismo código postal y
+	 * después las de la misma localidad, que es la aproximación honesta.
+	 */
+	public static function sort_branches(array $branches, $postcode = '', $city = '', $lat = null, $lon = null) {
+		if ('nombre' === (string) MJE_Settings::get('branch_sort')) {
+			usort($branches, function ($a, $b) {
+				return strcasecmp((string) $a['name'], (string) $b['name']);
+			});
+			return self::limit_branches($branches);
+		}
+
+		$postcode = MJE_Geo::normalize_cp($postcode);
+		$city     = MJE_Settings::key_of($city);
+		$has_ref  = null !== $lat && null !== $lon && '' !== (string) $lat && '' !== (string) $lon;
+
+		$scored = [];
+		foreach ($branches as $i => $branch) {
+			$distance = null;
+			if ($has_ref && '' !== (string) $branch['lat'] && '' !== (string) $branch['lon']) {
+				$distance = self::distance((float) $lat, (float) $lon, (float) $branch['lat'], (float) $branch['lon']);
+			}
+			/* Sin coordenadas, el mismo CP vale más que la misma localidad. */
+			$rank = 3;
+			if ('' !== $postcode && MJE_Geo::normalize_cp($branch['postcode']) === $postcode) {
+				$rank = 0;
+			} elseif ('' !== $city && MJE_Settings::key_of($branch['city']) === $city) {
+				$rank = 1;
+			}
+			$branch['distance'] = null === $distance ? '' : round($distance, 1);
+			$scored[]           = ['branch' => $branch, 'distance' => $distance, 'rank' => $rank, 'i' => $i];
+		}
+
+		usort($scored, function ($a, $b) {
+			if (null !== $a['distance'] && null !== $b['distance'] && $a['distance'] !== $b['distance']) {
+				return $a['distance'] < $b['distance'] ? -1 : 1;
+			}
+			if (null !== $a['distance'] && null === $b['distance']) {
+				return -1;
+			}
+			if (null === $a['distance'] && null !== $b['distance']) {
+				return 1;
+			}
+			if ($a['rank'] !== $b['rank']) {
+				return $a['rank'] < $b['rank'] ? -1 : 1;
+			}
+			return $a['i'] < $b['i'] ? -1 : 1;
+		});
+
+		$out = [];
+		foreach ($scored as $row) {
+			$out[] = $row['branch'];
+		}
+		return self::limit_branches($out);
+	}
+
+	private static function limit_branches(array $branches) {
+		$max = (int) MJE_Settings::get('branch_max');
+		return $max > 0 ? array_slice($branches, 0, $max) : $branches;
+	}
+
+	/** Kilómetros entre dos puntos (fórmula del semiverseno). */
+	private static function distance($lat1, $lon1, $lat2, $lon2) {
+		$radius = 6371;
+		$dlat   = deg2rad($lat2 - $lat1);
+		$dlon   = deg2rad($lon2 - $lon1);
+		$a      = sin($dlat / 2) * sin($dlat / 2)
+			+ cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dlon / 2) * sin($dlon / 2);
+		return $radius * 2 * atan2(sqrt($a), sqrt(1 - $a));
 	}
 
 	/** Guarda (o actualiza) una sucursal. Se usa desde la API y desde el panel. */
@@ -284,6 +361,8 @@ class MJE_Carriers {
 			'state'      => mb_substr(trim(sanitize_text_field((string) (isset($branch['state']) ? $branch['state'] : ''))), 0, 120),
 			'postcode'   => MJE_Geo::normalize_cp(isset($branch['postcode']) ? $branch['postcode'] : ''),
 			'hours'      => mb_substr(trim(sanitize_text_field((string) (isset($branch['hours']) ? $branch['hours'] : ''))), 0, 250),
+			'lat'        => self::coordinate(isset($branch['lat']) ? $branch['lat'] : ''),
+			'lon'        => self::coordinate(isset($branch['lon']) ? $branch['lon'] : ''),
 			'enabled'    => isset($branch['enabled']) && !$branch['enabled'] ? 0 : 1,
 			'source'     => sanitize_key($source),
 			'updated_at' => current_time('mysql', true),
@@ -296,6 +375,16 @@ class MJE_Carriers {
 			return false !== $wpdb->update($table, $data, ['id' => $id]); // phpcs:ignore WordPress.DB
 		}
 		return false !== $wpdb->insert($table, $data); // phpcs:ignore WordPress.DB
+	}
+
+	/** Una coordenada válida, o null para no escribir un 0 que sería el Golfo de Guinea. */
+	private static function coordinate($raw) {
+		$raw = trim((string) $raw);
+		if ('' === $raw || !is_numeric($raw)) {
+			return null;
+		}
+		$value = (float) $raw;
+		return ($value >= -180 && $value <= 180 && 0.0 !== $value) ? $value : null;
 	}
 
 	public static function delete_branch($carrier_id, $code) {

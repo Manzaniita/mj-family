@@ -348,13 +348,14 @@ class MJE_Rates {
 	 */
 	public static function quote(array $def, array $package) {
 		$out = [
-			'cost'       => null,
-			'base'       => null, // Lo que cobra el correo, antes del margen: es el costo real.
-			'source'     => (string) $def['type'],
-			'error'      => '',
-			'coordinate' => false,
-			'days_min'   => (int) $def['days_min'],
-			'days_max'   => (int) $def['days_max'],
+			'cost'        => null,
+			'base'        => null, // Lo que cobra el correo, antes del margen: es el costo real.
+			'source'      => (string) $def['type'],
+			'error'       => '',
+			'coordinate'  => false,
+			'days_min'    => (int) $def['days_min'],
+			'days_max'    => (int) $def['days_max'],
+			'native_rate' => '', // Id de la tarifa del plugin del correo que se envolvió.
 		];
 
 		/* Gratis por monto: no hace falta preguntarle el precio a nadie. */
@@ -386,6 +387,25 @@ class MJE_Rates {
 					return (array) apply_filters('mje_quote', $out, $def, $package);
 				}
 				$out['cost'] = $price;
+				break;
+
+			case 'nativo':
+				/*
+				 * El precio lo puso el plugin del correo cuando WooCommerce
+				 * calculó el carrito: acá no se llama a ninguna API, se toma esa
+				 * tarifa. Si no está (el correo no cotizó ese destino, o su
+				 * método no quedó en ninguna zona), vale la misma red que para
+				 * un correo propio que no responde.
+				 */
+				$native = MJE_Native::find((string) $def['native_plugin'], (string) $def['native_service']);
+				if (!$native) {
+					$error = new WP_Error('mje_native_sin_tarifa', sprintf('%s no cotizó este destino.', MJE_Native::label_of((string) $def['native_plugin'])));
+					return (array) apply_filters('mje_quote', self::on_carrier_error($def, $package, $error, $out), $def, $package);
+				}
+				$out['cost']        = (float) $native['cost'];
+				$out['base']        = (float) $native['cost'];
+				$out['source']      = 'nativo';
+				$out['native_rate'] = (string) $native['rate_id'];
 				break;
 
 			case 'correo':
@@ -477,13 +497,23 @@ class MJE_Rates {
 			return $rates;
 		}
 
+		/*
+		 * Primero, lo que ya calcularon los plugins de los correos. Sus tarifas
+		 * llegan acá como cualquier otra y son la única fuente de precio para
+		 * los métodos de tipo "nativo": no se le vuelve a preguntar a ninguna
+		 * API lo que su propio plugin ya preguntó.
+		 */
+		MJE_Native::capture($rates);
+		self::adopt_native();
+
 		$ctx = [
 			'subtotal' => self::package_subtotal($package),
 			'weight'   => self::package_weight($package),
 			'gateway'  => MJE_Cart::chosen_gateway(),
 		];
 
-		$own = [];
+		$own     = [];
+		$wrapped = [];
 		foreach (MJE_Methods::available($package, $ctx) as $slug => $def) {
 			$quote = self::quote($def, $package);
 			if (null === $quote['cost']) {
@@ -508,6 +538,12 @@ class MJE_Rates {
 			$rate->add_meta_data('_mje_destination', (string) $def['destination']);
 			$rate->add_meta_data('_mje_carrier', (string) $def['carrier']);
 			$rate->add_meta_data('_mje_source', (string) $quote['source']);
+			if ('' !== (string) $quote['native_rate']) {
+				/* La tarifa del plugin del correo que hay detrás: el pedido la necesita para que ese plugin lo reconozca. */
+				$rate->add_meta_data('_mje_native_plugin', (string) $def['native_plugin']);
+				$rate->add_meta_data('_mje_native_rate', (string) $quote['native_rate']);
+				$wrapped[] = (string) $quote['native_rate'];
+			}
 			if (null !== $quote['base']) {
 				$rate->add_meta_data('_mje_base', (string) $quote['base']);
 			}
@@ -530,7 +566,38 @@ class MJE_Rates {
 		if (MJE_Settings::get('replace_native')) {
 			return $own;
 		}
+		/*
+		 * Sin reemplazar, igual se van las tarifas de los correos que ya quedaron
+		 * envueltas en un método propio: si no, el cliente ve dos veces el mismo
+		 * envío, una con el nombre del plugin y otra con el tuyo.
+		 */
+		foreach ($wrapped as $rate_id) {
+			unset($rates[$rate_id]);
+		}
 		return array_merge($rates, $own);
+	}
+
+	/**
+	 * Crea el método que falta para cada servicio de un correo con plugin.
+	 *
+	 * Es lo que hace que conectar Andreani (o el correo que sea) alcance: sus
+	 * modos de entrega aparecen solos en la lista de métodos, con las reglas
+	 * generales ya aplicadas, y desde ahí se les cambia el nombre, el orden, las
+	 * condiciones o se apagan. Sin esto habría que cargar a mano un método por
+	 * cada servicio de cada correo.
+	 */
+	private static function adopt_native() {
+		if (!MJE_Settings::get('native_adopt') || !MJE_Native::any()) {
+			return;
+		}
+		foreach (MJE_Native::rates() as $data) {
+			if ('' === $data['plugin'] || MJE_Methods::by_native($data['plugin'], $data['service'])) {
+				continue;
+			}
+			$plugin = MJE_Native::get($data['plugin']);
+			$title  = $plugin ? $plugin->service_label($data['service']) : (string) $data['label'];
+			MJE_Methods::adopt($data['plugin'], $data['service'], $title, !empty($data['branch']));
+		}
 	}
 
 	/* --------------------------- Medios de pago -------------------------- */

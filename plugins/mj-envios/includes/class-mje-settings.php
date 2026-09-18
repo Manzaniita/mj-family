@@ -33,6 +33,18 @@ class MJE_Settings {
 			'enabled'         => 1,
 			'replace_native'  => 1,   // Cuando hay métodos MJ, se ocultan las tarifas de las zonas de WooCommerce.
 
+			/* Correos con plugin propio (Andreani, Correo Argentino…) ---- */
+			'native_adopt'    => 1,   // Cada servicio suyo que cotiza queda como método propio, editable.
+
+			/* Carteles de la lista del checkout -------------------------- */
+			'badges_enabled'  => 1,
+			'badge_cheapest'  => 'MÁS BARATO',
+			'badge_fastest'   => 'MÁS RÁPIDO',
+
+			/* Sucursales ------------------------------------------------- */
+			'branch_sort'     => 'cercania', // cercania | nombre
+			'branch_max'      => 25,         // Cuántas se le ofrecen al cliente (0 = todas).
+
 			/* Desde dónde sale el paquete -------------------------------- */
 			'origin_name'     => '',
 			'origin_address'  => '',
@@ -136,6 +148,13 @@ class MJE_Settings {
 		];
 	}
 
+	public static function branch_sort_choices() {
+		return [
+			'cercania' => 'Las más cercanas primero',
+			'nombre'   => 'Por nombre',
+		];
+	}
+
 	public static function error_choices() {
 		return [
 			'tabla'     => 'Cotizar con la tabla propia del método',
@@ -178,7 +197,7 @@ class MJE_Settings {
 		$in  = is_array($in) ? $in : [];
 		$out = [];
 
-		foreach (['enabled', 'replace_native', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost', 'ready_enabled', 'ready_mail'] as $flag) {
+		foreach (['enabled', 'replace_native', 'native_adopt', 'badges_enabled', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost', 'ready_enabled', 'ready_mail'] as $flag) {
 			$out[$flag] = empty($in[$flag]) ? 0 : 1;
 		}
 
@@ -216,6 +235,11 @@ class MJE_Settings {
 		$error             = isset($in['on_error']) ? sanitize_key($in['on_error']) : $d['on_error'];
 		$out['on_error']   = array_key_exists($error, self::error_choices()) ? $error : $d['on_error'];
 
+		/* Sucursales: cómo se ordenan y cuántas se le ofrecen al cliente. */
+		$sort               = isset($in['branch_sort']) ? sanitize_key($in['branch_sort']) : $d['branch_sort'];
+		$out['branch_sort'] = array_key_exists($sort, self::branch_sort_choices()) ? $sort : $d['branch_sort'];
+		$out['branch_max']  = max(0, min(300, absint(isset($in['branch_max']) ? $in['branch_max'] : $d['branch_max'])));
+
 		$out['cache_hours']    = max(0, min(720, absint(isset($in['cache_hours']) ? $in['cache_hours'] : $d['cache_hours'])));
 		$out['timeout']        = max(2, min(30, absint(isset($in['timeout']) ? $in['timeout'] : $d['timeout'])));
 		$out['geo_cache_days'] = max(1, min(3650, absint(isset($in['geo_cache_days']) ? $in['geo_cache_days'] : $d['geo_cache_days'])));
@@ -239,7 +263,7 @@ class MJE_Settings {
 		$out['free_states']  = isset($in['free_states']) ? self::text_list($in['free_states']) : '';
 
 		/* Textos: si los vacían, vuelve el default (nunca queda una pantalla muda). */
-		foreach (['free_label', 'step_title', 'step_intro', 'cp_label', 'cp_help', 'cp_ask', 'cp_invalid', 'eta_text', 'eta_text_one', 'branch_label', 'branch_help', 'pickup_label', 'track_subject', 'ready_label', 'ready_subject'] as $key) {
+		foreach (['badge_cheapest', 'badge_fastest', 'free_label', 'step_title', 'step_intro', 'cp_label', 'cp_help', 'cp_ask', 'cp_invalid', 'eta_text', 'eta_text_one', 'branch_label', 'branch_help', 'pickup_label', 'track_subject', 'ready_label', 'ready_subject'] as $key) {
 			$value     = isset($in[$key]) ? trim(sanitize_text_field($in[$key])) : '';
 			$out[$key] = '' !== $value ? mb_substr($value, 0, 190) : $d[$key];
 		}

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Envíos
  * Description: Métodos de envío propios, creados y editados desde el panel: a domicilio, a sucursal del correo, retiro en el local, zona propia por código postal, envío gratis o "a coordinar". Cada método decide con qué condiciones aparece (destino, CP, provincia, monto, peso, productos, usuario), con qué medios de pago se combina, qué datos le pide al cliente y de dónde sale su precio: tabla propia, precio fijo o cotización en vivo con Vía Cargo, Andreani o Correo Argentino. El checkout de la tienda lo muestra paso a paso, valida el código postal y completa provincia y localidad solo.
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author: MJ
  * Requires Plugins: woocommerce
  * Requires at least: 6.2
@@ -33,7 +33,19 @@
  *   - Las tarifas entran al carrito como tarifas reales de WooCommerce (filtro
  *     woocommerce_package_rates), así que valen igual en la tienda React (Store
  *     API), en el checkout clásico, en los emails y en los informes. No hace
- *     falta configurar ninguna zona de envío.
+ *     falta configurar ninguna zona de envío para los métodos propios.
+ *
+ * CORREOS CON SU PROPIO PLUGIN
+ *   - Cuando el correo ya tiene su plugin oficial instalado y conectado
+ *     (Andreani, Correo Argentino), MJ Envíos NO le pide las credenciales de
+ *     nuevo ni rehace su API: lee la configuración que ya está cargada, se
+ *     queda con la tarifa que ese plugin calculó y le aplica encima las reglas
+ *     de la casa (envío gratis, excluidos, margen, redondeo, nombre, orden).
+ *   - Cada servicio suyo que cotiza queda como un método propio, editable, sin
+ *     cargarlo a mano (ver MJE_Native y MJE_Rates::adopt_native).
+ *   - Todo esto es opcional y sin dependencia en ninguna dirección: si el
+ *     plugin del correo no está, MJ Envíos no lo nombra; y ese plugin nunca se
+ *     entera de que MJ Envíos existe.
  *
  * CÓDIGO POSTAL, PROVINCIA Y LOCALIDAD
  *   - El CP se valida y completa provincia y localidad con los proveedores que
@@ -48,8 +60,11 @@
  *   - Vía Cargo, Andreani y Correo Argentino se configuran con sus credenciales
  *     y sus URLs desde el panel (endpoint, cliente, contrato, servicio). Sin
  *     credenciales el correo queda apagado y sus métodos cotizan con la tabla
- *     propia, que es también el respaldo cuando la API no responde.
- *   - Agregar otro correo es registrar una clase con el filtro mje_carriers.
+ *     propia, que es también el respaldo cuando la API no responde. Esto es
+ *     para los correos SIN plugin propio: los que lo tienen entran por el
+ *     puente y no se configuran acá.
+ *   - Agregar otro correo es registrar una clase con el filtro mje_carriers; si
+ *     ese correo tiene plugin oficial, el filtro es mje_native_plugins.
  *
  * INTEGRACIÓN CON LA FAMILIA MJ
  *   MJ Appearance      paso de envío en el checkout, autocompletado del CP y
@@ -79,7 +94,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJE_VERSION', '1.2.0');
+define('MJE_VERSION', '1.3.0');
 define('MJE_FILE', __FILE__);
 define('MJE_DIR', plugin_dir_path(__FILE__));
 define('MJE_URL', plugin_dir_url(__FILE__));
@@ -99,6 +114,10 @@ require_once MJE_DIR . 'includes/carriers/class-mje-carrier-viacargo.php';
 require_once MJE_DIR . 'includes/carriers/class-mje-carrier-andreani.php';
 require_once MJE_DIR . 'includes/carriers/class-mje-carrier-correo.php';
 require_once MJE_DIR . 'includes/carriers/class-mje-carriers.php';
+require_once MJE_DIR . 'includes/nativos/class-mje-native-plugin.php';
+require_once MJE_DIR . 'includes/nativos/class-mje-native-andreani.php';
+require_once MJE_DIR . 'includes/nativos/class-mje-native-correo.php';
+require_once MJE_DIR . 'includes/nativos/class-mje-native.php';
 require_once MJE_DIR . 'includes/class-mje-rates.php';
 require_once MJE_DIR . 'includes/class-mje-cart.php';
 require_once MJE_DIR . 'includes/class-mje-orders.php';
@@ -118,6 +137,7 @@ final class MJE_Plugin {
 		}
 
 		MJE_Carriers::init();
+		MJE_Native::init();
 		MJE_Rates::init();
 		MJE_Cart::init();
 		MJE_Orders::init();

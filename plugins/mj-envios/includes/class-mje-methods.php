@@ -13,6 +13,9 @@
  *   fijo       Un precio y listo.
  *   correo     Cotización en vivo con el correo elegido. Si falla, hace lo que
  *              diga el ajuste general (tabla propia, a coordinar u ocultar).
+ *   nativo     El precio lo pone el plugin oficial del correo, que ya está
+ *              instalado y conectado. MJ Envíos no cotiza: se queda con la
+ *              tarifa que ese plugin calculó y le aplica las reglas de la casa.
  *   gratis     Sin costo, siempre.
  *   retiro     Retiro en el local: sin costo (o con el precio que le pongas) y
  *              sin dirección de entrega.
@@ -27,8 +30,15 @@ class MJE_Methods {
 
 	private static $cache = null;
 
+	/**
+	 * Los tipos disponibles.
+	 *
+	 * "Correo conectado por su plugin" solo se ofrece cuando hay al menos un
+	 * plugin de correo instalado: no tiene sentido elegir un tipo que no puede
+	 * cotizar nada en esta tienda.
+	 */
 	public static function types() {
-		return [
+		$types = [
 			'tabla'     => 'Tabla propia (por destino y peso)',
 			'fijo'      => 'Precio fijo',
 			'correo'    => 'Cotización en vivo con un correo',
@@ -36,6 +46,15 @@ class MJE_Methods {
 			'retiro'    => 'Retiro en el local',
 			'coordinar' => 'A coordinar (sin precio)',
 		];
+		if (class_exists('MJE_Native') && MJE_Native::any()) {
+			$types['nativo'] = 'Correo conectado por su propio plugin';
+		}
+		return $types;
+	}
+
+	/** Todos los tipos, estén disponibles o no: para leer lo que ya está guardado. */
+	public static function all_types() {
+		return array_merge(self::types(), ['nativo' => 'Correo conectado por su propio plugin']);
 	}
 
 	public static function destinations() {
@@ -91,6 +110,11 @@ class MJE_Methods {
 			'service'          => '',
 			'price'            => 0,    // Precio fijo, o base de la tabla.
 			'table'            => [],   // Ver sanitize_table().
+
+			/* Tipo 'nativo': qué plugin de correo y qué servicio suyo ------ */
+			'native_plugin'    => '',   // Id del adaptador ('andreani', 'correo').
+			'native_service'   => '',   // Modo de entrega suyo ('' = el primero que haya).
+			'native_adopted'   => 0,    // 1 = lo creó solo la adopción automática.
 
 			/* Ajustes de precio (-1 = heredar del general) ---------------- */
 			'markup_pct'       => -1,
@@ -287,6 +311,70 @@ class MJE_Methods {
 		return $copy['slug'];
 	}
 
+	/* ------------------------- Correos con plugin ------------------------ */
+
+	/**
+	 * El método que envuelve a un servicio de un correo con plugin propio.
+	 *
+	 * Un servicio vacío en el método guardado significa "cualquiera de ese
+	 * correo", así que también sirve de comodín.
+	 */
+	public static function by_native($plugin_id, $service) {
+		$plugin_id = sanitize_key((string) $plugin_id);
+		$service   = MJE_Settings::key_of((string) $service);
+		$fallback  = null;
+
+		foreach (self::all() as $def) {
+			if ('nativo' !== (string) $def['type'] || sanitize_key((string) $def['native_plugin']) !== $plugin_id) {
+				continue;
+			}
+			$own = MJE_Settings::key_of((string) $def['native_service']);
+			if ($own === $service) {
+				return $def;
+			}
+			if ('' === $own && null === $fallback) {
+				$fallback = $def;
+			}
+		}
+		return $fallback;
+	}
+
+	/**
+	 * Crea el método que envuelve a un servicio de un correo con plugin.
+	 *
+	 * Es lo que hace que no haya que cargar a mano cada modo de entrega: la
+	 * primera vez que el correo cotiza un servicio, queda un método propio con
+	 * ese nombre, listo para renombrar, ordenar, condicionar o apagar. Nace
+	 * ENCENDIDO porque su tarifa ya se estaba mostrando en la tienda: adoptarla
+	 * no puede hacerla desaparecer.
+	 */
+	public static function adopt($plugin_id, $service, $title, $branch = false) {
+		$plugin_id = sanitize_key((string) $plugin_id);
+		if ('' === $plugin_id) {
+			return null;
+		}
+		$existing = self::by_native($plugin_id, $service);
+		if ($existing) {
+			return $existing;
+		}
+
+		$slug = self::unique_slug($plugin_id . ' ' . $service);
+		$def  = wp_parse_args([
+			'slug'           => $slug,
+			'title'          => (string) $title,
+			'type'           => 'nativo',
+			'destination'    => $branch ? 'sucursal' : 'domicilio',
+			'native_plugin'  => $plugin_id,
+			'native_service' => (string) $service,
+			'native_adopted' => 1,
+			'enabled'        => 1,
+			'order'          => 50,
+		], self::defaults());
+
+		self::save($slug, $def);
+		return self::get($slug);
+	}
+
 	/** Reordena por la lista de slugs que llega del panel. */
 	public static function reorder(array $slugs) {
 		$all   = self::all();
@@ -354,13 +442,22 @@ class MJE_Methods {
 		$out['order']   = isset($in['order']) ? max(0, min(9999, (int) $in['order'])) : 0;
 
 		$type         = isset($in['type']) ? sanitize_key($in['type']) : $d['type'];
-		$out['type']  = array_key_exists($type, self::types()) ? $type : $d['type'];
+		$out['type']  = array_key_exists($type, self::all_types()) ? $type : $d['type'];
 		$dest         = isset($in['destination']) ? sanitize_key($in['destination']) : $d['destination'];
 		$out['destination'] = array_key_exists($dest, self::destinations()) ? $dest : $d['destination'];
 
 		$carrier        = isset($in['carrier']) ? sanitize_key($in['carrier']) : '';
 		$out['carrier'] = array_key_exists($carrier, MJE_Carriers::choices()) ? $carrier : '';
 		$out['service'] = isset($in['service']) ? mb_substr(trim(sanitize_text_field($in['service'])), 0, 60) : '';
+
+		/*
+		 * El plugin de correo se guarda aunque no esté instalado en este
+		 * momento: si se desactiva y se vuelve a activar, el método sigue
+		 * apuntando a donde apuntaba.
+		 */
+		$out['native_plugin']  = isset($in['native_plugin']) ? sanitize_key($in['native_plugin']) : '';
+		$out['native_service'] = isset($in['native_service']) ? mb_substr(trim(sanitize_text_field($in['native_service'])), 0, 120) : '';
+		$out['native_adopted'] = empty($in['native_adopted']) ? 0 : 1;
 
 		$out['price'] = max(0, MJE_Settings::decimal(isset($in['price']) ? $in['price'] : 0));
 		$out['table'] = self::sanitize_table(isset($in['table']) ? $in['table'] : []);
