@@ -239,6 +239,13 @@ export const useCart = create(
          * la respuesta trae las tarifas nuevas, y si no se aplican, el resumen
          * sigue mostrando las del destino anterior.
          */
+        /*
+         * Manda el destino y adopta las tarifas que vuelven.
+         *
+         * Devuelve null cuando NO se pudo: quien llama tiene que poder
+         * distinguirlo de "salió bien", porque si no el checkout se queda
+         * mostrando las tarifas del destino anterior como si fueran de este.
+         */
         syncAddress: (address) => {
           if (!IS_WP || !address) return Promise.resolve(null);
           return enqueue(() => wc.updateCustomerAddress(address))

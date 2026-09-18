@@ -16,7 +16,7 @@ import { IS_WP, WP, EXCHANGE_RATE, EXPRESS } from '@/lib/config';
 import * as wc from '@/lib/wc';
 import { formatPrice, formatUsd, isValidCuit, cn } from '@/lib/format';
 import { PAY, usePaymentMethod, selectedMethodId, findMethod, resolveAdjustment, usdTotalFor } from '@/lib/payments';
-import { formFields, hasShipping, methodBySlug, missingFor, shippingTexts } from '@/lib/envios';
+import { billingFromShipping, formFields, hasShipping, methodBySlug, missingFor, shippingTexts } from '@/lib/envios';
 import { usePageMeta } from '@/lib/seo';
 import { validateAll, focusFirstError } from '@/lib/validate';
 import { t as tCopy, tf, tx } from '@/lib/copy';
@@ -235,6 +235,13 @@ export default function Checkout() {
    * se escriben.
    */
   const [extra, setExtra] = useState({});
+  /*
+   * La dirección de FACTURACIÓN que el cliente tiene guardada en su cuenta.
+   * Se guarda aparte del formulario, que es el destino del ENVÍO: cambiar el
+   * código postal para ver cuánto sale el envío no puede reescribirle la cuenta.
+   * null = no tiene ninguna guardada, y entonces se factura a la del envío.
+   */
+  const [accountBilling, setAccountBilling] = useState(null);
   // Paso 4 · Facturación. fiscalCfg = config del emisor según el plugin
   // (null = plugin inactivo o todavía no respondió → el paso no se muestra).
   const [fiscalCfg, setFiscalCfg] = useState(null);
@@ -281,6 +288,21 @@ export default function Checkout() {
         const b = acc?.addresses?.billing ?? {};
         /* La dirección de envío manda si está cargada; si no, la de facturación. */
         const s = acc?.addresses?.shipping ?? {};
+
+        /* La de la factura queda guardada tal cual, sin mezclarse con la del envío. */
+        if (!billingFromShipping() && (b.address_1 || b.postcode)) {
+          setAccountBilling({
+            first_name: b.first_name || '',
+            last_name: b.last_name || '',
+            address_1: b.address_1 || '',
+            address_2: b.address_2 || '',
+            city: b.city || '',
+            state: b.state || '',
+            postcode: b.postcode || '',
+            country: b.country || WP?.baseCountry || 'AR',
+            phone: b.phone || '',
+          });
+        }
         const pick = (key) => s[key] || b[key] || '';
         const filled = {
           firstName: pick('first_name'),
@@ -572,7 +594,7 @@ export default function Checkout() {
 
     setPlacing(true);
     try {
-      const order = await wc.placeOrder({ billing: form, paymentMethod: payment, additionalFields });
+      const order = await wc.placeOrder({ billing: form, billingAddress: accountBilling, paymentMethod: payment, additionalFields });
       const redirect = order?.payment_result?.redirect_url;
       if (redirect && !redirect.includes('order-received')) {
         // Pasarelas externas (p. ej. Mercado Pago) requieren redirección

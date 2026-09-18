@@ -962,6 +962,8 @@ class MJE_Methods {
 				'branchHelp' => (string) $s['branch_help'],
 				'pickup'     => (string) $s['pickup_label'],
 			],
+			/* La dirección de la factura, ¿sale de la del envío? */
+			'billingFromShipping' => (bool) $s['billing_from_shipping'],
 			'quote'     => [
 				'enabled' => (bool) $s['quote_product'],
 				'title'   => (string) $s['quote_title'],

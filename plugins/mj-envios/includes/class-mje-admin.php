@@ -1558,6 +1558,17 @@ class MJE_Admin {
 		self::row('Más rápido', self::text_input('settings[badge_fastest]', $s['badge_fastest'], ['class' => 'regular-text']));
 		self::settings_panel_end();
 
+		self::settings_panel(
+			'Facturación y envío',
+			'Son dos direcciones distintas: la de la factura es la que el cliente tiene guardada en su cuenta, y la del envío es la que se calcula con el código postal.'
+		);
+		self::row(
+			'Dirección de la factura',
+			self::checkbox_input('settings[billing_from_shipping]', $s['billing_from_shipping'], 'Usar la misma dirección que el envío'),
+			'Apagado (lo recomendado): el cliente cambia el código postal para ver cuánto sale el envío y la dirección de su cuenta queda intacta. Prendelo solo si en tu tienda las dos direcciones son siempre la misma. Quien no tenga dirección guardada factura igual a la del envío, esté como esté este ajuste: es la única que hay.'
+		);
+		self::settings_panel_end();
+
 		self::settings_panel('MJ ERP');
 		self::row('Costo del correo', self::checkbox_input('settings[erp_cost]', $s['erp_cost'], 'Guardar en el pedido lo que cobró el correo, además de lo que pagó el cliente'), 'Es la diferencia entre lo que cobrás por el envío y lo que te cuesta.');
 		self::settings_panel_end();

@@ -64,26 +64,36 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
   const [suggestions, setSuggestions] = useState([]);
   const [branches, setBranches] = useState({ loading: false, list: [] });
   const [busy, setBusy] = useState(false);
+  /* El servidor no pudo calcular este destino: hay que decirlo, no seguir mostrando lo viejo. */
+  const [failed, setFailed] = useState(false);
 
   /* La dirección se manda una sola vez por destino: sin esto, cada tecla dispararía un cálculo. */
   const lastSent = useRef('');
 
   const addressKey = () => [form.postcode, form.state, form.city, form.address].join('|');
 
-  /** Manda el destino al servidor y trae las tarifas que correspondan. */
+  /**
+   * Manda el destino al servidor y trae las tarifas que correspondan.
+   *
+   * El destino solo se da por enviado cuando el servidor contestó bien: si
+   * falla, `lastSent` queda como estaba para que el próximo intento se mande de
+   * nuevo. Marcarlo antes hacía que un destino que nunca llegó no se
+   * reintentara nunca, y la tienda seguía mostrando las tarifas del anterior.
+   */
   const pushAddress = async () => {
     if (!IS_WP) return;
     const key = addressKey();
     if (!cpLooksValid(form.postcode) || key === lastSent.current) return;
-    lastSent.current = key;
     setBusy(true);
-    await syncAddress({
+    const cart = await syncAddress({
       postcode: form.postcode,
       state: form.state || '',
       city: form.city || '',
       address_1: form.address || '',
       country: WP?.baseCountry || SHIPPING?.country || 'AR',
     });
+    lastSent.current = cart ? key : '';
+    setFailed(!cart);
     setBusy(false);
   };
 
@@ -476,6 +486,13 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
         <p className="mt-5 whitespace-pre-line rounded-xl2 border border-line bg-surface-2 p-4 text-sm text-ink-soft">
           {method.instructions}
         </p>
+      )}
+
+      {failed && (
+        <div className="mt-3 flex items-start gap-3 rounded-xl2 border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
+          <AlertCircle size={17} className="mt-0.5 shrink-0" />
+          <p>{texts.error}</p>
+        </div>
       )}
 
       {/* Por qué un correo no pudo cotizar: mejor decirlo que hacerlo desaparecer. */}

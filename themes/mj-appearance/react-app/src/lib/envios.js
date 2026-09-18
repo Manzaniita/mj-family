@@ -16,6 +16,15 @@ export const hasShipping = () => !!(SHIPPING?.enabled && Array.isArray(SHIPPING.
 
 export const shippingTexts = () => SHIPPING?.texts ?? {};
 
+/**
+ * ¿La factura va a la misma dirección que el envío?
+ *
+ * Apagado, la dirección de la cuenta del cliente no la toca el código postal que
+ * use para cotizar. Sin el plugin no hay dos direcciones, así que se comportan
+ * como una sola.
+ */
+export const billingFromShipping = () => SHIPPING?.billingFromShipping !== false;
+
 /** Los grupos del checkout: juntan varias formas de envío abajo de un título. */
 export const shippingGroups = () => (Array.isArray(SHIPPING?.groups) ? SHIPPING.groups : []);
 

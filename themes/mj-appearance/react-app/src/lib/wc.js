@@ -254,8 +254,25 @@ export const updateCartItem = (key, quantity) => req('/cart/update-item', { meth
 export const removeCartItem = (key) => req('/cart/remove-item', { method: 'POST', body: { key } });
 
 /** Guarda la dirección de envío en la sesión del carrito (recalcula rates). */
-export const updateCustomerAddress = (shipping_address) =>
-  req('/cart/customer/update-address', { method: 'POST', body: { shipping_address } });
+/**
+ * Guarda el destino del envío en el carrito del servidor y trae las tarifas.
+ *
+ * La ruta de la Store API es `cart/update-customer`. Se prueba también
+ * `cart/customer`, que es como se llamaba antes, para no depender de la versión
+ * de WooCommerce que corra la tienda. Mandar SOLO shipping_address deja la
+ * dirección de facturación del cliente intacta, que es lo que corresponde:
+ * cambiar el código postal para ver cuánto sale el envío no puede reescribirle
+ * la cuenta.
+ */
+export async function updateCustomerAddress(shipping_address) {
+  const body = { shipping_address };
+  try {
+    return await req('/cart/update-customer', { method: 'POST', body });
+  } catch (e) {
+    if (e?.status !== 404 && e?.data?.code !== 'rest_no_route') throw e;
+    return req('/cart/customer', { method: 'POST', body });
+  }
+}
 
 /** Marca el método de envío elegido en la sesión del carrito. */
 export const selectShippingRate = (rateId) =>
@@ -413,7 +430,16 @@ export const getPage = ({ path = '', id = 0, preview = false } = {}) =>
 
 /* ------------------------------- Checkout -------------------------------- */
 
-export async function placeOrder({ billing, paymentMethod, additionalFields }) {
+/**
+ * Cierra el pedido.
+ *
+ * `form` es el destino del ENVÍO (lo que el cliente cargó con su código postal).
+ * `billingAddress`, si viene, es la dirección de FACTURACIÓN que el cliente ya
+ * tiene guardada en su cuenta: son dos cosas distintas, y cambiar el código
+ * postal para ver cuánto sale el envío no puede reescribirle la cuenta. Sin
+ * dirección guardada se factura a la del envío, que es la única que hay.
+ */
+export async function placeOrder({ billing, billingAddress, paymentMethod, additionalFields }) {
   const address = {
     first_name: billing.firstName,
     last_name: billing.lastName,
@@ -428,10 +454,13 @@ export async function placeOrder({ billing, paymentMethod, additionalFields }) {
     phone: billing.phone,
   };
   const { email, phone, ...shipping } = address;
+  const invoice = billingAddress
+    ? { ...billingAddress, first_name: billingAddress.first_name || address.first_name, last_name: billingAddress.last_name || address.last_name, email: address.email, phone: billingAddress.phone || address.phone }
+    : address;
   return req('/checkout', {
     method: 'POST',
     body: {
-      billing_address: address,
+      billing_address: invoice,
       shipping_address: shipping,
       payment_method: paymentMethod,
       // Campos fiscales del paso 4 (los registra y valida el plugin MJ Facturador).

@@ -366,10 +366,15 @@ class MJE_Rates {
 		 * cliente elegía un envío que nadie puede hacer.
 		 */
 		$del_correo = in_array((string) $def['type'], ['nativo', 'correo'], true);
-		if (self::free_applies($def, $package) && (!$del_correo || null !== self::carrier_cost($def, $package))) {
-			$out['cost']   = 0.0;
-			$out['source'] = 'gratis';
-			return (array) apply_filters('mje_quote', $out, $def, $package);
+		if (self::free_applies($def, $package)) {
+			$base = $del_correo ? self::carrier_cost($def, $package) : 0.0;
+			if (!$del_correo || null !== $base) {
+				$out['cost']   = 0.0;
+				/* El envío sale gratis para el cliente, pero al correo hay que pagarle igual. */
+				$out['base']   = $del_correo ? (float) $base : null;
+				$out['source'] = 'gratis';
+				return (array) apply_filters('mje_quote', $out, $def, $package);
+			}
 		}
 
 		switch ((string) $def['type']) {
@@ -497,6 +502,8 @@ class MJE_Rates {
 				 * fila vacía, no un regalo: se trata como "ninguna fila lo cubre".
 				 */
 				if (null !== $price && ((float) $price > 0 || MJE_Settings::get('native_allow_zero'))) {
+					/* La tabla también es "lo que cuesta antes del margen". */
+					$out['base']   = (float) $price;
 					$out['cost']   = self::apply_extras((float) $price, $def, $package);
 					$out['source'] = 'tabla';
 					return $out;

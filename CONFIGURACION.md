@@ -1240,6 +1240,28 @@ Un pedido entra en la lista cuando tiene un envío de MJ Envíos, está en uno d
 los estados que elegiste en **Ajustes → Avisos → Pantalla de envíos** y todavía
 no tiene seguimiento. Ahí mismo se elige a los cuántos días se marca atrasado.
 
+### Probar una cotización
+
+En **Envíos → Correos → Estado** se le pide un precio de verdad a los correos
+para un destino y un producto, sin pasar por la tienda. Se muestran las dos
+cifras por separado: **lo que cobra el correo** y **lo que paga el cliente**. La
+diferencia entre las dos es tu margen, el seguro, el mínimo y el redondeo.
+
+Es la forma de contestar «¿está cotizando bien?»: probá el mismo producto con
+dos destinos lejanos entre sí. Si el correo cotiza de verdad, los números tienen
+que cambiar. Si no cambian, la columna «qué pasó» dice de dónde salió el precio
+—del correo o de tu tabla de respaldo—.
+
+### La factura y el envío son dos direcciones
+
+La de la **factura** es la que el cliente tiene guardada en su cuenta. La del
+**envío** es la que se calcula con el código postal. Cambiar el código postal
+para ver cuánto sale el envío no le toca la cuenta a nadie.
+
+Se cambia en *Ajustes → General → Facturación y envío*. Quien no tenga dirección
+guardada factura a la del envío igual, esté como esté el ajuste: es la única que
+hay.
+
 ### Con MJ ERP
 
 Cada método declara su **forma de entrega equivalente** del ERP. Así una venta

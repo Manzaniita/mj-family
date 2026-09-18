@@ -42,6 +42,9 @@ class MJE_Settings {
 			'badge_cheapest'  => 'MÁS BARATO',
 			'badge_fastest'   => 'MÁS RÁPIDO',
 
+			/* Facturación y envío ---------------------------------------- */
+			'billing_from_shipping' => 0, // 1 = la factura usa la dirección del envío (una sola dirección).
+
 			/* Cotizador en la ficha del producto -------------------------- */
 			'quote_product'   => 1,
 			'quote_title'     => '¿Cuánto sale el envío?',
@@ -209,7 +212,7 @@ class MJE_Settings {
 		$in  = is_array($in) ? $in : [];
 		$out = [];
 
-		foreach (['enabled', 'replace_native', 'native_adopt', 'native_allow_zero', 'badges_enabled', 'quote_product', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost', 'ready_enabled', 'ready_mail'] as $flag) {
+		foreach (['enabled', 'replace_native', 'native_adopt', 'native_allow_zero', 'badges_enabled', 'quote_product', 'billing_from_shipping', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost', 'ready_enabled', 'ready_mail'] as $flag) {
 			$out[$flag] = empty($in[$flag]) ? 0 : 1;
 		}
 
