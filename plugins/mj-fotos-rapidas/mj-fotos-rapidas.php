@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Fotos Rápidas
  * Description: Cargá las fotos de tus productos desde el celular en dos toques y publicalos ahí mismo. Sin FTP, sin renombrar archivos, sin carpetas. Achica las imágenes solo antes de subirlas.
- * Version: 1.3.0
+ * Version: 1.4.0
  * Author: MJ Importaciones
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -21,7 +21,14 @@
 
 defined('ABSPATH') || exit;
 
-define('MJFR_VERSION', '1.3.0');
+define('MJFR_VERSION', '1.4.0');
+
+/*
+ * El menú único de la familia MJ en wp-admin. La clase viaja adentro del
+ * plugin: si está solo, arma igual el menú con esta pantalla adentro.
+ */
+require_once __DIR__ . '/compartido/class-mj-menu.php';
+MJ_Menu::init();
 
 class MJ_Fotos_Rapidas {
 
@@ -86,8 +93,8 @@ class MJ_Fotos_Rapidas {
         ));
 
         wp_safe_redirect(add_query_arg(
-            array('post_type' => 'product', 'page' => self::SLUG, 'guardado' => '1'),
-            admin_url('edit.php')
+            array('page' => self::SLUG, 'guardado' => '1'),
+            admin_url('admin.php')
         ));
         exit;
     }
@@ -96,9 +103,9 @@ class MJ_Fotos_Rapidas {
 
     public function menu() {
         add_submenu_page(
-            'edit.php?post_type=product',
+            MJ_Menu::slug(),
             'Fotos rápidas',
-            '📷 Fotos rápidas',
+            'Fotos rápidas',
             'edit_products',
             self::SLUG,
             array($this, 'pantalla')
@@ -230,7 +237,6 @@ class MJ_Fotos_Rapidas {
             <?php endif; ?>
 
             <form method="get" class="mjfr-barra">
-                <input type="hidden" name="post_type" value="product">
                 <input type="hidden" name="page" value="<?php echo esc_attr(self::SLUG); ?>">
                 <input type="search" name="q" value="<?php echo esc_attr($busqueda); ?>" placeholder="Buscar por nombre o SKU" class="mjfr-buscar">
                 <select name="filtro" class="mjfr-select">

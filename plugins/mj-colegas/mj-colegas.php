@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Colegas
  * Description: Productos de colegas dentro de la tienda. Cada producto lleva quién lo hizo; la tienda cobra y después liquida a cada colega descontando su comisión (10% por defecto, configurable por colega). En el tema MJ Appearance agrega el chip "Hecho por", el filtro en la tienda, la sección en la portada y la página del proyecto con una página por colega.
- * Version: 1.0.1
+ * Version: 1.1.0
  * Author: MJ
  * Requires Plugins: woocommerce
  * Text Domain: mj-colegas
@@ -10,10 +10,13 @@
 
 defined('ABSPATH') || exit;
 
-define('MJC_VERSION', '1.0.1');
+define('MJC_VERSION', '1.1.0');
 define('MJC_FILE', __FILE__);
 define('MJC_DIR', plugin_dir_path(__FILE__));
 define('MJC_TAX', 'mj_colega');
+
+require_once MJC_DIR . 'inc/compartido/class-mj-menu.php'; // El menú único de la familia MJ.
+MJ_Menu::init();
 
 require_once MJC_DIR . 'inc/options.php';   // Opciones, página de ajustes y helpers.
 require_once MJC_DIR . 'inc/taxonomy.php';  // Taxonomía "colega" en productos + ficha de cada colega.

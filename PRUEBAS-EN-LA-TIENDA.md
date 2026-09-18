@@ -11,7 +11,7 @@ checkout, y ahí el único que sabe si está bien sos vos mirándolo.
 
 ## Antes de empezar
 
-**Poné los registros en "Todo".** Ajustes → MJ · Registros → *Todo*. Así, si
+**Poné los registros en "Todo".** MJ → Registros → *Todo*. Así, si
 algo falla en silencio, queda anotado y después se lee en WooCommerce → Estado
 → Registros, en los archivos que empiezan con `mj-`. Cuando termines de probar,
 volvelo a *Solo los errores*.
@@ -31,7 +31,7 @@ esperás, y que cambie cuando movés el tipo de cambio.
 
 ### 1.1. El precio sale bien
 
-1. Cargá el tipo de cambio del día en WooCommerce → Dólar.
+1. Cargá el tipo de cambio del día en MJ → Dólar.
 2. En el producto de prueba, poné precio USD 100. Guardá.
 3. Mirá la ficha del producto en la tienda.
 
@@ -81,7 +81,7 @@ mañana cambia el dólar, ese pedido sigue mostrando el de ayer.
 
 ### 1.6. La cotización sugerida
 
-En WooCommerce → Dólar, pedí la cotización sugerida.
+En MJ → Dólar, pedí la cotización sugerida.
 
 **Qué tiene que pasar:** trae un número de la fuente que elegiste.
 
@@ -176,7 +176,7 @@ ninguno otro**. Probá cambiarle el número al link: tiene que rechazarlo.
 
 ### 2.6. Los datos para pagar
 
-1. En WooCommerce → Medios de pago, en la fila de Transferencia, entrá a
+1. En MJ → Medios de pago, en la fila de Transferencia, entrá a
    **Editar textos y datos para pagar**. Cargá alias, CBU y titular, marcá
    "Copiar" en alias y CBU, y guardá.
 2. Comprá con transferencia desde una ventana de incógnito.
@@ -591,7 +591,7 @@ anteriores llegan al email de contacto.
 3. Abrí `/wp-json/mj/v1/catalog-stock` en el navegador.
 
 **Qué tiene que pasar:** lista `id` y `sku` de cada producto, sin cantidades.
-Con "Stock en el buscador" marcado en Apariencia → MJ Appearance → Sesión y
+Con "Stock en el buscador" marcado en MJ → MJ Appearance → Sesión y
 acceso, aparece `stock_quantity` y el buscador de la tienda dice "12 en stock".
 Cambiá el stock de un producto: el listado se actualiza al toque (la caché se
 vacía sola).
@@ -682,7 +682,7 @@ clienta ve un turno que no es suyo, o un mail sale dos veces.
 Solo en **MJ Importaciones**, que es la única tienda con cuenta de un correo.
 Esto toca el checkout: probalo antes de tocar las otras tiendas.
 
-Antes de empezar: en **WooCommerce → 📦 Envíos → Correos → Conectados por su
+Antes de empezar: en **MJ → Envíos → Correos → Conectados por su
 plugin** tiene que decir **conectado** y mostrar el titular y el CUIT de la
 cuenta. Si dice *fuera de las zonas*, agregá su método a la zona con el botón
 que está ahí mismo y volvé a mirar.

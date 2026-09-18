@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Medios de Pago
  * Description: Descuentos y recargos por medio de pago con precio distinto en tarjetas, ficha, carrito y checkout, los datos para pagar de cada medio (alias, CBU, titular) editables y visibles en la tienda, y comprobantes de pago: elegís en qué medios se pide, el cliente sube la foto o el PDF y vos aprobás o rechazás cada compra. Funciona con cualquier método de pago de la tienda, te deja crear métodos propios (por ejemplo "Pago en dólares en el local") como medios de pago reales de WooCommerce, y comparte los comprobantes con MJ ERP (reventas) y MJ Turnos Online (señas).
- * Version: 1.5.0
+ * Version: 1.6.0
  * Author: MJ Importaciones
  * Requires Plugins: woocommerce
  * Requires at least: 6.2
@@ -42,7 +42,7 @@
  *   - El cliente lo sube DESPUÉS de comprar, con el pedido en el estado que
  *     elegiste: desde la página de gracias, desde Mi cuenta, o con un link
  *     firmado si compró sin cuenta.
- *   - Vos aprobás o rechazás cada compra desde WooCommerce → Comprobantes (con
+ *   - Vos aprobás o rechazás cada compra desde MJ → Comprobantes (con
  *     contador en el menú) o desde la pantalla del pedido. Al rechazar, el
  *     motivo es lo que ve el cliente.
  *   - Al aprobar decís cuánto entró: todo lo que falta o una parte. Con una
@@ -78,7 +78,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJPM_VERSION', '1.5.0');
+define('MJPM_VERSION', '1.6.0');
 define('MJPM_FILE', __FILE__);
 define('MJPM_DIR', plugin_dir_path(__FILE__));
 define('MJPM_URL', plugin_dir_url(__FILE__));
@@ -87,6 +87,12 @@ define('MJPM_URL', plugin_dir_url(__FILE__));
    shared/class-mj-log.php; esta es una copia. Ver tools/sincronizar-compartido.ps1. */
 require_once MJPM_DIR . 'includes/compartido/class-mj-log.php';
 MJ_Log::init();
+
+/* El menú único de la familia MJ: todas las pantallas de configuración cuelgan
+   de ahí. La copia maestra está en shared/class-mj-menu.php; esta es una copia.
+   Ver tools/sincronizar-compartido.ps1. */
+require_once MJPM_DIR . 'includes/compartido/class-mj-menu.php';
+MJ_Menu::init();
 
 require_once MJPM_DIR . 'includes/class-mjpm-settings.php';
 require_once MJPM_DIR . 'includes/class-mjpm-methods.php';

@@ -1344,10 +1344,30 @@ function mj_sanitize_options($input) {
 }
 
 /* -------------------------------------------------------------------------
- * Página de ajustes (Apariencia → MJ Appearance)
+ * Página de ajustes
+ *
+ * Va abajo del menú MJ cuando hay algún plugin de la familia instalado, que es
+ * el que trae esa pieza (class_exists, como todos los cruces de la casa). Sin
+ * ningún plugin MJ, queda donde WordPress espera los ajustes de un tema:
+ * Apariencia → MJ Appearance.
  * ---------------------------------------------------------------------- */
 add_action('admin_menu', function () {
-	add_theme_page(
+	if (class_exists('MJ_Menu')) {
+		/*
+		 * El sufijo del hook lo arma WordPress con el padre, y el menú MJ se
+		 * puede renombrar: se guarda el que devuelve, no se escribe a mano.
+		 */
+		$GLOBALS['mj_settings_hook'] = add_submenu_page(
+			MJ_Menu::slug(),
+			mj_settings_page_title(),
+			mj_settings_menu_title(),
+			mj_settings_capability(),
+			mj_settings_page_slug(),
+			'mj_render_settings_page'
+		);
+		return;
+	}
+	$GLOBALS['mj_settings_hook'] = add_theme_page(
 		mj_settings_page_title(),
 		mj_settings_menu_title(),
 		mj_settings_capability(),
@@ -1361,7 +1381,8 @@ add_action('admin_menu', function () {
  * secciones de la portada) solo en la página de ajustes del tema.
  */
 add_action('admin_enqueue_scripts', function ($hook) {
-	if ('appearance_page_' . mj_settings_page_slug() === $hook) {
+	$nuestro = isset($GLOBALS['mj_settings_hook']) ? (string) $GLOBALS['mj_settings_hook'] : '';
+	if ('' !== $nuestro && $hook === $nuestro) {
 		wp_enqueue_media();
 		wp_enqueue_script('jquery-ui-sortable');
 		wp_enqueue_script('lucide', mj_icons_script_url(), [], null, true);

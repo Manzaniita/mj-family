@@ -10,9 +10,9 @@
  *      (Andreani da un contrato distinto para domicilio y para sucursal), el CP
  *      de destino y los bultos con su peso, volumen y valor declarado.
  *
- * La URL, el usuario, la clave, el cliente y los contratos se cargan en
- * WooCommerce → Envíos → Correos. Nada de eso está fijo acá: si Andreani cambia
- * de endpoint o te dan otro contrato, se corrige desde el panel.
+ * La URL, el usuario, la clave, el cliente y los contratos se cargan en MJ →
+ * Envíos → Correos. Nada de eso está fijo acá: si Andreani cambia de endpoint
+ * o te dan otro contrato, se corrige desde el panel.
  *
  * Si la respuesta no tiene la forma esperada, se puede fijar de qué clave sale
  * el precio, o escribir directamente el cuerpo del pedido con la plantilla.

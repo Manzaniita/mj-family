@@ -42,14 +42,14 @@ faltan cosas chicas; **Falta** = hay una pieza grande pendiente.
 | --- | --- | --- | --- |
 | MJ Appearance | 3.21.0 | Casi | Reseñas en la ficha; tope de 1000 productos; subcarpeta. (Frenos y `/catalog-stock`: hechos en 3.19.0.) |
 | GlossyHair / Yamana / Atelier | 1.1.1 | Cerrado | `*_REQUIRES` en 3.19.0. |
-| MJ ERP | 1.22.0 | Casi | Probar en la tienda Caja, Reportes y los permisos nuevos; la bitácora del revendedor sin pestaña; LEEME. (Permisos, integridad, `uninstall.php`, ajustes fantasma, `readme.txt`, Caja y Reportes: hechos en 1.22.0.) |
-| MJ Medios de Pago | 1.5.0 | Casi | `uninstall.php` deja el historial de pagos; filtro "parcial" de la bandeja; purga topeada en 200; LEEME. |
-| MJ Dólar | 1.1.1 | Casi | Decidir si el TC se trae solo; endpoint de cotización como ajuste; LEEME. (`readme.txt`: hecho en 1.1.1.) |
-| MJ Envíos | 1.8.1 | Casi | Probar en la tienda el puente con Andreani (`PRUEBAS-EN-LA-TIENDA.md` §11). Vía Cargo sigue siendo un andamio a la espera de su API; MJ Envíos no da de alta el envío ni imprime el rótulo (lo hace el plugin del correo desde su propia pantalla). (CSV validado, claves que no se reimprimen, `/cotizar` con freno y puente con los plugins de los correos: hechos en 1.3.0.) |
-| MJ Turnos Online | 1.3.0 | Casi | Probar en la tienda lo de 1.3 (cuentas, reglas de cambios, saldo, mantenimiento, opiniones: `PRUEBAS-EN-LA-TIENDA.md` §10); el panel no usa `receipt`. (Freno de lecturas, alias/CBU fuera de `/config` y LEEME al día: hechos en 1.3.0.) |
-| MJ Fidelidad | 1.0.0 | Casi | Nuevo: probar en la tienda (turnos atendidos, premio como saldo, descontar al sacar el atendido). |
-| MJ Colegas | 1.0.1 | Casi | Sellar la base de la comisión. (`uninstall.php`, permiso del menú y CSV: hechos en 1.0.1.) |
-| MJ Core | 1.0.1 | Casi | Instalarlo en GlossyHair y Yamana. Sin reporte de versiones ni rollback (mejora, no bloqueante). |
+| MJ ERP | 1.23.0 | Casi | Probar en la tienda Caja, Reportes y los permisos nuevos; la bitácora del revendedor sin pestaña; LEEME. (Permisos, integridad, `uninstall.php`, ajustes fantasma, `readme.txt`, Caja y Reportes: hechos en 1.22.0.) |
+| MJ Medios de Pago | 1.6.0 | Casi | `uninstall.php` deja el historial de pagos; filtro "parcial" de la bandeja; purga topeada en 200; LEEME. |
+| MJ Dólar | 1.2.0 | Casi | Decidir si el TC se trae solo; endpoint de cotización como ajuste; LEEME. (`readme.txt`: hecho en 1.1.1.) |
+| MJ Envíos | 1.9.0 | Casi | Probar en la tienda el puente con Andreani (`PRUEBAS-EN-LA-TIENDA.md` §11). Vía Cargo sigue siendo un andamio a la espera de su API; MJ Envíos no da de alta el envío ni imprime el rótulo (lo hace el plugin del correo desde su propia pantalla). (CSV validado, claves que no se reimprimen, `/cotizar` con freno y puente con los plugins de los correos: hechos en 1.3.0.) |
+| MJ Turnos Online | 1.4.0 | Casi | Probar en la tienda lo de 1.3 (cuentas, reglas de cambios, saldo, mantenimiento, opiniones: `PRUEBAS-EN-LA-TIENDA.md` §10); el panel no usa `receipt`. (Freno de lecturas, alias/CBU fuera de `/config` y LEEME al día: hechos en 1.3.0.) |
+| MJ Fidelidad | 1.1.0 | Casi | Nuevo: probar en la tienda (turnos atendidos, premio como saldo, descontar al sacar el atendido). |
+| MJ Colegas | 1.1.0 | Casi | Sellar la base de la comisión. (`uninstall.php`, permiso del menú y CSV: hechos en 1.0.1.) |
+| MJ Core | 1.1.0 | Casi | Instalarlo en GlossyHair y Yamana. Sin reporte de versiones ni rollback (mejora, no bloqueante). |
 | MJ Optimizador | 1.1.1 | Cerrado | Borra el original sin escalar aunque no haya backup (ver 3.2). |
 | MJ Fotos Rápidas | 1.3.0 | Cerrado | Todo lo de la v1 hecho en 1.3.0. Queda la guarda de WooCommerce (avisa `Requires Plugins`, alcanza). |
 | Circuito de publicación | — | Casi | El CI nunca corrió (3.1). `publicar.ps1` sin rollback si falla la Release. |

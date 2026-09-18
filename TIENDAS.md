@@ -27,9 +27,9 @@ terminar.
 1. Apariencia → Temas → Subir: primero `mj-appearance-<versión>.zip`, después
    el hijo. Activar el hijo.
 2. Plugins → Subir: primero `mj-core`, después el resto. Activar todos.
-3. Ajustes → MJ · Actualizaciones: repositorio y token (sección 3 de
+3. MJ → Actualizaciones: repositorio y token (sección 3 de
    `PUBLICAR.md`). Desde ahí, todo lo demás se actualiza solo.
-4. Apariencia → MJ Appearance: logo, nombre, portada y textos.
+4. MJ → MJ Appearance: logo, nombre, portada y textos.
 
 Un tema hijo sin su padre aparece como "tema roto"; un plugin nuevo se sube a
 mano la primera vez, MJ Core solo actualiza lo que ya está.
@@ -42,13 +42,13 @@ Tienda de importación con precios en dólares, mostrador propio y ERP.
 
 **Qué cargar apenas se instala**
 
-- **WooCommerce → Dólar**: el tipo de cambio del día y el redondeo. Sin esto,
+- **MJ → Dólar**: el tipo de cambio del día y el redondeo. Sin esto,
   los productos con precio USD no tienen precio en pesos.
-- **WooCommerce → Medios de pago**: recargo o descuento de cada medio, y en
+- **MJ → Medios de pago**: recargo o descuento de cada medio, y en
   *Editar textos y datos para pagar* el alias, CBU y titular de transferencia.
   En **Comprobantes → Ajustes**, en qué medios se pide comprobante y la
   equivalencia de cada medio con el del ERP (así hereda su caja).
-- **WooCommerce → Envíos**: el código postal de origen y al menos un método
+- **MJ → Envíos**: el código postal de origen y al menos un método
   encendido. Empezar por retiro en el local o precio fijo; la cotización en
   vivo con los correos queda apagada hasta tener cuenta (ver
   `PRUEBAS-EN-LA-TIENDA.md`, sección 3.7).
@@ -59,7 +59,7 @@ Tienda de importación con precios en dólares, mostrador propio y ERP.
 - **MJ ERP → Configuración**: canales, medios de pago con su caja, formas de
   entrega, cuándo se emite el pedido, la libreta de clientes y quién puede
   corregir ventas.
-- **Apariencia → MJ Appearance**: logo, hero, contacto y WhatsApp de los
+- **MJ → MJ Appearance**: logo, hero, contacto y WhatsApp de los
   vendedores.
 
 **Prueba corta**
@@ -89,13 +89,13 @@ confirmes vos" o "confirmado al instante"); `/turnos` es la reserva pública par
 las clientas y el panel para quien atiende cuando entra con su usuario; una sola
 agenda.
 
-**Qué cargar apenas se instala** (Apariencia → MJ Appearance y Turnos → Ajustes)
+**Qué cargar apenas se instala** (MJ → MJ Appearance y MJ → Turnos)
 
 - Logo, nombre del sitio, hero con los botones "Reservar turno" (→ `/turnos`) y
   "Ver productos" (→ `/tienda`).
 - **Turnos → Servicios**: un servicio por tratamiento, con duración, precio,
   seña propia opcional, color y foto. Con la duración se calculan los horarios.
-- **Turnos → Ajustes → Agenda**: horarios por día, cada cuántos minutos, descanso
+- **MJ → Turnos → Agenda**: horarios por día, cada cuántos minutos, descanso
   entre turnos, anticipación mínima, días cerrados.
 - **Reservas y seña**: modo de confirmación, monto o porcentaje, instrucciones
   para transferir, horas para enviarla antes de que el turno se cancele solo, y
@@ -136,12 +136,12 @@ hosting permite un cron real, mejor.
 Pestañas y cejas con turnos, un Beauty Shop sin envíos y tarjeta de
 fidelidad. Crema cálido, bordó y negro, Cormorant Garamond + Jost, modo día,
 **sin animaciones**, pensada para el celular (la mayoría llega desde
-Instagram). El logo lo sube Jaz en Apariencia → MJ Appearance.
+Instagram). El logo lo sube Jaz en MJ → MJ Appearance.
 
 **Qué se instala, en este orden (todo a mano la primera vez):** WordPress y
-WooCommerce, después MJ Appearance (3.28.0 o más nuevo) y el tema hijo Jaz
-Beauty Art, después MJ Turnos Online (1.3.0+), MJ Fidelidad, MJ Medios de Pago
-(1.5.0+), MJ Envíos (1.8.1+), Optimizador, Fotos Rápidas y MJ Core. Un cron
+WooCommerce, después MJ Appearance (3.29.0 o más nuevo) y el tema hijo Jaz
+Beauty Art, después MJ Turnos Online (1.4.0+), MJ Fidelidad, MJ Medios de Pago
+(1.6.0+), MJ Envíos (1.9.0+), Optimizador, Fotos Rápidas y MJ Core. Un cron
 real del hosting (cada 5 minutos, llamando a `wp-cron.php`) hace exactos la
 reserva provisoria de 1 hora y el recordatorio de 1 hora antes. Un plugin SMTP
 para que los mails lleguen. En PHP, `max_input_vars` en 3000 o más (el panel
@@ -168,7 +168,7 @@ botón fijo "Reservar turno".
    mantenimiento ("volver cada N semanas"), las secciones (qué incluye,
    cuidados, recomendaciones, información adicional) y los sellos del cuadro
    Fidelidad (un combo puede dar 2). Publicar.
-3. **Turnos → Ajustes → Agenda**: días y horarios, días cerrados.
+3. **MJ → Turnos → Agenda**: días y horarios, días cerrados.
    **Reservas y seña**: las instrucciones para transferir a Mercado Pago
    (alias, CVU, titular). **Notificaciones**: el email de Jaz.
 4. **Productos**: precio, stock, foto y descripción de cada uno. Publicar.
@@ -182,7 +182,7 @@ botón fijo "Reservar turno".
 7. **Páginas**: revisar los textos de Sobre mí y Políticas, subir las fotos
    de Mis trabajos (bloque Galería, con el nombre de cada tratamiento),
    publicar todo y elegir "Inicio" como portada (Ajustes → Lectura).
-8. **Apariencia → MJ Appearance**: logo, Contacto (solo Instagram
+8. **MJ → MJ Appearance**: logo, Contacto (solo Instagram
    @jaz.beauty.art, la zona donde atiende y nada de dirección exacta,
    WhatsApp ni mapa) y la barra de navegación: Inicio, Servicios, Reservar
    turno, Mis trabajos, Beauty Shop, Sobre mí, Preguntas frecuentes,

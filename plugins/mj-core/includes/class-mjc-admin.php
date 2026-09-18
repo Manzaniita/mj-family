@@ -1,6 +1,6 @@
 <?php
 /**
- * Pantalla de Ajustes → MJ · Actualizaciones.
+ * Pantalla de MJ → Actualizaciones.
  *
  * Muestra qué versión de cada paquete MJ corre en esta tienda y cuál está
  * publicada, y guarda de dónde leer las versiones.
@@ -32,12 +32,13 @@ class MJC_Admin {
 	}
 
 	/**
-	 * Agrega la pantalla.
+	 * Agrega la pantalla, adentro del menú MJ.
 	 */
 	public static function menu() {
-		add_options_page(
+		add_submenu_page(
+			MJ_Menu::slug(),
 			'MJ · Actualizaciones',
-			'MJ · Actualizaciones',
+			'Actualizaciones',
 			'manage_options',
 			self::PAGINA,
 			[__CLASS__, 'pantalla']
@@ -51,7 +52,8 @@ class MJC_Admin {
 	 * @return string
 	 */
 	private static function url($extra = []) {
-		return add_query_arg(array_merge(['page' => self::PAGINA], $extra), admin_url('options-general.php'));
+		// admin.php y no options-general.php: la pantalla cuelga del menú MJ.
+		return add_query_arg(array_merge(['page' => self::PAGINA], $extra), admin_url('admin.php'));
 	}
 
 	/**

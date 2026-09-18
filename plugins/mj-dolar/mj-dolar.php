@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Dólar
  * Description: Precios en dólares que se convierten solos a pesos con el tipo de cambio que cargás vos desde wp-admin. Campos USD en productos, variaciones, edición rápida y en lote; columnas "Precio USD" en el importador y exportador CSV de WooCommerce; TC visible en el header de la tienda y guardado en cada pedido. Expone funciones, filtros y REST para que otros plugins MJ se enganchen.
- * Version: 1.1.1
+ * Version: 1.2.0
  * Author: MJ Importaciones
  * Requires Plugins: woocommerce
  * Requires at least: 6.2
@@ -22,7 +22,7 @@
  *     recálculo masivo (que corre en segundo plano) todavía no haya terminado.
  *   - Los productos SIN precio USD siguen en pesos fijos, como siempre.
  *
- * INTEGRACIÓN CON OTROS PLUGINS (ver WooCommerce → Dólar → "Para desarrolladores")
+ * INTEGRACIÓN CON OTROS PLUGINS (ver MJ → Dólar → "Para desarrolladores")
  *   MJD_Rate::get()                     TC vigente (float, 0 si no está cargado)
  *   MJD_Rate::convert($usd)             pesos redondeados según el ajuste
  *   MJD_Product::usd_effective($p)      [usd_normal, usd_oferta|null] de un producto
@@ -39,7 +39,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJD_VERSION', '1.1.1');
+define('MJD_VERSION', '1.2.0');
 define('MJD_FILE', __FILE__);
 define('MJD_DIR', plugin_dir_path(__FILE__));
 define('MJD_URL', plugin_dir_url(__FILE__));
@@ -48,6 +48,12 @@ define('MJD_URL', plugin_dir_url(__FILE__));
    shared/class-mj-log.php; esta es una copia. Ver tools/sincronizar-compartido.ps1. */
 require_once MJD_DIR . 'includes/compartido/class-mj-log.php';
 MJ_Log::init();
+
+/* Menú único de la familia MJ en wp-admin: de ahí cuelgan todas las pantallas.
+   La copia maestra está en shared/class-mj-menu.php; esta es una copia.
+   Ver tools/sincronizar-compartido.ps1. */
+require_once MJD_DIR . 'includes/compartido/class-mj-menu.php';
+MJ_Menu::init();
 
 require_once MJD_DIR . 'includes/class-mjd-settings.php';
 require_once MJD_DIR . 'includes/class-mjd-rate.php';

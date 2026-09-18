@@ -3,7 +3,7 @@
  * Plugin Name:       MJ Optimizador de Imágenes
  * Plugin URI:        https://mjimportaciones.com.ar
  * Description:       Achica y convierte a WebP todas las imágenes de la tienda usando tu propio servidor: sin límites, sin créditos ni servicios externos. Optimiza cada foto nueva al subirla y va poniendo al día la biblioteca que ya tenías, en segundo plano.
- * Version:           1.1.1
+ * Version:           1.2.0
  * Author:            MJ Importaciones
  * Author URI:        https://mjimportaciones.com.ar
  * License:           GPL-2.0-or-later
@@ -20,7 +20,7 @@
  *     WordPress genere las miniaturas. Nunca reemplaza un archivo si el resultado
  *     no pesa menos.
  *   - La biblioteca vieja se va optimizando sola en segundo plano, o de una desde
- *     WooCommerce → Imágenes.
+ *     MJ → Imágenes.
  *
  * INTEGRACIÓN CON OTROS PLUGINS MJ
  *   No pisa datos de nadie: sólo toca archivos de la biblioteca de medios y su
@@ -44,7 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'MJOI_VERSION' ) ) {
-	define( 'MJOI_VERSION', '1.1.1' );
+	define( 'MJOI_VERSION', '1.2.0' );
 }
 if ( ! defined( 'MJOI_FILE' ) ) {
 	define( 'MJOI_FILE', __FILE__ );
@@ -58,6 +58,12 @@ if ( ! defined( 'MJOI_URL' ) ) {
 if ( ! defined( 'MJOI_BASENAME' ) ) {
 	define( 'MJOI_BASENAME', plugin_basename( __FILE__ ) );
 }
+
+/* Menú único de la familia MJ en wp-admin: de ahí cuelgan todas las pantallas.
+   La copia maestra está en shared/class-mj-menu.php; esta es una copia.
+   Ver tools/sincronizar-compartido.ps1. */
+require_once MJOI_DIR . 'includes/compartido/class-mj-menu.php';
+MJ_Menu::init();
 
 require_once MJOI_DIR . 'includes/class-mjoi-settings.php';
 require_once MJOI_DIR . 'includes/class-mjoi-optimizer.php';

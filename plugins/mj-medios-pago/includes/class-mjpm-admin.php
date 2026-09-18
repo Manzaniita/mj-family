@@ -1,6 +1,6 @@
 <?php
 /**
- * wp-admin: página WooCommerce → Medios de pago (tabla de ajustes, editor de
+ * wp-admin: página MJ → Medios de pago (tabla de ajustes, editor de
  * cada medio con sus textos y datos para pagar, métodos propios, ajustes
  * generales, vista previa), exclusión por producto y por categoría.
  */
@@ -10,6 +10,9 @@ defined('ABSPATH') || exit;
 class MJPM_Admin {
 
 	const SLUG = 'mj-medios-pago';
+
+	/** @var string|false El hook de la pantalla, para saber dónde cargar los assets. */
+	private static $hook = '';
 
 	public static function init() {
 		add_action('admin_menu', [__CLASS__, 'menu']);
@@ -39,7 +42,7 @@ class MJPM_Admin {
 	}
 
 	public static function menu() {
-		add_submenu_page('woocommerce', 'MJ Medios de Pago', '💳 Medios de pago', 'manage_options', self::SLUG, [__CLASS__, 'render']);
+		self::$hook = add_submenu_page(MJ_Menu::slug(), 'MJ Medios de Pago', 'Medios de pago', 'manage_options', self::SLUG, [__CLASS__, 'render']);
 	}
 
 	public static function action_links($links) {
@@ -48,7 +51,9 @@ class MJPM_Admin {
 	}
 
 	public static function assets($hook) {
-		if ('woocommerce_page_' . self::SLUG !== $hook) {
+		/* El hook lo devuelve add_submenu_page(): el menú MJ se puede renombrar y
+		   con el nombre cambia el prefijo, así que no se arma a mano. */
+		if (!self::$hook || $hook !== self::$hook) {
 			return;
 		}
 		wp_enqueue_style('mjpm-admin', MJPM_URL . 'assets/admin.css', [], MJPM_VERSION);
@@ -72,7 +77,7 @@ class MJPM_Admin {
 		}
 		if (get_transient('mjpm_activated')) {
 			delete_transient('mjpm_activated');
-			echo '<div class="notice notice-success is-dismissible"><p><strong>MJ Medios de Pago activado.</strong> Configuralo en <a href="' . esc_url(self::page_url()) . '">WooCommerce → Medios de pago</a>: elegí el método con precio base y el ajuste de cada uno.</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p><strong>MJ Medios de Pago activado.</strong> Configuralo en <a href="' . esc_url(self::page_url()) . '">MJ → Medios de pago</a>: elegí el método con precio base y el ajuste de cada uno.</p></div>';
 		}
 	}
 

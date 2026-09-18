@@ -18,7 +18,7 @@ Precios en dólares que se convierten solos a pesos con el tipo de cambio que ca
 * Columnas "Precio USD" y "Precio oferta USD" en Productos → Importar / Exportar (CSV nativo de WooCommerce). Acepta 1234.5, 1.234,50 y 1234,50.
 * Columna USD en el listado de productos, ordenable, y filtro "Con / Sin precio USD".
 * El TC queda guardado en cada pedido (y el USD unitario en cada línea): se ve en el admin del pedido y en Mi cuenta.
-* Tipo de cambio en la barra de admin, widget del escritorio y página WooCommerce → Dólar con historial de cambios.
+* Tipo de cambio en la barra de admin, widget del escritorio y página MJ → Dólar con historial de cambios.
 * Opcional: cotización sugerida de dolarapi.com (solo referencia, nunca se aplica sola).
 * Header de la tienda: muestra "Dólar $ 1.450" (tema MJ Appearance 3.2+).
 * Los productos sin precio USD siguen en pesos fijos.
@@ -26,7 +26,7 @@ Precios en dólares que se convierten solos a pesos con el tipo de cambio que ca
 == Instalación ==
 
 1. Plugins → Añadir nuevo → Subir plugin → mj-dolar.zip → Activar.
-2. WooCommerce → Dólar: cargá el tipo de cambio.
+2. MJ → Dólar: cargá el tipo de cambio.
 3. Cargá el precio USD de tus productos (ficha, edición rápida, en lote o CSV).
 
 == Notas ==

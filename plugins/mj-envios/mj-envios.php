@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Envíos
  * Description: Métodos de envío propios, creados y editados desde el panel: a domicilio, a sucursal del correo, retiro en el local, zona propia por código postal, envío gratis o "a coordinar". Cada método decide con qué condiciones aparece (destino, CP, provincia, monto, peso, productos, usuario), con qué medios de pago se combina, qué datos le pide al cliente y de dónde sale su precio: tabla propia, precio fijo o cotización en vivo con Vía Cargo, Andreani o Correo Argentino. El checkout de la tienda lo muestra paso a paso, valida el código postal y completa provincia y localidad solo.
- * Version: 1.8.1
+ * Version: 1.9.0
  * Author: MJ
  * Requires Plugins: woocommerce
  * Requires at least: 6.2
@@ -13,9 +13,9 @@
  *
  * CÓMO FUNCIONA
  *   - Los métodos de envío son tuyos: se crean, se editan, se ordenan, se
- *     activan, se duplican y se borran desde WooCommerce → Envíos. Ninguno
- *     viene fijo en el código; lo que trae la activación son ejemplos que se
- *     editan o se borran como cualquier otro.
+ *     activan, se duplican y se borran desde MJ → Envíos. Ninguno viene fijo en
+ *     el código; lo que trae la activación son ejemplos que se editan o se
+ *     borran como cualquier otro.
  *   - El TIPO del método es lo único que cambia de dónde sale el precio: tabla
  *     propia (por CP, provincia o localidad, y por peso), precio fijo,
  *     cotización en vivo con un correo, gratis, retiro en el local o "a
@@ -94,7 +94,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJE_VERSION', '1.8.1');
+define('MJE_VERSION', '1.9.0');
 define('MJE_FILE', __FILE__);
 define('MJE_DIR', plugin_dir_path(__FILE__));
 define('MJE_URL', plugin_dir_url(__FILE__));
@@ -103,6 +103,13 @@ define('MJE_URL', plugin_dir_url(__FILE__));
    shared/class-mj-log.php; esta es una copia. Ver tools/sincronizar-compartido.ps1. */
 require_once MJE_DIR . 'includes/compartido/class-mj-log.php';
 MJ_Log::init();
+
+/* El menú único de la familia MJ en wp-admin: todas las pantallas del plugin
+   cuelgan de ahí. La copia maestra está en shared/class-mj-menu.php; esta es una
+   copia. Ver tools/sincronizar-compartido.ps1. Init es idempotente: la llaman
+   todos los plugins de la familia y engancha el primero que carga. */
+require_once MJE_DIR . 'includes/compartido/class-mj-menu.php';
+MJ_Menu::init();
 
 require_once MJE_DIR . 'includes/class-mje-install.php';
 require_once MJE_DIR . 'includes/class-mje-settings.php';

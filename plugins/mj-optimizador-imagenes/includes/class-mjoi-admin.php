@@ -30,14 +30,13 @@ class MJOI_Admin {
 	}
 
 	/**
-	 * Menú: dentro de WooCommerce si está activo; si no, en Medios.
+	 * Menú: adentro del menú MJ, junto al resto de la familia.
 	 */
 	public static function menu() {
-		$parent = class_exists( 'WooCommerce' ) ? 'woocommerce' : 'upload.php';
 		add_submenu_page(
-			$parent,
+			MJ_Menu::slug(),
 			__( 'MJ Optimizador de Imágenes', 'mj-optimizador-imagenes' ),
-			class_exists( 'WooCommerce' ) ? __( '🖼️ Imágenes', 'mj-optimizador-imagenes' ) : __( 'Optimizador de imágenes', 'mj-optimizador-imagenes' ),
+			__( 'Imágenes', 'mj-optimizador-imagenes' ),
 			'manage_options',
 			self::PAGE,
 			array( __CLASS__, 'render_page' )
@@ -48,8 +47,7 @@ class MJOI_Admin {
 	 * URL de la página de ajustes.
 	 */
 	public static function page_url() {
-		$base = class_exists( 'WooCommerce' ) ? 'admin.php' : 'upload.php';
-		return admin_url( $base . '?page=' . self::PAGE );
+		return admin_url( 'admin.php?page=' . self::PAGE );
 	}
 
 	/**

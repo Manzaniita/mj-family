@@ -11,9 +11,9 @@
  *   3. Las sucursales se traen de /agencies y quedan guardadas para que el
  *      checkout no dependa de la API en vivo.
  *
- * URL, usuario, clave y número de cliente se cargan en WooCommerce → Envíos →
- * Correos. Si la respuesta viene con otra forma, se puede fijar la clave del
- * precio o escribir el cuerpo del pedido con la plantilla.
+ * URL, usuario, clave y número de cliente se cargan en MJ → Envíos → Correos.
+ * Si la respuesta viene con otra forma, se puede fijar la clave del precio o
+ * escribir el cuerpo del pedido con la plantilla.
  */
 
 defined('ABSPATH') || exit;

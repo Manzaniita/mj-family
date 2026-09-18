@@ -5,7 +5,7 @@ Los envíos de la tienda, armados por vos. Cada forma de recibir la compra
 envío gratis o "lo arreglamos después"— es un **método** que creás, editás,
 ordenás, apagás o borrás desde el panel. Ninguno viene fijo en el código.
 
-Se configura en **WooCommerce → 📦 Envíos**.
+Se configura en **MJ → Envíos**.
 
 > Activar el plugin no cambia nada en la tienda: viene con tres métodos de
 > ejemplo **apagados**, para que veas de qué se trata. Hasta que enciendas uno,

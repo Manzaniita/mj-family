@@ -24,7 +24,7 @@ class MJPM_Gateway extends WC_Payment_Gateway {
 		$this->id                 = (string) $def['id'];
 		$this->has_fields         = false;
 		$this->method_title       = (string) $def['title'];
-		$this->method_description = 'Método propio creado con MJ Medios de Pago. Título, descripción, instrucciones, estado del pedido y ajuste de precio se editan en WooCommerce → Medios de pago.';
+		$this->method_description = 'Método propio creado con MJ Medios de Pago. Título, descripción, instrucciones, estado del pedido y ajuste de precio se editan en MJ → Medios de pago.';
 		$this->supports           = ['products'];
 
 		$this->init_form_fields();

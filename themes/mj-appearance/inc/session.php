@@ -70,9 +70,16 @@ function mj_settings_page_title() {
 	);
 }
 
-/* URL de la página de ajustes (para enlaces desde avisos, la barra, etc.). */
+/*
+ * URL de la página de ajustes (para enlaces desde avisos, la barra, etc.).
+ *
+ * Depende de dónde quedó colgada: abajo del menú MJ cuando hay algún plugin de
+ * la familia instalado, y en Apariencia cuando no. Escribirla fija dejaría los
+ * links del editor de bloques y de la barra apuntando a una página que no está.
+ */
 function mj_settings_page_url() {
-	return admin_url('themes.php?page=' . mj_settings_page_slug());
+	$base = class_exists('MJ_Menu') ? 'admin.php' : 'themes.php';
+	return admin_url($base . '?page=' . mj_settings_page_slug());
 }
 
 /* -------------------------------------------------------------------------

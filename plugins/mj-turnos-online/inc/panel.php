@@ -259,7 +259,7 @@ function mjto_render_panel() {
 	<div class="mjto-missing">
 		<h1>Falta compilar el panel</h1>
 		<p>No se encontró <code>dist/app.js</code> en el plugin MJ Turnos Online. En la carpeta <code>app/</code> del plugin ejecutá <code>npm install</code> y <code>npm run build</code> (app/ → npm run build) y volvé a subir el plugin.</p>
-		<p><a href="<?php echo esc_url(admin_url('admin.php?page=mjto')); ?>">Ir a Turnos → Ajustes</a> · <a href="<?php echo esc_url(add_query_arg('vista', 'publica', mjto_panel_url())); ?>">Ver la reserva pública</a></p>
+		<p><a href="<?php echo esc_url(admin_url('admin.php?page=mjto')); ?>">Ir a MJ → Turnos</a> · <a href="<?php echo esc_url(add_query_arg('vista', 'publica', mjto_panel_url())); ?>">Ver la reserva pública</a></p>
 	</div>
 	<?php endif; ?>
 </body>

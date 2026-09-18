@@ -8,10 +8,10 @@
  * registro de errores, el margen, el redondeo — es común y vive acá.
  *
  * Nada de la conexión está fijo en el código: las URLs, las credenciales, el
- * número de cliente, el contrato y los servicios se cargan desde
- * WooCommerce → Envíos → Correos. Si un correo cambia de endpoint, se corrige
- * desde el panel. Un correo sin credenciales queda apagado y sus métodos
- * cotizan con la tabla propia.
+ * número de cliente, el contrato y los servicios se cargan desde MJ → Envíos
+ * → Correos. Si un correo cambia de endpoint, se corrige desde el panel. Un
+ * correo sin credenciales queda apagado y sus métodos cotizan con la tabla
+ * propia.
  *
  * El paquete que recibe `quote()` siempre tiene esta forma:
  *

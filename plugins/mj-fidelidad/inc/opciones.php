@@ -199,9 +199,15 @@ function mjfid_sanitize_options($input) {
 
 add_action('admin_menu', function () {
 	$cap = mjfid_capability();
-	add_menu_page('MJ Fidelidad', 'Fidelidad', $cap, 'mjfid', 'mjfid_render_clients_page', 'dashicons-star-filled', 58);
-	add_submenu_page('mjfid', 'Clientas', 'Clientas', $cap, 'mjfid', 'mjfid_render_clients_page');
-	add_submenu_page('mjfid', 'Ajustes', 'Ajustes', $cap, 'mjfid-ajustes', 'mjfid_render_settings_page');
+	/*
+	 * Las dos pantallas cuelgan del menú único MJ. Antes Fidelidad era un menú
+	 * de primer nivel y la entrada "Clientas" solo estaba para renombrar la
+	 * primera fila (WordPress repite ahí el título del padre); acá esa entrada
+	 * duplicada sobra, porque el mismo slug 'mjfid' ya es la pantalla de las
+	 * clientas.
+	 */
+	add_submenu_page(MJ_Menu::slug(), 'MJ Fidelidad', 'Fidelidad', $cap, 'mjfid', 'mjfid_render_clients_page');
+	add_submenu_page(MJ_Menu::slug(), 'Ajustes', 'Fidelidad · Ajustes', $cap, 'mjfid-ajustes', 'mjfid_render_settings_page');
 });
 
 /** Una fila de la tabla de ajustes. */

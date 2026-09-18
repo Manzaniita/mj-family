@@ -13,7 +13,7 @@
  * ---------------------------------------------------------------------------
  * CUÁNDO SE CONSULTA
  *
- * Una vez cada tantas horas (Ajustes → MJ · Actualizaciones). Entre consulta y
+ * Una vez cada tantas horas (MJ → Actualizaciones). Entre consulta y
  * consulta se usa lo último que se leyó. Si GitHub no responde, también: la
  * tienda sigue ofreciendo lo que ya sabía, se anota el error, y se reintenta
  * dentro de una hora en vez de insistir en cada página.

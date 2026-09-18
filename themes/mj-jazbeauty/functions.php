@@ -19,7 +19,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_JAZBEAUTY_VERSION', '1.0.0');
+define('MJ_JAZBEAUTY_VERSION', '1.1.0');
 
 /* Versión mínima del tema padre (sin animaciones, botón fijo, galería, fidelidad en Mi cuenta). */
 define('MJ_JAZBEAUTY_REQUIRES', '3.21.0');

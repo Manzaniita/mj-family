@@ -9,7 +9,7 @@ Este documento es el índice de dónde se toca cada cosa.
 
 ---
 
-## 1. Apariencia → MJ Appearance
+## 1. MJ → MJ Appearance
 
 La pantalla donde se configura la tienda entera. Aparece con la capacidad
 `edit_theme_options`, la misma que WordPress ya pide para el menú Apariencia
@@ -278,7 +278,7 @@ skin, casi siempre alcanza con las plantillas genéricas del padre.
 
 Cómo se resuelve cada valor, de mayor a menor prioridad:
 
-1. **Lo que el admin escribió** en Apariencia → MJ Appearance. Siempre gana.
+1. **Lo que el admin escribió** en MJ → MJ Appearance. Siempre gana.
 2. **Lo que propone la skin**, si el campo está vacío o tiene todavía el valor
    por defecto del tema base.
 3. **El valor por defecto del tema base.**
@@ -295,19 +295,35 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 
 ## 3. Otros paneles
 
+**Todo lo de la familia MJ cuelga del menú `MJ`** de la barra lateral de
+wp-admin. Antes cada plugin colgaba su pantalla de donde le quedaba cómodo
+—unos abajo de WooCommerce, otros como menú propio, el tema en Apariencia, MJ
+Core en Ajustes— y con ocho plugins instalados encontrar dónde se configuraba
+algo era una búsqueda.
+
+La primera entrada del menú, **Todo MJ**, es un índice: están todas las
+pantallas instaladas, y ahí mismo se cambia cómo se llama el menú, con qué ícono
+y en qué lugar de la barra aparece.
+
+El menú lo arma una pieza que viaja adentro de cada plugin, así que **no hace
+falta que estén todos**: un plugin solo arma igual su menú MJ con su única
+pantalla adentro. El tema y el tema hijo se suman al menú si hay algún plugin MJ
+instalado, y si no se quedan en Apariencia, que es donde WordPress espera los
+ajustes de un tema.
+
 | Plugin | Dónde | Qué se configura |
 | --- | --- | --- |
-| MJ Turnos Online | Turnos → Ajustes | Horarios, seña (y cuánto dura la reserva provisoria), comprobante, **cambios y cancelaciones** (reprogramar, cancelar, saldo a favor, qué se le ofrece a la clienta cuando cancela la dueña), **cuentas** (sin cuenta, opcional u obligatoria, "Mis turnos"), avisos (dos recordatorios, mantenimiento, opiniones) y sus plantillas, textos de la reserva, formulario (con Sí/No y fecha de nacimiento), **secciones de los servicios**, ficha técnica, **opiniones**, slug de la página, y en *El panel* si la agenda del día muestra los horarios libres y lo bloqueado (apagado por defecto) y si al **borrar** el plugin se van también las clientas, los turnos, las fichas, el saldo, las opiniones y los servicios (por defecto quedan). Los servicios y sus categorías, en Turnos → Servicios / Categorías. Ver 3.4. |
-| MJ Colegas | Colegas → Ajustes | Nombre del proyecto, etiquetas, comisión, textos. |
-| MJ Fidelidad | Fidelidad → Ajustes | Sellos por tarjeta, vencimiento, el premio (texto a canjear o saldo a favor de MJ Turnos y su monto), de dónde salen los sellos (turnos atendidos y cuántos por turno; compras, por compra o por monto), textos de la tarjeta, mails y si al **borrar** el plugin se van los sellos. Los sellos de cada servicio, en su ficha (Turnos → Servicios, cuadro *Fidelidad*). Sellos a mano y premios canjeados, en Fidelidad → Clientas. |
-| MJ Dólar | WooCommerce → Dólar | Tipo de cambio, redondeo, cotización de referencia y su proveedor. |
-| MJ Medios de Pago | WooCommerce → Medios de pago | Recargos y descuentos por medio de pago. Con **Editar textos y datos para pagar**, en cada fila: título, descripción, instrucciones, si está activo, y la lista de datos para pagar (alias, CBU, titular, lo que haga falta: la etiqueta la escribe el admin), con su encabezado, cuáles llevan botón de copiar y si se muestran también en el checkout. En Ajustes generales → *Cómo pagar*: el título del bloque («Cómo pagar»), el encabezado por defecto de los datos, el texto del botón de copiar y el de después de copiar, y en qué estados del pedido los ve el cliente. |
-| MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos (y si al vencer el plazo sin comprobante el pedido se cancela y devuelve el stock: apagado por defecto), qué pasa al aprobar, qué estado toma el pedido con un pago parcial, el mail y el WhatsApp del pago parcial, si los mails suman el resumen del pago (acreditado, pagado, falta abonar y mensaje), quién puede revisarlos, mails y WhatsApp, cuánto se guardan, las equivalencias con los métodos de MJ ERP, y **todos los textos que ve el cliente**: nombres de los estados, mensajes de cada estado, lo pagado y lo que falta, el historial de pagos, el resumen de los mails y los botones y avisos del widget de subida. |
-| MJ Envíos | WooCommerce → Envíos | Los métodos de envío (crear, editar, ordenar, apagar, borrar), sus condiciones, qué datos pide cada uno, la tabla propia de códigos postales, los correos —los conectados por su propio plugin y los que se configuran acá—, las sucursales, el origen del despacho, pesos, margen, redondeo, envío gratis, carteles del checkout, el cotizador de la ficha del producto, la pantalla de envíos pendientes, los avisos de seguimiento y el estado **Listo para retirar** (apagado por defecto: nombre, mail y WhatsApp). |
-| MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
+| MJ Turnos Online | MJ → Turnos | Horarios, seña (y cuánto dura la reserva provisoria), comprobante, **cambios y cancelaciones** (reprogramar, cancelar, saldo a favor, qué se le ofrece a la clienta cuando cancela la dueña), **cuentas** (sin cuenta, opcional u obligatoria, "Mis turnos"), avisos (dos recordatorios, mantenimiento, opiniones) y sus plantillas, textos de la reserva, formulario (con Sí/No y fecha de nacimiento), **secciones de los servicios**, ficha técnica, **opiniones**, slug de la página, y en *El panel* si la agenda del día muestra los horarios libres y lo bloqueado (apagado por defecto) y si al **borrar** el plugin se van también las clientas, los turnos, las fichas, el saldo, las opiniones y los servicios (por defecto quedan). Los servicios y sus categorías, en Turnos → Servicios / Categorías. Ver 3.4. |
+| MJ Colegas | MJ → Colegas | Nombre del proyecto, etiquetas, comisión, textos. |
+| MJ Fidelidad | MJ → Fidelidad | Sellos por tarjeta, vencimiento, el premio (texto a canjear o saldo a favor de MJ Turnos y su monto), de dónde salen los sellos (turnos atendidos y cuántos por turno; compras, por compra o por monto), textos de la tarjeta, mails y si al **borrar** el plugin se van los sellos. Los sellos de cada servicio, en su ficha (Turnos → Servicios, cuadro *Fidelidad*). Sellos a mano y premios canjeados, en Fidelidad → Clientas. |
+| MJ Dólar | MJ → Dólar | Tipo de cambio, redondeo, cotización de referencia y su proveedor. |
+| MJ Medios de Pago | MJ → Medios de pago | Recargos y descuentos por medio de pago. Con **Editar textos y datos para pagar**, en cada fila: título, descripción, instrucciones, si está activo, y la lista de datos para pagar (alias, CBU, titular, lo que haga falta: la etiqueta la escribe el admin), con su encabezado, cuáles llevan botón de copiar y si se muestran también en el checkout. En Ajustes generales → *Cómo pagar*: el título del bloque («Cómo pagar»), el encabezado por defecto de los datos, el texto del botón de copiar y el de después de copiar, y en qué estados del pedido los ve el cliente. |
+| MJ Medios de Pago (comprobantes) | MJ → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos (y si al vencer el plazo sin comprobante el pedido se cancela y devuelve el stock: apagado por defecto), qué pasa al aprobar, qué estado toma el pedido con un pago parcial, el mail y el WhatsApp del pago parcial, si los mails suman el resumen del pago (acreditado, pagado, falta abonar y mensaje), quién puede revisarlos, mails y WhatsApp, cuánto se guardan, las equivalencias con los métodos de MJ ERP, y **todos los textos que ve el cliente**: nombres de los estados, mensajes de cada estado, lo pagado y lo que falta, el historial de pagos, el resumen de los mails y los botones y avisos del widget de subida. |
+| MJ Envíos | MJ → Envíos | Los métodos de envío (crear, editar, ordenar, apagar, borrar), sus condiciones, qué datos pide cada uno, la tabla propia de códigos postales, los correos —los conectados por su propio plugin y los que se configuran acá—, las sucursales, el origen del despacho, pesos, margen, redondeo, envío gratis, carteles del checkout, el cotizador de la ficha del producto, la pantalla de envíos pendientes, los avisos de seguimiento y el estado **Listo para retirar** (apagado por defecto: nombre, mail y WhatsApp). |
+| MJ Optimizador de Imágenes | MJ → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. Los ve y cambia quien administra la tienda (`manage_woocommerce`); subir fotos lo hace cualquiera que edite productos. Solo se aceptan imágenes (JPG, PNG, WebP, GIF, AVIF), mirando el contenido del archivo. |
-| MJ ERP | MJ ERP → Ajustes | Ventas, clientes, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, permisos del revendedor (por rol y por usuario), y en **Caja y reportes** los dos módulos: si se muestran, los conceptos de los movimientos a mano, el cierre de caja, el aviso de bajo costo y el margen mínimo. |
-| MJ Core | Ajustes → MJ · Actualizaciones | De qué repositorio de GitHub salen las versiones, el token para leerlo y cada cuántas horas se consulta. Muestra qué versión de cada paquete tiene la tienda y cuál está publicada. Ver `PUBLICAR.md`, sección 3. |
+| MJ ERP | MJ → ERP | Ventas, clientes, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, permisos del revendedor (por rol y por usuario), y en **Caja y reportes** los dos módulos: si se muestran, los conceptos de los movimientos a mano, el cierre de caja, el aviso de bajo costo y el margen mínimo. |
+| MJ Core | MJ → Actualizaciones | De qué repositorio de GitHub salen las versiones, el token para leerlo y cada cuántas horas se consulta. Muestra qué versión de cada paquete tiene la tienda y cuál está publicada. Ver `PUBLICAR.md`, sección 3. |
 
 ---
 
@@ -327,7 +343,7 @@ cobro*.
 - Los cobros contra una venta ya existente.
 - Los pagos que registra un revendedor desde su panel.
 - **Los pedidos de la tienda**, a través de la equivalencia gateway → método del
-  ERP que ya se carga en *WooCommerce → Comprobantes → Ajustes*. Esa pantalla
+  ERP que ya se carga en *MJ → Comprobantes → Ajustes*. Esa pantalla
   muestra en una columna a qué caja va a parar cada medio de la tienda, para
   verificarlo de un vistazo.
 
@@ -786,7 +802,7 @@ garantías**, que se muestra aparte (mes, año y total) y no toca el margen de l
 Un botón arriba a la derecha, en todas las pantallas del ERP, para pasar a la
 tienda sin escribir la dirección. Se puede apagar, cambiarle el texto y
 mandarlo a otra página. La ida —de la tienda al ERP— se configura en el tema:
-Apariencia → MJ Appearance → Barra de navegación.
+MJ → MJ Appearance → Barra de navegación.
 
 ---
 
@@ -1013,7 +1029,7 @@ No hace falta entrar a wp-admin.
 
 ## 3.3. Los envíos, en detalle
 
-Todo está en **WooCommerce → 📦 Envíos**, en cinco pestañas. El paso a paso
+Todo está en **MJ → Envíos**, en cinco pestañas. El paso a paso
 completo está en `plugins/mj-envios/LEEME.md`; acá va el mapa.
 
 | Pestaña | Qué se decide ahí |

@@ -2,9 +2,9 @@
 /**
  * wp-admin: la bandeja de comprobantes y su pantalla de ajustes.
  *
- *   WooCommerce → Comprobantes            lo que falta revisar, con el contador en el menú
- *   WooCommerce → Comprobantes → Ajustes  regla general, regla por medio de pago y
- *                                         equivalencias con MJ ERP
+ *   MJ → Comprobantes            lo que falta revisar, con el contador en el menú
+ *   MJ → Comprobantes → Ajustes  regla general, regla por medio de pago y
+ *                                equivalencias con MJ ERP
  *
  * Además mete la caja de revisión dentro de la pantalla del pedido, así se puede
  * aprobar al paso sin salir de donde ya estabas.
@@ -23,6 +23,9 @@ class MJPM_Receipts_Admin {
 	 *           receipts-admin.js arma el formulario al apretar.
 	 */
 	private static $nested = false;
+
+	/** @var string|false El hook de la pantalla, para saber dónde cargar los assets. */
+	private static $hook = '';
 
 	public static function init() {
 		add_action('admin_menu', [__CLASS__, 'menu'], 20);
@@ -59,18 +62,14 @@ class MJPM_Receipts_Admin {
 		}
 		$pending = MJPM_Install::table_exists() ? MJPM_Receipts::count_pending() : 0;
 		$plural  = MJPM_Receipts::noun(true, true);
-		$title   = '🧾 ' . $plural;
+		$title   = $plural;
 		if ($pending > 0) {
 			$title .= ' <span class="awaiting-mod"><span class="pending-count">' . (int) $pending . '</span></span>';
 		}
 
-		/* Con WooCommerce va bajo su menú; sin WooCommerce (una tienda de solo
-		   turnos) necesita el suyo, o no habría forma de llegar a la bandeja. */
-		if (class_exists('WooCommerce')) {
-			add_submenu_page('woocommerce', $plural . ' de pago', $title, self::capability(), self::SLUG, [__CLASS__, 'render']);
-			return;
-		}
-		add_menu_page($plural . ' de pago', $title, self::capability(), self::SLUG, [__CLASS__, 'render'], 'dashicons-media-text', 57);
+		/* Va al menú MJ haya WooCommerce o no: una tienda de solo turnos llega
+		   igual a la bandeja, sin necesitar un menú propio. */
+		self::$hook = add_submenu_page(MJ_Menu::slug(), $plural . ' de pago', $title, self::capability(), self::SLUG, [__CLASS__, 'render']);
 	}
 
 	/**
@@ -92,8 +91,9 @@ class MJPM_Receipts_Admin {
 	}
 
 	public static function assets($hook) {
-		/* El hook cambia según dónde terminó el menú (bajo WooCommerce o propio). */
-		$ours = in_array($hook, ['woocommerce_page_' . self::SLUG, 'toplevel_page_' . self::SLUG], true);
+		/* El hook lo devuelve add_submenu_page(): el menú MJ se puede renombrar y
+		   con el nombre cambia el prefijo, así que no se arma a mano. */
+		$ours = self::$hook && $hook === self::$hook;
 		if (!$ours && !self::is_order_screen()) {
 			return;
 		}

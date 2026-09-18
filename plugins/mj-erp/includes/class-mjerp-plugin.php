@@ -57,9 +57,10 @@ final class MJERP_Plugin {
 	 */
 	public static function files() {
 		return array(
-			// Shared across the MJ family. Master copy lives in shared/class-mj-log.php;
-			// this is a copy kept in sync by tools/sincronizar-compartido.ps1.
+			// Compartidos con el resto de la familia MJ. Las copias maestras viven en
+			// shared/ y se reparten con tools/sincronizar-compartido.ps1.
 			'includes/compartido/class-mj-log.php',
+			'includes/compartido/class-mj-menu.php',
 			'includes/class-mjerp-capabilities.php',
 			'includes/class-mjerp-helpers.php',
 			'includes/class-mjerp-settings.php',
@@ -155,6 +156,10 @@ final class MJERP_Plugin {
 
 		// Shared MJ log. Safe to call from every MJ plugin: it hooks only once.
 		MJ_Log::init();
+
+		// El menú único de la familia MJ. Igual que el log: se puede llamar desde
+		// todos los plugins porque engancha una sola vez.
+		MJ_Menu::init();
 
 		// Registered before anything reads the settings: the bridge injects the `dolar` block and
 		// the MJ Dólar exchange rate into them, and MJERP_Settings caches the merged result.
@@ -264,19 +269,18 @@ final class MJERP_Plugin {
 	}
 
 	/**
-	 * Adds the top-level "MJ ERP" admin menu.
+	 * Cuelga la pantalla del ERP del menú MJ.
 	 *
 	 * @return void
 	 */
 	public function admin_menu() {
-		add_menu_page(
+		add_submenu_page(
+			MJ_Menu::slug(),
 			__( 'MJ ERP', 'mj-erp' ),
-			__( 'MJ ERP', 'mj-erp' ),
+			__( 'ERP', 'mj-erp' ),
 			MJERP_Capabilities::CAP,
 			self::ADMIN_PAGE,
-			array( $this, 'render_admin_page' ),
-			'dashicons-store',
-			56
+			array( $this, 'render_admin_page' )
 		);
 	}
 

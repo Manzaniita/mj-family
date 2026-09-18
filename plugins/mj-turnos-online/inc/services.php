@@ -170,11 +170,11 @@ $mjto_save_cat_order = function ($term_id) {
 add_action('created_mjto_service_cat', $mjto_save_cat_order);
 add_action('edited_mjto_service_cat', $mjto_save_cat_order);
 
-/* Que las pantallas del CPT (y de sus categorías) resalten el menú "Turnos". */
+/* Que las pantallas del CPT (y de sus categorías) resalten el menú MJ. */
 add_filter('parent_file', function ($parent) {
 	global $current_screen;
 	if ($current_screen && 'mjto_service' === $current_screen->post_type) {
-		return 'mjto';
+		return MJ_Menu::slug();
 	}
 	return $parent;
 });

@@ -295,8 +295,23 @@ if (!class_exists('MJ_Log')) :
 
 		/**
 		 * Agrega la pantalla, una sola vez aunque haya varios plugins MJ.
+		 *
+		 * Va abajo del menú MJ, que es donde está el resto de la familia. Si esa
+		 * pieza no está (un plugin viejo, o alguien que solo copió este archivo),
+		 * cae a Ajustes como hacía antes.
 		 */
 		public static function menu() {
+			if (class_exists('MJ_Menu')) {
+				add_submenu_page(
+					MJ_Menu::slug(),
+					'MJ · Registros',
+					'Registros',
+					'manage_options',
+					'mj-registros',
+					[__CLASS__, 'pantalla']
+				);
+				return;
+			}
 			add_options_page(
 				'MJ · Registros',
 				'MJ · Registros',

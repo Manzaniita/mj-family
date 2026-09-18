@@ -15,7 +15,15 @@
 
 defined('ABSPATH') || exit;
 
+/*
+ * Va abajo del menú MJ si hay algún plugin de la familia instalado; si no, en
+ * Apariencia, que es donde WordPress espera lo de un tema.
+ */
 add_action('admin_menu', function () {
+	if (class_exists('MJ_Menu')) {
+		add_submenu_page(MJ_Menu::slug(), 'Contenido inicial', 'Jaz Beauty · Contenido inicial', 'manage_options', 'mj-jazbeauty-contenido', 'mj_jazbeauty_render_content_page');
+		return;
+	}
 	add_theme_page('Contenido inicial', 'Contenido inicial', 'manage_options', 'mj-jazbeauty-contenido', 'mj_jazbeauty_render_content_page');
 });
 

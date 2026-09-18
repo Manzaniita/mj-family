@@ -38,7 +38,7 @@ class MJD_Product_Fields {
 	/** Texto inicial del "En pesos" (product.js lo recalcula al escribir). */
 	private static function preview_text($usd, $usd_sale = '') {
 		if (!MJD_Rate::is_set()) {
-			return 'Cargá el tipo de cambio en WooCommerce → Dólar para calcular el precio en pesos.';
+			return 'Cargá el tipo de cambio en ' . MJD_Admin::page_breadcrumb() . ' para calcular el precio en pesos.';
 		}
 		if ('' === (string) $usd) {
 			return 'Escribí un precio USD para ver el equivalente en pesos.';
@@ -483,7 +483,7 @@ class MJD_Product_Fields {
 			'thousandSep'   => wc_get_price_thousand_separator(),
 			'symbol'        => html_entity_decode(get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8'),
 			'position'      => get_option('woocommerce_currency_pos', 'left_space'),
-			'noRate'        => 'Cargá el tipo de cambio en WooCommerce → Dólar para calcular el precio en pesos.',
+			'noRate'        => 'Cargá el tipo de cambio en ' . MJD_Admin::page_breadcrumb() . ' para calcular el precio en pesos.',
 			'empty'         => 'Escribí un precio USD para ver el equivalente en pesos.',
 		]);
 	}

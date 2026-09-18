@@ -4,12 +4,12 @@ Reserva de turnos online con agenda, ficha técnica por clienta, seña, recordat
 
 ## Cómo funciona
 
-1. **Servicios**: en *Turnos → Servicios* cargás cada tratamiento con su duración, precio (visible o no), seña propia (opcional), color y foto. Con la duración se calculan los horarios libres.
+1. **Servicios**: en *MJ → Turnos · Servicios* cargás cada tratamiento con su duración, precio (visible o no), seña propia (opcional), color y foto. Con la duración se calculan los horarios libres.
 2. **La clienta reserva** en `/turnos` (o donde pongas el shortcode): elige servicio, día y hora, deja sus datos y recibe la confirmación por email. Según el modo elegido, el turno queda:
    - **Pendiente hasta recibir la seña** (por defecto): ve el monto, tus instrucciones para transferir y un botón "Ya transferí la seña" que te avisa; si no llega la seña a tiempo, el turno se cancela solo.
    - **Pendiente hasta que confirmes vos** (manual).
    - **Confirmado al instante** (auto).
-3. **Vos entrás a la misma URL** (`/turnos`) con tu sesión de WordPress y ves el **panel**: la agenda del día, los turnos, las clientas con su ficha, la caja y los bloqueos. También desde la barra de arriba ("Turnos") o desde *Turnos → Abrir el panel*. Si querés ver la reserva como la ve una clienta: `/turnos?vista=publica`.
+3. **Vos entrás a la misma URL** (`/turnos`) con tu sesión de WordPress y ves el **panel**: la agenda del día, los turnos, las clientas con su ficha, la caja y los bloqueos. También desde la barra de arriba ("Turnos") o desde *MJ → Turnos · Abrir el panel*. Si querés ver la reserva como la ve una clienta: `/turnos?vista=publica`.
 4. **Cada turno confirmado crea una ficha** de esa visita (historial químico, análisis de la fibra, trabajo técnico, caja y seguimiento). Las opciones marcadas como advertencia (por ejemplo, elasticidad crítica) aparecen resaltadas. La ficha de la clienta es su línea de tiempo de visitas: la próxima vez ya tenés precargado lo que se repite.
 5. **Recordatorios**: el día anterior (o las horas que elijas) se manda un email automático a las clientas con turno confirmado, y si querés un segundo, más corto, poco antes del turno. Desde el panel también mandás WhatsApp con un toque: confirmar, pedir la seña, recordar, control post servicio, retoque.
 6. **Cambios y cancelaciones con reglas** (apagado hasta que lo prendas): la clienta reprograma o cancela desde su turno y la seña sigue la regla que elegiste. Por ejemplo: con 48 h o más la conserva; con menos, la pierde y abona una nueva; si cancela a tiempo, queda como saldo a favor. Si cancelás vos, le podés ofrecer que elija: otro día, la devolución o saldo a favor.
@@ -21,11 +21,11 @@ Reserva de turnos online con agenda, ficha técnica por clienta, seña, recordat
 ## Instalación
 
 - Subí el zip desde *Plugins → Añadir nuevo → Subir plugin* y activalo. Se crean las tablas, el permiso `mjto_manage` para las administradoras y la tarea horaria (recordatorios y señas vencidas).
-- **Con el tema MJ Appearance (3.5 o superior)**: no hay que crear ninguna página. Aparecen solas la página `/turnos`, la de `/servicios`, el ítem del menú, el botón "Reservar" del header y dos secciones en la portada (se ordenan y ocultan en *Apariencia → MJ Appearance → Portada*).
+- **Con el tema MJ Appearance (3.5 o superior)**: no hay que crear ninguna página. Aparecen solas la página `/turnos`, la de `/servicios`, el ítem del menú, el botón "Reservar" del header y dos secciones en la portada (se ordenan y ocultan en *MJ → MJ Appearance → Portada*).
 - **Con cualquier otro tema**: creá una página (por ejemplo "Turnos", con la URL `/turnos`) y pegale el shortcode `[mj_turnos]`. Para preseleccionar un servicio: `[mj_turnos servicio="alisado-organico"]`. El panel funciona igual en esa URL.
 - Si en el sitio no llegan los emails, instalá un plugin de SMTP: el plugin usa el correo de WordPress.
 
-## Qué configurar (Turnos → Ajustes)
+## Qué configurar (MJ → Turnos)
 
 - **Agenda**: horarios por día (`09:00-13:00, 15:00-20:00`; vacío = cerrado), cada cuántos minutos se ofrecen horarios, descanso entre turnos, anticipación mínima, hasta cuántos días adelante, duración por defecto, días cerrados (feriados, vacaciones) y con qué día empieza la semana.
 - **Reservas y seña**: modo de confirmación, seña fija o porcentaje, instrucciones para transferir (alias, CBU, titular), link de pago opcional, horas para enviarla (con 1, el horario se libera a la hora), comprobante, texto de política, límites anti-spam.
@@ -34,7 +34,7 @@ Reserva de turnos online con agenda, ficha técnica por clienta, seña, recordat
 - **Notificaciones**: tu email, qué avisos querés recibir, los dos recordatorios, el aviso de mantenimiento y todas las plantillas de email y WhatsApp (con los placeholders listados ahí mismo).
 - **Textos y páginas**: nombre, dirección y WhatsApp del negocio (si están vacíos usa los del tema), URL de la página de turnos, etiquetas del menú y del header, textos de la portada y de la reserva, página de servicios, nombres de los estados, si se muestra el precio.
 - **Formulario**: qué datos pide la reserva (nombre y teléfono son obligatorios siempre; podés renombrar, desactivar o agregar campos: texto, opciones Sí/No, lista, número, fecha). La fecha de nacimiento es un campo propio: con ella la edad se calcula sola.
-- **Servicios**: las secciones de información de cada servicio (qué incluye, cuidados, recomendaciones…) y si se agrupan por categoría. Las categorías se cargan en *Turnos → Categorías*.
+- **Servicios**: las secciones de información de cada servicio (qué incluye, cuidados, recomendaciones…) y si se agrupan por categoría. Las categorías se cargan en *MJ → Turnos · Categorías*.
 - **Ficha técnica**: los bloques y campos de la ficha, con opciones y advertencias. Viene armada para alisados; se puede restaurar la ficha por defecto.
 - **Opiniones**: si se piden, cuánto después del turno, si se publican solas y cómo se muestra el nombre.
 - **Panel**: título, quién más puede entrar (roles), apariencia clara u oscura, color de acento, si se muestra la caja, y la moneda (si no tenés WooCommerce).
@@ -49,8 +49,8 @@ Reserva de turnos online con agenda, ficha técnica por clienta, seña, recordat
 
 ## Prueba corta
 
-1. Cargá un servicio en *Turnos → Servicios* (por ejemplo "Alisado" de 120 minutos) y publicalo.
-2. En *Turnos → Ajustes → Reservas y seña* dejá el modo "pendiente hasta recibir la seña", poné un monto y tus instrucciones para transferir.
+1. Cargá un servicio en *MJ → Turnos · Servicios* (por ejemplo "Alisado" de 120 minutos) y publicalo.
+2. En *MJ → Turnos → Reservas y seña* dejá el modo "pendiente hasta recibir la seña", poné un monto y tus instrucciones para transferir.
 3. Abrí `/turnos?vista=publica` (o la página con el shortcode) en una ventana de incógnito y reservá con un email tuyo. Tenés que ver el paso final con la seña y recibir dos emails: el tuyo de "nueva reserva" y el de la clienta pidiendo la seña.
 4. Tocá "Ya transferí la seña": te llega un aviso por email.
 5. Entrá a `/turnos` con tu usuario: el turno aparece en *Hoy* (o en la fecha que elegiste) con la marca de "avisó la seña". Tocá "Seña recibida", cargá el monto y confirmá: la clienta recibe el email de confirmación y se crea la ficha.
@@ -59,7 +59,7 @@ Reserva de turnos online con agenda, ficha técnica por clienta, seña, recordat
 
 ## Bueno saber
 
-- Al desactivar el plugin no se borra nada: las clientas, turnos, fichas y ajustes quedan en la base para cuando lo vuelvas a activar. Al **borrarlo** desde Plugins tampoco, salvo que en Turnos → Ajustes → El panel marques «Al borrar el plugin»; lo que sí se limpia siempre es el permiso del panel, la tarea programada y los contadores.
+- Al desactivar el plugin no se borra nada: las clientas, turnos, fichas y ajustes quedan en la base para cuando lo vuelvas a activar. Al **borrarlo** desde Plugins tampoco, salvo que en MJ → Turnos → El panel marques «Al borrar el plugin»; lo que sí se limpia siempre es el permiso del panel, la tarea programada y los contadores.
 - Los horarios de la agenda y de los turnos usan la zona horaria configurada en *Ajustes → Generales* de WordPress. Revisá que sea la de tu ciudad.
 - Los emails automáticos salen con el nombre del negocio y responden a tu email (el de *Notificaciones*).
 - Los recordatorios, los avisos de mantenimiento, los pedidos de opinión y la cancelación de señas vencidas corren con la tarea programada de WordPress (cada 5 minutos, cuando hay visitas al sitio). Además, una seña vencida se libera en el momento en que alguien consulta los horarios, así que un horario no queda trabado aunque la tarea se atrase. Para que el recordatorio de "una hora antes" salga puntual, conviene un cron real del hosting.

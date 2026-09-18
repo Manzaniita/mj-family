@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Fidelidad
  * Description: Tarjeta de sellos para las clientas. Cada turno atendido suma sellos solo (con MJ Turnos Online) y, si se quiere, cada compra de la tienda (con WooCommerce). Al completar la tarjeta se gana el premio que elijas: un texto que canjeás a mano o saldo a favor para el próximo turno. Cuántos sellos, cuántos da cada servicio, el premio y todos los textos se configuran en Fidelidad → Ajustes.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author: MJ Importaciones
@@ -11,10 +11,13 @@
 
 defined('ABSPATH') || exit;
 
-define('MJFID_VERSION', '1.0.0');
+define('MJFID_VERSION', '1.1.0');
 define('MJFID_FILE', __FILE__);
 define('MJFID_DIR', plugin_dir_path(__FILE__));
 define('MJFID_DB_VERSION', '1');
+
+require_once MJFID_DIR . 'inc/compartido/class-mj-menu.php'; // El menú único "MJ" de wp-admin (viaja adentro de cada plugin).
+MJ_Menu::init();
 
 require_once MJFID_DIR . 'inc/opciones.php'; // Opciones, página Fidelidad → Ajustes y helpers.
 require_once MJFID_DIR . 'inc/datos.php';    // Tablas, sellos, premios y la cuenta de cada tarjeta.

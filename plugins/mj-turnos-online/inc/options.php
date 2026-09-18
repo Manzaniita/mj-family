@@ -1437,21 +1437,31 @@ function mjto_sanitize_options($input) {
 }
 
 /* -------------------------------------------------------------------------
- * Menú wp-admin: Turnos → Ajustes | Abrir el panel | Servicios
+ * Menú wp-admin: todo cuelga del menú MJ
+ *
+ * Antes Turnos era un menú propio de primer nivel con sus cuatro pantallas
+ * adentro. Ahora las cuatro cuelgan de MJ, que es el único menú de la familia.
+ * Como wp-admin tiene solo dos niveles, las que eran sub-pantallas de Turnos
+ * llevan "Turnos · " adelante en el título del menú para que se sigan leyendo
+ * como un grupo; la principal queda con su nombre solo.
  * ---------------------------------------------------------------------- */
 add_action('admin_menu', function () {
-	add_menu_page('MJ Turnos', 'Turnos', MJTO_CAP, 'mjto', 'mjto_render_settings_page', 'dashicons-calendar-alt', 57);
 	/*
-	 * Mismo slug que el padre: si acá pidiéramos manage_options, WordPress
-	 * bloquearía admin.php?page=mjto entero para los roles que solo tienen
-	 * MJTO_CAP. El callback ya exige manage_options y a los demás les muestra
-	 * el botón "Abrir el panel".
+	 * La pantalla principal es la de ajustes. Se registra con MJTO_CAP: si acá
+	 * pidiéramos manage_options, WordPress bloquearía admin.php?page=mjto entero
+	 * para los roles que solo tienen MJTO_CAP. El callback ya exige
+	 * manage_options y a los demás les muestra el botón "Abrir el panel".
 	 */
-	add_submenu_page('mjto', 'Ajustes', 'Ajustes', MJTO_CAP, 'mjto', 'mjto_render_settings_page');
+	/*
+	 * El sufijo del hook lo arma WordPress con el padre, y el menú MJ se puede
+	 * renombrar: hay que guardarlo, no escribirlo a mano. Sin esto, la pantalla
+	 * se queda sin sus scripts y las pestañas Formulario y Ficha aparecen vacías.
+	 */
+	$GLOBALS['mjto_settings_hook'] = add_submenu_page(MJ_Menu::slug(), 'MJ Turnos', 'Turnos', MJTO_CAP, 'mjto', 'mjto_render_settings_page');
 	/* WP acepta URLs absolutas como slug: abre el panel en el sitio. */
-	add_submenu_page('mjto', 'Abrir el panel', 'Abrir el panel', MJTO_CAP, mjto_panel_url());
-	add_submenu_page('mjto', 'Servicios', 'Servicios', 'manage_options', 'edit.php?post_type=mjto_service');
-	add_submenu_page('mjto', 'Categorías', 'Categorías', 'manage_options', 'edit-tags.php?taxonomy=mjto_service_cat&post_type=mjto_service');
+	add_submenu_page(MJ_Menu::slug(), 'Abrir el panel', 'Turnos · Abrir el panel', MJTO_CAP, mjto_panel_url());
+	add_submenu_page(MJ_Menu::slug(), 'Servicios', 'Turnos · Servicios', 'manage_options', 'edit.php?post_type=mjto_service');
+	add_submenu_page(MJ_Menu::slug(), 'Categorías', 'Turnos · Categorías', 'manage_options', 'edit-tags.php?taxonomy=mjto_service_cat&post_type=mjto_service');
 });
 
 /** URL del panel de la dueña (misma URL que la reserva pública). */
@@ -1505,7 +1515,8 @@ function mjto_builder_boot($kind) {
 }
 
 add_action('admin_enqueue_scripts', function ($hook) {
-	if ('toplevel_page_mjto' !== $hook) {
+	$nuestro = isset($GLOBALS['mjto_settings_hook']) ? (string) $GLOBALS['mjto_settings_hook'] : '';
+	if ('' === $nuestro || $hook !== $nuestro) {
 		return;
 	}
 	wp_enqueue_media();

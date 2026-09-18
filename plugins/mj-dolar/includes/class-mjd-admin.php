@@ -1,6 +1,6 @@
 <?php
 /**
- * wp-admin: página WooCommerce → Dólar, barra de admin, widget del
+ * wp-admin: página MJ → Dólar, barra de admin, widget del
  * escritorio, avisos y handlers AJAX.
  */
 
@@ -35,8 +35,14 @@ class MJD_Admin {
 		return admin_url('admin.php?page=' . self::SLUG);
 	}
 
+	/** Dónde está la pantalla, con el nombre que hoy tiene el menú MJ. */
+	public static function page_breadcrumb() {
+		$menu = class_exists('MJ_Menu') ? trim((string) MJ_Menu::config('title')) : '';
+		return ('' !== $menu ? $menu : 'MJ') . ' → Dólar';
+	}
+
 	public static function menu() {
-		add_submenu_page('woocommerce', 'MJ Dólar — Tipo de cambio', '💵 Dólar', 'manage_options', self::SLUG, [__CLASS__, 'render']);
+		self::$hook = (string) add_submenu_page(MJ_Menu::slug(), 'MJ Dólar — Tipo de cambio', 'Dólar', 'manage_options', self::SLUG, [__CLASS__, 'render']);
 	}
 
 	public static function action_links($links) {
@@ -68,8 +74,12 @@ class MJD_Admin {
 		}
 	}
 
+	/** El hook de nuestra pantalla, tal como lo devolvió WordPress al registrarla. */
+	private static $hook = '';
+
 	public static function assets($hook) {
-		if ('woocommerce_page_' . self::SLUG !== $hook && 'index.php' !== $hook) {
+		/* El hook lo devuelve add_submenu_page(): el menú MJ se puede renombrar. */
+		if ((!self::$hook || $hook !== self::$hook) && 'index.php' !== $hook) {
 			return;
 		}
 		$state = MJD_Sync::state();
@@ -116,7 +126,7 @@ class MJD_Admin {
 		}
 		if (get_transient('mjd_activated')) {
 			delete_transient('mjd_activated');
-			echo '<div class="notice notice-success is-dismissible"><p><strong>MJ Dólar activado.</strong> Cargá el tipo de cambio en <a href="' . esc_url(self::page_url()) . '">WooCommerce → Dólar</a> y después completá el precio USD de tus productos (ficha, edición rápida, en lote o CSV).</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p><strong>MJ Dólar activado.</strong> Cargá el tipo de cambio en <a href="' . esc_url(self::page_url()) . '">' . esc_html(self::page_breadcrumb()) . '</a> y después completá el precio USD de tus productos (ficha, edición rápida, en lote o CSV).</p></div>';
 			return;
 		}
 		$screen = get_current_screen();

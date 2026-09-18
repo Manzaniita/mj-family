@@ -47,7 +47,7 @@ No le pisa datos a nadie: sólo toca archivos de la biblioteca de medios y su pr
 
 1. Plugins → Añadir nuevo → Subir plugin → mj-optimizador-imagenes.zip → Activar.
 2. Listo: las imágenes nuevas se optimizan solas.
-3. Para las que ya tenías, entrá en WooCommerce → 🖼️ Imágenes y tocá "Optimizar pendientes ahora" (o dejá que el proceso en segundo plano las vaya haciendo).
+3. Para las que ya tenías, entrá en MJ → Imágenes y tocá "Optimizar pendientes ahora" (o dejá que el proceso en segundo plano las vaya haciendo).
 
 Si venías usando "WC Image Optimizer Ilimitado", activá este y listo: se trae tus ajustes, las estadísticas, las copias de seguridad y la marca de lo que ya estaba optimizado, y desactiva el viejo solo para que no trabajen los dos a la vez. Después podés borrarlo desde Plugins.
 

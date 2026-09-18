@@ -1,5 +1,5 @@
 /**
- * MJ Dólar — página WooCommerce → Dólar y widget del escritorio.
+ * MJ Dólar — página MJ → Dólar y widget del escritorio.
  * Guardado del TC por AJAX, seguimiento del recálculo y cotización sugerida.
  */
 (function ($) {

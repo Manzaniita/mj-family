@@ -93,7 +93,7 @@ Apariencia → Temas, con su botón de "Actualizar ahora". También funciona el
 
 ### Cómo decide qué ofrecer
 
-1. **Lee las Releases.** Cada 6 horas (se cambia en Ajustes → MJ ·
+1. **Lee las Releases.** Cada 6 horas (se cambia en MJ ·
    Actualizaciones) consulta las últimas 20 Releases del repositorio. Salta las
    que están en borrador o marcadas como prerelease.
 2. **Arma el catálogo por nombre de archivo.** De `mj-erp-1.16.0.zip` saca la
@@ -125,14 +125,14 @@ error y reintenta en una hora.
 
 ### Para no esperar las 6 horas
 
-- **Ajustes → MJ · Actualizaciones → Buscar versiones nuevas ahora**, o
+- **MJ → Actualizaciones → Buscar versiones nuevas ahora**, o
 - **Escritorio → Actualizaciones → Buscar de nuevo**.
 
 Las dos consultan GitHub en el momento.
 
 ### Qué muestra la pantalla
 
-Ajustes → MJ · Actualizaciones tiene una tabla con cada paquete MJ instalado,
+MJ → Actualizaciones tiene una tabla con cada paquete MJ instalado,
 la versión que tiene la tienda, la publicada y el estado. Un paquete que no
 aparece ahí no tiene zip en las Releases, así que la tienda no lo va a
 actualizar. Pasa con un plugin nuevo que todavía no se publicó.
@@ -150,7 +150,7 @@ Quiere decir que se subió algo a mano sin publicarlo: conviene publicar.
    - Permissions: **Contents: Read-only**, y nada más (Metadata se agrega solo).
    - Copiar el `github_pat_…` al generarlo: GitHub no lo vuelve a mostrar.
 2. **Subir `mj-core-<versión>.zip`** a mano y activarlo.
-3. **Ajustes → MJ · Actualizaciones**: repositorio `Manzaniita/mj-family`, pegar
+3. **MJ → Actualizaciones**: repositorio `Manzaniita/mj-family`, pegar
    el token y **Guardar**. El campo del token tiene que pasar a decir "Hay uno
    guardado". Si sigue diciendo `github_pat_…`, no se guardó.
 4. **Buscar versiones nuevas ahora.** La tabla se llena.
@@ -275,7 +275,7 @@ Al terminar, `build-releases.ps1` lista qué zip lleva cada tienda (salen de
 1. **Apariencia → Temas → Añadir → Subir tema** para el padre y el hijo.
 2. **Plugins → Añadir → Subir plugin** para cada plugin, empezando por MJ Core.
 3. Activar el tema hijo (el padre se queda instalado, sin activar).
-4. Configurar todo en **Apariencia → MJ Appearance**.
+4. Configurar todo en **MJ → MJ Appearance**.
 
 Para reemplazar una versión existente, se sube el zip encima: WordPress pregunta
 si reemplaza y hay que decirle que sí. No hace falta borrar nada.
@@ -364,7 +364,7 @@ documentación. Los pasos marcados **siempre** no se saltean nunca.
 - [ ] **Siempre.** Subirlo **a mano la primera vez** en cada tienda que lo use
       (sección 6). MJ Core no instala paquetes nuevos: los actualiza una vez que
       están.
-- [ ] Revisar en Ajustes → MJ · Actualizaciones de esa tienda que aparezca en la
+- [ ] Revisar en MJ → Actualizaciones de esa tienda que aparezca en la
       tabla como "Al día".
 
 ### La documentación
@@ -416,7 +416,7 @@ documentación. Los pasos marcados **siempre** no se saltean nunca.
 
 ## 10. Cuando algo no anda
 
-Ajustes → MJ · Actualizaciones muestra el último error en castellano, y el
+MJ → Actualizaciones muestra el último error en castellano, y el
 detalle queda en WooCommerce → Estado → Registros, archivo `mj-core`.
 
 | Síntoma | Qué pasa | Qué hacer |

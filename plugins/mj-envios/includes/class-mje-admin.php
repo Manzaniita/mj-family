@@ -1,6 +1,6 @@
 <?php
 /**
- * wp-admin: WooCommerce → Envíos.
+ * wp-admin: MJ → Envíos.
  *
  * Seis pantallas, en el orden en el que se usan:
  *
@@ -29,6 +29,11 @@ class MJE_Admin {
 
 	/** Tope del CSV de códigos postales. Más que esto es un archivo equivocado. */
 	const CSV_MAX_BYTES = 8388608;
+
+	/* Lo que devuelve add_submenu_page(): con qué nombre WordPress llama a esta
+	   pantalla. No se escribe a mano porque depende de cómo se llame el menú MJ,
+	   que es un ajuste. */
+	private static $hook = '';
 
 	public static function init() {
 		add_action('admin_menu', [__CLASS__, 'menu']);
@@ -67,7 +72,7 @@ class MJE_Admin {
 	/* -------------------------------- Menú ------------------------------- */
 
 	public static function menu() {
-		add_submenu_page('woocommerce', 'MJ Envíos', '📦 Envíos', 'manage_woocommerce', self::SLUG, [__CLASS__, 'render']);
+		self::$hook = add_submenu_page(MJ_Menu::slug(), 'MJ Envíos', 'Envíos', 'manage_woocommerce', self::SLUG, [__CLASS__, 'render']);
 	}
 
 	public static function page_url($args = []) {
@@ -80,7 +85,7 @@ class MJE_Admin {
 	}
 
 	public static function assets($hook) {
-		if ('woocommerce_page_' . self::SLUG !== $hook) {
+		if (!self::$hook || $hook !== self::$hook) {
 			return;
 		}
 		wp_enqueue_style('mje-admin', MJE_URL . 'assets/admin.css', [], MJE_VERSION);
@@ -97,10 +102,10 @@ class MJE_Admin {
 		}
 		if (get_transient('mje_activated')) {
 			delete_transient('mje_activated');
-			echo '<div class="notice notice-success is-dismissible"><p><strong>MJ Envíos activado.</strong> Todavía no cambió nada en la tienda: los métodos de ejemplo están apagados. Cargá desde dónde despachás y encendé los que quieras usar en <a href="' . esc_url(self::page_url()) . '">WooCommerce → Envíos</a>.</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p><strong>MJ Envíos activado.</strong> Todavía no cambió nada en la tienda: los métodos de ejemplo están apagados. Cargá desde dónde despachás y encendé los que quieras usar en <a href="' . esc_url(self::page_url()) . '">MJ → Envíos</a>.</p></div>';
 		}
 		$screen = get_current_screen();
-		if (!$screen || 'woocommerce_page_' . self::SLUG !== $screen->id) {
+		if (!$screen || !self::$hook || $screen->id !== self::$hook) {
 			return;
 		}
 		if (!MJE_Settings::origin_ready()) {

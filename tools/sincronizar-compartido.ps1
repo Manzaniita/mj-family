@@ -58,6 +58,22 @@ $compartidos = @(
             "mj-erp",
             "mj-medios-pago"
         )
+    },
+    @{
+        # El menu unico de wp-admin: lo necesita todo plugin con pantalla propia.
+        Archivo = "class-mj-menu.php"
+        Plugins = @(
+            "mj-colegas",
+            "mj-core",
+            "mj-dolar",
+            "mj-envios",
+            "mj-erp",
+            "mj-fidelidad",
+            "mj-fotos-rapidas",
+            "mj-medios-pago",
+            "mj-optimizador-imagenes",
+            "mj-turnos-online"
+        )
     }
 )
 

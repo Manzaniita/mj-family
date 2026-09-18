@@ -160,7 +160,7 @@ function mjc_sanitize_options($input) {
 }
 
 /* -------------------------------------------------------------------------
- * Menú: Colegas → Ajustes | Lista de colegas | Liquidaciones
+ * Menú: MJ → Colegas | Colegas · Lista | Colegas · Liquidaciones
  * ---------------------------------------------------------------------- */
 /*
  * Quién ve y guarda los ajustes. Es la misma capacidad que el resto del menú
@@ -175,20 +175,24 @@ function mjc_settings_capability() {
 add_action('admin_menu', function () {
 	$plural = mjc_opt('label_plural');
 	$cap    = mjc_settings_capability();
-	add_menu_page("MJ {$plural}", $plural, $cap, 'mjc', 'mjc_render_settings_page', 'dashicons-groups', 56);
-	add_submenu_page('mjc', 'Ajustes', 'Ajustes', $cap, 'mjc', 'mjc_render_settings_page');
-	add_submenu_page('mjc', "Lista de {$plural}", "Lista de {$plural}", 'manage_woocommerce', 'edit-tags.php?taxonomy=' . MJC_TAX . '&post_type=product');
-	add_submenu_page('mjc', 'Liquidaciones', 'Liquidaciones', 'manage_woocommerce', 'mjc-liquidaciones', 'mjc_render_report_page');
+	/*
+	 * Todo cuelga del menú MJ. La pantalla principal del plugin es la de
+	 * ajustes, así que ya no hace falta la entrada "Ajustes" aparte: era la
+	 * misma página con otro nombre, y acá adentro quedaría repetida.
+	 */
+	add_submenu_page(MJ_Menu::slug(), "MJ {$plural}", $plural, $cap, 'mjc', 'mjc_render_settings_page');
+	add_submenu_page(MJ_Menu::slug(), "Lista de {$plural}", "{$plural} · Lista", 'manage_woocommerce', 'edit-tags.php?taxonomy=' . MJC_TAX . '&post_type=product');
+	add_submenu_page(MJ_Menu::slug(), 'Liquidaciones', "{$plural} · Liquidaciones", 'manage_woocommerce', 'mjc-liquidaciones', 'mjc_render_report_page');
 });
 
 /* options.php exige manage_options por defecto para guardar: se alinea con la capacidad de arriba. */
 add_filter('option_page_capability_mjc_options_group', 'mjc_settings_capability');
 
-/* Que la pantalla de la taxonomía resalte el menú "Colegas" y no "Productos". */
+/* Que la pantalla de la taxonomía resalte el menú MJ y no "Productos". */
 add_filter('parent_file', function ($parent) {
 	global $current_screen;
 	if ($current_screen && MJC_TAX === $current_screen->taxonomy) {
-		return 'mjc';
+		return MJ_Menu::slug();
 	}
 	return $parent;
 });
@@ -204,7 +208,8 @@ add_filter('submenu_file', function ($submenu) {
 add_action('admin_enqueue_scripts', function ($hook) {
 	$screen = get_current_screen();
 	$is_tax = $screen && MJC_TAX === $screen->taxonomy;
-	if ('toplevel_page_mjc' === $hook || $is_tax) {
+	/* El sufijo del hook lo arma WordPress con el padre: se lo preguntamos. */
+	if ($hook === get_plugin_page_hookname('mjc', MJ_Menu::slug()) || $is_tax) {
 		wp_enqueue_media();
 	}
 });
