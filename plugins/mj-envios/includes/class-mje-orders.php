@@ -167,7 +167,7 @@ class MJE_Orders {
 	 * para saber con qué servicio se despachó. Se escribe al crearla, que es
 	 * cuando la tarifa elegida todavía está a mano.
 	 */
-	public static function stamp_shipping_item($item, $package_key, $package, $order) {
+	public static function stamp_shipping_item($item, $package_key, $package, $order) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- Es la firma del hook de WooCommerce.
 		if (!$item instanceof WC_Order_Item_Shipping) {
 			return;
 		}

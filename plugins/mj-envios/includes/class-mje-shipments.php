@@ -180,7 +180,7 @@ class MJE_Shipments {
 	 */
 	public static function save_tracking() {
 		check_admin_referer('mje_save_tracking');
-		if (!current_user_can('manage_woocommerce')) {
+		if (!current_user_can('manage_woocommerce')) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- La registra WooCommerce.
 			wp_die('Sin permisos.');
 		}
 

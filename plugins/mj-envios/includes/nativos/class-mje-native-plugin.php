@@ -93,7 +93,7 @@ abstract class MJE_Native_Plugin {
 	 * Se pasa también la tarifa, porque varios plugins lo dicen en su propia
 	 * meta y leerlo de ahí es más confiable que deducirlo del nombre.
 	 */
-	public function is_branch_service($service, $rate = null) {
+	public function is_branch_service($service, $rate = null) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- La firma la usan los adaptadores que sí miran la tarifa.
 		$service = MJE_Settings::key_of((string) $service);
 		return false !== strpos($service, 'sucursal') || false !== strpos($service, 'branch') || false !== strpos($service, 'agency');
 	}
@@ -103,7 +103,7 @@ abstract class MJE_Native_Plugin {
 	 *
 	 * → [['code','name','address','city','state','postcode','hours','lat','lon'], ...]
 	 */
-	public function branches($postcode = '') {
+	public function branches($postcode = '') { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- La firma la usan los adaptadores que sí traen sucursales.
 		return [];
 	}
 
@@ -113,8 +113,7 @@ abstract class MJE_Native_Plugin {
 	 * Se llama ANTES de pedir las tarifas: varios correos cotizan distinto según
 	 * la sucursal de destino, y algunos la leen de su propia sesión.
 	 */
-	public function remember_branch($code) {
-		return;
+	public function remember_branch($code) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- La firma la usan los adaptadores que sí la anotan.
 	}
 
 	/**
@@ -124,17 +123,15 @@ abstract class MJE_Native_Plugin {
 	 * correo no lo ve: no se le puede dar de alta el envío ni imprimir el
 	 * rótulo desde su propio panel.
 	 */
-	public function stamp_order($order, $rate_id, $service, array $branch = []) {
-		return;
+	public function stamp_order($order, $rate_id, $service, array $branch = []) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- La firma la usan los adaptadores que sí escriben en el pedido.
 	}
 
 	/** Lo mismo, sobre la línea de envío del pedido (la que guarda la tarifa). */
-	public function stamp_item($item, $rate_id) {
-		return;
+	public function stamp_item($item, $rate_id) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- La firma la usan los adaptadores que sí escriben en la línea.
 	}
 
 	/** Link de seguimiento con el número del correo, si su plugin publica uno. */
-	public function tracking_url($code) {
+	public function tracking_url($code) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- La firma la usan los adaptadores que sí arman el link.
 		return '';
 	}
 

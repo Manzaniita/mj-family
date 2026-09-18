@@ -373,8 +373,8 @@ class MJE_Admin {
 		echo '<input type="hidden" name="page" value="' . esc_attr(self::SLUG) . '">';
 		echo '<input type="hidden" name="tab" value="envios">';
 		echo '<input type="hidden" name="vista" value="' . esc_attr($view) . '">';
-		echo '<div><label for="mje-f-correo">Correo</label>' . self::select_input('correo', $carriers, $carrier, 'id="mje-f-correo"') . '</div>';
-		echo '<div><label for="mje-f-metodo">Método</label>' . self::select_input('metodo', $methods, $method, 'id="mje-f-metodo"') . '</div>';
+		echo '<div><label for="mje-f-correo">Correo</label>' . self::select_input('correo', $carriers, $carrier, 'id="mje-f-correo"') . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo '<div><label for="mje-f-metodo">Método</label>' . self::select_input('metodo', $methods, $method, 'id="mje-f-metodo"') . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
 		echo '<div><button type="submit" class="button">Filtrar</button></div>';
 		echo '</form>';
 	}
@@ -1062,7 +1062,7 @@ class MJE_Admin {
 		wp_nonce_field('mje_add_to_zone');
 		echo '<input type="hidden" name="action" value="mje_add_to_zone">';
 		echo '<input type="hidden" name="plugin" value="' . esc_attr($plugin_id) . '">';
-		echo self::select_input('zone', $zones, (string) key($zones));
+		echo self::select_input('zone', $zones, (string) key($zones)); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
 		submit_button('Agregarlo a esta zona', 'secondary', 'submit', false);
 		echo '</form>';
 	}
@@ -1143,8 +1143,8 @@ class MJE_Admin {
 		echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="mje-inline">';
 		wp_nonce_field('mje_sync_branches');
 		echo '<input type="hidden" name="action" value="mje_sync_branches">';
-		echo self::select_input('carrier', $sources, (string) key($sources));
-		echo self::text_input('cp', '', ['class' => 'small-text', 'placeholder' => 'CP']);
+		echo self::select_input('carrier', $sources, (string) key($sources)); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo self::text_input('cp', '', ['class' => 'small-text', 'placeholder' => 'CP']); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
 		submit_button('Traerlas', 'secondary', 'submit', false);
 		echo '</form>';
 		self::panel_end();
@@ -1606,7 +1606,7 @@ class MJE_Admin {
 		MJE_Settings::flush_caches();
 		self::back([
 			'tab'   => 'ajustes',
-			'vista' => isset($_POST['vista']) ? sanitize_key(wp_unslash($_POST['vista'])) : 'general',
+			'vista' => isset($_POST['vista']) ? sanitize_key(wp_unslash($_POST['vista'])) : 'general', // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
 			'saved' => 'settings',
 		]);
 	}
@@ -1647,8 +1647,8 @@ class MJE_Admin {
 	 */
 	public static function sync_branches() {
 		self::guard('mje_sync_branches');
-		$key  = isset($_POST['carrier']) ? sanitize_key(wp_unslash($_POST['carrier'])) : '';
-		$cp   = isset($_POST['cp']) ? MJE_Geo::normalize_cp(wp_unslash($_POST['cp'])) : '';
+		$key  = isset($_POST['carrier']) ? sanitize_key(wp_unslash($_POST['carrier'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
+		$cp   = isset($_POST['cp']) ? MJE_Geo::normalize_cp(wp_unslash($_POST['cp'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
 		$back = ['tab' => 'correos', 'vista' => 'sucursales'];
 
 		if ('' === $key) {
@@ -1683,7 +1683,7 @@ class MJE_Admin {
 		self::guard('mje_add_to_zone');
 		$back = ['tab' => 'correos', 'vista' => 'conectados'];
 
-		$plugin = MJE_Native::get(isset($_POST['plugin']) ? sanitize_key(wp_unslash($_POST['plugin'])) : '');
+		$plugin = MJE_Native::get(isset($_POST['plugin']) ? sanitize_key(wp_unslash($_POST['plugin'])) : ''); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
 		if (!$plugin) {
 			self::back($back + ['error' => 'Ese correo no está instalado.']);
 		}
@@ -1691,7 +1691,7 @@ class MJE_Admin {
 			self::back($back + ['error' => 'WooCommerce no tiene zonas de envío disponibles.']);
 		}
 
-		$zone = WC_Shipping_Zones::get_zone(isset($_POST['zone']) ? absint(wp_unslash($_POST['zone'])) : 0);
+		$zone = WC_Shipping_Zones::get_zone(isset($_POST['zone']) ? absint(wp_unslash($_POST['zone'])) : 0); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
 		if (!$zone) {
 			self::back($back + ['error' => 'Esa zona de envío no existe.']);
 		}
