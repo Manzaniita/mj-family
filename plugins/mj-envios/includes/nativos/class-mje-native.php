@@ -176,6 +176,25 @@ class MJE_Native {
 		}
 	}
 
+	/**
+	 * Lo mismo, pero para un paquete armado a mano.
+	 *
+	 * Sirve para cotizar sin carrito (la ficha del producto): se le pide a
+	 * WooCommerce que calcule ese paquete, con lo cual los plugins de los
+	 * correos cotizan como siempre y sus tarifas quedan capturadas. Va con una
+	 * clave de paquete propia para no pisar lo que la tienda tenga calculado.
+	 */
+	public static function capture_for_package(array $package, $key = 'mje_quote') {
+		if (!self::any() || !function_exists('WC') || !WC()->shipping() || !WC()->session) {
+			return;
+		}
+		try {
+			WC()->shipping()->calculate_shipping_for_package($package, $key);
+		} catch (Exception $e) {
+			MJE_Geo::log('nativo', 'cotización suelta: ' . $e->getMessage());
+		}
+	}
+
 	/** Las tarifas ajenas del cálculo en curso. */
 	public static function rates() {
 		return self::$rates;

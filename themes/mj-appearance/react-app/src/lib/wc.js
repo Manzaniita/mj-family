@@ -356,8 +356,12 @@ export const searchCities = (query, state = '') =>
   apiReq(`/geo/localidades?q=${encodeURIComponent(query)}&prov=${encodeURIComponent(state)}`, {}, 'mje/v1');
 
 /** Sucursales del correo de un método, para el CP cargado. */
-export const getBranches = (method, cp = '') =>
-  apiReq(`/sucursales?metodo=${encodeURIComponent(method)}&cp=${encodeURIComponent(cp)}`, {}, 'mje/v1');
+export const getBranches = (method, cp = '', city = '') =>
+  apiReq(
+    `/sucursales?metodo=${encodeURIComponent(method)}&cp=${encodeURIComponent(cp)}&localidad=${encodeURIComponent(city)}`,
+    {},
+    'mje/v1'
+  );
 
 /** Cuánto sale enviar a un destino (sirve sin carrito armado). */
 export const quoteShipping = (data) => apiReq('/cotizar', { method: 'POST', body: data }, 'mje/v1');

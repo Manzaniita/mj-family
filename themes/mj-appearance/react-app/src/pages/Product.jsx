@@ -16,6 +16,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { MobileBuyBar } from '@/components/product/MobileBuyBar';
 import { PaymentPanel } from '@/components/product/PaymentPanel';
+import { ShippingPanel } from '@/components/product/ShippingPanel';
 import { MaskReveal, Reveal } from '@/components/motion/Reveal';
 import { getProduct, getRelated, discountPct } from '@/lib/api';
 import { getProductStock } from '@/lib/wc';
@@ -442,6 +443,9 @@ export default function Product() {
 
                 {/* Precio con cada medio de pago (plugin MJ Medios de Pago) */}
                 <PaymentPanel product={displayProduct} />
+
+                {/* Cuánto sale el envío a tu código postal (plugin MJ Envíos) */}
+                <ShippingPanel product={displayProduct} />
 
                 {/* Disponible en… (plugin MJ Tiempos de Entrega): variación elegida o producto */}
                 {deliveryText && (

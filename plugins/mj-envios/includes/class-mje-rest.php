@@ -206,7 +206,16 @@ class MJE_REST {
 		}
 
 		$package = self::package_for($cp, $state, $city, $request);
-		$out     = [];
+
+		/*
+		 * Los correos con plugin propio cotizan cuando WooCommerce calcula un
+		 * paquete: acá no hay carrito, así que se le pide que calcule este. Sin
+		 * esto, la ficha del producto mostraría todo menos los correos
+		 * conectados, que suelen ser los que importan.
+		 */
+		MJE_Native::capture_for_package($package);
+
+		$out = [];
 		foreach (MJE_Methods::available($package) as $slug => $def) {
 			$quote = MJE_Rates::quote($def, $package);
 			if (null === $quote['cost']) {

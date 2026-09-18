@@ -901,6 +901,12 @@ class MJE_Methods {
 				'branchHelp' => (string) $s['branch_help'],
 				'pickup'     => (string) $s['pickup_label'],
 			],
+			'quote'     => [
+				'enabled' => (bool) $s['quote_product'],
+				'title'   => (string) $s['quote_title'],
+				'button'  => (string) $s['quote_button'],
+				'help'    => (string) $s['quote_help'],
+			],
 			'freeFrom'  => (float) MJE_Rates::free_threshold(),
 			'pickup'    => MJE_Settings::origin(),
 		];

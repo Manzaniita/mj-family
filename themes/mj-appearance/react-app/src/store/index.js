@@ -46,24 +46,39 @@ function rateMeta(rate, key) {
   return found?.value != null ? String(found.value) : '';
 }
 
-/** Métodos de envío y costo derivados del carrito del servidor. */
+/**
+ * Métodos de envío y costo derivados del carrito del servidor.
+ *
+ * Lo que MJ Envíos agrega a cada tarifa llega por `extensions.mje.rates`, con
+ * el id de la tarifa como clave. La meta de la tarifa queda de respaldo, para
+ * una versión del plugin anterior a la extensión: sin ese respaldo, un envío
+ * "a coordinar" se vería como gratis.
+ */
 function mapServerShipping(cart) {
   if (!cart) return { rates: [], selected: null, cost: null };
   const u = cart.totals?.currency_minor_unit ?? 2;
+  const info = cart.extensions?.mje?.rates ?? {};
   const rates = (cart.shipping_rates || []).flatMap((p) =>
-    (p.shipping_rates || []).map((r) => ({
-      rate_id: r.rate_id,
-      name: stripHtml(r.name),
-      selected: !!r.selected,
-      cost: toAmount(r.price, r.currency_minor_unit ?? u),
-      // Lo que agrega MJ Envíos a su tarifa: sin el plugin, todo esto viene vacío.
-      slug: rateMeta(r, '_mje_slug'),
-      destination: rateMeta(r, '_mje_destination'),
-      description: rateMeta(r, '_mje_description'),
-      eta: rateMeta(r, '_mje_eta'),
-      note: rateMeta(r, '_mje_note'),
-      coordinate: rateMeta(r, '_mje_coordinate') === '1',
-    }))
+    (p.shipping_rates || []).map((r) => {
+      const own = info[r.rate_id] ?? {};
+      return {
+        rate_id: r.rate_id,
+        name: stripHtml(r.name),
+        selected: !!r.selected,
+        cost: toAmount(r.price, r.currency_minor_unit ?? u),
+        // Lo que agrega MJ Envíos a su tarifa: sin el plugin, todo esto viene vacío.
+        slug: own.slug ?? rateMeta(r, '_mje_slug'),
+        destination: own.destination ?? rateMeta(r, '_mje_destination'),
+        description: own.description ?? rateMeta(r, '_mje_description'),
+        eta: own.eta ?? rateMeta(r, '_mje_eta'),
+        note: own.note ?? rateMeta(r, '_mje_note'),
+        coordinate: own.coordinate ?? rateMeta(r, '_mje_coordinate') === '1',
+        // Con qué correo va, y los carteles de más barato y más rápido.
+        carrier: own.carrier ?? '',
+        badges: Array.isArray(own.badges) ? own.badges : [],
+        needsBranch: own.needsBranch ?? false,
+      };
+    })
   );
   return {
     rates,

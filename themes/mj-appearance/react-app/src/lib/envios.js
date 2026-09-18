@@ -15,6 +15,9 @@ export const SHIPPING = IS_WP ? (WP?.shipping ?? null) : null;
 export const hasShipping = () => !!(SHIPPING?.enabled && Array.isArray(SHIPPING.methods) && SHIPPING.methods.length > 0);
 
 export const shippingTexts = () => SHIPPING?.texts ?? {};
+
+/** El cotizador de la ficha del producto: si se muestra y con qué textos. */
+export const quoteConfig = () => SHIPPING?.quote ?? { enabled: false, title: '', button: '', help: '' };
 export const cpConfig = () => SHIPPING?.cp ?? {};
 export const provinces = () => {
   const states = SHIPPING?.states ?? {};

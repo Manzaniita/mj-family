@@ -1456,6 +1456,17 @@ class MJE_Admin {
 		self::row('Plazo (un solo número)', self::text_input('settings[eta_text_one]', $s['eta_text_one'], ['class' => 'large-text']));
 		self::settings_panel_end();
 
+		self::settings_panel(
+			'Cotizador en la ficha del producto',
+			'El cliente pone su código postal en la página del producto y ve cuánto sale y cuándo llega, sin armar el carrito.',
+			$s['quote_product'] ? self::pill('encendido', 'ok') : self::pill('apagado', 'off')
+		);
+		self::row('Mostrarlo', self::checkbox_input('settings[quote_product]', $s['quote_product'], 'Mostrar el cotizador en la ficha del producto'));
+		self::row('Título', self::text_input('settings[quote_title]', $s['quote_title'], ['class' => 'large-text']));
+		self::row('Ayuda', self::text_input('settings[quote_help]', $s['quote_help'], ['class' => 'large-text']));
+		self::row('Botón', self::text_input('settings[quote_button]', $s['quote_button'], ['class' => 'regular-text']));
+		self::settings_panel_end();
+
 		self::settings_panel('Código postal y destino');
 		self::row('Código postal', self::text_input('settings[cp_label]', $s['cp_label']));
 		self::row('Ayuda del código postal', self::text_input('settings[cp_help]', $s['cp_help'], ['class' => 'large-text']));

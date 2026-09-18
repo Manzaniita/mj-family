@@ -141,13 +141,13 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
     }
     let alive = true;
     setBranches({ loading: true, list: [] });
-    wc.getBranches(selected.slug, form.postcode)
+    wc.getBranches(selected.slug, form.postcode, form.city)
       .then((list) => alive && setBranches({ loading: false, list: Array.isArray(list) ? list : [] }))
       .catch(() => alive && setBranches({ loading: false, list: [] }));
     return () => {
       alive = false;
     };
-  }, [selected?.slug, method?.needsBranch, form.postcode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selected?.slug, method?.needsBranch, form.postcode, form.city]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
    * Lo que el cliente escribe viaja al servidor con calma. Siempre con el contacto y la dirección:
@@ -370,7 +370,18 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
                     {rate.selected && <Check size={11} className="text-white" strokeWidth={3} />}
                   </span>
                   <span>
-                    <span className="block text-sm font-medium">{rate.name}</span>
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-sm font-medium">{rate.name}</span>
+                      {/* Los carteles los decide el servidor: solo aparecen cuando hay un ganador claro. */}
+                      {(rate.badges ?? []).map((badge) => (
+                        <span
+                          key={badge}
+                          className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success"
+                        >
+                          {badge}
+                        </span>
+                      ))}
+                    </span>
                     {rate.description && <span className="block text-xs text-ink-faint">{rate.description}</span>}
                     {rate.eta && <span className="block text-xs text-ink-faint">{rate.eta}</span>}
                     {rate.note && <span className="block text-xs text-ink-faint">{rate.note}</span>}
@@ -402,7 +413,12 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
             <option value="">{branches.loading ? t('shipping_branches_loading') : t('shipping_choose_branch')}</option>
             {branches.list.map((b) => (
               <option key={b.codigo} value={b.codigo}>
-                {[b.nombre, b.direccion, b.localidad].filter(Boolean).join(' · ')}
+                {[
+                  [b.nombre, b.direccion, b.localidad].filter(Boolean).join(' · '),
+                  b.distancia ? `(a ${b.distancia} km)` : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
               </option>
             ))}
           </Select>

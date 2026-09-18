@@ -41,6 +41,12 @@ class MJE_Settings {
 			'badge_cheapest'  => 'MÁS BARATO',
 			'badge_fastest'   => 'MÁS RÁPIDO',
 
+			/* Cotizador en la ficha del producto -------------------------- */
+			'quote_product'   => 1,
+			'quote_title'     => '¿Cuánto sale el envío?',
+			'quote_button'    => 'Calcular',
+			'quote_help'      => 'Poné tu código postal y te decimos cuánto sale y cuándo llega.',
+
 			/* Sucursales ------------------------------------------------- */
 			'branch_sort'     => 'cercania', // cercania | nombre
 			'branch_max'      => 25,         // Cuántas se le ofrecen al cliente (0 = todas).
@@ -201,7 +207,7 @@ class MJE_Settings {
 		$in  = is_array($in) ? $in : [];
 		$out = [];
 
-		foreach (['enabled', 'replace_native', 'native_adopt', 'badges_enabled', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost', 'ready_enabled', 'ready_mail'] as $flag) {
+		foreach (['enabled', 'replace_native', 'native_adopt', 'badges_enabled', 'quote_product', 'free_enabled', 'cp_required', 'cp_strict', 'geo_learn', 'log_errors', 'track_account', 'track_mail', 'erp_cost', 'ready_enabled', 'ready_mail'] as $flag) {
 			$out[$flag] = empty($in[$flag]) ? 0 : 1;
 		}
 
@@ -271,7 +277,7 @@ class MJE_Settings {
 		$out['free_states']  = isset($in['free_states']) ? self::text_list($in['free_states']) : '';
 
 		/* Textos: si los vacían, vuelve el default (nunca queda una pantalla muda). */
-		foreach (['badge_cheapest', 'badge_fastest', 'free_label', 'step_title', 'step_intro', 'cp_label', 'cp_help', 'cp_ask', 'cp_invalid', 'eta_text', 'eta_text_one', 'branch_label', 'branch_help', 'pickup_label', 'track_subject', 'ready_label', 'ready_subject'] as $key) {
+		foreach (['badge_cheapest', 'badge_fastest', 'quote_title', 'quote_button', 'quote_help', 'free_label', 'step_title', 'step_intro', 'cp_label', 'cp_help', 'cp_ask', 'cp_invalid', 'eta_text', 'eta_text_one', 'branch_label', 'branch_help', 'pickup_label', 'track_subject', 'ready_label', 'ready_subject'] as $key) {
 			$value     = isset($in[$key]) ? trim(sanitize_text_field($in[$key])) : '';
 			$out[$key] = '' !== $value ? mb_substr($value, 0, 190) : $d[$key];
 		}
