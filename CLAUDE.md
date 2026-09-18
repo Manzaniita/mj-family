@@ -34,6 +34,14 @@ del archivo principal, o editar las copias de `includes/compartido/`.
 - **Verificar antes de terminar:** `.\tools\verificar.ps1` (o `-Rapido` si no se
   tocó React) tiene que dar "TODO EN ORDEN".
 
+## Documentos vivos
+
+`README.md` (qué hay y versiones), `PUBLICAR.md` (circuito), `CONFIGURACION.md`
+(ajustes), `TIENDAS.md` (qué lleva cada tienda), `PRUEBAS-EN-LA-TIENDA.md`
+(pruebas a mano) y `AUDITORIA.md` (qué falta para la v1, mejoras y backlog).
+Cuando un cambio cierra un punto de `AUDITORIA.md`, sacarlo de ahí en el mismo
+commit. No crear documentos nuevos por entrega: se actualizan estos.
+
 ## Git
 
 - Commits chicos, uno por unidad de cambio.

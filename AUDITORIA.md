@@ -1,0 +1,504 @@
+# Auditoría de la familia MJ y cierre de la versión 1
+
+Hecha el 17 de septiembre de 2026 sobre el commit `36fc230` (MJ Appearance
+3.18.2). Reemplaza a `ANALISIS.md` (del 12 de septiembre) y a `PLUGINS-MJ.md`
+(el plan): lo que ahí seguía vigente está acá, ordenado en tres listas:
+
+1. **Qué falta para cerrar la versión 1** con lo que ya existe (sección 3).
+2. **Qué mejorar** de lo que ya anda (sección 4).
+3. **Qué se puede sumar después** (sección 5).
+
+Cómo se hizo: lectura completa del PHP y del JavaScript de los nueve plugins,
+el tema padre, los tres hijos, `shared/` y `tools/`; `.\tools\verificar.ps1`
+en verde; el estado real de GitHub (Releases, corridas del CI). No se ejecutó
+nada contra una tienda: lo que dice "sin probar" sigue sin probar.
+
+---
+
+## 1. En números
+
+| | |
+| --- | --- |
+| Paquetes | 9 plugins + 1 tema padre + 3 temas hijo |
+| Líneas propias (sin `dist/`, sin dependencias) | ~146.000, de las cuales MJ ERP ~72.000 (49 %) |
+| Archivos PHP | 160, todos compilan en 7.4 y 8.4 |
+| Rutas REST propias | ~145 (87 del ERP) |
+| Tablas propias | 31 (23 del ERP, 4 de Turnos, 3 de Envíos, 1 de Comprobantes) |
+| Avisos de PHPCS anotados como deuda | 460 (eran 512; la foto se rehizo hoy) |
+| Commits / Releases publicadas | 80 / 15 |
+| Corridas del CI que llegaron a arrancar | **0 de 30** (ver 3.1) |
+
+---
+
+## 2. Estado de cada pieza
+
+Estado para cerrar la v1: **Cerrado** = no tiene nada bloqueante; **Casi** =
+faltan cosas chicas; **Falta** = hay una pieza grande pendiente.
+
+| Paquete | Versión | Estado | Qué le falta para la v1 |
+| --- | --- | --- | --- |
+| MJ Appearance | 3.18.2 | Casi | Frenos en login/registro/contacto; `/catalog-stock` con caché y sin cantidad de stock pública; reseñas en la ficha; tope de 1000 productos; subcarpeta. |
+| GlossyHair / Yamana / Atelier | 1.1.0 | Casi | Subir `*_REQUIRES` de 3.6.0 a 3.18.x. Nada más. |
+| MJ ERP | 1.21.0 | Falta | Permiso de corregir ventas en borrar/editar venta; integridad al borrar; `uninstall.php` incompleto; dos ajustes que no hacen nada; `readme.txt` en 1.5.0. **Caja** y **Reportes** siguen en "Pronto". |
+| MJ Medios de Pago | 1.4.0 | Casi | `uninstall.php` deja el historial de pagos; filtro "parcial" de la bandeja; purga topeada en 200; LEEME. |
+| MJ Dólar | 1.1.0 | Casi | `readme.txt` en 1.0.0; decidir si el TC se trae solo; endpoint de cotización como ajuste; LEEME. |
+| MJ Envíos | 1.1.1 | Falta | Nunca habló con un correo real. Vía Cargo es un andamio; Correo Argentino sin seguimiento; ningún correo genera el envío ni la etiqueta; importar CSV sin validar; claves reimpresas en el HTML; `/cotizar` sin freno. |
+| MJ Turnos Online | 1.2.0 | Casi | `uninstall.php`; freno en las rutas públicas de lectura; el LEEME promete un anti-spam que no existe; alias/CBU públicos en `/config`. |
+| MJ Colegas | 1.0.0 | Casi | `uninstall.php`; permiso del menú roto para shop manager; sellar la base de la comisión; CSV sin escapar. |
+| MJ Core | 1.0.1 | Casi | Instalarlo en GlossyHair y Yamana. Sin reporte de versiones ni rollback (mejora, no bloqueante). |
+| MJ Optimizador | 1.1.0 | Cerrado | Borra el original sin escalar aunque no haya backup (ver 3.2). |
+| MJ Fotos Rápidas | 1.2.0 | Casi | `uninstall.php`, constante de versión, guarda de WooCommerce, permiso propio para los ajustes, validar que lo subido sea imagen. |
+| Circuito de publicación | — | Casi | El CI nunca corrió (3.1). `publicar.ps1` sin rollback si falla la Release. |
+
+---
+
+## 3. Qué falta para cerrar la versión 1
+
+En orden: primero lo que está afuera del código, después lo que hay que
+arreglar en el código. Cada punto trae el archivo para ir directo.
+
+### 3.1. Afuera del código
+
+- [ ] **El CI de GitHub nunca corrió.** Las 30 corridas de
+      `.github/workflows/verificar.yml`, desde el primer commit del 14 de
+      septiembre, terminan en `startup_failure` sin crear un solo job. El
+      archivo pasa `actionlint` en sus dos versiones, no tiene BOM ni tabs, el
+      workflow figura como activo y Actions está habilitado. Lo que queda es la
+      cuenta: minutos de Actions agotados o facturación en un repositorio
+      privado. El aviso se ve solo en la pestaña Actions de github.com. Hasta
+      que se resuelva, **la única red de seguridad es `.\tools\verificar.ps1`
+      en la máquina.**
+- [ ] **Instalar MJ Core en GlossyHair y Yamana**, con un token por tienda
+      (`PUBLICAR.md`, sección 3). Hoy dos de las tres tiendas se actualizan a
+      mano, y nadie sabe qué versión corren.
+- [ ] **Probar en la tienda real** MJ Dólar, MJ Medios de Pago, MJ Envíos y, del
+      ERP, corregir ventas, devoluciones/RMA, saldo a favor y entrega por
+      partes. Es la lista de `PRUEBAS-EN-LA-TIENDA.md`, pendiente desde hace
+      una semana. Todo eso toca plata, stock o el checkout.
+- [ ] **No encender la cotización en vivo de envíos** hasta tener cuenta con
+      un correo (memoria del proyecto: no hay credenciales de ninguno).
+
+### 3.2. Seguridad
+
+Ninguna es una inyección ni una fuga de datos; son puertas sin freno o
+permisos mal cerrados. Ordenadas por lo que más duele.
+
+- [ ] **ERP: borrar y editar una venta sin el permiso de "corregir ventas".**
+      `DELETE /sales/{id}` (`plugins/mj-erp/includes/rest/class-mjerp-rest-sales.php:436`)
+      y `PUT /sales/{id}` (`:411`) piden solo `manage_mjerp`; editar los
+      productos (`:558`) y corregir un cobro (`:719`) sí piden
+      `MJERP_Capabilities::can_manage_sales()`. Anular una venta impaga
+      (`class-mjerp-returns.php:378`) tampoco lo pide. Cualquier rol con acceso
+      al ERP puede borrar una venta, lo que desarma deuda, stock y pedido.
+- [ ] **Tema: login, registro y recuperar sin límite de intentos**
+      (`themes/mj-appearance/inc/rest.php:30-52`), y `/contact` sin honeypot ni
+      freno (`:84`). Fuerza bruta directa contra `wp_authenticate()` y relay de
+      spam por `wp_mail()`. El propio tema ya tiene el patrón para copiar:
+      `client-error` (`inc/seo.php:690-696`).
+- [ ] **Tema: `/catalog-stock` público, sin caché y con todo el catálogo**
+      (`inc/rest.php:645-659`): instancia cada producto con `limit => -1` en
+      cada primera carga de cada visitante, y publica SKU y cantidad de stock
+      de todo el catálogo (la Store API no expone la cantidad a propósito).
+      Caché por transient + `Cache-Control`, y devolver solo "hay / no hay".
+- [ ] **Turnos: las rutas públicas de lectura no tienen freno**
+      (`plugins/mj-turnos-online/inc/rest.php:35-59`): solo `POST /bookings`
+      mira el límite, y `GET /availability` calcula hasta 62 días con consultas.
+      Además el límite cuenta reservas creadas, no intentos (`:322-331`), así
+      que los intentos fallidos no gastan cupo. `deposit-notice` concatena
+      notas sin tope (`inc/bookings.php:754-763`).
+- [ ] **Turnos: alias, CBU y titular de la seña se publican en `GET /config`**
+      (`inc/frontend.php:130`) a cualquier visitante, sin haber reservado.
+      Mostrarlos recién en el paso final de la reserva.
+- [ ] **Envíos: `POST /mje/v1/cotizar` público sin freno**
+      (`plugins/mj-envios/includes/class-mje-rest.php:64`) y dispara llamadas
+      salientes al correo. Copiar `MJPM_Receipts_REST::rate_limited()`.
+- [ ] **Envíos: importar CSV de códigos postales sin validar**
+      (`class-mje-admin.php:996-1003`): ni `is_uploaded_file()`, ni extensión,
+      ni tamaño. Y las claves de los correos se reimprimen en el HTML como
+      `value` de un `input type="password"` (`:681-682`): viajan en claro en
+      cada carga de la pestaña, y guardar con el campo vacío las borra. MJ
+      Core resuelve las dos cosas bien (`class-mjc-ajustes.php:141`): copiar.
+- [ ] **Colegas: shop manager ve el menú y no puede entrar.** El menú padre
+      pide `manage_woocommerce` y el submenú del mismo slug `manage_options`
+      (`plugins/mj-colegas/inc/options.php:167-168`). Y el CSV de liquidaciones
+      no neutraliza fórmulas (`inc/report.php:208-226`); Turnos sí lo hace
+      (`inc/panel.php:276-291`).
+- [ ] **Fotos Rápidas:** los ajustes globales los cambia cualquiera con
+      `edit_products` (`mj-fotos-rapidas.php:62`), y `media_handle_upload()`
+      no comprueba que sea imagen (`:513`).
+- [ ] **Optimizador: borra el `original_image` sin escalar aunque `backup = 0`**
+      (`class-mjoi-processor.php:185-197`). Es pérdida irreversible: forzar
+      la copia cuando se convierte lo existente. Y `replace_urls()` (`:555-568`)
+      hace `REPLACE` masivo sobre `postmeta` excluyendo solo serializados de
+      primer nivel: un serializado anidado queda con longitudes rotas.
+
+### 3.3. Integridad de datos y desinstalación
+
+- [ ] **ERP: borrar una venta deja huérfanos.** `MJERP_Sales_Repo::delete()`
+      (`class-mjerp-sales-repo.php:1212-1238`) no toca `sale_returns`,
+      `sale_return_items`, `rma` ni `customer_credit`. O se bloquea borrar una
+      venta con devoluciones (el editor ya lo hace, `class-mjerp-sale-editor.php:115`),
+      o se cascadea.
+- [ ] **ERP: `uninstall.php` borra 21 tablas de 23.** Faltan `customers` y
+      `consignment_log`. Existe `MJERP_Install::drop_tables()` (`:1338`) que lo
+      hace bien y nadie usa. Tampoco borra `mjerp_order_status_resync`, el
+      user meta `_mjerp_customer_suggestion` ni, con HPOS, el order meta
+      `_mjerp_sale_id` / `_mjerp_sale_source`.
+- [ ] **Falta `uninstall.php` en Turnos, Colegas y Fotos Rápidas.** La lista
+      de `PUBLICAR.md` (sección 7) lo marca como "siempre". Quedarían huérfanos:
+      Turnos, cuatro tablas, `mjto_options`, `mjto_db_version`, locks, la
+      capability `mjto_manage` y el CPT `mjto_service`; Colegas, tres opciones,
+      la taxonomía `mj_colega` con datos privados de pago en termmeta y la meta
+      de cada línea de pedido; Fotos Rápidas, una opción.
+- [ ] **Medios de Pago: `uninstall.php` deja `_mjpm_paid` y `_mjpm_payments`**
+      (`uninstall.php:62`), que son el historial de pagos parciales, y los
+      transients `mjpm_rl_*`.
+- [ ] **Colegas: se sella el porcentaje pero no la base de la comisión**
+      (`inc/orders.php:98-100`): cambiar "total ↔ subtotal" recalcula
+      liquidaciones históricas ya pagadas.
+- [ ] **Turnos: `MJTO_DB_VERSION = '1'` y migrar es volver a correr `dbDelta`**
+      (`inc/db.php:130-134`). La primera migración real necesita el mecanismo.
+
+### 3.4. Ajustes y funciones que mienten
+
+Cosas que la pantalla ofrece y el código no hace. Peor que no tenerlas.
+
+- [ ] ERP: **`shop_price_notice`** ("Avisarle que está viendo su precio",
+      `class-mjerp-settings.php:437`, `page-settings.js:2561`): se guarda y
+      nadie lo lee.
+- [ ] ERP: **`sales_consignment_payment_method`** ("Medio de pago de esa
+      parte", `class-mjerp-settings.php:371`): idem.
+- [ ] ERP: **Caja y Reportes** en el menú apuntan a "Pronto" (`app.js:35-36`).
+      Ver 5.1.
+- [ ] ERP: la **bitácora del revendedor** la escriben cuatro repositorios y
+      solo la lee el portal del revendedor; el dueño no tiene pestaña
+      (`page-consignee.js:22-27`).
+- [ ] Envíos: el proveedor de código postal "correo" nunca responde:
+      `resolve_cp()` y `cities()` son stubs que devuelven `[]` y ningún correo
+      los pisa (`carriers/class-mje-carrier.php:130`). Sacarlo del selector.
+- [ ] Medios de Pago: el filtro por estado de la bandeja no acepta `parcial`
+      (`class-mjpm-receipts.php:683`) y la purga borra 200 archivos por día
+      como mucho (`:971`).
+- [ ] Turnos: el LEEME promete que "frena a quien insiste con 4 veces esa
+      cantidad de intentos fallidos" (`LEEME.md:58`); no existe en el código.
+      El panel recibe `receipt` en cada turno y ningún componente lo usa
+      (`inc/db.php:1073-1075`).
+- [ ] Tema: la ficha de producto **nunca muestra reseñas** en WordPress: la
+      pestaña solo se arma en modo demo (`react-app/src/pages/Product.jsx:664`),
+      aunque `fetchReviews()` y `reviewsEnabled` existen. Es la única pantalla
+      donde WooCommerce queda por encima del tema.
+- [ ] Tema: `quoteShipping()` y `getTracking()` (`react-app/src/lib/wc.js:362-365`)
+      envuelven `mje/v1/cotizar` y `/seguimiento` y nadie los llama: el
+      seguimiento del pedido en Mi cuenta quedó a medio integrar.
+- [ ] Tema: el ajuste fantasma `menu_categories` (`inc/settings.php:612`) ya no
+      tiene formulario y sigue viajando en `window.MJ`.
+- [ ] Fotos Rápidas: el buscador dice "por nombre o SKU" pero `get_posts`
+      con `s` no pasa por la búsqueda por SKU de WooCommerce
+      (`mj-fotos-rapidas.php:166` vs `:92-109`).
+
+### 3.5. Consistencia y documentación
+
+- [ ] **`readme.txt` del ERP en `Stable tag: 1.5.0`** con 16 versiones de
+      changelog sin escribir; el `.pot` tiene 25 cadenas de 858. **MJ Dólar en
+      `Stable tag: 1.0.0`** sin entrada 1.1.0. Envíos no tiene `readme.txt`;
+      Dólar, Medios de Pago, Core, ERP y Optimizador no tienen `LEEME.md`.
+      Elegir una convención (un `LEEME.md` por plugin, y el `readme.txt` solo
+      con cabecera y changelog) y aplicarla a los nueve.
+- [ ] **Los tres temas hijo declaran `*_REQUIRES = '3.6.0'`** con el padre en
+      3.18.2 (`themes/mj-atelier/functions.php:24` y equivalentes): el aviso
+      de "subiste el hijo sobre un padre viejo" nunca salta.
+- [ ] **MJ Fotos Rápidas no define constante de versión**; el resto de la
+      familia sí, y `PUBLICAR.md` lo exige.
+- [ ] **Decidir el i18n.** ERP declara Text Domain con 858 `__()` y toda la
+      interfaz JS en castellano fijo; el tema declara Text Domain con dos
+      llamadas y sin `languages/`; el resto no tiene nada. Es código privado
+      para tres tiendas argentinas: **sacar el i18n** y dejarlo escrito acá.
+- [ ] `publicar.ps1`: si `gh release create` falla, el commit y la etiqueta ya
+      están subidos y no hay vuelta atrás (`tools/publicar.ps1:166-206`). Crear
+      la Release antes de subir la etiqueta, o borrarla en el `catch`. Y
+      `git add -A` sin comprobar que la rama esté al día con el remoto.
+- [ ] El "MJ Appearance va primero" está fijo en `publicar.ps1:198` y
+      `build-releases.ps1:434`; es dato de producto, va en
+      `releases.config.json`. `sincronizar-compartido.ps1` tiene la lista de
+      plugins destino adentro del script (`:51-62`) en vez de en la
+      configuración.
+
+---
+
+## 4. Mejoras a lo que ya anda
+
+No frenan la v1. Ordenadas por área; dentro de cada una, por valor.
+
+### 4.1. Tema MJ Appearance y la SPA
+
+- **Catálogo que escale.** La SPA baja todo el catálogo al entrar, con tope de
+  10 páginas × 100 (`lib/wc.js:205-210`): a partir del producto 1001
+  desaparecen de tienda, buscador y comparador sin aviso. Falta paginación y
+  búsqueda contra el servidor. Con menos de mil productos no se nota, pero es
+  un límite silencioso.
+- **Instalación en subcarpeta.** `<BrowserRouter>` sin `basename`
+  (`App.jsx:63`) y el "volver al inicio" del ErrorBoundary con `/` fijo;
+  el PHP sí la soporta (`functions.php:535`). Pasarle `home_url` a la SPA, o
+  documentar que solo se soporta en la raíz.
+- **Negocio que queda en el padre:** los legales por defecto con "Ley 25.326",
+  "Ley 24.240" y "pesos argentinos e incluyen IVA" (`pages/Misc.jsx:508-519`);
+  títulos de Privacidad/Términos escritos a mano aunque existen las claves de
+  copy; Favoritos, Comparador, Vistos y 404 sin clave de copy. Un filtro
+  `mj_legal_defaults` y cuatro claves nuevas.
+- **Higiene del bundle:** `data/catalog.js` (202 líneas de datos demo con
+  marcas reales y promesas comerciales) viaja en producción; el `<title>` y la
+  descripción "MJ Appearance — Tecnología premium" de `react-app/index.html`
+  se publican en el zip.
+- **`<noscript>`** en `index.php` con contacto y un enlace: hoy sin JavaScript
+  la tienda queda en blanco.
+- **Verificación automática de los espejos PHP↔JS:** claves de copy (92/92
+  hoy), rutas, orden de la portada, tipos de campo de bloques y
+  `OVERRIDABLE` (`lib/pages.js:33`, duplicado a mano en vez de leerse de
+  `window.MJ.pages`). Un test que compare los dos lados.
+- Accesibilidad: al navegar solo se hace scroll (`Layout.jsx:66`), sin mover el
+  foco a `<main>` ni `aria-live`; chips y botones de filtro sin `type="button"`
+  (`Shop.jsx:40`).
+- `echo mj_favicon_tag()` sin escapar (`index.php:33`), `REQUEST_URI` sin
+  sanitizar (`functions.php:536`), `$_GET['mj-skin']` sin nonce
+  (`inc/skins.php:429`). Ninguno explotable; los tres son avisos de la
+  baseline de PHPCS que conviene cerrar.
+
+### 4.2. MJ ERP
+
+- **Partir los archivos grandes:** `page-settings.js` 3573 líneas,
+  `page-purchase.js` 2398, `components.js` 2090, `page-sale-new.js` 1609,
+  `app.css` 5397. Mecánico y sin riesgo.
+- **Los defaults duplicados:** `const DEFAULTS` en `page-settings.js:112-310`
+  copia entera `MJERP_Settings::defaults()` (154 claves, hoy idénticas). Que
+  `GET /settings` devuelva los defaults.
+- **`calc.js` es `MJERP_Costing` escrito en JavaScript** (719 líneas, a
+  propósito y documentado). Es donde un cambio futuro rompe en silencio:
+  tests que corran los dos con los mismos números.
+- **Tests sobre la plata:** costeo, redondeo, cuenta corriente de
+  consignación, saldo a favor en dos monedas. Es un porcentaje chico del
+  código y donde un error vende mal durante meses sin que se note.
+- Helpers copiados en cada archivo: `toastError()` ×13, `headerHtml()` ×13,
+  `num()` ×17 en JS; `v()` ×16, `cast()` ×15, `formats()` ×16 en los
+  repositorios. Mover a `core.js` y a una clase base.
+- Diecinueve métodos públicos sin ningún llamador (`round4`, `round_money`,
+  `tables_exist`, `drop_tables`, `remove_capabilities`, `find_by_sku`,
+  `count_by_supplier`, `delete_for_ref`…) y dos rutas REST que nadie llama
+  (`/consignees/{id}/account`, `/stock`). Varios huelen a guardas de borrado
+  pensadas y nunca cableadas.
+- `class-mjerp-sale-log-repo.php` define `MJERP_Sale_Log`, no un repositorio,
+  y se inicializa como módulo. Carpeta equivocada.
+- `migrate()` no tiene bloques 1.10, 1.11 ni 1.12 aunque `MJERP_DB_VERSION`
+  subió en esas versiones. Si es porque `dbDelta` cubrió todo, dejarlo escrito.
+- Placeholders atados al rubro en el código (`components.js:981`,
+  `components-consignment.js:1178`).
+
+### 4.3. MJ Medios de Pago, MJ Dólar y MJ Envíos
+
+- **MJ Dólar no actualiza el tipo de cambio solo.** El único trabajo programado
+  es el recálculo de precios; la cotización sugerida corre por AJAX del admin y
+  es referencia. Decidir: o un cron opcional que traiga el TC (con aviso y
+  tope de variación), o dejar escrito que es a mano.
+- El endpoint de cotización (`dolarapi.com`) se cambia por constante o filtro
+  pero no desde el panel (`class-mjd-suggest.php:22`), a diferencia de
+  `geo_url` en Envíos que sí es un ajuste. Las siete fuentes son el catálogo
+  de dolarapi escrito en el código (`class-mjd-settings.php:48-56`).
+- Envíos: el estado del correo se cachea una hora incluso cuando la respuesta
+  es vacía por error (`class-mje-tracking.php:176`). Y el `__return_true` de
+  las siete rutas no tiene el comentario que lo justifique, como sí tienen
+  los comprobantes (`class-mjpm-receipts-rest.php:13-17`).
+- Envíos: el método de ejemplo trae `'erp_delivery' => 'retira_local'`, una
+  clave del ERP escrita adentro de Envíos (`class-mje-methods.php:168`).
+- Los tres tienen `rounding_choices()` idéntico, tres `parse_decimal`, tres
+  formateos de importe y dos armados de link de WhatsApp. Candidatos a
+  `shared/` con el mecanismo de copias que ya existe.
+- Montos de ejemplo fijos en el JS de admin (`mjpm/assets/admin.js:50`,
+  `mjd/assets/admin.js:66`).
+- `sniff()` de la bóveda confía en la extensión si el servidor no tiene
+  `finfo` ni `getimagesize` (`class-mjpm-vault.php:296-299`). Está comentado
+  como decisión; es el único punto blando de la bóveda.
+
+### 4.4. MJ Turnos Online, MJ Colegas, MJ Core, Optimizador, Fotos Rápidas
+
+- Turnos: etiquetas del panel ("Hoy", "Turnos", "Clientas", "Caja", "Más")
+  fijas en el bundle (`app/src/panel/App.jsx:72-77`) mientras el resto viaja
+  por `mjto_panel_labels()`; fucsia `#e11d84` y `Manrope` como último fallback
+  sin filtro (`inc/options.php:2040`, `inc/panel.php:126`); prefijos `54`/`549`
+  fijos si el ajuste queda vacío (`inc/db.php:181-185`). Dos implementaciones
+  de "¿puede cancelar?" con casteos distintos (`rest.php:338` /
+  `bookings.php:707`). `mjto_service_by_slug()` y `mjto_receipt_asks()` sin usos.
+- Colegas: Liquidaciones hace `wc_get_orders(['limit' => -1])` y recorre todo
+  en memoria en cada carga (`inc/report.php:32-39`); todas las liquidaciones
+  viven en una sola opción que crece sin techo (`:161-162`).
+- Core: el token en claro en `wp_options` (sin autoload, nunca se re-muestra;
+  `MJ_CORE_TOKEN` en `wp-config.php` es la salida y está documentada). Si la
+  Release no trae `digest`, instala sin comparar SHA-256
+  (`class-mjc-catalogo.php:271-276`): avisar fuerte.
+- Optimizador: lleva su propio registro (`mjoi_log`) en vez de `MJ_Log` y no
+  está en `sincronizar-compartido.ps1`. Solo JPEG/PNG/WebP: sin AVIF, sin GIF,
+  sin SVG. No regenera miniaturas. Un "deshacer todo" sería el cierre.
+- Fotos Rápidas: 40 productos fijos sin "cargar más"; no reordena la galería ni
+  elige la principal; quitar una foto no borra el adjunto; CSS y JS embebidos
+  en el PHP; "Creado por MJ Importaciones" impreso fijo (`:240`).
+- `releases.config.json` excluye `app` y `react-app` por nombre a cualquier
+  profundidad: el día que un plugin tenga `includes/app/`, se cae del zip sin
+  aviso. `build-releases.ps1` no valida que la versión de la cabecera suba
+  respecto del zip anterior.
+
+---
+
+## 5. Qué se puede sumar después
+
+Lo que quedaba vigente del plan (`PLUGINS-MJ.md`), revisado contra lo que ya
+existe. Tamaño: chico = días, mediano = una o dos semanas, grande = más.
+
+### 5.1. Dentro del ERP (no son plugins nuevos)
+
+- **Caja.** Saldo y movimientos por caja. Hoy la plata entra y se anota en qué
+  caja, pero no hay saldo ni movimientos: la tabla `mjerp_cashboxes` es una
+  etiqueta. Es lo que convierte esto en un ERP y no en un registro de ventas.
+  Con el **cierre de caja diario**. Mediano.
+- **Reportes / Rentabilidad.** El costeo ya existe (`MJERP_Costing`) y cada
+  venta guarda descuento por medio de pago y costo de envío. Falta la pantalla:
+  margen por producto en porcentaje y en plata, ganancia real por pedido, los
+  que más margen dejan (no solo los que más se venden), y la alerta de "se
+  está vendiendo por debajo del costo". Mediano, valor muy alto.
+- **Reposición.** Compras y proveedores ya están. Falta sugerir qué reponer
+  cruzando lo vendido en el último mes con la lista de espera. Mediano.
+- **Reservas con seña.** Turnos ya cobra señas y el ERP lleva cuenta
+  corriente; lo específico es congelar el precio de un producto por unos días.
+  Con precios en dólares es un argumento de venta fuerte. Chico a mediano.
+
+### 5.2. Plugins nuevos, por orden de valor
+
+1. **MJ Vencimiento de Pedidos.** Los pedidos sin pagar se cancelan solos
+   pasadas las horas que se elijan, con aviso antes y cuenta atrás visible.
+   Los comprobantes ya existen en MJ Medios de Pago, así que es la mitad del
+   plan original. Con precios en dólares, un pedido abierto tres días es plata
+   perdida. Mediano.
+2. **MJ Facturador (ARCA).** Factura A/B/C según condición, CUIT o DNI
+   validado, CAE en el pedido, PDF en Mi cuenta, datos fiscales guardados.
+   **Arrancar ya el trámite** del certificado y el punto de venta: es lo
+   lento. Grande, dos entregas.
+3. **MJ Tiempos de Entrega.** "Disponible en 7 a 10 días" por SKU y por
+   variación, en la tarjeta y en la ficha. Chico, saca consultas de encima.
+4. **MJ Lista de Precios.** PDF o Excel al dólar del día, por categoría o
+   marca, con o sin fotos, mayorista y minorista, y un link permanente que
+   muestra la lista actualizada. Mediano, uso diario.
+5. **MJ Avisos de Stock.** "Avisame cuando vuelva", lista de espera por
+   producto que también dice qué reponer primero. Chico.
+6. **MJ Precios Mayoristas.** Segundo precio en dólares, descuento por
+   cantidad, cuentas aprobadas a mano, compra mínima. Mediano.
+7. **MJ Carrito Abandonado.** Recordatorio a las horas elegidas, cupón chico
+   en el segundo, cuánto se recuperó. Mediano.
+8. **MJ Presupuestos.** El carrito ya arma un PDF en el navegador; falta que se
+   guarde con número, validez, link para aceptar y conversión a pedido, con el
+   dólar y el medio de pago con que se calculó. Mediano a grande.
+9. **MJ Panel MJ.** Un tablero con el dólar del día, ventas de hoy,
+   comprobantes pendientes, sin stock con gente esperando, márgenes de la
+   semana. Chico, y hace que el conjunto se sienta un producto.
+10. **MJ Combos y Packs**, **MJ Reseñas con Fotos**, **MJ Etiquetas y QR**
+    (precios para la vidriera al dólar del día). Chicos a medianos.
+11. **MJ WhatsApp** (avisos automáticos por cambio de estado). Único de la
+    lista con costo mensual inevitable (WhatsApp Business API). La versión
+    gratis ya está: abrir el chat con el mensaje escrito.
+
+### 5.3. Lo grande que depende de terceros
+
+- **Cotización en vivo de envíos**, cuando existan cuentas con los correos.
+  Andreani es el único adaptador completo (cotizar, sucursales, seguimiento);
+  Correo Argentino cotiza y trae sucursales pero no sigue; Vía Cargo es un
+  formulario configurable a la espera del contrato de su API.
+- **Alta de envío y etiquetas de despacho.** Ningún correo genera el envío ni
+  el rótulo: hoy el circuito termina en "cargá el número de seguimiento a
+  mano".
+- **Pago online de la seña** en Turnos (Mercado Pago con webhook), **agenda
+  multi-profesional** (hoy todo el motor asume una) y **calendario** (un `.ics`
+  para la clienta es el 20 % del valor con el 5 % del trabajo).
+- **Portal para la colega** en MJ Colegas: hoy no existe; la dueña le manda el
+  CSV. Con recibo de liquidación por mail o PDF.
+- **MJ Core:** reporte de qué versión corre cada tienda, y volver a una
+  versión anterior desde el panel.
+
+### 5.4. Lo que no haría
+
+- Copias de seguridad, seguridad y firewall: hay plugins gratuitos probados por
+  miles de tiendas. Hacer uno propio es riesgo sin beneficio.
+- Buscador avanzado: el de la tienda es rápido. Recién vale con más de mil
+  productos, y ahí lo primero es la paginación de 4.1.
+- Chat en vivo: WhatsApp ya cumple ese rol.
+- MJ Fidelidad (puntos): último de la lista, suma poco al lado del resto.
+- Reescribir el ERP en React. Funciona, está entregado, y reescribir 72.000
+  líneas para terminar donde ya se está es la peor inversión posible. Partir
+  archivos y poner tests sobre la plata, sí.
+
+---
+
+## 6. El orden que sugiero
+
+### Fase 0 — cerrar la v1 (sección 3)
+
+1. Resolver la cuenta de GitHub para que el CI arranque, e instalar MJ Core en
+   las dos tiendas que faltan. Nada de código.
+2. Los permisos del ERP (borrar/editar venta) y los frenos del tema (login,
+   contacto, `/catalog-stock`). Un día.
+3. Los cuatro `uninstall.php` (tres nuevos, uno del ERP) y la integridad al
+   borrar una venta. Un día.
+4. Los ajustes fantasma, el `*_REQUIRES` de los hijos, la constante de Fotos
+   Rápidas, los `readme.txt` y la decisión sobre i18n. Un día.
+5. Las pruebas en la tienda real. Lo único que no se hace desde el código.
+
+### Fase 1 — lo que mueve plata
+
+6. Caja y Reportes en el ERP (5.1): son los dos módulos que el menú promete.
+7. MJ Vencimiento de Pedidos.
+8. MJ Tiempos de Entrega.
+9. Arrancar el trámite de ARCA aunque el Facturador venga después.
+
+### Fase 2 — crecer
+
+10. Reseñas en la ficha y el catálogo paginado (4.1), antes de que un catálogo
+    grande lo pida a los gritos.
+11. Lista de Precios, Avisos de Stock, Precios Mayoristas.
+12. Tests sobre la plata del ERP y partir los archivos grandes.
+
+### Fase 3 — lo que depende de afuera
+
+13. Cotización en vivo y etiquetas, cuando haya cuenta con un correo.
+14. Facturador, cuando esté el certificado.
+15. Pago online de la seña y portal de la colega.
+
+---
+
+## 7. Lo que está bien y no se toca
+
+Para que quede escrito, porque vale tanto como lo que falta:
+
+- **La regla de "nada hardcodeado" se cumple en serio.** Ni un dato de las
+  tres tiendas reales en el tema padre ni en la SPA; 92 claves de copy
+  sincronizadas al 100 % entre PHP y JS; los hijos se limitan a describirse
+  con `mj_skins`. En el ERP, 154 claves de configuración, todas en uso.
+- **El aislamiento entre plugins.** Cada cruce pasa por `class_exists()` o por
+  una fachada (`MJERP_Dolar`, `MJERP_Receipts`) que degrada sola. Verificado
+  cruce por cruce en los nueve plugins.
+- **Seguridad de base.** Todo el SQL con `prepare()` y `ORDER BY` en listas
+  blancas; ni una salida sin escapar en PHP; nonce y capability en cada
+  handler de admin; el ERP sin un solo `__return_true` y con el portal del
+  revendedor que nunca acepta un `consignee_id` desde el request. La bóveda de
+  comprobantes (carpeta privada, nombre aleatorio, MIME real, links firmados
+  con HMAC y vencimiento) es de lo mejor del repo.
+- **PHP 7.4 respetado sin excepciones** en los 160 archivos.
+- **Migraciones de datos explicadas** en el ERP (`migrate_180/190/1130`
+  documentan un bug de moneda perseguido en tres pasos), dinero en dos
+  monedas congelado al día de la operación, saldos calculados de los
+  movimientos y no guardados en una columna.
+- **MJ Core:** descarga solo desde la API, redirección validada a https,
+  SHA-256 con `hash_equals`, errores en castellano útil, y "lo último que se
+  leyó" cuando GitHub no responde.
+- **Turnos:** zona horaria tomada en serio en todo el motor, lock atómico por
+  fecha, y un esquema de opciones que un tema hijo puede proponer sin pisar.
+- **El circuito de publicación:** un zip por paquete con SHA-256, el
+  manifiesto versionado, `MJ_Log` con copias verificadas por script, y la
+  verificación local en cuatro pasos con la baseline de PHPCS.
+- **Los comentarios en castellano explican el porqué, no el qué.** Es lo que
+  hizo esta auditoría barata, y lo que va a hacer que el proyecto se pueda
+  retomar en seis meses.

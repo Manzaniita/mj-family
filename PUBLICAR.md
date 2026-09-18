@@ -373,7 +373,8 @@ documentación. Los pasos marcados **siempre** no se saltean nunca.
       arma cada tienda".
 - [ ] **Siempre.** `CONFIGURACION.md`: dónde se configura (sección 3), y sus
       constantes y filtros (sección 4).
-- [ ] **Siempre.** `PLUGINS-MJ.md`: pasarlo a "Lo que ya está funcionando".
+- [ ] **Siempre.** `TIENDAS.md`: sumarlo a la tabla de cada tienda que lo use.
+- [ ] `AUDITORIA.md`: si estaba en el backlog, sacarlo de ahí.
 - [ ] Si toca plata o el checkout: su paso a paso en `PRUEBAS-EN-LA-TIENDA.md`.
 
 ---

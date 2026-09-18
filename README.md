@@ -32,7 +32,7 @@ como paletas que se aplican con un botón y después se editan campo por campo.
 
 | Plugin | Versión | Qué hace |
 | --- | --- | --- |
-| **MJ Turnos Online** | 1.1.0 | Reserva de turnos con seña, fichas técnicas por visita y panel de agenda para quien atiende. |
+| **MJ Turnos Online** | 1.2.0 | Reserva de turnos con seña (con comprobante, si se pide), fichas técnicas por visita y panel de agenda para quien atiende. |
 | **MJ Colegas** | 1.0.0 | Productos de terceros en la tienda: cada uno lleva quién lo hizo, y se liquida descontando la comisión. |
 | **MJ Dólar** | 1.1.0 | Precios cargados en dólares y convertidos con el tipo de cambio que decido yo. Campos USD en productos, variaciones, edición en lote y CSV. |
 | **MJ Medios de Pago** | 1.4.0 | Descuento o recargo según el medio de pago, con el precio reflejado en ficha, carrito y checkout. Cada medio se edita desde el mismo panel: título, instrucciones y sus datos para pagar (alias, CBU, titular…), que el cliente ve después de comprar. Al aprobar un comprobante se dice cuánto entró: con el total el pedido pasa a preparar, con una parte queda el saldo a la vista del cliente. Cada medio de la tienda se declara equivalente a uno del ERP, y con eso hereda su caja de ingreso. |
@@ -107,11 +107,9 @@ El paso a paso completo está en [`PUBLICAR.md`](PUBLICAR.md).
 | --- | --- |
 | [`PUBLICAR.md`](PUBLICAR.md) | Cómo se saca una versión, cómo se numera y cómo se sube a una tienda. |
 | [`CONFIGURACION.md`](CONFIGURACION.md) | Qué se configura y desde dónde. El índice de todos los ajustes. |
-| [`PLUGINS-MJ.md`](PLUGINS-MJ.md) | El plan completo de la familia de plugins. |
-| [`ANALISIS.md`](ANALISIS.md) | Cómo está el código hoy: qué está bien, qué está flojo y en qué orden conviene moverse. |
+| [`TIENDAS.md`](TIENDAS.md) | Qué lleva cada tienda, qué cargar apenas se instala y la prueba corta de cada una. |
 | [`PRUEBAS-EN-LA-TIENDA.md`](PRUEBAS-EN-LA-TIENDA.md) | Qué probar a mano en una tienda real, plugin por plugin. |
-| [`GLOSSYHAIR-TURNOS.md`](GLOSSYHAIR-TURNOS.md) | Entrega y puesta en marcha de GlossyHair con turnos. |
-| [`YAMANA-ENTRE-HILOS.md`](YAMANA-ENTRE-HILOS.md) | Entrega y puesta en marcha de Yamana con Entre Hilos. |
+| [`AUDITORIA.md`](AUDITORIA.md) | El cierre de la versión 1: cómo está cada pieza, qué falta para cerrarla, qué mejorar y qué se puede sumar después. |
 
 ---
 
@@ -140,7 +138,7 @@ para desplegar.
 ## Verificar antes de publicar
 
 ```powershell
-.	oolserificar.ps1
+.\tools\verificar.ps1
 ```
 
 Cuatro pasos: que todos los `.php` compilen, que nada use sintaxis que reviente
@@ -158,12 +156,12 @@ winget install --id PHP.PHP.8.4 --scope user
 composer install
 ```
 
-Sobre los avisos de PHPCS: hay 512 anotados en
+Sobre los avisos de PHPCS: hay 460 anotados en
 [`tools/phpcs-baseline.json`](tools/phpcs-baseline.json), casi todos falsos
 positivos de un linter que no entiende el contexto (marca "falta nonce" cada
 vez que se lee `$_GET`, aunque sea para mostrar un cartel). La verificación
 corta solo si aparece uno **nuevo**, así lo viejo queda a la vista sin frenar
-el trabajo. Si arreglaste deuda de verdad, `.	oolserificar.ps1 -Foto`
+el trabajo. Si arreglaste deuda de verdad, `.\tools\verificar.ps1 -Foto`
 vuelve a sacar la foto.
 
 ---

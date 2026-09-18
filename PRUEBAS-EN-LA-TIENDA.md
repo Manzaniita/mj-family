@@ -505,7 +505,7 @@ entregar todo.
 
 Para que no lo pruebes de nuevo al pedo:
 
-- Los 156 archivos PHP compilan, en PHP 7.4 y en 8.3.
+- Los 160 archivos PHP compilan, en PHP 7.4 y en 8.4.
 - No hay sintaxis que rompa en un servidor con PHP 7.4.
 - Las dos apps de React compilan, y lo compilado coincide con lo que está
   subido en `dist/`.
