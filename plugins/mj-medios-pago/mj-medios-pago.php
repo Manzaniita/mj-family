@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Medios de Pago
  * Description: Descuentos y recargos por medio de pago con precio distinto en tarjetas, ficha, carrito y checkout, los datos para pagar de cada medio (alias, CBU, titular) editables y visibles en la tienda, y comprobantes de pago: elegís en qué medios se pide, el cliente sube la foto o el PDF y vos aprobás o rechazás cada compra. Funciona con cualquier método de pago de la tienda, te deja crear métodos propios (por ejemplo "Pago en dólares en el local") como medios de pago reales de WooCommerce, y comparte los comprobantes con MJ ERP (reventas) y MJ Turnos Online (señas).
- * Version: 1.4.0
+ * Version: 1.5.0
  * Author: MJ Importaciones
  * Requires Plugins: woocommerce
  * Requires at least: 6.2
@@ -78,7 +78,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJPM_VERSION', '1.4.0');
+define('MJPM_VERSION', '1.5.0');
 define('MJPM_FILE', __FILE__);
 define('MJPM_DIR', plugin_dir_path(__FILE__));
 define('MJPM_URL', plugin_dir_url(__FILE__));
@@ -106,6 +106,21 @@ require_once MJPM_DIR . 'includes/class-mjpm-receipts-rest.php';
 require_once MJPM_DIR . 'includes/class-mjpm-receipts-front.php';
 require_once MJPM_DIR . 'includes/class-mjpm-receipts-admin.php';
 require_once MJPM_DIR . 'includes/class-mjpm-receipts-settings-screen.php';
+
+/*
+ * Tarea frecuente de los comprobantes: un pedido que vence a la hora no puede
+ * esperar a la tarea horaria. Se registra al cargar el archivo (y no en un
+ * hook) para que exista también en la activación. Cada cuántos minutos corre
+ * es el filtro mjpm_expire_minutes.
+ */
+add_filter('cron_schedules', function ($schedules) { // phpcs:ignore WordPress.WP.CronInterval.ChangeDetected -- 5 minutos por defecto: menos de 15 a propósito (el pedido vence a la hora).
+	$minutes                = max(1, (int) apply_filters('mjpm_expire_minutes', 5));
+	$schedules['mjpm_5min'] = [
+		'interval' => $minutes * MINUTE_IN_SECONDS,
+		'display'  => 'MJ Medios de Pago: vencimiento de pedidos',
+	];
+	return $schedules;
+});
 
 final class MJPM_Plugin {
 

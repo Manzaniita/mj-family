@@ -29,7 +29,7 @@ $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE 'woocommerce\_
 
 /* -------------------------------- Tareas --------------------------------- */
 
-foreach (['mjpm_purge_receipts', 'mjpm_remind_receipts'] as $hook) {
+foreach (['mjpm_purge_receipts', 'mjpm_remind_receipts', 'mjpm_expire_receipts'] as $hook) {
 	wp_clear_scheduled_hook($hook);
 }
 

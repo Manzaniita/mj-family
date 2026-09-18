@@ -411,6 +411,8 @@ class MJPM_Settings {
 			/* Plazos ----------------------------------------------------- */
 			'hours'        => 0,                                   // Plazo para subirlo (0 = sin plazo).
 			'remind_hours' => 0,                                   // Recordatorio al cliente (0 = sin recordatorio).
+			'expire'       => 0,                                   // Al vencer el plazo sin comprobante: cancelar el pedido (y devolver el stock).
+			'expire_note'  => 'Cancelamos tu pedido porque no recibimos el {comprobante} dentro del plazo. Si todavía lo querés, podés hacer una compra nueva.',
 
 			/* Qué pasa cuando decidís ------------------------------------ */
 			'on_ok'        => 'processing',                         // Estado del pedido al aprobar ('' = no tocar).
@@ -589,6 +591,9 @@ class MJPM_Settings {
 
 		$out['hours']        = max(0, min(8760, absint(isset($in['hours']) ? $in['hours'] : 0)));
 		$out['remind_hours'] = max(0, min(8760, absint(isset($in['remind_hours']) ? $in['remind_hours'] : 0)));
+		$out['expire']       = !empty($in['expire']) ? 1 : 0;
+		$note                = isset($in['expire_note']) ? trim(sanitize_textarea_field((string) $in['expire_note'])) : '';
+		$out['expire_note']  = '' !== $note ? mb_substr($note, 0, 1000) : $d['expire_note'];
 
 		$statuses = self::order_statuses();
 		foreach (['on_ok', 'on_reject', 'on_partial'] as $field) {

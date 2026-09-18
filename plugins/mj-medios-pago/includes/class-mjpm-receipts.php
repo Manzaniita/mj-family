@@ -65,6 +65,7 @@ class MJPM_Receipts {
 	public static function init() {
 		add_action(MJPM_Install::CRON_PURGE, [__CLASS__, 'purge']);
 		add_action(MJPM_Install::CRON_REMIND, [__CLASS__, 'remind']);
+		add_action(MJPM_Install::CRON_EXPIRE, [__CLASS__, 'expire']);
 	}
 
 	/* ------------------------------ Ajustes ------------------------------- */
@@ -1021,6 +1022,52 @@ class MJPM_Receipts {
 			$sent++;
 		}
 		return $sent;
+	}
+
+	/**
+	 * Vencimiento: con "Al vencer el plazo → cancelar" prendido, los pedidos que
+	 * esperan comprobante, pasado su plazo y sin ningún archivo subido, se
+	 * cancelan (WooCommerce devuelve el stock solo) y el cliente recibe la nota.
+	 * Un pedido con algo subido no se toca: lo decide quien revisa.
+	 */
+	public static function expire() {
+		if (!(int) MJPM_Settings::receipts('expire') || !self::enabled() || !function_exists('wc_get_orders')) {
+			return 0;
+		}
+		$orders = wc_get_orders([
+			'limit'      => (int) apply_filters('mjpm_expire_batch', 30),
+			'status'     => (array) apply_filters('mjpm_expire_statuses', ['on-hold', 'pending']),
+			'meta_query' => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- acotado por estado y tope.
+				[
+					'key'   => self::META_STATE,
+					'value' => self::STATUS_PENDING,
+				],
+			],
+			'orderby'    => 'date',
+			'order'      => 'ASC',
+		]);
+
+		$note  = str_replace('{comprobante}', self::noun(), (string) MJPM_Settings::receipts('expire_note'));
+		$count = 0;
+		foreach ($orders as $order) {
+			if (!$order instanceof WC_Order || self::for_object('order', $order->get_id())) {
+				continue; // Ya subió algo: lo decide quien revisa.
+			}
+			$deadline = self::deadline('order', $order->get_id());
+			if ('' === $deadline || strtotime($deadline) > time()) {
+				continue;
+			}
+			if (!apply_filters('mjpm_expire_order', true, $order)) {
+				continue;
+			}
+			$order->update_status('cancelled', 'Venció el plazo para subir el ' . self::noun() . '.');
+			if ('' !== trim($note)) {
+				$order->add_order_note($note, 1); // Nota para el cliente: WooCommerce se la manda por mail.
+			}
+			$count++;
+			do_action('mjpm_order_expired', $order);
+		}
+		return $count;
 	}
 
 	/** Fecha límite para subirlo, o '' si no hay plazo. */

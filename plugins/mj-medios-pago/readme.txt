@@ -5,7 +5,7 @@ Tested up to: 6.8
 Requires PHP: 7.4
 WC requires at least: 7.0
 WC tested up to: 9.9
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPL-2.0-or-later
 
 Descuentos y recargos por medio de pago, con precio distinto en tarjetas, ficha, carrito y checkout. Métodos de pago propios y comprobantes de pago que vos aprobás.
@@ -54,6 +54,9 @@ Descuentos y recargos por medio de pago, con precio distinto en tarjetas, ficha,
 Plugins → MJ Medios de Pago → Desactivar y Borrar, después subís el zip nuevo. No se pierde nada.
 
 == Changelog ==
+
+= 1.5.0 =
+* Vencimiento de pedidos: con "Al vencer el plazo → cancelar" (Comprobantes → Ajustes → Plazos), un pedido sin comprobante se cancela solo cuando pasa su plazo y el stock vuelve. Se le avisa al cliente con una nota configurable. Apagado por defecto.
 
 = 1.4.0 =
 * Editor de cada medio de pago (de WooCommerce o propio): título, descripción, instrucciones y activo. Los de WooCommerce se guardan en sus propios ajustes.

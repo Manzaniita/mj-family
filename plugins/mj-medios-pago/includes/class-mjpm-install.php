@@ -19,6 +19,7 @@ class MJPM_Install {
 
 	const CRON_PURGE  = 'mjpm_purge_receipts';
 	const CRON_REMIND = 'mjpm_remind_receipts';
+	const CRON_EXPIRE = 'mjpm_expire_receipts';
 
 	/** Nombre completo de la tabla de comprobantes. */
 	public static function table() {
@@ -32,6 +33,8 @@ class MJPM_Install {
 		 * engancharse a plugins_loaded otra vez llegaría tarde y nunca se ejecutaría.
 		 */
 		self::maybe_upgrade();
+		/* Una actualización no pasa por la activación: la tarea nueva se programa sola. */
+		self::schedule();
 	}
 
 	/** Activación del plugin. */
@@ -136,11 +139,15 @@ class MJPM_Install {
 		if (!wp_next_scheduled(self::CRON_REMIND)) {
 			wp_schedule_event(time() + (2 * HOUR_IN_SECONDS), 'hourly', self::CRON_REMIND);
 		}
+		if (!wp_next_scheduled(self::CRON_EXPIRE)) {
+			wp_schedule_event(time() + MINUTE_IN_SECONDS, 'mjpm_5min', self::CRON_EXPIRE);
+		}
 	}
 
 	public static function unschedule() {
 		wp_clear_scheduled_hook(self::CRON_PURGE);
 		wp_clear_scheduled_hook(self::CRON_REMIND);
+		wp_clear_scheduled_hook(self::CRON_EXPIRE);
 	}
 
 	/** Desactivación: se van las tareas, nunca los datos. */

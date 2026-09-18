@@ -160,7 +160,17 @@ class MJPM_Receipts_Settings_Screen {
 					<th scope="row"><label for="mjpm-hours">Plazo para subirlo</label></th>
 					<td>
 						<input type="number" id="mjpm-hours" name="receipts[hours]" value="<?php echo esc_attr($s['hours']); ?>" min="0" max="8760" step="1" class="small-text"> horas
-						<p class="description">0 = sin plazo. Solo se le muestra al cliente como fecha límite; no cancela nada solo.</p>
+						<p class="description">0 = sin plazo. Se le muestra al cliente como fecha límite. Cada medio de pago puede tener el suyo (Editar textos y datos para pagar).</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">Al vencer el plazo</th>
+					<td>
+						<label><input type="checkbox" name="receipts[expire]" value="1" <?php checked((int) $s['expire'], 1); ?>> Cancelar el pedido si no subió ningún <?php echo esc_html(MJPM_Receipts::noun()); ?> (el stock vuelve solo)</label>
+						<p class="description">Así lo reservado no queda trabado: con un plazo de 1 hora, el producto vuelve a estar disponible a la hora. Si ya subió algo, el pedido no se toca: lo revisás vos. Apagado, el plazo es solo informativo.</p>
+						<p style="margin-top:8px;"><label for="mjpm-expire-note">Qué le decimos</label><br>
+						<textarea id="mjpm-expire-note" name="receipts[expire_note]" rows="3" class="large-text"><?php echo esc_textarea($s['expire_note']); ?></textarea></p>
+						<p class="description">Le llega por mail como nota del pedido. <code>{comprobante}</code> = cómo llamás al comprobante.</p>
 					</td>
 				</tr>
 				<tr>
