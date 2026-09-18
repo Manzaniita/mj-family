@@ -27,7 +27,7 @@
       "path": "themes/mj-appearance/react-app",
       "install": "npm ci --no-audit --no-fund",
       "build": "npm run build",
-      "produces": "themes/mj-appearance/dist/assets/app.js"
+      "produces": "themes/mj-appearance/dist/index.html"
     },
     {
       "name": "MJ Turnos Online (app de reservas)",

@@ -22,11 +22,16 @@ export default defineConfig(({ command }) => ({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        entryFileNames: 'assets/app.js',
-        // Con hash: al actualizar el tema, el navegador no puede reusar un chunk viejo
-        // (app.js ya cambia de versión por filemtime; los chunks tienen que acompañar).
+        // Todo con hash, también la entrada y el CSS. Antes app.js tenía nombre
+        // fijo y se versionaba con ?ver=filemtime, pero una caché intermedia que
+        // ignore la query (proxy del hosting, CDN) puede seguir sirviendo el
+        // app.js viejo con los chunks nuevos, y la tienda revienta con
+        // "does not provide an export named …". Pasó el 18/9/2026. Con el hash
+        // en el nombre no hay archivo viejo que servir. PHP encuentra el archivo
+        // por el patrón app-*.js (functions.php → mj_dist_asset).
+        entryFileNames: 'assets/app-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/app[extname]',
+        assetFileNames: 'assets/app-[hash][extname]',
       },
     },
   },

@@ -14,7 +14,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_VERSION', '3.18.0');
+define('MJ_VERSION', '3.18.1');
 
 /*
  * Versión de la librería de íconos que usa el panel de ajustes. Se puede fijar
@@ -318,25 +318,54 @@ function mj_design_css() {
 /* -------------------------------------------------------------------------
  * Assets de la SPA
  * ---------------------------------------------------------------------- */
-add_action('wp_enqueue_scripts', function () {
-	$dist_dir = get_template_directory() . '/dist';
-	$dist_uri = get_template_directory_uri() . '/dist';
+/*
+ * Archivo compilado de la SPA: dist/assets/app-<hash>.js (o .css).
+ *
+ * El nombre lleva el hash del contenido, así ninguna caché intermedia (proxy
+ * del hosting, CDN que ignora el ?ver=) puede servir un archivo viejo después
+ * de una actualización. El 18/9/2026 pasó justamente eso: app.js viejo con
+ * los chunks nuevos, y la tienda quedó en "Algo salió mal". Si hay más de uno
+ * (no debería), gana el más nuevo; el nombre fijo app.js/app.css de builds
+ * anteriores se acepta como último recurso.
+ *
+ * Devuelve ['path' => ruta en disco, 'uri' => URL] o null si no hay build.
+ */
+function mj_dist_asset($ext) {
+	static $found = [];
+	if (array_key_exists($ext, $found)) {
+		return $found[$ext];
+	}
+	$dir   = get_template_directory() . '/dist/assets';
+	$files = glob($dir . '/app-*.' . $ext);
+	$files = is_array($files) ? $files : [];
+	if (file_exists($dir . '/app.' . $ext)) {
+		$files[] = $dir . '/app.' . $ext;
+	}
+	usort($files, function ($a, $b) {
+		return filemtime($b) <=> filemtime($a);
+	});
+	$found[$ext] = $files
+		? ['path' => $files[0], 'uri' => get_template_directory_uri() . '/dist/assets/' . basename($files[0])]
+		: null;
+	return $found[$ext];
+}
 
-	$css = $dist_dir . '/assets/app.css';
-	$js  = $dist_dir . '/assets/app.js';
+add_action('wp_enqueue_scripts', function () {
+	$css = mj_dist_asset('css');
+	$js  = mj_dist_asset('js');
 
 	wp_enqueue_style('mj-fonts', mj_fonts_url(), [], null);
 
-	if (file_exists($css)) {
-		wp_enqueue_style('mj-app', $dist_uri . '/assets/app.css', [], (string) filemtime($css));
+	if ($css) {
+		wp_enqueue_style('mj-app', $css['uri'], [], (string) filemtime($css['path']));
 		$design_css = mj_design_css();
 		if ('' !== $design_css) {
 			wp_add_inline_style('mj-app', $design_css);
 		}
 	}
 
-	if (file_exists($js)) {
-		wp_enqueue_script('mj-app', $dist_uri . '/assets/app.js', [], (string) filemtime($js), true);
+	if ($js) {
+		wp_enqueue_script('mj-app', $js['uri'], [], (string) filemtime($js['path']), true);
 		wp_add_inline_script('mj-app', 'window.MJ = ' . wp_json_encode(mj_app_config()) . ';', 'before');
 	}
 }, 20);
