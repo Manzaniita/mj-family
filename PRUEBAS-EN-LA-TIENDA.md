@@ -492,6 +492,114 @@ el tercer producto. El pedido pasa a completado si ya estaba cobrada.
 pendiente, o la venta no sale de la lista de entregas pendientes después de
 entregar todo.
 
+---
+
+## 7. MJ ERP: Caja
+
+Lee lo que ya está anotado en ventas, cobranzas, compras y reintegros: lo que
+hay que comprobar es que el saldo de cada caja diga lo que vos sabés que hay.
+
+1. En Proveedores → Cajas, una caja "Efectivo" en pesos. En Configuración →
+   Ventas → Medios de pago, que "Efectivo" apunte a esa caja.
+2. Cargá una venta de mostrador cobrada en efectivo por $ 10.000.
+
+**Qué tiene que pasar:** en **Caja**, la tarjeta de Efectivo muestra $ 10.000, y
+en el libro aparece "Cobro · VTA-…" con el nombre del cliente y el enlace a la
+venta. En el inicio, la fila de cajas dice lo mismo.
+
+3. **Egreso**: $ 1.500, tipo "Gasto", concepto "bolsas".
+
+**Qué tiene que pasar:** el saldo baja a $ 8.500 y el renglón dice quién lo
+cargó. Sin concepto, no deja guardar (si el ajuste "Pedir el concepto" está
+prendido).
+
+4. Una segunda caja "Banco" y **Transferir** $ 5.000 de Efectivo a Banco.
+
+**Qué tiene que pasar:** Efectivo queda en $ 3.500 y Banco en $ 5.000, con un
+renglón "Transferencia entre cajas" en cada una. Borrar uno de los dos borra los
+dos.
+
+5. En una venta cobrada, registrá una devolución con «Le di la plata» desde
+   Efectivo.
+
+**Qué tiene que pasar:** en Caja aparece "Devolución · VTA-…" en negativo y el
+saldo baja.
+
+6. **Cerrar caja** en Efectivo con un contado distinto al esperado ($ 3.000).
+
+**Qué tiene que pasar:** el cierre queda con esperado, contado y la diferencia
+en rojo; la tarjeta dice "Cerrada hoy"; un ingreso nuevo con fecha de hoy es
+rechazado hasta deshacer el cierre. Deshacer el cierre solo lo puede quien
+corrige ventas.
+
+7. Entrá con un usuario que usa el ERP pero no corrige ventas.
+
+**Qué tiene que pasar:** ve la Caja y puede anotar movimientos, pero no tiene el
+tacho para borrar ni el botón de deshacer cierres. Tampoco ve «Anular» en una
+venta ni el botón de borrar una venta anulada, y los datos de la venta (canal,
+fecha, nota) se ven pero no se guardan.
+
+**Señal de que algo está mal:** el saldo de Caja no coincide con la suma de los
+cobros de ese medio en Ventas del mismo período.
+
+---
+
+## 8. MJ ERP: Reportes
+
+Todo sale del costo congelado en cada venta, así que usá el producto de prueba
+con costo cargado (recibilo en una compra de prueba a US$ 60).
+
+1. Vendé 2 unidades a US$ 100 y 1 unidad a US$ 50 (por debajo del costo).
+
+**Qué tiene que pasar:** en **Reportes**, Vendido US$ 250, Costo US$ 180,
+Ganancia US$ 70; "Vendido bajo costo: 1". En *Por producto*, el producto sale
+marcado en rojo con "Vendido por debajo del costo"; en *Bajo costo*, la línea de
+US$ 50 con la venta y la pérdida de US$ 10. En el inicio aparece el aviso con
+el enlace, y el menú Reportes lleva el globo con "1".
+
+2. Anulá la venta de US$ 50.
+
+**Qué tiene que pasar:** desaparece de todos lados: las anuladas no cuentan.
+
+3. Cambiá el período a "Mes pasado" y volvé a "Este mes"; probá *Por canal*,
+   *Por mes* y *Por cliente*; exportá el CSV.
+
+**Qué tiene que pasar:** los totales cambian con el período, cada pestaña
+muestra las mismas cifras agrupadas de otra forma, y el CSV abre en Excel con
+punto y coma y los importes con coma.
+
+4. Apagá "Mostrar Reportes en el menú" en Configuración → Caja y reportes.
+
+**Qué tiene que pasar:** el menú lo esconde al guardar, sin recargar.
+
+---
+
+## 9. MJ Appearance: los frenos
+
+1. Desde incógnito, en `/login`, probá una contraseña mal 11 veces seguidas
+   (el tope por defecto es 10 cada 10 minutos).
+
+**Qué tiene que pasar:** el intento 11 contesta "Demasiados intentos. Esperá
+unos minutos". Con la contraseña correcta antes del tope, entra y el contador
+se limpia.
+
+2. En Contacto, mandá 6 mensajes seguidos.
+
+**Qué tiene que pasar:** el sexto dice "Demasiados intentos"; los cinco
+anteriores llegan al email de contacto.
+
+3. Abrí `/wp-json/mj/v1/catalog-stock` en el navegador.
+
+**Qué tiene que pasar:** lista `id` y `sku` de cada producto, sin cantidades.
+Con "Stock en el buscador" marcado en Apariencia → MJ Appearance → Sesión y
+acceso, aparece `stock_quantity` y el buscador de la tienda dice "12 en stock".
+Cambiá el stock de un producto: el listado se actualiza al toque (la caché se
+vacía sola).
+
+**Señal de que algo está mal:** el freno salta con menos intentos de los
+configurados. Si el hosting está detrás de Cloudflare o un proxy, todas las
+visitas comparten la IP: ver el filtro `mj_client_ip` en `CONFIGURACION.md`.
+
 ## Cuando termines
 
 1. Volvé los registros a **Solo los errores**.

@@ -1,8 +1,11 @@
 # Auditoría de la familia MJ y cierre de la versión 1
 
 Hecha el 17 de septiembre de 2026 sobre el commit `36fc230` (MJ Appearance
-3.18.2). Reemplaza a `ANALISIS.md` (del 12 de septiembre) y a `PLUGINS-MJ.md`
-(el plan): lo que ahí seguía vigente está acá, ordenado en tres listas:
+3.18.2) y puesta al día el 18 de septiembre, después de cerrar los puntos 2, 3,
+4 y 6 de la Fase 0 y el 7 de la Fase 1 (sección 6): lo hecho se sacó de las
+listas y se anota tachado en el orden sugerido. Reemplaza a `ANALISIS.md` (del
+12 de septiembre) y a `PLUGINS-MJ.md` (el plan): lo que ahí seguía vigente está
+acá, ordenado en tres listas:
 
 1. **Qué falta para cerrar la versión 1** con lo que ya existe (sección 3).
 2. **Qué mejorar** de lo que ya anda (sección 4).
@@ -23,8 +26,8 @@ nada contra una tienda: lo que dice "sin probar" sigue sin probar.
 | Líneas propias (sin `dist/`, sin dependencias) | ~146.000, de las cuales MJ ERP ~72.000 (49 %) |
 | Archivos PHP | 160, todos compilan en 7.4 y 8.4 |
 | Rutas REST propias | ~145 (87 del ERP) |
-| Tablas propias | 31 (23 del ERP, 4 de Turnos, 3 de Envíos, 1 de Comprobantes) |
-| Avisos de PHPCS anotados como deuda | 460 (eran 512; la foto se rehizo hoy) |
+| Tablas propias | 33 (25 del ERP, 4 de Turnos, 3 de Envíos, 1 de Comprobantes) |
+| Avisos de PHPCS anotados como deuda | 456 (eran 512; la foto se rehizo el 18/9) |
 | Commits / Releases publicadas | 80 / 15 |
 | Corridas del CI que llegaron a arrancar | **0 de 30** (ver 3.1) |
 
@@ -37,17 +40,17 @@ faltan cosas chicas; **Falta** = hay una pieza grande pendiente.
 
 | Paquete | Versión | Estado | Qué le falta para la v1 |
 | --- | --- | --- | --- |
-| MJ Appearance | 3.18.2 | Casi | Frenos en login/registro/contacto; `/catalog-stock` con caché y sin cantidad de stock pública; reseñas en la ficha; tope de 1000 productos; subcarpeta. |
-| GlossyHair / Yamana / Atelier | 1.1.0 | Casi | Subir `*_REQUIRES` de 3.6.0 a 3.18.x. Nada más. |
-| MJ ERP | 1.21.0 | Falta | Permiso de corregir ventas en borrar/editar venta; integridad al borrar; `uninstall.php` incompleto; dos ajustes que no hacen nada; `readme.txt` en 1.5.0. **Caja** y **Reportes** siguen en "Pronto". |
+| MJ Appearance | 3.19.0 | Casi | Reseñas en la ficha; tope de 1000 productos; subcarpeta. (Frenos y `/catalog-stock`: hechos en 3.19.0.) |
+| GlossyHair / Yamana / Atelier | 1.1.1 | Cerrado | `*_REQUIRES` en 3.19.0. |
+| MJ ERP | 1.22.0 | Casi | Probar en la tienda Caja, Reportes y los permisos nuevos; la bitácora del revendedor sin pestaña; LEEME. (Permisos, integridad, `uninstall.php`, ajustes fantasma, `readme.txt`, Caja y Reportes: hechos en 1.22.0.) |
 | MJ Medios de Pago | 1.4.0 | Casi | `uninstall.php` deja el historial de pagos; filtro "parcial" de la bandeja; purga topeada en 200; LEEME. |
-| MJ Dólar | 1.1.0 | Casi | `readme.txt` en 1.0.0; decidir si el TC se trae solo; endpoint de cotización como ajuste; LEEME. |
+| MJ Dólar | 1.1.1 | Casi | Decidir si el TC se trae solo; endpoint de cotización como ajuste; LEEME. (`readme.txt`: hecho en 1.1.1.) |
 | MJ Envíos | 1.1.1 | Falta | Nunca habló con un correo real. Vía Cargo es un andamio; Correo Argentino sin seguimiento; ningún correo genera el envío ni la etiqueta; importar CSV sin validar; claves reimpresas en el HTML; `/cotizar` sin freno. |
-| MJ Turnos Online | 1.2.0 | Casi | `uninstall.php`; freno en las rutas públicas de lectura; el LEEME promete un anti-spam que no existe; alias/CBU públicos en `/config`. |
-| MJ Colegas | 1.0.0 | Casi | `uninstall.php`; permiso del menú roto para shop manager; sellar la base de la comisión; CSV sin escapar. |
+| MJ Turnos Online | 1.2.1 | Casi | Freno en las rutas públicas de lectura; el LEEME promete un anti-spam que no existe; alias/CBU públicos en `/config`. (`uninstall.php`: hecho en 1.2.1.) |
+| MJ Colegas | 1.0.1 | Casi | Sellar la base de la comisión. (`uninstall.php`, permiso del menú y CSV: hechos en 1.0.1.) |
 | MJ Core | 1.0.1 | Casi | Instalarlo en GlossyHair y Yamana. Sin reporte de versiones ni rollback (mejora, no bloqueante). |
-| MJ Optimizador | 1.1.0 | Cerrado | Borra el original sin escalar aunque no haya backup (ver 3.2). |
-| MJ Fotos Rápidas | 1.2.0 | Casi | `uninstall.php`, constante de versión, guarda de WooCommerce, permiso propio para los ajustes, validar que lo subido sea imagen. |
+| MJ Optimizador | 1.1.1 | Cerrado | Borra el original sin escalar aunque no haya backup (ver 3.2). |
+| MJ Fotos Rápidas | 1.3.0 | Cerrado | Todo lo de la v1 hecho en 1.3.0. Queda la guarda de WooCommerce (avisa `Requires Plugins`, alcanza). |
 | Circuito de publicación | — | Casi | El CI nunca corrió (3.1). `publicar.ps1` sin rollback si falla la Release. |
 
 ---
@@ -83,23 +86,6 @@ arreglar en el código. Cada punto trae el archivo para ir directo.
 Ninguna es una inyección ni una fuga de datos; son puertas sin freno o
 permisos mal cerrados. Ordenadas por lo que más duele.
 
-- [ ] **ERP: borrar y editar una venta sin el permiso de "corregir ventas".**
-      `DELETE /sales/{id}` (`plugins/mj-erp/includes/rest/class-mjerp-rest-sales.php:436`)
-      y `PUT /sales/{id}` (`:411`) piden solo `manage_mjerp`; editar los
-      productos (`:558`) y corregir un cobro (`:719`) sí piden
-      `MJERP_Capabilities::can_manage_sales()`. Anular una venta impaga
-      (`class-mjerp-returns.php:378`) tampoco lo pide. Cualquier rol con acceso
-      al ERP puede borrar una venta, lo que desarma deuda, stock y pedido.
-- [ ] **Tema: login, registro y recuperar sin límite de intentos**
-      (`themes/mj-appearance/inc/rest.php:30-52`), y `/contact` sin honeypot ni
-      freno (`:84`). Fuerza bruta directa contra `wp_authenticate()` y relay de
-      spam por `wp_mail()`. El propio tema ya tiene el patrón para copiar:
-      `client-error` (`inc/seo.php:690-696`).
-- [ ] **Tema: `/catalog-stock` público, sin caché y con todo el catálogo**
-      (`inc/rest.php:645-659`): instancia cada producto con `limit => -1` en
-      cada primera carga de cada visitante, y publica SKU y cantidad de stock
-      de todo el catálogo (la Store API no expone la cantidad a propósito).
-      Caché por transient + `Cache-Control`, y devolver solo "hay / no hay".
 - [ ] **Turnos: las rutas públicas de lectura no tienen freno**
       (`plugins/mj-turnos-online/inc/rest.php:35-59`): solo `POST /bookings`
       mira el límite, y `GET /availability` calcula hasta 62 días con consultas.
@@ -118,14 +104,6 @@ permisos mal cerrados. Ordenadas por lo que más duele.
       `value` de un `input type="password"` (`:681-682`): viajan en claro en
       cada carga de la pestaña, y guardar con el campo vacío las borra. MJ
       Core resuelve las dos cosas bien (`class-mjc-ajustes.php:141`): copiar.
-- [ ] **Colegas: shop manager ve el menú y no puede entrar.** El menú padre
-      pide `manage_woocommerce` y el submenú del mismo slug `manage_options`
-      (`plugins/mj-colegas/inc/options.php:167-168`). Y el CSV de liquidaciones
-      no neutraliza fórmulas (`inc/report.php:208-226`); Turnos sí lo hace
-      (`inc/panel.php:276-291`).
-- [ ] **Fotos Rápidas:** los ajustes globales los cambia cualquiera con
-      `edit_products` (`mj-fotos-rapidas.php:62`), y `media_handle_upload()`
-      no comprueba que sea imagen (`:513`).
 - [ ] **Optimizador: borra el `original_image` sin escalar aunque `backup = 0`**
       (`class-mjoi-processor.php:185-197`). Es pérdida irreversible: forzar
       la copia cuando se convierte lo existente. Y `replace_urls()` (`:555-568`)
@@ -134,22 +112,6 @@ permisos mal cerrados. Ordenadas por lo que más duele.
 
 ### 3.3. Integridad de datos y desinstalación
 
-- [ ] **ERP: borrar una venta deja huérfanos.** `MJERP_Sales_Repo::delete()`
-      (`class-mjerp-sales-repo.php:1212-1238`) no toca `sale_returns`,
-      `sale_return_items`, `rma` ni `customer_credit`. O se bloquea borrar una
-      venta con devoluciones (el editor ya lo hace, `class-mjerp-sale-editor.php:115`),
-      o se cascadea.
-- [ ] **ERP: `uninstall.php` borra 21 tablas de 23.** Faltan `customers` y
-      `consignment_log`. Existe `MJERP_Install::drop_tables()` (`:1338`) que lo
-      hace bien y nadie usa. Tampoco borra `mjerp_order_status_resync`, el
-      user meta `_mjerp_customer_suggestion` ni, con HPOS, el order meta
-      `_mjerp_sale_id` / `_mjerp_sale_source`.
-- [ ] **Falta `uninstall.php` en Turnos, Colegas y Fotos Rápidas.** La lista
-      de `PUBLICAR.md` (sección 7) lo marca como "siempre". Quedarían huérfanos:
-      Turnos, cuatro tablas, `mjto_options`, `mjto_db_version`, locks, la
-      capability `mjto_manage` y el CPT `mjto_service`; Colegas, tres opciones,
-      la taxonomía `mj_colega` con datos privados de pago en termmeta y la meta
-      de cada línea de pedido; Fotos Rápidas, una opción.
 - [ ] **Medios de Pago: `uninstall.php` deja `_mjpm_paid` y `_mjpm_payments`**
       (`uninstall.php:62`), que son el historial de pagos parciales, y los
       transients `mjpm_rl_*`.
@@ -163,13 +125,6 @@ permisos mal cerrados. Ordenadas por lo que más duele.
 
 Cosas que la pantalla ofrece y el código no hace. Peor que no tenerlas.
 
-- [ ] ERP: **`shop_price_notice`** ("Avisarle que está viendo su precio",
-      `class-mjerp-settings.php:437`, `page-settings.js:2561`): se guarda y
-      nadie lo lee.
-- [ ] ERP: **`sales_consignment_payment_method`** ("Medio de pago de esa
-      parte", `class-mjerp-settings.php:371`): idem.
-- [ ] ERP: **Caja y Reportes** en el menú apuntan a "Pronto" (`app.js:35-36`).
-      Ver 5.1.
 - [ ] ERP: la **bitácora del revendedor** la escriben cuatro repositorios y
       solo la lee el portal del revendedor; el dueño no tiene pestaña
       (`page-consignee.js:22-27`).
@@ -190,29 +145,19 @@ Cosas que la pantalla ofrece y el código no hace. Peor que no tenerlas.
 - [ ] Tema: `quoteShipping()` y `getTracking()` (`react-app/src/lib/wc.js:362-365`)
       envuelven `mje/v1/cotizar` y `/seguimiento` y nadie los llama: el
       seguimiento del pedido en Mi cuenta quedó a medio integrar.
-- [ ] Tema: el ajuste fantasma `menu_categories` (`inc/settings.php:612`) ya no
-      tiene formulario y sigue viajando en `window.MJ`.
-- [ ] Fotos Rápidas: el buscador dice "por nombre o SKU" pero `get_posts`
-      con `s` no pasa por la búsqueda por SKU de WooCommerce
-      (`mj-fotos-rapidas.php:166` vs `:92-109`).
+- [ ] Tema: `menu_categories` (`inc/settings.php`) ya no tiene formulario
+      propio, pero no es un fantasma: sigue siendo la semilla del menú por
+      defecto (`inc/nav.php`) y del orden de categorías en la SPA
+      (`store/catalog.js`). Dejarlo escrito en `CONFIGURACION.md` o devolverle
+      el formulario.
 
 ### 3.5. Consistencia y documentación
 
-- [ ] **`readme.txt` del ERP en `Stable tag: 1.5.0`** con 16 versiones de
-      changelog sin escribir; el `.pot` tiene 25 cadenas de 858. **MJ Dólar en
-      `Stable tag: 1.0.0`** sin entrada 1.1.0. Envíos no tiene `readme.txt`;
-      Dólar, Medios de Pago, Core, ERP y Optimizador no tienen `LEEME.md`.
-      Elegir una convención (un `LEEME.md` por plugin, y el `readme.txt` solo
-      con cabecera y changelog) y aplicarla a los nueve.
-- [ ] **Los tres temas hijo declaran `*_REQUIRES = '3.6.0'`** con el padre en
-      3.18.2 (`themes/mj-atelier/functions.php:24` y equivalentes): el aviso
-      de "subiste el hijo sobre un padre viejo" nunca salta.
-- [ ] **MJ Fotos Rápidas no define constante de versión**; el resto de la
-      familia sí, y `PUBLICAR.md` lo exige.
-- [ ] **Decidir el i18n.** ERP declara Text Domain con 858 `__()` y toda la
-      interfaz JS en castellano fijo; el tema declara Text Domain con dos
-      llamadas y sin `languages/`; el resto no tiene nada. Es código privado
-      para tres tiendas argentinas: **sacar el i18n** y dejarlo escrito acá.
+- [ ] **Faltan cinco `LEEME.md`**: Dólar, Medios de Pago, Core, ERP y
+      Optimizador. La convención ya está escrita en `README.md` (un `LEEME.md`
+      por plugin; el `readme.txt`, donde existe, solo cabecera con `Stable tag`
+      y changelog) y los `readme.txt` del ERP, Dólar y Optimizador ya la
+      cumplen. Se escribe el de cada plugin cuando se lo toque.
 - [ ] `publicar.ps1`: si `gh release create` falla, el commit y la etiqueta ya
       están subidos y no hay vuelta atrás (`tools/publicar.ps1:166-206`). Crear
       la Release antes de subir la etiqueta, o borrarla en el `catch`. Y
@@ -353,15 +298,6 @@ existe. Tamaño: chico = días, mediano = una o dos semanas, grande = más.
 
 ### 5.1. Dentro del ERP (no son plugins nuevos)
 
-- **Caja.** Saldo y movimientos por caja. Hoy la plata entra y se anota en qué
-  caja, pero no hay saldo ni movimientos: la tabla `mjerp_cashboxes` es una
-  etiqueta. Es lo que convierte esto en un ERP y no en un registro de ventas.
-  Con el **cierre de caja diario**. Mediano.
-- **Reportes / Rentabilidad.** El costeo ya existe (`MJERP_Costing`) y cada
-  venta guarda descuento por medio de pago y costo de envío. Falta la pantalla:
-  margen por producto en porcentaje y en plata, ganancia real por pedido, los
-  que más margen dejan (no solo los que más se venden), y la alerta de "se
-  está vendiendo por debajo del costo". Mediano, valor muy alto.
 - **Reposición.** Compras y proveedores ya están. Falta sugerir qué reponer
   cruzando lo vendido en el último mes con la lista de espera. Mediano.
 - **Reservas con seña.** Turnos ya cobra señas y el ERP lleva cuenta
@@ -438,21 +374,26 @@ existe. Tamaño: chico = días, mediano = una o dos semanas, grande = más.
 ### Fase 0 — cerrar la v1 (sección 3)
 
 1. Resolver la cuenta de GitHub para que el CI arranque, e instalar MJ Core en
-   las dos tiendas que faltan. Nada de código.
-2. Los permisos del ERP (borrar/editar venta) y los frenos del tema (login,
-   contacto, `/catalog-stock`). Un día.
-3. Los cuatro `uninstall.php` (tres nuevos, uno del ERP) y la integridad al
-   borrar una venta. Un día.
-4. Los ajustes fantasma, el `*_REQUIRES` de los hijos, la constante de Fotos
-   Rápidas, los `readme.txt` y la decisión sobre i18n. Un día.
+   las dos tiendas que faltan. Nada de código. **Pendiente.**
+2. ~~Los permisos del ERP y los frenos del tema.~~ Hecho el 18/9 (ERP 1.22.0,
+   MJ Appearance 3.19.0).
+3. ~~Los cuatro `uninstall.php` y la integridad al borrar una venta.~~ Hecho el
+   18/9 (Turnos 1.2.1, Colegas 1.0.1, Fotos Rápidas 1.3.0, ERP 1.22.0).
+4. ~~Los ajustes fantasma, el `*_REQUIRES`, la constante de Fotos Rápidas, los
+   `readme.txt` y el i18n.~~ Hecho el 18/9. Quedan los cinco `LEEME.md` (3.5).
 5. Las pruebas en la tienda real. Lo único que no se hace desde el código.
+   **Pendiente**, y ahora con Caja, Reportes y los frenos sumados a la lista.
+6. Lo que sigue abierto de 3.2 y 3.3: frenos y datos de la seña en Turnos, el
+   `/cotizar` y el CSV de Envíos, el Optimizador y el `uninstall.php` de Medios
+   de Pago.
 
 ### Fase 1 — lo que mueve plata
 
-6. Caja y Reportes en el ERP (5.1): son los dos módulos que el menú promete.
-7. MJ Vencimiento de Pedidos.
-8. MJ Tiempos de Entrega.
-9. Arrancar el trámite de ARCA aunque el Facturador venga después.
+7. ~~Caja y Reportes en el ERP.~~ Hecho el 18/9 (ERP 1.22.0). Falta probarlos
+   en la tienda (`PRUEBAS-EN-LA-TIENDA.md`, secciones 7 y 8).
+8. MJ Vencimiento de Pedidos.
+9. MJ Tiempos de Entrega.
+10. Arrancar el trámite de ARCA aunque el Facturador venga después.
 
 ### Fase 2 — crecer
 

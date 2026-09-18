@@ -138,6 +138,12 @@ navegador. Se limita a diez avisos por IP cada diez minutos.
 | Ruta de "Mi cuenta" | `/cuenta` | A dónde va el cliente después de entrar. |
 | Compra rápida | Sí, y entra directo | Un cliente con sesión iniciada y dirección guardada ve el resumen y un solo botón en lugar de los cuatro pasos. Siempre puede abrir el formulario completo. Desmarcando "entrar directo", el atajo aparece arriba pero el checkout arranca normal. |
 | Texto del botón de compra rápida | "Comprar ahora" | Lo que dice el botón cuando el checkout está en modo rápido. |
+| Freno por IP | 10 intentos de acceso / 5 envíos de contacto, cada 10 minutos | Cuántos intentos fallidos de login, registros y recuperaciones de contraseña, y cuántos envíos del formulario de contacto y del newsletter, acepta una misma IP en la ventana antes de contestar «Demasiados intentos» (HTTP 429). Un login correcto limpia el contador. 0 = sin freno. Detrás de Cloudflare o un proxy que no reescribe la IP, todas las visitas comparten una: el filtro `mj_client_ip` devuelve la real (mismo criterio que MJ Turnos Online). |
+| Stock en el buscador | No | Marcado, el buscador muestra la cantidad exacta ("12 en stock"); desmarcado dice solo "En stock" / "Sin stock", que es lo que WooCommerce publica. La cantidad de todo el catálogo es un dato público en la dirección `/wp-json/mj/v1/catalog-stock`. |
+| Caché del listado de stock | 10 minutos | Cuánto se guarda ese listado (SKU y, si se pidió, cantidad). Se renueva solo cuando cambia un producto o su stock. |
+
+El formulario de contacto lleva además un campo oculto (honeypot): si un robot lo
+completa, se le contesta «enviado» y no se manda nada.
 
 ---
 
@@ -258,15 +264,15 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 
 | Plugin | Dónde | Qué se configura |
 | --- | --- | --- |
-| MJ Turnos Online | Turnos → Ajustes | Servicios, horarios, seña, textos de la reserva, plantillas de aviso, slug de la página. |
+| MJ Turnos Online | Turnos → Ajustes | Servicios, horarios, seña, textos de la reserva, plantillas de aviso, slug de la página, y en *El panel* si al **borrar** el plugin se van también las clientas, los turnos, las fichas y los servicios (por defecto quedan). |
 | MJ Colegas | Colegas → Ajustes | Nombre del proyecto, etiquetas, comisión, textos. |
 | MJ Dólar | WooCommerce → Dólar | Tipo de cambio, redondeo, cotización de referencia y su proveedor. |
 | MJ Medios de Pago | WooCommerce → Medios de pago | Recargos y descuentos por medio de pago. Con **Editar textos y datos para pagar**, en cada fila: título, descripción, instrucciones, si está activo, y la lista de datos para pagar (alias, CBU, titular, lo que haga falta: la etiqueta la escribe el admin), con su encabezado, cuáles llevan botón de copiar y si se muestran también en el checkout. En Ajustes generales → *Cómo pagar*: el título del bloque («Cómo pagar»), el encabezado por defecto de los datos, el texto del botón de copiar y el de después de copiar, y en qué estados del pedido los ve el cliente. |
 | MJ Medios de Pago (comprobantes) | WooCommerce → Comprobantes → Ajustes | En qué medios de pago se pide comprobante, tipos y tamaño de archivo, plazos, qué pasa al aprobar, qué estado toma el pedido con un pago parcial, el mail y el WhatsApp del pago parcial, si los mails suman el resumen del pago (acreditado, pagado, falta abonar y mensaje), quién puede revisarlos, mails y WhatsApp, cuánto se guardan, las equivalencias con los métodos de MJ ERP, y **todos los textos que ve el cliente**: nombres de los estados, mensajes de cada estado, lo pagado y lo que falta, el historial de pagos, el resumen de los mails y los botones y avisos del widget de subida. |
 | MJ Envíos | WooCommerce → Envíos | Los métodos de envío (crear, editar, ordenar, apagar, borrar), sus condiciones, qué datos pide cada uno, la tabla propia de códigos postales, las credenciales de cada correo, el origen del despacho, pesos, margen, redondeo, textos del checkout y los avisos de seguimiento. |
 | MJ Optimizador de Imágenes | Ajustes → Imágenes | Formato, calidad, tamaños. |
-| MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. |
-| MJ ERP | MJ ERP → Ajustes | Ventas, clientes, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, y permisos del revendedor (por rol y por usuario). |
+| MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. Los ve y cambia quien administra la tienda (`manage_woocommerce`); subir fotos lo hace cualquiera que edite productos. Solo se aceptan imágenes (JPG, PNG, WebP, GIF, AVIF), mirando el contenido del archivo. |
+| MJ ERP | MJ ERP → Ajustes | Ventas, clientes, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, permisos del revendedor (por rol y por usuario), y en **Caja y reportes** los dos módulos: si se muestran, los conceptos de los movimientos a mano, el cierre de caja, el aviso de bajo costo y el margen mínimo. |
 | MJ Core | Ajustes → MJ · Actualizaciones | De qué repositorio de GitHub salen las versiones, el token para leerlo y cada cuántas horas se consulta. Muestra qué versión de cada paquete tiene la tienda y cuál está publicada. Ver `PUBLICAR.md`, sección 3. |
 
 ---
@@ -676,7 +682,7 @@ Si no se puede, el detalle de la venta dice por qué en lugar del botón.
 | Ajuste | Default | Para qué |
 | --- | --- | --- |
 | Llevar el historial de cada venta | Sí | Anota quién cargó, cobró, entregó, corrigió o anuló cada venta, y cuándo. Se ve en el detalle, abajo de los cobros. |
-| Quién puede corregir ventas y ver el historial | Administrador | Roles que, además de entrar al ERP, pueden corregir ventas y ver su historial. El administrador siempre puede. Este ajuste lo cambia solo un administrador. |
+| Quién puede corregir ventas y ver el historial | Administrador | Roles que, además de entrar al ERP, pueden corregir ventas y ver su historial. Corregir es también **anular**, **borrar** y cambiar los **datos** de una venta (canal, fecha, nota, cliente, medio, caja), borrar movimientos de Caja y deshacer cierres. El administrador siempre puede. Este ajuste lo cambia solo un administrador. |
 | Dejar editar los productos de una venta | Sí | Apagado, el botón no aparece y el servidor rechaza cualquier corrección. |
 | También las ventas que ya tienen cobros | Sí | Deja corregir productos de ventas cobradas (menos las cobradas online en la tienda y las que tienen devoluciones). Apagado, una venta con cobros solo cambia por devolución. |
 | Pedir el motivo de cada corrección | No | Obliga a escribir por qué se cambió. Queda en el historial y en la nota del pedido. |
@@ -808,6 +814,82 @@ lo que falta. **Si el pedido se cancela, el saldo vuelve.**
 | Que lo vean y lo usen en la tienda | Sí | Apagado, el saldo no aparece en «Mi cuenta» ni en el checkout; se sigue usando desde el ERP. |
 | En el checkout, el saldo viene aplicado | Sí | Apagado, el cliente lo tiene que marcar. En los dos casos lo puede sacar o usar menos. |
 | Mostrarle al cliente el motivo de un ajuste | Sí | En «Mi cuenta» el ajuste dice «Ajuste de saldo: el motivo». Apagado, dice solo «Ajuste de saldo» y el motivo queda para vos. |
+
+---
+
+## 3.1.5. Caja
+
+**Dónde:** MJ ERP → Caja, y sus ajustes en MJ ERP → Configuración → **Caja y
+reportes**.
+
+Cada caja (pesos, dólares, la cuenta del banco; se crean en Proveedores →
+Cajas) tiene su saldo y su libro de movimientos. El saldo no se guarda en
+ninguna columna: es la suma de todo lo que entró y salió, igual que el saldo a
+favor de un cliente.
+
+**Lo que entra solo**, porque ya se anotó en otra pantalla con su caja:
+
+- Los cobros de ventas confirmados (y las devoluciones y reintegros de una
+  anulación, que son cobros en negativo).
+- Las cobranzas de revendedores confirmadas.
+- Los gastos de las compras que dicen «Sale de» una caja (mientras la compra no
+  esté cancelada).
+- Los reintegros de saldo a favor («le di la plata»).
+
+**Lo que se carga a mano**, desde la pantalla: un **ingreso** o un **egreso**
+suelto (un gasto, un retiro, un aporte, un ajuste), con su concepto, y la
+**transferencia** entre cajas, que anota las dos patas atadas entre sí. Si las
+cajas tienen monedas distintas, hay que escribir cuánto entra en la de destino:
+la Caja no inventa un tipo de cambio.
+
+**Cierre de caja.** «Cerrar caja» calcula lo esperado del día (saldo inicial,
+lo que entró, lo que salió) y pide lo que se contó; la diferencia queda anotada
+y no se corrige sola. Un día cerrado no acepta movimientos a mano hasta
+deshacer el cierre.
+
+**Permisos.** Ver el libro y anotar movimientos lo hace cualquiera que use el
+ERP. Borrar un movimiento (una transferencia se borra entera) o deshacer un
+cierre lo hace solo quien puede corregir ventas.
+
+| Ajuste | Default | Para qué |
+| --- | --- | --- |
+| Mostrar Caja en el menú | Sí | Apagado, el menú no la muestra y su API rechaza todo. Las cajas se siguen usando en los medios de pago y en los gastos. |
+| Pedir el concepto escrito | Sí | Además del tipo, una línea que diga de qué se trató. |
+| Cierre de caja | Sí | El botón «Cerrar caja» y la lista de cierres. |
+| Conceptos de los movimientos a mano | Gasto, Retiro, Aporte, Ajuste de caja, Otro | Lo que se elige al cargar un ingreso o un egreso. «Otro» siempre queda. |
+
+Filtros: `mjerp_cash_ledger_rows` (sumar renglones de otro plugin al libro de una
+caja), `mjerp_cash_ledger_limit` (tope de renglones por origen cuando se pide
+todo el historial).
+
+---
+
+## 3.1.6. Reportes
+
+**Dónde:** MJ ERP → Reportes, y sus ajustes en MJ ERP → Configuración → **Caja y
+reportes**.
+
+Rentabilidad real: precio de venta menos costo landed, con el costo congelado al
+día de cada venta (el que ya guarda cada línea). Nada se recalcula; se agrupa. Las
+ventas anuladas no cuentan. El margen es ganancia sobre venta; el markup,
+ganancia sobre costo.
+
+- **Por producto:** unidades, precio y costo unitario, vendido, ganancia y
+  margen; orden por ganancia, margen, vendido o unidades; buscador; filtro «solo
+  bajo costo o con poco margen»; exportación a CSV (los textos que empiezan con
+  `=`, `+`, `-` o `@` van neutralizados para Excel).
+- **Bajo costo:** cada línea de venta que salió más barata que su costo, con la
+  venta para ir directo. Puede ser un precio mal cargado, un descuento de más o
+  un costo desactualizado.
+- **Por canal y por origen** (mostrador, WhatsApp, feria, tienda online…).
+- **Por mes:** los últimos doce, con una barra de vendido y ganancia.
+- **Por cliente:** ranking por ganancia.
+
+| Ajuste | Default | Para qué |
+| --- | --- | --- |
+| Mostrar Reportes en el menú | Sí | Apagado, el menú no los muestra y su API rechaza. |
+| Avisar cuando algo se vendió bajo costo | Sí | El globo del menú y el aviso del inicio con la cantidad del mes. |
+| Margen mínimo (%) | 0 | Los productos con un margen menor se marcan en rojo. 0 = solo los vendidos bajo costo. |
 
 ---
 
@@ -1035,6 +1117,13 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Cuántas ventas recientes ofrece la ventana del saldo para atar un ajuste (las que deben van todas) | — | `mjerp_credit_related_sales_limit` |
 | Cuántos movimientos del saldo a favor ve el cliente en «Mi cuenta» | — | `mjerp_shop_credit_movements_limit` |
 | Cuándo una venta cobrada no acepta devoluciones | — | `mjerp_sale_return_blocker` |
+| Cuándo una venta no se puede borrar (devoluciones, RMA o saldo la necesitan) | — | `mjerp_sale_delete_blocker` |
+| Renglones de otro plugin en el libro de una caja, y el tope por origen | — | `mjerp_cash_ledger_rows`, `mjerp_cash_ledger_limit` |
+| Texto del aviso «Precio de tu lista» que ve un revendedor | — | `mjerp_shop_price_notice` |
+| IP real del visitante detrás de un proxy (frenos del tema) | — | `mj_client_ip` |
+| Topes del freno por IP del tema, por puerta | — | `mj_rest_rate_limit` |
+| Quién ve y guarda los ajustes de MJ Colegas | — | `mjc_settings_capability` |
+| Quién cambia los ajustes de MJ Fotos Rápidas, cuántos productos lista y qué imágenes acepta | — | `mj_fotos_rapidas_capacidad_ajustes`, `mj_fotos_rapidas_por_pagina`, `mj_fotos_rapidas_mimes` |
 | A qué proveedor se reclama un producto fallado | — | `mjerp_rma_supplier` |
 | Proveedor de la cotización del dólar | `MJD_SUGGEST_ENDPOINT` | `mjd_suggest_endpoint`, `mjd_suggest_sources` |
 | Achique de fotos desde el celular | — | `mj_fotos_rapidas_ajustes` |
