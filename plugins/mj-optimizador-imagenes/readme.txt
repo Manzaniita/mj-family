@@ -6,7 +6,7 @@ Tested up to: 6.8
 Requires PHP: 7.4
 WC requires at least: 7.0
 WC tested up to: 11.1
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -70,6 +70,9 @@ No. Todo se procesa en tu servidor.
 Plugins → MJ Optimizador de Imágenes → Desactivar y Borrar, después subís el zip nuevo. No se pierde nada: las imágenes ya optimizadas quedan como están y los ajustes siguen en la base.
 
 == Changelog ==
+
+= 1.1.1 =
+* Sin traducciones: el plugin es en castellano y no lleva `languages/` ni carga un text domain.
 
 = 1.1.0 =
 * Pasa a llamarse MJ Optimizador de Imágenes y entra en la familia de plugins MJ.

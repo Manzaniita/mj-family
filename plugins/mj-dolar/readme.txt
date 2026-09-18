@@ -5,7 +5,7 @@ Tested up to: 6.8
 Requires PHP: 7.4
 WC requires at least: 7.0
 WC tested up to: 9.9
-Stable tag: 1.0.0
+Stable tag: 1.1.1
 License: GPL-2.0-or-later
 
 Precios en dólares que se convierten solos a pesos con el tipo de cambio que cargás vos desde wp-admin.
@@ -40,6 +40,14 @@ Precios en dólares que se convierten solos a pesos con el tipo de cambio que ca
 Plugins → MJ Dólar → Desactivar y Borrar, después subís el zip nuevo. No se pierde nada: los precios USD, el TC y el historial quedan en la base.
 
 == Changelog ==
+
+= 1.1.1 =
+* Solo el readme: el Stable tag y este historial habían quedado en 1.0.0.
+
+= 1.1.0 =
+* El tipo de cambio queda guardado en cada pedido y se muestra en «Mi cuenta» del tema MJ Appearance (con el USD de cada línea).
+* Los fallos del recálculo masivo y de la cotización sugerida quedan anotados en MJ · Registros, con motivo y código HTTP.
+* Campos USD en la edición rápida, en lote y en el importador y exportador CSV de WooCommerce.
 
 = 1.0.0 =
 * Versión inicial.

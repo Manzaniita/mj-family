@@ -3,13 +3,12 @@
  * Plugin Name:       MJ Optimizador de Imágenes
  * Plugin URI:        https://mjimportaciones.com.ar
  * Description:       Achica y convierte a WebP todas las imágenes de la tienda usando tu propio servidor: sin límites, sin créditos ni servicios externos. Optimiza cada foto nueva al subirla y va poniendo al día la biblioteca que ya tenías, en segundo plano.
- * Version:           1.1.0
+ * Version:           1.1.1
  * Author:            MJ Importaciones
  * Author URI:        https://mjimportaciones.com.ar
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       mj-optimizador-imagenes
- * Domain Path:       /languages
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * WC requires at least: 7.0
@@ -45,7 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'MJOI_VERSION' ) ) {
-	define( 'MJOI_VERSION', '1.1.0' );
+	define( 'MJOI_VERSION', '1.1.1' );
 }
 if ( ! defined( 'MJOI_FILE' ) ) {
 	define( 'MJOI_FILE', __FILE__ );
@@ -77,8 +76,6 @@ final class MJOI_Plugin {
 	 * Inicializa el plugin (hook plugins_loaded).
 	 */
 	public static function init() {
-		load_plugin_textdomain( 'mj-optimizador-imagenes', false, dirname( MJOI_BASENAME ) . '/languages' );
-
 		MJOI_Migrate::maybe_run();
 
 		MJOI_Hooks::init();

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Dólar
  * Description: Precios en dólares que se convierten solos a pesos con el tipo de cambio que cargás vos desde wp-admin. Campos USD en productos, variaciones, edición rápida y en lote; columnas "Precio USD" en el importador y exportador CSV de WooCommerce; TC visible en el header de la tienda y guardado en cada pedido. Expone funciones, filtros y REST para que otros plugins MJ se enganchen.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: MJ Importaciones
  * Requires Plugins: woocommerce
  * Requires at least: 6.2
@@ -39,7 +39,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJD_VERSION', '1.1.0');
+define('MJD_VERSION', '1.1.1');
 define('MJD_FILE', __FILE__);
 define('MJD_DIR', plugin_dir_path(__FILE__));
 define('MJD_URL', plugin_dir_url(__FILE__));
