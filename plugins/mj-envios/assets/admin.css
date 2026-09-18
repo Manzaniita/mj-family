@@ -341,3 +341,12 @@
 	color: #b32d2e;
 	font-weight: 600;
 }
+
+/* Lo que le falta a un correo para poder cotizar. */
+.mje-falta {
+	margin: 8px 0;
+	padding: 8px 12px;
+	border-left: 3px solid #dba617;
+	background: #fcf9e8;
+	border-radius: 0 4px 4px 0;
+}

@@ -120,8 +120,13 @@ class MJE_Native_Correo extends MJE_Native_Plugin {
 	}
 
 	public function service_label($service) {
+		return $this->label() . ' ' . lcfirst($this->mode_label($service));
+	}
+
+	/** El modo solo, para cuando el correo ya es el título de la tarjeta. */
+	public function mode_label($service) {
 		$service = (string) $service;
-		$label   = 0 === strpos($service, 'sucursal') ? 'Correo Argentino a sucursal' : 'Correo Argentino a domicilio';
+		$label   = 0 === strpos($service, 'sucursal') ? 'A sucursal' : 'A domicilio';
 		if (false !== strpos($service, '-e')) {
 			$label .= ' (expreso)';
 		} elseif (false !== strpos($service, '-c')) {
@@ -144,6 +149,51 @@ class MJE_Native_Correo extends MJE_Native_Plugin {
 			}
 		}
 		return 0 === strpos((string) $service, 'sucursal');
+	}
+
+	/**
+	 * Lo que le falta para cotizar.
+	 *
+	 * Su plugin cotiza con los datos del comercio de CADA INSTANCIA de la zona,
+	 * no con los de su pantalla principal: si la instancia está incompleta,
+	 * `calculate_shipping()` se va en silencio, sin tarifa y sin aviso. Es el
+	 * motivo más común de que esté conectado y aun así no aparezca nunca.
+	 */
+	public function missing() {
+		if (!$this->available()) {
+			return [];
+		}
+		$pendientes = [];
+		foreach ($this->zone_instances() as $instance) {
+			if (!$instance['enabled']) {
+				continue;
+			}
+			$settings = $this->instance_settings($instance['instance_id']);
+			$faltan   = [];
+			$campos   = [
+				'business_name' => 'nombre del comercio',
+				'state'         => 'provincia',
+				'city_name'     => 'localidad',
+				'street_name'   => 'calle',
+				'street_number' => 'altura',
+				'zip_code'      => 'código postal',
+				'tipo_servicio' => 'tipo de envío',
+				'metodo_envio'  => 'método de envío',
+			];
+			foreach ($campos as $clave => $nombre) {
+				if ('' === trim((string) (isset($settings[$clave]) ? $settings[$clave] : ''))) {
+					$faltan[] = $nombre;
+				}
+			}
+			if ($faltan) {
+				$pendientes[] = sprintf(
+					'En la zona «%s» le faltan los datos del comercio: %s. Sin eso no cotiza, y no avisa.',
+					'' !== $instance['zone'] ? $instance['zone'] : 'Resto del mundo',
+					implode(', ', $faltan)
+				);
+			}
+		}
+		return $pendientes;
 	}
 
 	/**
@@ -190,11 +240,11 @@ class MJE_Native_Correo extends MJE_Native_Plugin {
 	 * Si el CP todavía no resuelve a ninguna provincia, no se pregunta: traer
 	 * las de todo el país no le sirve a nadie en el checkout.
 	 */
-	public function branches($postcode = '') {
+	public function branches($postcode = '', $state = '') {
 		if (!$this->connected() || !class_exists('Corrarfo\Service\ServiceFactory')) {
 			return [];
 		}
-		$province = $this->province_of($postcode);
+		$province = $this->province_of($postcode, $state);
 		if ('' === $province) {
 			return [];
 		}
@@ -278,8 +328,22 @@ class MJE_Native_Correo extends MJE_Native_Plugin {
 		return '';
 	}
 
-	/** La provincia de un código postal, con la tabla propia de MJ Envíos. */
-	private function province_of($postcode) {
+	/**
+	 * La provincia con la que pedirle las sucursales.
+	 *
+	 * Primero la que ya trae el destino —en el checkout viene cargada y es el
+	 * mismo código que espera su API—, y si no, la que resuelva el código postal.
+	 * Depender solo de la tabla de códigos postales dejaba sin sucursales a toda
+	 * tienda que todavía no importó su CSV, que es el caso de una tienda nueva.
+	 */
+	private function province_of($postcode, $state = '') {
+		$state = trim((string) $state);
+		if ('' !== $state) {
+			$code = MJE_Geo::state_code($state);
+			if ('' !== $code) {
+				return $code;
+			}
+		}
 		$resolved = MJE_Geo::resolve_cp($postcode);
 		if (!empty($resolved['state_code'])) {
 			return (string) $resolved['state_code'];

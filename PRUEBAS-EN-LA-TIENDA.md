@@ -687,6 +687,14 @@ plugin** tiene que decir **conectado** y mostrar el titular y el CUIT de la
 cuenta. Si dice *fuera de las zonas*, agregá su método a la zona con el botón
 que está ahí mismo y volvé a mirar.
 
+0. **Antes de nada: que los correos no tengan pendientes.** Andá a *Envíos →
+   Correos → Conectados por su plugin*.
+   **Qué tiene que pasar:** cada correo dice CONECTADO, no «le falta
+   configuración» ni «fuera de las zonas». Si Correo Argentino dice que le
+   faltan los datos del comercio, completalos **dentro del método de la zona**
+   (WooCommerce → Ajustes → Envío → la zona → Correo Argentino), no solo en su
+   pantalla principal: cotiza con los de la instancia.
+
 1. **El correo cotiza y aparece una sola vez.** Poné un producto con peso en el
    carrito y andá al checkout con un código postal de otra provincia.
    **Qué tiene que pasar:** los envíos de los correos **no** están sueltos: hay

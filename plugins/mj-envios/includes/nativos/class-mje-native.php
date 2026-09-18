@@ -218,7 +218,19 @@ class MJE_Native {
 	 * clave de paquete propia para no pisar lo que la tienda tenga calculado.
 	 */
 	public static function capture_for_package(array $package, $key = 'mje_quote') {
-		if (!self::any() || !function_exists('WC') || !WC()->shipping() || !WC()->session) {
+		if (!self::any() || !function_exists('WC') || !WC()->shipping()) {
+			return;
+		}
+		/*
+		 * Una ruta REST propia no arranca la sesión de WooCommerce, y sin sesión
+		 * no hay dónde guardar el cálculo del paquete: los correos con plugin no
+		 * cotizaban nunca en la ficha del producto. wc_load_cart() la levanta,
+		 * que es lo mismo que hace la Store API.
+		 */
+		if (!WC()->session && function_exists('wc_load_cart')) {
+			wc_load_cart();
+		}
+		if (!WC()->session) {
 			return;
 		}
 		try {
@@ -376,7 +388,7 @@ class MJE_Native {
 	 * Las sucursales de un correo con plugin propio, guardadas en la tabla de
 	 * MJ Envíos para que el checkout no dependa de que el correo esté arriba.
 	 */
-	public static function branches($plugin_id, $postcode = '', $refresh = false) {
+	public static function branches($plugin_id, $postcode = '', $refresh = false, $state = '') {
 		$plugin = self::get($plugin_id);
 		if (!$plugin) {
 			return [];
@@ -389,7 +401,7 @@ class MJE_Native {
 				return $rows;
 			}
 		}
-		$fetched = $plugin->branches($postcode);
+		$fetched = $plugin->branches($postcode, $state);
 		foreach ($fetched as $branch) {
 			MJE_Carriers::save_branch($carrier, $branch, 'nativo');
 		}

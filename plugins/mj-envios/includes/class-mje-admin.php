@@ -1084,15 +1084,17 @@ class MJE_Admin {
 		foreach (MJE_Native::all() as $id => $plugin) {
 			$connected = $plugin->connected();
 			$in_zone   = $plugin->in_any_zone();
+			$missing   = $connected ? $plugin->missing() : [];
 			$aside     = $connected
-				? ($in_zone ? self::pill('conectado', 'ok') : self::pill('fuera de las zonas', 'warn'))
+				? ($in_zone ? ($missing ? self::pill('le falta configuración', 'warn') : self::pill('conectado', 'ok')) : self::pill('fuera de las zonas', 'warn'))
 				: self::pill('sin conectar', 'bad');
 
 			$link = $plugin->settings_url();
 			self::panel(
 				$plugin->label(),
 				'' !== $link ? sprintf('Se configura en <a href="%s">su propia pantalla</a>.', esc_url($link)) : '',
-				$aside
+				$aside,
+				($missing || ($connected && !$in_zone)) ? 'is-warning' : ''
 			);
 
 			if (!$connected) {
@@ -1140,6 +1142,11 @@ class MJE_Admin {
 				echo '<p><strong>Métodos que lo usan:</strong> ' . wp_kses_post(implode(' · ', $links)) . '</p>';
 			} else {
 				echo '<p class="mje-note">Todavía ningún método usa este correo. Se crean solos la primera vez que cotiza, si dejaste encendida la adopción automática en Ajustes.</p>';
+			}
+
+			/* Lo que le falta para poder cotizar, antes que cualquier otra cosa. */
+			foreach ($plugin->missing() as $falta) {
+				printf('<p class="mje-falta"><strong>%s</strong> %s</p>', esc_html('Falta completar:'), esc_html($falta));
 			}
 
 			/* Lo último que dijo el correo cuando no pudo cotizar: es el diagnóstico más útil. */
@@ -1256,6 +1263,7 @@ class MJE_Admin {
 		echo '<input type="hidden" name="action" value="mje_sync_branches">';
 		echo self::select_input('carrier', $sources, (string) key($sources)); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
 		echo self::text_input('cp', '', ['class' => 'small-text', 'placeholder' => 'CP']); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
+		echo self::select_input('provincia', ['' => '— Provincia (Correo Argentino las pide así) —'] + MJE_Geo::states(), ''); // phpcs:ignore WordPress.Security.EscapeOutput -- Lo arman los ayudantes de arriba, que ya escapan.
 		submit_button('Traerlas', 'secondary', 'submit', false);
 		echo '</form>';
 		self::panel_end();
@@ -1789,7 +1797,7 @@ class MJE_Admin {
 
 		$before = count(MJE_Carriers::stored_branches($key));
 		if (0 === strpos($key, 'nativo_')) {
-			MJE_Native::branches(substr($key, strlen('nativo_')), $cp, true);
+			MJE_Native::branches(substr($key, strlen('nativo_')), $cp, true, isset($_POST['provincia']) ? sanitize_text_field(wp_unslash($_POST['provincia'])) : ''); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- El nonce lo verifica self::guard().
 		} else {
 			MJE_Carriers::branches($key, $cp, true);
 		}

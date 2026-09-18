@@ -1083,6 +1083,13 @@ Se ve en **Envíos → Correos → Conectados por su plugin**: el titular, el CU
 desde dónde despacha y en qué zonas está su método. Para configurarlo se va a la
 pantalla del correo, que es la que manda sobre la conexión.
 
+**Un correo conectado que igual no cotiza.** Es el problema más difícil de ver,
+porque desde afuera no se distingue de «no llega a ese destino». El plugin de
+Correo Argentino, por ejemplo, cotiza con los datos del comercio de **cada
+instancia de la zona**, no con los de su pantalla principal: si esa instancia
+está incompleta se va en silencio, sin tarifa y sin aviso. El panel de MJ Envíos
+lo dice: «Falta completar: en la zona X le faltan los datos del comercio…».
+
 **Lo único que hay que tener prendido es la zona.** El plugin del correo calcula
 su tarifa cuando su método está en una zona de envío de WooCommerce que cubra el
 destino. Si está conectado pero fuera de todas las zonas, no cotiza nunca y los

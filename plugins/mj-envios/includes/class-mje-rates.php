@@ -358,8 +358,15 @@ class MJE_Rates {
 			'native_rate' => '', // Id de la tarifa del plugin del correo que se envolvió.
 		];
 
-		/* Gratis por monto: no hace falta preguntarle el precio a nadie. */
-		if (self::free_applies($def, $package)) {
+		/*
+		 * Gratis por monto: no hace falta preguntarle el precio a nadie… salvo
+		 * que el envío lo haga un correo. Ahí primero hay que saber si el correo
+		 * cubre ese destino: si no, el método no se ofrece, gratis o no. Sin esta
+		 * comprobación el envío gratis tapaba un correo que nunca contestó, y el
+		 * cliente elegía un envío que nadie puede hacer.
+		 */
+		$del_correo = in_array((string) $def['type'], ['nativo', 'correo'], true);
+		if (self::free_applies($def, $package) && (!$del_correo || null !== self::carrier_cost($def, $package))) {
 			$out['cost']   = 0.0;
 			$out['source'] = 'gratis';
 			return (array) apply_filters('mje_quote', $out, $def, $package);
@@ -448,6 +455,24 @@ class MJE_Rates {
 		return (array) apply_filters('mje_quote', $out, $def, $package);
 	}
 
+	/**
+	 * Lo que cobra el correo por este método, o null si no puede hacerlo.
+	 *
+	 * Es solo una consulta: no aplica márgenes ni redondeo. Sirve para saber si
+	 * el envío existe antes de decidir si va gratis.
+	 */
+	private static function carrier_cost(array $def, array $package) {
+		if ('nativo' === (string) $def['type']) {
+			$native = MJE_Native::find((string) $def['native_plugin'], (string) $def['native_service']);
+			if (!$native) {
+				return null;
+			}
+			return (float) $native['cost'] > 0 || MJE_Settings::get('native_allow_zero') ? (float) $native['cost'] : null;
+		}
+		$result = MJE_Carriers::quote((string) $def['carrier'], self::shipment($def, $package));
+		return is_wp_error($result) ? null : (float) $result['cost'];
+	}
+
 	/** Qué hacer cuando el correo no cotiza: lo que diga el ajuste general. */
 	private static function on_carrier_error(array $def, array $package, WP_Error $error, array $out) {
 		$out['error'] = $error->get_error_message();
@@ -467,7 +492,11 @@ class MJE_Rates {
 
 			case 'tabla':
 				$price = self::table_price($def, $package);
-				if (null !== $price) {
+				/*
+				 * Un $0 de la tabla como respaldo de un correo es casi siempre una
+				 * fila vacía, no un regalo: se trata como "ninguna fila lo cubre".
+				 */
+				if (null !== $price && ((float) $price > 0 || MJE_Settings::get('native_allow_zero'))) {
 					$out['cost']   = self::apply_extras((float) $price, $def, $package);
 					$out['source'] = 'tabla';
 					return $out;
@@ -639,7 +668,8 @@ class MJE_Rates {
 			}
 			$plugin = MJE_Native::get($data['plugin']);
 			$title  = $plugin ? $plugin->service_label($data['service']) : (string) $data['label'];
-			MJE_Methods::adopt($data['plugin'], $data['service'], $title, !empty($data['branch']), $group);
+			$short  = $plugin ? $plugin->mode_label($data['service']) : '';
+			MJE_Methods::adopt($data['plugin'], $data['service'], $title, !empty($data['branch']), $group, $short);
 		}
 	}
 
@@ -690,6 +720,7 @@ class MJE_Rates {
 
 				$out[(string) $rate_id] = [
 					'slug'        => $slug,
+					'short'       => MJE_Methods::short($def),
 					'group'       => (string) $def['group'],
 					'type'        => (string) $def['type'],
 					'destination' => (string) $def['destination'],

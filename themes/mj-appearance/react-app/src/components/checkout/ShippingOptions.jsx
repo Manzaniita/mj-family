@@ -53,12 +53,17 @@ function Radio({ on }) {
   );
 }
 
-/** El cuerpo de una opción: nombre, carteles, descripción y plazo. */
-function OptionBody({ rate }) {
+/**
+ * El cuerpo de una opción: nombre, carteles, descripción y plazo.
+ *
+ * `short` es el modo sin el nombre del correo ("A sucursal (clásico)"): se usa
+ * adentro de la tarjeta del correo, donde repetirlo quedaría mal.
+ */
+function OptionBody({ rate, short }) {
   return (
     <span className="min-w-0">
       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="text-sm font-medium">{rate.name}</span>
+        <span className="text-sm font-medium">{(short && rate.short) || rate.name}</span>
         <Badges rate={rate} />
       </span>
       {rate.description && <span className="block text-xs text-ink-faint">{rate.description}</span>}
@@ -103,7 +108,7 @@ function OptionRow({ rate, texts, onChoose }) {
     >
       <span className="flex min-w-0 items-start gap-3">
         <Radio on={rate.selected} />
-        <OptionBody rate={rate} />
+        <OptionBody rate={rate} short />
       </span>
       <span className="shrink-0 text-sm font-medium">
         <Price rate={rate} texts={texts} />
@@ -163,12 +168,56 @@ export function byCarrier(rates) {
   return buckets;
 }
 
-/** Un grupo cerrado se lee como una opción más; abierto, muestra sus correos. */
+/**
+ * Un grupo cerrado se lee como una opción más; abierto, muestra sus correos.
+ *
+ * Dos atajos, para que un grupo chico no cueste tres clics:
+ *   · un solo correo con un solo modo → el grupo ES la opción, se elige directo;
+ *   · un solo correo con varios modos → los modos cuelgan del grupo, sin repetir
+ *     el encabezado del correo (su nombre ya se lee en el renglón de arriba).
+ */
 function GroupRow({ group, rates, texts, onChoose }) {
   const open = rates.some((r) => r.selected);
   const cheapest = cheapestOf(rates);
   const carriers = byCarrier(rates);
   const named = carriers.filter((c) => c.carrier);
+  const soloCorreo = carriers.length === 1;
+
+  /* Una sola opción adentro: no hay nada que comparar, se elige el grupo. */
+  if (soloCorreo && rates.length === 1) {
+    const rate = rates[0];
+    return (
+      <button
+        type="button"
+        onClick={() => onChoose(rate)}
+        className={cn(
+          'mj-choice flex w-full items-center justify-between gap-3 rounded-xl2 border p-4 text-left transition-all duration-200',
+          rate.selected ? 'border-accent bg-accent-soft' : 'border-line hover:border-line-strong'
+        )}
+      >
+        <span className="flex items-start gap-3">
+          <Radio on={rate.selected} />
+          <span className="min-w-0">
+            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-sm font-medium">
+                {group.icon ? `${group.icon} ` : ''}
+                {group.title}
+              </span>
+              <Badges rate={rate} />
+            </span>
+            <span className="block text-xs text-ink-faint">
+              {[rate.carrier, rate.short || rate.name].filter(Boolean).join(' · ')}
+            </span>
+            {rate.eta && <span className="block text-xs text-ink-faint">{rate.eta}</span>}
+            {rate.note && <span className="block text-xs text-ink-faint">{rate.note}</span>}
+          </span>
+        </span>
+        <span className="shrink-0 text-sm font-medium">
+          <Price rate={rate} texts={texts} />
+        </span>
+      </button>
+    );
+  }
 
   return (
     <div
@@ -220,7 +269,7 @@ function GroupRow({ group, rates, texts, onChoose }) {
           {carriers.map((bucket) => (
             <CarrierCard
               key={bucket.key || 'propio'}
-              carrier={bucket.carrier}
+              carrier={soloCorreo ? '' : bucket.carrier}
               rates={bucket.rates}
               texts={texts}
               onChoose={onChoose}

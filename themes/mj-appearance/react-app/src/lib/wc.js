@@ -356,9 +356,10 @@ export const searchCities = (query, state = '') =>
   apiReq(`/geo/localidades?q=${encodeURIComponent(query)}&prov=${encodeURIComponent(state)}`, {}, 'mje/v1');
 
 /** Sucursales del correo de un método, para el CP cargado. */
-export const getBranches = (method, cp = '', city = '') =>
+export const getBranches = (method, cp = '', city = '', state = '') =>
   apiReq(
-    `/sucursales?metodo=${encodeURIComponent(method)}&cp=${encodeURIComponent(cp)}&localidad=${encodeURIComponent(city)}`,
+    `/sucursales?metodo=${encodeURIComponent(method)}&cp=${encodeURIComponent(cp)}` +
+      `&localidad=${encodeURIComponent(city)}&provincia=${encodeURIComponent(state)}`,
     {},
     'mje/v1'
   );

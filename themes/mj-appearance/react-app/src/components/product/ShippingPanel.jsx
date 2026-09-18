@@ -36,6 +36,7 @@ function asRates(opciones) {
   return (opciones ?? []).map((o) => ({
     rate_id: o.metodo,
     name: o.titulo,
+    short: o.corto || '',
     cost: o.costo,
     coordinate: !!o.aCoordinar,
     eta: o.plazo || '',
@@ -60,7 +61,7 @@ function Option({ rate, texts, inset }) {
   return (
     <li className={cn('flex items-baseline justify-between gap-3 text-sm', inset && 'pl-3')}>
       <span className="min-w-0">
-        <span className="block">{rate.name}</span>
+        <span className="block">{inset ? rate.short || rate.name : rate.name}</span>
         {rate.eta && <span className="block text-xs text-ink-faint">{rate.eta}</span>}
       </span>
       <span className="shrink-0 text-right">

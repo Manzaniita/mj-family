@@ -147,9 +147,11 @@ class MJE_REST {
 
 		/* Un correo con plugin propio trae sus sucursales por el puente; el resto, por su adaptador. */
 		if ('' !== $native) {
-			$rows = MJE_Native::branches($native, $cp);
+			/* La provincia del destino, que en el checkout ya está cargada. */
+			$state = (string) $request->get_param('provincia');
+			$rows  = MJE_Native::branches($native, $cp, false, $state);
 			if (!$rows && '' !== $cp) {
-				$rows = MJE_Native::branches($native, '');
+				$rows = MJE_Native::branches($native, '', false, $state);
 			}
 		} else {
 			$rows = MJE_Carriers::branches($carrier, $cp);
@@ -225,6 +227,7 @@ class MJE_REST {
 			$out[]   = [
 				'metodo'      => $slug,
 				'titulo'      => MJE_Methods::name($def),
+				'corto'       => MJE_Methods::short($def),
 				'descripcion' => (string) $def['description'],
 				'costo'       => (float) $quote['cost'],
 				'formateado'  => $quote['coordinate'] ? (string) MJE_Settings::get('coordinate_text') : MJE_Settings::money((float) $quote['cost']),

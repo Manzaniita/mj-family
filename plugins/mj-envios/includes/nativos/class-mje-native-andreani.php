@@ -188,7 +188,7 @@ class MJE_Native_Andreani extends MJE_Native_Plugin {
 	 * Su API las pide siempre con CP: sin código postal no hay lista, así que se
 	 * devuelve vacío en lugar de traer el país entero.
 	 */
-	public function branches($postcode = '') {
+	public function branches($postcode = '', $state = '') { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- Andreani las pide por código postal.
 		$postcode = MJE_Geo::normalize_cp($postcode);
 		if ('' === $postcode || !$this->connected() || !class_exists('Andreani_Api_Manager')) {
 			return [];

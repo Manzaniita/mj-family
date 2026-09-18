@@ -393,7 +393,7 @@ class MJE_Methods {
 	 * ENCENDIDO porque su tarifa ya se estaba mostrando en la tienda: adoptarla
 	 * no puede hacerla desaparecer.
 	 */
-	public static function adopt($plugin_id, $service, $title, $branch = false, $group = '') {
+	public static function adopt($plugin_id, $service, $title, $branch = false, $group = '', $short = '') {
 		$plugin_id = sanitize_key((string) $plugin_id);
 		if ('' === $plugin_id) {
 			return null;
@@ -407,6 +407,8 @@ class MJE_Methods {
 		$def  = wp_parse_args([
 			'slug'           => $slug,
 			'title'          => (string) $title,
+			/* El modo solo: es lo que se lee adentro de la tarjeta del correo. */
+			'short'          => (string) $short,
 			'type'           => 'nativo',
 			'destination'    => $branch ? 'sucursal' : 'domicilio',
 			'native_plugin'  => $plugin_id,
@@ -586,6 +588,18 @@ class MJE_Methods {
 			$price  = max(0, MJE_Settings::decimal(isset($row['price']) ? $row['price'] : 0));
 			$weight = max(0, MJE_Settings::decimal(isset($row['weight_max']) ? $row['weight_max'] : 0));
 			$perkg  = max(0, MJE_Settings::decimal(isset($row['per_kg']) ? $row['per_kg'] : 0));
+
+			/*
+			 * La fila vacía no se guarda. El formulario siempre dibuja una de más
+			 * para que haya dónde escribir, y si se guardaba tal cual quedaba una
+			 * regla "cualquier destino → $0" que después cobraba el envío gratis
+			 * sin que nadie la hubiera escrito. Vale también para limpiar las que
+			 * ya estén guardadas: se van al próximo guardado.
+			 */
+			if ('todos' === $scope && '' === $match && 0.0 === (float) $price && 0.0 === (float) $perkg && 0.0 === (float) $weight) {
+				continue;
+			}
+
 			$clean[] = [
 				'scope'      => $scope,
 				'match'      => $match,

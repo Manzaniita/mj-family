@@ -143,13 +143,13 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
     }
     let alive = true;
     setBranches({ loading: true, list: [] });
-    wc.getBranches(selected.slug, form.postcode, form.city)
+    wc.getBranches(selected.slug, form.postcode, form.city, form.state)
       .then((list) => alive && setBranches({ loading: false, list: Array.isArray(list) ? list : [] }))
       .catch(() => alive && setBranches({ loading: false, list: [] }));
     return () => {
       alive = false;
     };
-  }, [selected?.slug, method?.needsBranch, form.postcode, form.city]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selected?.slug, method?.needsBranch, form.postcode, form.city, form.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
    * Lo que el cliente escribe viaja al servidor con calma. Siempre con el contacto y la dirección:

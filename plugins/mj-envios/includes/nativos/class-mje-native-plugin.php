@@ -82,9 +82,20 @@ abstract class MJE_Native_Plugin {
 		return trim(str_replace(['-', '_', ':'], ' ', $rate_id));
 	}
 
-	/** Cómo se lee ese servicio. Por defecto, el mismo código. */
+	/** Cómo se lee ese servicio, con el nombre del correo si hace falta. */
 	public function service_label($service) {
 		return (string) $service;
+	}
+
+	/**
+	 * Cómo se lee ese modo de entrega SIN nombrar al correo.
+	 *
+	 * Cuando el correo es el título de la tarjeta, repetirlo adentro —"Correo
+	 * Argentino · Correo Argentino a sucursal"— queda mal. Por defecto es el
+	 * mismo texto que service_label(); lo pisa el adaptador que sepa separarlo.
+	 */
+	public function mode_label($service) {
+		return $this->service_label($service);
 	}
 
 	/**
@@ -118,7 +129,7 @@ abstract class MJE_Native_Plugin {
 	 *
 	 * → [['code','name','address','city','state','postcode','hours','lat','lon'], ...]
 	 */
-	public function branches($postcode = '') { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- La firma la usan los adaptadores que sí traen sucursales.
+	public function branches($postcode = '', $state = '') { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- La firma la usan los adaptadores que sí traen sucursales.
 		return [];
 	}
 
@@ -151,6 +162,17 @@ abstract class MJE_Native_Plugin {
 	}
 
 	/* ------------------------------ Auxiliares --------------------------- */
+
+	/**
+	 * Lo que le falta para poder cotizar, dicho en criollo.
+	 *
+	 * → [] si está todo. Es lo que el panel muestra como pendientes: un correo
+	 * conectado que igual no cotiza es el problema más difícil de ver, porque
+	 * desde afuera no se distingue de "no llega a ese destino".
+	 */
+	public function missing() {
+		return [];
+	}
 
 	/**
 	 * Las instancias de su método que hay configuradas en las zonas de envío.

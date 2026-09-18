@@ -73,8 +73,12 @@ function mapServerShipping(cart) {
         eta: own.eta ?? rateMeta(r, '_mje_eta'),
         note: own.note ?? rateMeta(r, '_mje_note'),
         coordinate: own.coordinate ?? rateMeta(r, '_mje_coordinate') === '1',
-        // Con qué correo va, y los carteles de más barato y más rápido.
+        // Nombre corto: el modo solo, para cuando el correo ya es el título de la tarjeta.
+        short: own.short ?? '',
+        // En qué grupo va y con qué correo: es lo que arma los tres niveles.
+        group: own.group ?? '',
         carrier: own.carrier ?? '',
+        carrierKey: own.carrierKey ?? '',
         badges: Array.isArray(own.badges) ? own.badges : [],
         needsBranch: own.needsBranch ?? false,
       };
