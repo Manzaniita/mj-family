@@ -160,15 +160,19 @@ class MJE_Native {
 				'branch'    => $plugin ? $plugin->is_branch_service($service, $rate) : false,
 				'rate'      => $rate,
 			];
-			$seen[] = (string) $rate_id;
+			if ($plugin) {
+				$seen[$plugin->id()][$service] = (string) $rate->get_label();
+			}
 		}
 
 		/*
-		 * Queda anotado qué tarifas ajenas se vieron, para que el panel pueda
-		 * listarlas aunque nadie esté comprando en este momento.
+		 * Queda anotado qué servicios se vieron cotizar, para que el panel pueda
+		 * listarlos aunque nadie esté comprando en este momento. Es la única
+		 * forma honesta de saber qué modos de entrega da tu contrato: no hay
+		 * lista fija, la pone el correo.
 		 */
 		if ($seen) {
-			set_transient(self::TRANSIENT_SEEN, $seen, DAY_IN_SECONDS);
+			set_transient(self::TRANSIENT_SEEN, $seen, WEEK_IN_SECONDS);
 		}
 	}
 
@@ -214,10 +218,29 @@ class MJE_Native {
 		return $out;
 	}
 
-	/** Los ids de tarifa vistos alguna vez, para armar las opciones del panel. */
+	/**
+	 * Los servicios que se vieron cotizar, por correo: id => [servicio => nombre].
+	 *
+	 * Lo de esta carga pisa a lo guardado: si el correo acaba de cotizar, eso es
+	 * lo más fresco que hay.
+	 */
 	public static function seen() {
-		$seen = get_transient(self::TRANSIENT_SEEN);
-		return is_array($seen) ? $seen : [];
+		$stored = get_transient(self::TRANSIENT_SEEN);
+		$stored = is_array($stored) ? $stored : [];
+
+		foreach (self::$rates as $data) {
+			if ('' !== $data['plugin']) {
+				$stored[$data['plugin']][$data['service']] = (string) $data['label'];
+			}
+		}
+		return $stored;
+	}
+
+	/** Los servicios vistos de un correo puntual: servicio => nombre. */
+	public static function seen_services($plugin_id) {
+		$seen      = self::seen();
+		$plugin_id = sanitize_key((string) $plugin_id);
+		return isset($seen[$plugin_id]) && is_array($seen[$plugin_id]) ? $seen[$plugin_id] : [];
 	}
 
 	/* ------------------------------ Sucursal ----------------------------- */

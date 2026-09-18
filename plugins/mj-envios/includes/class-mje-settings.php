@@ -117,6 +117,10 @@ class MJE_Settings {
 			'branch_help'     => 'Elegí la sucursal que te quede más cómoda.',
 			'pickup_label'    => 'Retiro en el local',
 
+			/* Pantalla de envíos ----------------------------------------- */
+			'ship_statuses'   => 'wc-processing', // Estados que cuentan como "listo para despachar".
+			'ship_late_days'  => 3,               // Días sin despachar para marcarlo atrasado (0 = nunca).
+
 			/* Seguimiento y avisos --------------------------------------- */
 			'track_account'   => 1,   // El seguimiento se ve en Mi cuenta.
 			'track_mail'      => 1,   // Aviso al cliente cuando se carga el seguimiento.
@@ -239,6 +243,10 @@ class MJE_Settings {
 		$sort               = isset($in['branch_sort']) ? sanitize_key($in['branch_sort']) : $d['branch_sort'];
 		$out['branch_sort'] = array_key_exists($sort, self::branch_sort_choices()) ? $sort : $d['branch_sort'];
 		$out['branch_max']  = max(0, min(300, absint(isset($in['branch_max']) ? $in['branch_max'] : $d['branch_max'])));
+
+		/* Envíos: qué estados cuentan y a los cuántos días se marca atrasado. */
+		$out['ship_statuses']  = isset($in['ship_statuses']) ? self::slug_list(is_array($in['ship_statuses']) ? implode(',', $in['ship_statuses']) : $in['ship_statuses']) : $d['ship_statuses'];
+		$out['ship_late_days'] = max(0, min(365, absint(isset($in['ship_late_days']) ? $in['ship_late_days'] : $d['ship_late_days'])));
 
 		$out['cache_hours']    = max(0, min(720, absint(isset($in['cache_hours']) ? $in['cache_hours'] : $d['cache_hours'])));
 		$out['timeout']        = max(2, min(30, absint(isset($in['timeout']) ? $in['timeout'] : $d['timeout'])));

@@ -186,6 +186,17 @@ class MJE_REST {
 	 * manden.
 	 */
 	public static function quote(WP_REST_Request $request) {
+		/*
+		 * Esta puerta es pública y dispara llamadas salientes a la API del
+		 * correo: sin freno, cualquiera puede hacer que la tienda gaste
+		 * cotizaciones toda la tarde. Mismo freno que usa MJ Medios de Pago
+		 * para la subida de comprobantes.
+		 */
+		$limited = self::rate_limited();
+		if (is_wp_error($limited)) {
+			return $limited;
+		}
+
 		$cp    = MJE_Geo::normalize_cp((string) $request->get_param('cp'));
 		$state = (string) $request->get_param('provincia');
 		$city  = (string) $request->get_param('localidad');
@@ -302,6 +313,34 @@ class MJE_REST {
 		}
 		$config['shipping'] = MJE_Methods::public_payload();
 		return $config;
+	}
+
+	/**
+	 * Freno por IP para las cotizaciones sueltas.
+	 *
+	 * @return WP_Error|null
+	 */
+	private static function rate_limited() {
+		/**
+		 * Cuántas cotizaciones puede pedir una misma IP por hora.
+		 *
+		 * @param int $max Tope. 0 = sin freno.
+		 */
+		$max = (int) apply_filters('mje_quote_rate_limit', 60);
+		if ($max <= 0) {
+			return null;
+		}
+		$ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+		if ('' === $ip) {
+			return null;
+		}
+		$key   = 'mje_rl_' . md5($ip);
+		$count = (int) get_transient($key);
+		if ($count >= $max) {
+			return new WP_Error('mje_rate_limited', 'Demasiadas consultas seguidas. Esperá un rato y probá de nuevo.', ['status' => 429]);
+		}
+		set_transient($key, $count + 1, HOUR_IN_SECONDS);
+		return null;
 	}
 
 	/* ----------------------------- Store API ----------------------------- */

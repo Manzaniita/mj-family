@@ -122,6 +122,7 @@ require_once MJE_DIR . 'includes/class-mje-rates.php';
 require_once MJE_DIR . 'includes/class-mje-cart.php';
 require_once MJE_DIR . 'includes/class-mje-orders.php';
 require_once MJE_DIR . 'includes/class-mje-tracking.php';
+require_once MJE_DIR . 'includes/class-mje-shipments.php';
 require_once MJE_DIR . 'includes/class-mje-ready.php';
 require_once MJE_DIR . 'includes/class-mje-rest.php';
 require_once MJE_DIR . 'includes/class-mje-admin.php';
@@ -142,6 +143,7 @@ final class MJE_Plugin {
 		MJE_Cart::init();
 		MJE_Orders::init();
 		MJE_Tracking::init();
+		MJE_Shipments::init();
 		MJE_Ready::init();
 		MJE_REST::init();
 		if (is_admin()) {

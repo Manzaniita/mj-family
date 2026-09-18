@@ -15,6 +15,8 @@ class MJE_Tracking {
 
 	public static function init() {
 		add_action('mje_tracking_saved', [__CLASS__, 'maybe_notify'], 10, 3);
+		/* La cuenta de pendientes de la pestaña Envíos deja de valer. */
+		add_action('mje_tracking_saved', ['MJE_Shipments', 'flush_count'], 10, 0);
 	}
 
 	/** Plantilla del link de seguimiento para un pedido. */
@@ -33,6 +35,16 @@ class MJE_Tracking {
 			$url = trim((string) $carrier->config('tracking_url'));
 			if ('' !== $url) {
 				return $url;
+			}
+		}
+
+		/* Si despachó un correo con plugin propio, el link lo sabe su adaptador. */
+		$plugin = MJE_Native::get((string) $order->get_meta('_mje_native_plugin'));
+		if ($plugin) {
+			$url = $plugin->tracking_url('{codigo}');
+			if ('' !== $url) {
+				/* tracking_url() escapa el código para la URL: acá va la marca cruda. */
+				return str_replace(rawurlencode('{codigo}'), '{codigo}', $url);
 			}
 		}
 		return '';

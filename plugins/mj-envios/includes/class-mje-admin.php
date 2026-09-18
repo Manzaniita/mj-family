@@ -2,17 +2,23 @@
 /**
  * wp-admin: WooCommerce → Envíos.
  *
- * Cinco pantallas, en el orden en el que se usan:
+ * Seis pantallas, en el orden en el que se usan:
  *
  *   Métodos           la lista y el editor de cada método de envío.
+ *   Envíos            qué hay para despachar, y el seguimiento sin abrir el pedido.
  *   Datos del cliente qué se le pide (y campos propios que agregues vos).
  *   Códigos postales  la tabla propia: cuántos hay, importar un CSV, sumar uno.
- *   Correos           credenciales y URLs de cada correo, y sus sucursales.
- *   Ajustes           origen, peso, precio, textos, avisos.
+ *   Correos           los conectados por su propio plugin, los que se configuran
+ *                     acá, las sucursales y el estado de las conexiones.
+ *   Ajustes           origen, peso, precio, cotización, textos y avisos.
  *
- * Toda la pantalla se dibuja con lo que declaran las clases: los tipos de
- * método, los campos de cada correo, el catálogo de datos del cliente. Sumar
- * una opción nueva es declararla ahí, no tocar este archivo.
+ * Cada bloque de configuración es una tarjeta con su título, su ayuda y su
+ * estado a la vista, y las pantallas largas se parten en pestañas de segundo
+ * nivel: la idea es que se lea de un vistazo qué está prendido y qué falta.
+ *
+ * Todo se dibuja con lo que declaran las clases: los tipos de método, los campos
+ * de cada correo, el catálogo de datos del cliente, los estados de pedido de la
+ * tienda. Sumar una opción nueva es declararla ahí, no tocar este archivo.
  */
 
 defined('ABSPATH') || exit;
@@ -20,6 +26,9 @@ defined('ABSPATH') || exit;
 class MJE_Admin {
 
 	const SLUG = 'mj-envios';
+
+	/** Tope del CSV de códigos postales. Más que esto es un archivo equivocado. */
+	const CSV_MAX_BYTES = 8388608;
 
 	public static function init() {
 		add_action('admin_menu', [__CLASS__, 'menu']);
@@ -35,6 +44,7 @@ class MJE_Admin {
 		add_action('admin_post_mje_save_settings', [__CLASS__, 'save_settings']);
 		add_action('admin_post_mje_save_carrier', [__CLASS__, 'save_carrier']);
 		add_action('admin_post_mje_sync_branches', [__CLASS__, 'sync_branches']);
+		add_action('admin_post_mje_add_to_zone', [__CLASS__, 'add_to_zone']);
 		add_action('admin_post_mje_save_branch', [__CLASS__, 'save_branch']);
 		add_action('admin_post_mje_delete_branch', [__CLASS__, 'delete_branch']);
 		add_action('admin_post_mje_import_geo', [__CLASS__, 'import_geo']);
@@ -104,9 +114,14 @@ class MJE_Admin {
 				'settings' => 'Ajustes guardados.',
 				'carrier'  => 'Correo guardado.',
 				'branches' => 'Sucursales actualizadas.',
+				'zone'     => 'Listo: el método del correo quedó agregado a la zona. Revisá su configuración en WooCommerce → Ajustes → Envío.',
 				'branch'   => 'Sucursal guardada.',
 				'geo'      => 'Códigos postales actualizados.',
 				'quotes'   => 'Caché de cotizaciones vaciada.',
+				'tracking' => sprintf(
+					'%s envíos con seguimiento cargado.',
+					number_format_i18n(isset($_GET['cuenta']) ? absint(wp_unslash($_GET['cuenta'])) : 0)
+				),
 			];
 			if (isset($messages[$saved])) {
 				echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($messages[$saved]) . '</p></div>';
@@ -121,8 +136,11 @@ class MJE_Admin {
 	/* -------------------------------- Marco ------------------------------ */
 
 	private static function tabs() {
+		$pending = MJE_Shipments::pending_count();
+
 		return [
 			'metodos' => 'Métodos',
+			'envios'  => $pending > 0 ? sprintf('Envíos (%s)', number_format_i18n($pending)) : 'Envíos',
 			'datos'   => 'Datos del cliente',
 			'cp'      => 'Códigos postales',
 			'correos' => 'Correos',
@@ -152,6 +170,9 @@ class MJE_Admin {
 		echo '</nav>';
 
 		switch ($tab) {
+			case 'envios':
+				self::screen_shipments();
+				break;
 			case 'datos':
 				self::screen_fields();
 				break;
@@ -223,6 +244,226 @@ class MJE_Admin {
 			checked((bool) $checked, true, false),
 			esc_html($label)
 		);
+	}
+
+	/* ------------------------------- Envíos ------------------------------ */
+
+	/**
+	 * Qué hay para despachar.
+	 *
+	 * Una sola pantalla con los pedidos que esperan salir, con qué correo va
+	 * cada uno y a dónde, y el campo para cargarle el seguimiento sin abrir el
+	 * pedido. Se cargan los que tengas a mano y se guarda una vez.
+	 */
+	private static function screen_shipments() {
+		$views = MJE_Shipments::filters();
+		$view  = self::current_view($views);
+		self::subnav('envios', $views, $view);
+
+		$carrier = isset($_GET['correo']) ? sanitize_key(wp_unslash($_GET['correo'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification -- Solo filtra la lista.
+		$method  = isset($_GET['metodo']) ? sanitize_key(wp_unslash($_GET['metodo'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		$page    = isset($_GET['pagina']) ? absint(wp_unslash($_GET['pagina'])) : 1; // phpcs:ignore WordPress.Security.NonceVerification
+
+		self::shipment_filters($view, $carrier, $method);
+
+		$result = MJE_Shipments::query($view, $page, $carrier, $method);
+		if (!$result['orders']) {
+			echo '<div class="mje-empty"><p>';
+			echo 'pendientes' === $view
+				? esc_html('No hay nada esperando salir. Todo lo que está para despachar ya tiene su número de seguimiento.')
+				: esc_html('No hay envíos con esos filtros.');
+			echo '</p></div>';
+			return;
+		}
+
+		echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+		wp_nonce_field('mje_save_tracking');
+		echo '<input type="hidden" name="action" value="mje_save_tracking">';
+		echo '<input type="hidden" name="vista" value="' . esc_attr($view) . '">';
+
+		echo '<table class="widefat striped mje-shipments"><thead><tr>';
+		echo '<th>Pedido</th><th>Cliente</th><th>Cómo va</th><th>A dónde</th><th>Estado</th><th>Espera</th><th>Seguimiento</th>';
+		echo '</tr></thead><tbody>';
+
+		foreach ($result['orders'] as $order) {
+			if (!$order instanceof WC_Order) {
+				continue;
+			}
+			$row = MJE_Shipments::row($order);
+			echo '<tr>';
+
+			printf(
+				'<td><a href="%s"><strong>#%s</strong></a><span class="mje-dest">%s</span></td>',
+				esc_url($order->get_edit_order_url()),
+				esc_html($order->get_order_number()),
+				esc_html(wc_format_datetime($order->get_date_created(), 'd/m/Y'))
+			);
+
+			printf(
+				'<td>%s<span class="mje-dest">%s</span></td>',
+				esc_html(trim($order->get_formatted_billing_full_name())),
+				esc_html($order->get_billing_phone())
+			);
+
+			printf(
+				'<td>%s<span class="mje-dest">%s</span></td>',
+				esc_html($row['method']),
+				esc_html($row['carrier'])
+			);
+
+			printf(
+				'<td>%s%s</td>',
+				esc_html($row['destination']),
+				'' !== $row['branch'] ? '<span class="mje-dest">' . esc_html($row['branch']) . '</span>' : ''
+			);
+
+			printf('<td>%s</td>', esc_html(wc_get_order_status_name($order->get_status())));
+
+			printf(
+				'<td class="mje-age%s">%s</td>',
+				MJE_Shipments::is_late($row) ? ' is-late' : '',
+				esc_html(0 === $row['days'] ? 'hoy' : sprintf('%d días', $row['days']))
+			);
+
+			echo '<td>';
+			if ('' !== $row['tracking']) {
+				printf('<code>%s</code>', esc_html($row['tracking']));
+				if ('' !== $row['link']) {
+					printf(' <a href="%s" target="_blank" rel="noopener">Ver</a>', esc_url($row['link']));
+				}
+			} else {
+				printf(
+					'<input type="text" name="tracking[%d]" value="" placeholder="%s">',
+					(int) $order->get_id(),
+					esc_attr('Número del correo')
+				);
+			}
+			echo '</td></tr>';
+		}
+
+		echo '</tbody></table>';
+
+		echo '<p>';
+		echo self::checkbox_input('notify', 1, 'Avisarle al cliente por email cuando se guarde'); // phpcs:ignore WordPress.Security.EscapeOutput -- Ya escapado.
+		echo '</p>';
+		submit_button('Guardar los seguimientos');
+		echo '</form>';
+
+		self::shipment_pagination($result, $view, $carrier, $method, $page);
+	}
+
+	/** Filtros de la lista de envíos: por correo y por método. */
+	private static function shipment_filters($view, $carrier, $method) {
+		$carriers = ['' => 'Todos los correos'];
+		foreach (MJE_Native::all() as $id => $plugin) {
+			$carriers[$id] = $plugin->label();
+		}
+		foreach (MJE_Carriers::all() as $id => $own) {
+			if (!isset($carriers[$id])) {
+				$carriers[$id] = $own->label();
+			}
+		}
+
+		$methods = ['' => 'Todos los métodos'];
+		foreach (MJE_Methods::all() as $slug => $def) {
+			$methods[$slug] = MJE_Methods::name($def);
+		}
+
+		echo '<form method="get" class="mje-filters">';
+		echo '<input type="hidden" name="page" value="' . esc_attr(self::SLUG) . '">';
+		echo '<input type="hidden" name="tab" value="envios">';
+		echo '<input type="hidden" name="vista" value="' . esc_attr($view) . '">';
+		echo '<div><label for="mje-f-correo">Correo</label>' . self::select_input('correo', $carriers, $carrier, 'id="mje-f-correo"') . '</div>';
+		echo '<div><label for="mje-f-metodo">Método</label>' . self::select_input('metodo', $methods, $method, 'id="mje-f-metodo"') . '</div>';
+		echo '<div><button type="submit" class="button">Filtrar</button></div>';
+		echo '</form>';
+	}
+
+	private static function shipment_pagination(array $result, $view, $carrier, $method, $page) {
+		if ($result['pages'] < 2) {
+			return;
+		}
+		$links = paginate_links([
+			'base'      => self::page_url(['tab' => 'envios', 'vista' => $view, 'correo' => $carrier, 'metodo' => $method, 'pagina' => '%#%']),
+			'format'    => '',
+			'current'   => max(1, (int) $page),
+			'total'     => (int) $result['pages'],
+			'prev_text' => '‹',
+			'next_text' => '›',
+		]);
+		if ($links) {
+			printf(
+				'<div class="tablenav"><div class="tablenav-pages">%s <span class="displaying-num">%s envíos</span></div></div>',
+				wp_kses_post($links),
+				esc_html(number_format_i18n($result['total']))
+			);
+		}
+	}
+
+	/* ---------------------------- Tarjetas ------------------------------- */
+
+	/**
+	 * Abre una tarjeta.
+	 *
+	 * Cada bloque de configuración es una tarjeta con su título, su ayuda y su
+	 * estado a la vista. Es lo que hace que la pantalla se lea de un vistazo en
+	 * lugar de ser una tira de títulos y tablas.
+	 */
+	private static function panel($title, $subtitle = '', $aside = '', $class = '') {
+		printf('<section class="mje-panel%s"><div class="mje-panel-head"><h2>%s</h2>', '' !== $class ? ' ' . esc_attr($class) : '', esc_html($title));
+		if ('' !== $aside) {
+			echo '<div class="mje-panel-aside">' . wp_kses_post($aside) . '</div>';
+		}
+		if ('' !== $subtitle) {
+			echo '<p class="mje-panel-sub">' . wp_kses_post($subtitle) . '</p>';
+		}
+		echo '</div><div class="mje-panel-body">';
+	}
+
+	/** Cierra la tarjeta, con un pie opcional para los botones. */
+	private static function panel_end($footer = '') {
+		echo '</div>';
+		if ('' !== $footer) {
+			echo '<div class="mje-panel-foot">' . $footer . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- HTML ya escapado por quien lo arma.
+		}
+		echo '</section>';
+	}
+
+	/** Una etiqueta de estado: ok, warn, bad, info u off. */
+	private static function pill($text, $tone = 'off') {
+		return sprintf('<span class="mje-pill is-%s">%s</span>', esc_attr($tone), esc_html($text));
+	}
+
+	/** Datos de solo lectura, en dos columnas: etiqueta arriba, valor abajo. */
+	private static function facts(array $rows) {
+		if (!$rows) {
+			return;
+		}
+		echo '<dl class="mje-facts">';
+		foreach ($rows as $row) {
+			printf('<div><dt>%s</dt><dd>%s</dd></div>', esc_html($row['label']), esc_html($row['value']));
+		}
+		echo '</dl>';
+	}
+
+	/** Pestañas de segundo nivel dentro de una pestaña. */
+	private static function subnav($tab, array $views, $current) {
+		echo '<nav class="mje-subnav">';
+		foreach ($views as $slug => $label) {
+			printf(
+				'<a href="%s" class="%s">%s</a>',
+				esc_url(self::page_url(['tab' => $tab, 'vista' => $slug])),
+				$slug === $current ? 'is-active' : '',
+				esc_html($label)
+			);
+		}
+		echo '</nav>';
+	}
+
+	/** La vista elegida dentro de una pestaña, con la primera como default. */
+	private static function current_view(array $views) {
+		$view = isset($_GET['vista']) ? sanitize_key(wp_unslash($_GET['vista'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification -- Solo elige qué se muestra.
+		return isset($views[$view]) ? $view : (string) key($views);
 	}
 
 	/* ----------------------------- Métodos ------------------------------- */
@@ -373,6 +614,23 @@ class MJE_Admin {
 		);
 		echo '</table></div>';
 
+		/* Correo con su propio plugin */
+		echo '<div class="mje-when" data-when="nativo"><table class="form-table">';
+		$natives = MJE_Native::choices();
+		self::row(
+			'Correo conectado',
+			self::select_input('def[native_plugin]', ['' => '— Elegir —'] + $natives, $def['native_plugin']),
+			$natives
+				? 'El precio lo pone su plugin, con la cuenta que ya tenés conectada ahí. MJ Envíos no le vuelve a preguntar nada a su API.'
+				: 'No hay ningún correo con plugin propio instalado en esta tienda.'
+		);
+		self::row(
+			'Servicio',
+			self::text_input('def[native_service]', $def['native_service'], ['class' => 'regular-text', 'placeholder' => 'Envío a Domicilio']),
+			self::native_service_help($def)
+		);
+		echo '</table></div>';
+
 		/* Tabla de precios */
 		echo '<div class="mje-when" data-when="tabla">';
 		echo '<h4>Tabla de precios</h4>';
@@ -460,6 +718,29 @@ class MJE_Admin {
 		submit_button($is_new ? 'Crear método' : 'Guardar cambios');
 		echo ' <a href="' . esc_url(self::page_url(['tab' => 'metodos'])) . '" class="button-link">Volver a la lista</a>';
 		echo '</form>';
+	}
+
+	/**
+	 * La ayuda del campo "Servicio" de un correo con plugin.
+	 *
+	 * Los modos de entrega no son una lista fija: cada correo devuelve los suyos
+	 * según el contrato. Se muestran los que se vieron cotizar de verdad, que es
+	 * lo único que se puede afirmar sin inventar.
+	 */
+	private static function native_service_help(array $def) {
+		$plugin_id = (string) $def['native_plugin'];
+		$services  = '' !== $plugin_id ? MJE_Native::seen_services($plugin_id) : [];
+
+		$codes = [];
+		foreach (array_keys($services) as $service) {
+			if ('' !== (string) $service) {
+				$codes[] = '<code>' . esc_html($service) . '</code>';
+			}
+		}
+		if ($codes) {
+			return 'Servicios vistos cotizar: ' . implode(', ', $codes) . '. Vacío = el primero que ese correo devuelva.';
+		}
+		return 'Vacío = el primero que ese correo devuelva. Los nombres los pone el correo según tu contrato: se listan acá en cuanto cotice una vez.';
 	}
 
 	/** Casillas con los medios de pago activos de la tienda. */
@@ -656,15 +937,152 @@ class MJE_Admin {
 	/* ------------------------------- Correos ----------------------------- */
 
 	private static function screen_carriers() {
-		echo '<p class="mje-intro">Las credenciales de cada correo. Un correo sin credenciales queda apagado, y los métodos que lo usan cotizan con su tabla propia.</p>';
+		$views = [];
+		if (MJE_Native::any()) {
+			$views['conectados'] = 'Conectados por su plugin';
+		}
+		$views['propios']    = 'Configurados acá';
+		$views['sucursales'] = 'Sucursales';
+		$views['estado']     = 'Estado';
+
+		$view = self::current_view($views);
+		self::subnav('correos', $views, $view);
+
+		switch ($view) {
+			case 'propios':
+				self::screen_carriers_own();
+				break;
+			case 'sucursales':
+				self::screen_branches();
+				break;
+			case 'estado':
+				self::screen_carriers_status();
+				break;
+			default:
+				self::screen_carriers_native();
+		}
+	}
+
+	/* ------------------- Correos con su propio plugin -------------------- */
+
+	/**
+	 * Los correos que ya tienen su plugin oficial instalado.
+	 *
+	 * Acá no se pide ni una credencial: se muestra la cuenta que ya está
+	 * conectada en el plugin del correo y se avisa lo único que puede fallar,
+	 * que es que su método no esté en ninguna zona de envío. Sin eso su tarifa
+	 * no llega nunca al carrito y no hay nada que MJ Envíos pueda hacer.
+	 */
+	private static function screen_carriers_native() {
+		echo '<p class="mje-intro">Estos correos ya están conectados desde su propio plugin. MJ Envíos no les vuelve a pedir usuario ni clave: usa esa conexión, se queda con la tarifa que calculan y le aplica tus reglas.</p>';
+
+		foreach (MJE_Native::all() as $id => $plugin) {
+			$connected = $plugin->connected();
+			$in_zone   = $plugin->in_any_zone();
+			$aside     = $connected
+				? ($in_zone ? self::pill('conectado', 'ok') : self::pill('fuera de las zonas', 'warn'))
+				: self::pill('sin conectar', 'bad');
+
+			$link = $plugin->settings_url();
+			self::panel(
+				$plugin->label(),
+				'' !== $link ? sprintf('Se configura en <a href="%s">su propia pantalla</a>.', esc_url($link)) : '',
+				$aside
+			);
+
+			if (!$connected) {
+				echo '<p>Su plugin está instalado pero la cuenta todavía no está conectada. Cargá sus credenciales en la pantalla del correo y volvé acá.</p>';
+				self::panel_end('' !== $link ? sprintf('<a href="%s" class="button button-primary">Ir a configurarlo</a>', esc_url($link)) : '');
+				continue;
+			}
+
+			self::facts($plugin->summary());
+
+			/* Dónde está su método: es lo que decide si su tarifa llega al carrito. */
+			$instances = $plugin->zone_instances();
+			if ($instances) {
+				echo '<p><strong>Zonas de envío:</strong></p><ul class="mje-note">';
+				foreach ($instances as $instance) {
+					printf(
+						'<li>%s — %s · <a href="%s">Ver</a></li>',
+						esc_html('' !== $instance['zone'] ? $instance['zone'] : 'Resto del mundo'),
+						$instance['enabled'] ? 'encendido' : 'apagado',
+						esc_url($instance['url'])
+					);
+				}
+				echo '</ul>';
+			}
+
+			if (!$in_zone) {
+				echo '<p><strong>Su método no está en ninguna zona encendida.</strong> Hasta que lo agregues, este correo no cotiza y sus métodos caen al respaldo que elegiste en Ajustes.</p>';
+				self::zone_form($id);
+			}
+
+			/* Qué métodos de MJ Envíos están usando este correo. */
+			$links = [];
+			foreach (MJE_Methods::all() as $def) {
+				if ('nativo' !== (string) $def['type'] || (string) $def['native_plugin'] !== $id) {
+					continue;
+				}
+				$links[] = sprintf(
+					'<a href="%s">%s</a>%s',
+					esc_url(self::page_url(['tab' => 'metodos', 'metodo' => $def['slug']])),
+					esc_html(MJE_Methods::name($def)),
+					empty($def['enabled']) ? ' ' . self::pill('apagado', 'off') : ''
+				);
+			}
+			if ($links) {
+				echo '<p><strong>Métodos que lo usan:</strong> ' . wp_kses_post(implode(' · ', $links)) . '</p>';
+			} else {
+				echo '<p class="mje-note">Todavía ningún método usa este correo. Se crean solos la primera vez que cotiza, si dejaste encendida la adopción automática en Ajustes.</p>';
+			}
+
+			$count = count(MJE_Carriers::stored_branches(MJE_Native::carrier_key($id)));
+			self::panel_end(sprintf(
+				'<span class="mje-note">%s sucursales guardadas de este correo.</span>',
+				esc_html(number_format_i18n($count))
+			));
+		}
+	}
+
+	/** Agregar el método del correo a una zona de envío, sin salir de acá. */
+	private static function zone_form($plugin_id) {
+		if (!class_exists('WC_Shipping_Zones')) {
+			return;
+		}
+		$zones = [];
+		foreach (WC_Shipping_Zones::get_zones() as $zone) {
+			$zones[(int) $zone['id']] = (string) $zone['zone_name'];
+		}
+		if (!$zones) {
+			echo '<p class="mje-note">Todavía no hay ninguna zona de envío creada en WooCommerce.</p>';
+			return;
+		}
+		echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="mje-inline">';
+		wp_nonce_field('mje_add_to_zone');
+		echo '<input type="hidden" name="action" value="mje_add_to_zone">';
+		echo '<input type="hidden" name="plugin" value="' . esc_attr($plugin_id) . '">';
+		echo self::select_input('zone', $zones, (string) key($zones));
+		submit_button('Agregarlo a esta zona', 'secondary', 'submit', false);
+		echo '</form>';
+	}
+
+	/* --------------------- Correos configurados acá ---------------------- */
+
+	private static function screen_carriers_own() {
+		echo '<p class="mje-intro">Para los correos que no tienen plugin propio. Un correo sin credenciales queda apagado, y los métodos que lo usan cotizan con su tabla propia.</p>';
 
 		foreach (MJE_Carriers::all() as $id => $carrier) {
 			$connected = $carrier->connected();
-			printf(
-				'<h3>%s %s</h3>',
-				esc_html($carrier->label()),
-				$connected ? '<span class="mje-on">conectado</span>' : '<span class="mje-off">sin conectar</span>'
+			$native    = MJE_Native::get($id);
+
+			self::panel(
+				$carrier->label(),
+				$native ? 'Este correo ya está conectado por su plugin oficial: no hace falta cargar nada acá, salvo que quieras usar otra cuenta.' : '',
+				$connected ? self::pill('conectado', 'ok') : self::pill('sin conectar', 'off'),
+				$native ? 'is-warning' : ''
 			);
+
 			echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
 			wp_nonce_field('mje_save_carrier');
 			echo '<input type="hidden" name="action" value="mje_save_carrier">';
@@ -673,34 +1091,71 @@ class MJE_Admin {
 			foreach ($carrier->fields() as $key => $field) {
 				$value = $carrier->config($key);
 				$type  = isset($field['type']) ? $field['type'] : 'text';
+				$help  = isset($field['help']) ? (string) $field['help'] : '';
+
 				if ('select' === $type) {
 					$html = self::select_input(sprintf('config[%s]', $key), isset($field['options']) ? $field['options'] : [], $value);
 				} elseif ('checkbox' === $type) {
 					$html = self::checkbox_input(sprintf('config[%s]', $key), $value, 'Sí');
+				} elseif ('password' === $type) {
+					/*
+					 * Una clave guardada NO se reimprime en el HTML: viajaría en
+					 * claro en cada carga de la pantalla. Se muestra vacía, y
+					 * dejarla vacía conserva la que ya está (ver save_carrier).
+					 */
+					$saved = '' !== (string) $value;
+					$html  = self::text_input(sprintf('config[%s]', $key), '', [
+						'type'         => 'password',
+						'class'        => 'regular-text',
+						'autocomplete' => 'new-password',
+						'placeholder'  => $saved ? 'Guardada' : '',
+					]);
+					if ($saved) {
+						$help = trim($help . ' Ya hay una clave guardada: dejalo vacío para no cambiarla.');
+					}
 				} else {
 					$html = self::text_input(sprintf('config[%s]', $key), $value, [
-						'type'        => 'password' === $type ? 'password' : 'text',
+						'type'        => 'text',
 						'class'       => 'regular-text',
 						'placeholder' => isset($field['default']) ? (string) $field['default'] : '',
 					]);
 				}
-				$label = (string) $field['label'] . (!empty($field['required']) ? ' *' : '');
-				self::row($label, $html, isset($field['help']) ? $field['help'] : '');
+				self::row((string) $field['label'] . (!empty($field['required']) ? ' *' : ''), $html, $help);
 			}
-			echo '</table>';
+			echo '</table></div><div class="mje-panel-foot">';
 			submit_button('Guardar ' . $carrier->label(), 'secondary', 'submit', false);
-			echo '</form>';
+			echo '</form></div></section>';
+		}
+	}
 
-			/* Sucursales guardadas de este correo. */
-			$branches = MJE_Carriers::stored_branches($id);
-			printf('<p><strong>%s</strong> sucursales guardadas.', esc_html(number_format_i18n(count($branches))));
-			if ($connected) {
-				printf(
-					' <a href="%s" class="button button-small">Traer las sucursales del correo</a>',
-					esc_url(wp_nonce_url(admin_url('admin-post.php?action=mje_sync_branches&carrier=' . $id), 'mje_sync_' . $id))
-				);
-			}
-			echo '</p>';
+	/* ------------------------------ Sucursales --------------------------- */
+
+	private static function screen_branches() {
+		echo '<p class="mje-intro">Las sucursales que se le ofrecen al cliente cuando el envío se retira por el correo. Se traen una vez y quedan guardadas: el checkout nunca depende de que el correo esté funcionando.</p>';
+
+		$sources = self::branch_sources();
+		if (!$sources) {
+			echo '<div class="mje-empty"><p>Todavía no hay ningún correo del que traer sucursales.</p></div>';
+			return;
+		}
+
+		self::panel('Traer sucursales', 'Andreani y Correo Argentino las publican por zona, así que hace falta un código postal para pedirlas.');
+		echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="mje-inline">';
+		wp_nonce_field('mje_sync_branches');
+		echo '<input type="hidden" name="action" value="mje_sync_branches">';
+		echo self::select_input('carrier', $sources, (string) key($sources));
+		echo self::text_input('cp', '', ['class' => 'small-text', 'placeholder' => 'CP']);
+		submit_button('Traerlas', 'secondary', 'submit', false);
+		echo '</form>';
+		self::panel_end();
+
+		foreach ($sources as $carrier_key => $label) {
+			$branches = MJE_Carriers::stored_branches($carrier_key);
+			self::panel(
+				$label,
+				'',
+				self::pill(sprintf('%s guardadas', number_format_i18n(count($branches))), $branches ? 'info' : 'off')
+			);
 
 			if ($branches) {
 				echo '<table class="widefat striped"><thead><tr><th>Código</th><th>Nombre</th><th>Dirección</th><th>Localidad</th><th>CP</th><th></th></tr></thead><tbody>';
@@ -712,38 +1167,61 @@ class MJE_Admin {
 						esc_html($branch['address']),
 						esc_html($branch['city']),
 						esc_html($branch['postcode']),
-						esc_url(wp_nonce_url(admin_url('admin-post.php?action=mje_delete_branch&carrier=' . $id . '&code=' . rawurlencode($branch['code'])), 'mje_branch_' . $id))
+						esc_url(wp_nonce_url(admin_url('admin-post.php?action=mje_delete_branch&carrier=' . rawurlencode($carrier_key) . '&code=' . rawurlencode($branch['code'])), 'mje_branch_' . $carrier_key))
 					);
 				}
 				echo '</tbody></table>';
 				if (count($branches) > 20) {
 					printf('<p class="description">Se muestran 20 de %s.</p>', esc_html(number_format_i18n(count($branches))));
 				}
+			} else {
+				echo '<p class="mje-note">Todavía no hay ninguna guardada.</p>';
 			}
 
-			echo '<h4>Agregar una sucursal a mano</h4>';
+			echo '<h4>Agregar una a mano</h4>';
 			echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="mje-inline">';
 			wp_nonce_field('mje_save_branch');
 			echo '<input type="hidden" name="action" value="mje_save_branch">';
-			echo '<input type="hidden" name="carrier" value="' . esc_attr($id) . '">';
+			echo '<input type="hidden" name="carrier" value="' . esc_attr($carrier_key) . '">';
 			echo self::text_input('branch[code]', '', ['class' => 'small-text', 'placeholder' => 'Código']) . ' ';
 			echo self::text_input('branch[name]', '', ['class' => 'regular-text', 'placeholder' => 'Nombre']) . ' ';
 			echo self::text_input('branch[address]', '', ['class' => 'regular-text', 'placeholder' => 'Dirección']) . ' ';
 			echo self::text_input('branch[city]', '', ['class' => 'regular-text', 'placeholder' => 'Localidad']) . ' ';
 			echo self::text_input('branch[postcode]', '', ['class' => 'small-text', 'placeholder' => 'CP']) . ' ';
 			submit_button('Agregar', 'secondary', 'submit', false);
-			echo '</form><hr>';
+			echo '</form>';
+			self::panel_end();
 		}
+	}
 
+	/** De dónde pueden salir sucursales: los correos con plugin y los propios. */
+	private static function branch_sources() {
+		$sources = [];
+		foreach (MJE_Native::all() as $id => $plugin) {
+			$sources[MJE_Native::carrier_key($id)] = $plugin->label() . ' (por su plugin)';
+		}
+		foreach (MJE_Carriers::all() as $id => $carrier) {
+			$sources[$id] = $carrier->label();
+		}
+		return $sources;
+	}
+
+	/* -------------------------------- Estado ----------------------------- */
+
+	private static function screen_carriers_status() {
+		self::panel('Caché de cotizaciones', 'El mismo destino y peso no se le pregunta dos veces al correo. Vaciala si cambiaste precios o contratos y querés ver el efecto ya.');
 		echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="mje-inline">';
 		wp_nonce_field('mje_clear_quotes');
 		echo '<input type="hidden" name="action" value="mje_clear_quotes">';
-		echo '<button type="submit" class="button">Vaciar la caché de cotizaciones</button>';
+		echo '<button type="submit" class="button">Vaciar la caché</button>';
 		echo '</form>';
+		self::panel_end();
 
 		$log = get_option('mje_log', []);
-		if (is_array($log) && $log) {
-			echo '<h3>Últimos errores</h3><table class="widefat striped"><thead><tr><th>Cuándo</th><th>Dónde</th><th>Qué pasó</th></tr></thead><tbody>';
+		$log = is_array($log) ? $log : [];
+		self::panel('Últimos errores', 'Lo que contestaron los correos cuando algo falló.', self::pill(count($log) . ' anotados', $log ? 'warn' : 'off'));
+		if ($log) {
+			echo '<table class="widefat striped"><thead><tr><th>Cuándo</th><th>Dónde</th><th>Qué pasó</th></tr></thead><tbody>';
 			foreach (array_reverse(array_slice($log, -15)) as $line) {
 				printf(
 					'<tr><td>%s</td><td>%s</td><td>%s</td></tr>',
@@ -753,25 +1231,125 @@ class MJE_Admin {
 				);
 			}
 			echo '</tbody></table>';
+		} else {
+			echo '<p class="mje-note">Ningún error anotado.</p>';
 		}
+		self::panel_end();
 	}
 
 	/* ------------------------------- Ajustes ----------------------------- */
 
 	private static function screen_settings() {
+		$views = [
+			'general'    => 'General',
+			'origen'     => 'Origen',
+			'paquete'    => 'Peso y medidas',
+			'precio'     => 'Precio',
+			'cotizacion' => 'Cotización',
+			'cp'         => 'Código postal',
+			'textos'     => 'Textos',
+			'avisos'     => 'Avisos',
+		];
+		$view = self::current_view($views);
+		self::subnav('ajustes', $views, $view);
+
 		$s = MJE_Settings::get();
 		echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
 		wp_nonce_field('mje_save_settings');
 		echo '<input type="hidden" name="action" value="mje_save_settings">';
+		echo '<input type="hidden" name="vista" value="' . esc_attr($view) . '">';
 
-		echo '<h3>General</h3><table class="form-table">';
-		self::row('Envíos', self::checkbox_input('settings[enabled]', $s['enabled'], 'MJ Envíos calcula los envíos de la tienda'));
-		self::row('Zonas de WooCommerce', self::checkbox_input('settings[replace_native]', $s['replace_native'], 'Cuando hay métodos propios, no mostrar las tarifas de las zonas de WooCommerce'), 'Apagado, las dos listas se muestran juntas.');
-		echo '</table>';
+		switch ($view) {
+			case 'origen':
+				self::settings_origin($s);
+				break;
+			case 'paquete':
+				self::settings_package($s);
+				break;
+			case 'precio':
+				self::settings_price($s);
+				break;
+			case 'cotizacion':
+				self::settings_quoting($s);
+				break;
+			case 'cp':
+				self::settings_geo($s);
+				break;
+			case 'textos':
+				self::settings_texts($s);
+				break;
+			case 'avisos':
+				self::settings_notices($s);
+				break;
+			default:
+				self::settings_general($s);
+		}
 
-		echo '<h3>Desde dónde despachás</h3>';
-		echo '<p class="description">Sin el código postal de origen, ningún correo puede cotizar.</p>';
+		submit_button('Guardar ajustes');
+		echo '</form>';
+	}
+
+	/** Abre una tarjeta con una tabla de formulario adentro. */
+	private static function settings_panel($title, $subtitle = '', $aside = '') {
+		self::panel($title, $subtitle, $aside);
 		echo '<table class="form-table">';
+	}
+
+	private static function settings_panel_end() {
+		echo '</table>';
+		self::panel_end();
+	}
+
+	/* ------------------------------- General ----------------------------- */
+
+	private static function settings_general(array $s) {
+		self::settings_panel(
+			'Quién calcula los envíos',
+			'',
+			$s['enabled'] ? self::pill('encendido', 'ok') : self::pill('apagado', 'off')
+		);
+		self::row('Envíos', self::checkbox_input('settings[enabled]', $s['enabled'], 'MJ Envíos calcula los envíos de la tienda'));
+		self::row(
+			'Zonas de WooCommerce',
+			self::checkbox_input('settings[replace_native]', $s['replace_native'], 'Cuando hay métodos propios, no mostrar las tarifas de las zonas'),
+			'Las zonas se siguen usando para que los correos con plugin propio coticen; lo que cambia es qué ve el cliente. Apagado, las dos listas se muestran juntas (menos las tarifas que ya quedaron envueltas en un método propio, que nunca se duplican).'
+		);
+		self::settings_panel_end();
+
+		$natives = MJE_Native::choices();
+		self::settings_panel(
+			'Correos conectados por su plugin',
+			$natives
+				? 'Instalados en esta tienda: ' . esc_html(implode(', ', $natives)) . '.'
+				: 'Todavía no hay ninguno instalado. Cuando instales el plugin oficial de un correo, aparece acá solo.',
+			$natives ? self::pill(count($natives) . ' conectados', 'info') : self::pill('ninguno', 'off')
+		);
+		self::row(
+			'Adopción automática',
+			self::checkbox_input('settings[native_adopt]', $s['native_adopt'], 'Cada servicio del correo que cotiza queda como método propio'),
+			'Es lo que hace que conectar un correo alcance: sus modos de entrega aparecen solos en la lista de métodos, con tus reglas ya aplicadas, y desde ahí les cambiás el nombre, el orden o las condiciones. Apagado, los métodos se cargan a mano.'
+		);
+		self::settings_panel_end();
+
+		self::settings_panel('Carteles de la lista', 'Lo que se le marca al cliente en el checkout para que elija sin pensar.');
+		self::row('Mostrarlos', self::checkbox_input('settings[badges_enabled]', $s['badges_enabled'], 'Marcar el envío más barato y el más rápido'), 'Solo aparecen cuando hay con qué comparar y hay un ganador claro: con dos envíos al mismo precio no se marca nada.');
+		self::row('Más barato', self::text_input('settings[badge_cheapest]', $s['badge_cheapest'], ['class' => 'regular-text']));
+		self::row('Más rápido', self::text_input('settings[badge_fastest]', $s['badge_fastest'], ['class' => 'regular-text']));
+		self::settings_panel_end();
+
+		self::settings_panel('MJ ERP');
+		self::row('Costo del correo', self::checkbox_input('settings[erp_cost]', $s['erp_cost'], 'Guardar en el pedido lo que cobró el correo, además de lo que pagó el cliente'), 'Es la diferencia entre lo que cobrás por el envío y lo que te cuesta.');
+		self::settings_panel_end();
+	}
+
+	/* -------------------------------- Origen ----------------------------- */
+
+	private static function settings_origin(array $s) {
+		self::settings_panel(
+			'Desde dónde despachás',
+			'Sin el código postal de origen, ningún correo puede cotizar.',
+			MJE_Settings::origin_ready() ? self::pill('completo', 'ok') : self::pill('falta el CP', 'warn')
+		);
 		self::row('Nombre o razón social', self::text_input('settings[origin_name]', $s['origin_name']));
 		self::row('Dirección', self::text_input('settings[origin_address]', $s['origin_address'], ['class' => 'large-text']));
 		self::row('Piso, depto o referencia', self::text_input('settings[origin_extra]', $s['origin_extra']));
@@ -781,12 +1359,14 @@ class MJE_Admin {
 		self::row('País', self::text_input('settings[origin_country]', $s['origin_country'], ['class' => 'small-text', 'placeholder' => 'AR']), 'Vacío = el país base de la tienda.');
 		self::row('Teléfono', self::text_input('settings[origin_phone]', $s['origin_phone']));
 		self::row('Email', self::text_input('settings[origin_email]', $s['origin_email']));
-		self::row('Sucursal de despacho', self::text_input('settings[origin_branch]', $s['origin_branch']), 'Si el correo la pide.');
-		echo '</table>';
+		self::row('Sucursal de despacho', self::text_input('settings[origin_branch]', $s['origin_branch']), 'Si el correo la pide. Los correos con plugin propio usan la que esté configurada en su pantalla.');
+		self::settings_panel_end();
+	}
 
-		echo '<h3>Peso y medidas</h3>';
-		echo '<p class="description">Se usa el peso cargado en cada producto. Esto es para lo que no lo tenga: también se puede poner un peso por defecto por producto y por categoría.</p>';
-		echo '<table class="form-table">';
+	/* ----------------------------- Peso y medidas ------------------------ */
+
+	private static function settings_package(array $s) {
+		self::settings_panel('Peso y medidas', 'Se usa el peso cargado en cada producto. Esto es para lo que no lo tenga: también se puede poner un peso por defecto por producto y por categoría.');
 		self::row('Peso por defecto', self::text_input('settings[weight_default]', $s['weight_default'], ['class' => 'small-text']), 'Por unidad, en ' . esc_html(get_option('woocommerce_weight_unit', 'kg')) . '.');
 		self::row('Peso del embalaje', self::text_input('settings[weight_extra]', $s['weight_extra'], ['class' => 'small-text']), 'Se suma una vez por paquete.');
 		self::row('Peso mínimo del paquete', self::text_input('settings[weight_min]', $s['weight_min'], ['class' => 'small-text']));
@@ -794,33 +1374,54 @@ class MJE_Admin {
 		self::row('Medidas del bulto (cm)', self::text_input('settings[dim_length]', $s['dim_length'], ['class' => 'small-text', 'placeholder' => 'largo']) . ' ' . self::text_input('settings[dim_width]', $s['dim_width'], ['class' => 'small-text', 'placeholder' => 'ancho']) . ' ' . self::text_input('settings[dim_height]', $s['dim_height'], ['class' => 'small-text', 'placeholder' => 'alto']), 'Para los productos sin medidas cargadas.');
 		self::row('Con varios productos', self::select_input('settings[dim_stack]', ['alto' => 'Se apilan: suma el alto', 'mayor' => 'Se toma la medida más grande'], $s['dim_stack']));
 		self::row('Divisor de peso volumétrico', self::text_input('settings[volumetric]', $s['volumetric'], ['class' => 'small-text']), 'Si el correo cobra por volumen: largo × ancho × alto ÷ este número. 0 = no se usa.');
-		echo '</table>';
+		self::settings_panel_end();
+	}
 
-		echo '<h3>Precio</h3><table class="form-table">';
+	/* -------------------------------- Precio ----------------------------- */
+
+	private static function settings_price(array $s) {
+		self::settings_panel('Precio final', 'Se aplica en este orden sobre lo que salga del correo o de la tabla, y vale también para los correos con plugin propio.');
 		self::row('Margen (%)', self::text_input('settings[markup_pct]', $s['markup_pct'], ['class' => 'small-text']), 'Se suma al costo del correo: manipuleo, embalaje.');
 		self::row('Margen fijo', self::text_input('settings[markup_fixed]', $s['markup_fixed'], ['class' => 'small-text']));
 		self::row('Seguro (%)', self::text_input('settings[insurance_pct]', $s['insurance_pct'], ['class' => 'small-text']), 'Sobre el valor declarado.');
 		self::row('Valor declarado', self::select_input('settings[declared_value]', MJE_Settings::declared_choices(), $s['declared_value']) . ' ' . self::text_input('settings[declared_pct]', $s['declared_pct'], ['class' => 'small-text']));
 		self::row('Precio mínimo', self::text_input('settings[min_cost]', $s['min_cost'], ['class' => 'small-text']));
 		self::row('Redondeo', self::select_input('settings[rounding]', MJE_Settings::rounding_choices(), $s['rounding']) . ' ' . self::select_input('settings[rounding_mode]', ['nearest' => 'Al más cercano', 'up' => 'Siempre para arriba'], $s['rounding_mode']));
-		echo '</table>';
+		self::settings_panel_end();
 
-		echo '<h3>Envío gratis</h3><table class="form-table">';
+		self::settings_panel(
+			'Envío gratis',
+			'Vale para todos los métodos que lo permitan, incluidos los de los correos conectados.',
+			$s['free_enabled'] ? self::pill('activado', 'ok') : self::pill('apagado', 'off')
+		);
 		self::row('Envío gratis por monto', self::checkbox_input('settings[free_enabled]', $s['free_enabled'], 'Activado'));
 		self::row('Desde', self::text_input('settings[free_min]', $s['free_min'], ['class' => 'regular-text']), 'Subtotal del carrito. Es el número que anuncia la barra de la tienda.');
 		self::row('Solo estos métodos', self::text_input('settings[free_methods]', $s['free_methods'], ['class' => 'large-text', 'placeholder' => 'slugs separados por coma']), 'Vacío = todos los que lo permitan.');
 		self::row('Solo estas provincias', self::text_input('settings[free_states]', $s['free_states'], ['class' => 'large-text']));
 		self::row('Cómo se llama', self::text_input('settings[free_label]', $s['free_label'], ['class' => 'small-text']));
-		echo '</table>';
+		self::settings_panel_end();
+	}
 
-		echo '<h3>Cotización</h3><table class="form-table">';
-		self::row('Guardar las cotizaciones', self::text_input('settings[cache_hours]', $s['cache_hours'], ['type' => 'number', 'class' => 'small-text']) . ' horas', 'El mismo destino y peso no se pregunta dos veces. 0 = siempre preguntar.');
+	/* ------------------------------ Cotización --------------------------- */
+
+	private static function settings_quoting(array $s) {
+		self::settings_panel('Cuando se le pregunta al correo');
+		self::row('Guardar las cotizaciones', self::text_input('settings[cache_hours]', $s['cache_hours'], ['type' => 'number', 'class' => 'small-text']) . ' horas', 'El mismo destino y peso no se pregunta dos veces. 0 = siempre preguntar. Los correos con plugin propio tienen además su propia caché.');
 		self::row('Espera máxima', self::text_input('settings[timeout]', $s['timeout'], ['type' => 'number', 'class' => 'small-text']) . ' segundos');
-		self::row('Si el correo no responde', self::select_input('settings[on_error]', MJE_Settings::error_choices(), $s['on_error']));
+		self::row('Si el correo no responde', self::select_input('settings[on_error]', MJE_Settings::error_choices(), $s['on_error']), 'Vale igual para un correo propio que no contesta y para uno con plugin propio que no cotizó ese destino.');
 		self::row('Registrar los errores', self::checkbox_input('settings[log_errors]', $s['log_errors'], 'Guardar las últimas fallas para poder mirarlas'));
-		echo '</table>';
+		self::settings_panel_end();
 
-		echo '<h3>Código postal, provincia y localidad</h3><table class="form-table">';
+		self::settings_panel('Sucursales', 'Cómo se le ofrecen al cliente las sucursales del correo.');
+		self::row('Orden', self::select_input('settings[branch_sort]', MJE_Settings::branch_sort_choices(), $s['branch_sort']), 'Por cercanía se usa la distancia real cuando el correo publica las coordenadas de sus sucursales; si no, primero las del mismo código postal y después las de la misma localidad.');
+		self::row('Cuántas mostrar', self::text_input('settings[branch_max]', $s['branch_max'], ['type' => 'number', 'class' => 'small-text']), '0 = todas las que haya.');
+		self::settings_panel_end();
+	}
+
+	/* ---------------------------- Código postal -------------------------- */
+
+	private static function settings_geo(array $s) {
+		self::settings_panel('De dónde sale la localidad', 'El cliente pone el código postal y la tienda completa provincia y localidad sola. Siempre las puede corregir a mano.');
 		$providers = '<div class="mje-checklist">';
 		$active    = MJE_Geo::active_providers();
 		foreach (MJE_Geo::providers() as $slug => $label) {
@@ -839,48 +1440,77 @@ class MJE_Admin {
 		self::row('Largo del código postal', self::text_input('settings[cp_min_len]', $s['cp_min_len'], ['type' => 'number', 'class' => 'small-text', 'placeholder' => 'min']) . ' a ' . self::text_input('settings[cp_max_len]', $s['cp_max_len'], ['type' => 'number', 'class' => 'small-text', 'placeholder' => 'max']));
 		self::row('Exigencias', self::checkbox_input('settings[cp_required]', $s['cp_required'], 'El código postal es obligatorio') . '<br>' . self::checkbox_input('settings[cp_strict]', $s['cp_strict'], 'Además tiene que resolver a una localidad conocida'));
 		self::row('Aprender', self::checkbox_input('settings[geo_learn]', $s['geo_learn'], 'Guardar lo que elija el cliente para la próxima vez'));
-		echo '</table>';
+		self::settings_panel_end();
+	}
 
-		echo '<h3>Textos de la tienda</h3><table class="form-table">';
+	/* -------------------------------- Textos ----------------------------- */
+
+	private static function settings_texts(array $s) {
+		self::settings_panel('El paso de envío');
 		self::row('Título del paso', self::text_input('settings[step_title]', $s['step_title']));
 		self::row('Bajada del paso', self::text_input('settings[step_intro]', $s['step_intro'], ['class' => 'large-text']));
-		self::row('Código postal', self::text_input('settings[cp_label]', $s['cp_label']));
-		self::row('Ayuda del código postal', self::text_input('settings[cp_help]', $s['cp_help'], ['class' => 'large-text']));
-		self::row('Antes de cargar el CP', self::text_input('settings[cp_ask]', $s['cp_ask'], ['class' => 'large-text']));
-		self::row('CP que no reconocemos', self::text_input('settings[cp_invalid]', $s['cp_invalid'], ['class' => 'large-text']));
 		self::row('Sin envíos para el destino', self::textarea('settings[none_text]', $s['none_text'], 2));
 		self::row('Envío a coordinar', self::textarea('settings[coordinate_text]', $s['coordinate_text'], 2));
 		self::row('No se pudo cotizar', self::textarea('settings[error_text]', $s['error_text'], 2));
 		self::row('Plazo (de X a Y)', self::text_input('settings[eta_text]', $s['eta_text'], ['class' => 'large-text']), 'Marcas: <code>{min}</code> <code>{max}</code>.');
 		self::row('Plazo (un solo número)', self::text_input('settings[eta_text_one]', $s['eta_text_one'], ['class' => 'large-text']));
+		self::settings_panel_end();
+
+		self::settings_panel('Código postal y destino');
+		self::row('Código postal', self::text_input('settings[cp_label]', $s['cp_label']));
+		self::row('Ayuda del código postal', self::text_input('settings[cp_help]', $s['cp_help'], ['class' => 'large-text']));
+		self::row('Antes de cargar el CP', self::text_input('settings[cp_ask]', $s['cp_ask'], ['class' => 'large-text']));
+		self::row('CP que no reconocemos', self::text_input('settings[cp_invalid]', $s['cp_invalid'], ['class' => 'large-text']));
 		self::row('Sucursal', self::text_input('settings[branch_label]', $s['branch_label']));
 		self::row('Ayuda de la sucursal', self::text_input('settings[branch_help]', $s['branch_help'], ['class' => 'large-text']));
 		self::row('Retiro en el local', self::text_input('settings[pickup_label]', $s['pickup_label']));
-		echo '</table>';
+		self::settings_panel_end();
+	}
 
-		echo '<h3>Seguimiento</h3><table class="form-table">';
+	/* -------------------------------- Avisos ----------------------------- */
+
+	private static function settings_notices(array $s) {
+		$statuses = '<div class="mje-checklist">';
+		$active   = MJE_Shipments::statuses();
+		foreach (MJE_Shipments::status_choices() as $key => $label) {
+			$statuses .= sprintf(
+				'<label><input type="checkbox" name="settings[ship_statuses][]" value="%s"%s> %s</label>',
+				esc_attr($key),
+				checked(in_array($key, $active, true), true, false),
+				esc_html($label)
+			);
+		}
+		$statuses .= '</div>';
+
+		self::settings_panel('Pantalla de envíos', 'Qué aparece en la lista de pendientes de despacho.');
+		self::row('Estados listos para despachar', $statuses, 'Un pedido entra en la lista cuando está en uno de estos estados y todavía no tiene seguimiento.');
+		self::row('Marcar atrasado a los', self::text_input('settings[ship_late_days]', $s['ship_late_days'], ['type' => 'number', 'class' => 'small-text']) . ' días', '0 = no marcar nada.');
+		self::settings_panel_end();
+
+		self::settings_panel(
+			'Seguimiento',
+			'',
+			$s['track_mail'] ? self::pill('avisa por email', 'ok') : self::pill('sin aviso', 'off')
+		);
 		self::row('En Mi cuenta', self::checkbox_input('settings[track_account]', $s['track_account'], 'El cliente ve el seguimiento en su pedido'));
 		self::row('Avisar por email', self::checkbox_input('settings[track_mail]', $s['track_mail'], 'Mandar un email cuando se carga el número de seguimiento'));
 		self::row('Asunto', self::text_input('settings[track_subject]', $s['track_subject'], ['class' => 'large-text']));
 		self::row('Cuerpo', self::textarea('settings[track_body]', $s['track_body'], 6), 'Marcas: <code>{cliente}</code> <code>{numero}</code> <code>{codigo}</code> <code>{link}</code> <code>{metodo}</code> <code>{tienda}</code>.');
 		self::row('Mensaje de WhatsApp', self::textarea('settings[track_whatsapp]', $s['track_whatsapp'], 3), 'Mismas marcas. Se usa con el botón del pedido.');
-		echo '</table>';
+		self::settings_panel_end();
 
-		echo '<h3>Listo para retirar</h3><table class="form-table">';
-		self::row('Estado propio', self::checkbox_input('settings[ready_enabled]', $s['ready_enabled'], 'Sumar el estado de pedido «Listo para retirar»'), 'Para lo que se retira en el local o en un punto a coordinar: lo elegís en el pedido o en lote desde la lista. Cuenta como pagado. El cliente lo ve en Mi cuenta con este nombre.');
+		self::settings_panel(
+			'Listo para retirar',
+			'Para lo que se retira en el local o en un punto a coordinar. Es un estado de pedido propio: lo elegís en el pedido o en lote desde la lista, y cuenta como pagado.',
+			$s['ready_enabled'] ? self::pill('encendido', 'ok') : self::pill('apagado', 'off')
+		);
+		self::row('Estado propio', self::checkbox_input('settings[ready_enabled]', $s['ready_enabled'], 'Sumar el estado de pedido «Listo para retirar»'), 'El cliente lo ve en Mi cuenta con este nombre.');
 		self::row('Nombre del estado', self::text_input('settings[ready_label]', $s['ready_label'], ['class' => 'regular-text']));
 		self::row('Avisar por email', self::checkbox_input('settings[ready_mail]', $s['ready_mail'], 'Mandar un email cuando el pedido pasa a ese estado'));
 		self::row('Asunto', self::text_input('settings[ready_subject]', $s['ready_subject'], ['class' => 'large-text']));
 		self::row('Cuerpo', self::textarea('settings[ready_body]', $s['ready_body'], 6), 'Marcas: <code>{cliente}</code> <code>{numero}</code> <code>{metodo}</code> <code>{instrucciones}</code> (las del método de envío del pedido) <code>{tienda}</code>.');
 		self::row('Mensaje de WhatsApp', self::textarea('settings[ready_whatsapp]', $s['ready_whatsapp'], 3), 'Mismas marcas.');
-		echo '</table>';
-
-		echo '<h3>MJ ERP</h3><table class="form-table">';
-		self::row('Costo del correo', self::checkbox_input('settings[erp_cost]', $s['erp_cost'], 'Guardar en el pedido lo que cobró el correo, además de lo que pagó el cliente'), 'Es la diferencia entre lo que cobrás por el envío y lo que te cuesta.');
-		echo '</table>';
-
-		submit_button('Guardar ajustes');
-		echo '</form>';
+		self::settings_panel_end();
 	}
 
 	/* ------------------------------ Guardado ----------------------------- */
@@ -944,20 +1574,30 @@ class MJE_Admin {
 		self::guard('mje_save_settings');
 		$in = isset($_POST['settings']) && is_array($_POST['settings']) ? wp_unslash($_POST['settings']) : [];
 
-		/* Proveedores de CP: el orden escrito manda sobre las casillas. */
-		$order = isset($in['geo_providers_order']) ? (string) $in['geo_providers_order'] : '';
-		if ('' !== trim($order)) {
-			$in['geo_providers'] = $order;
-		} elseif (isset($in['geo_providers']) && is_array($in['geo_providers'])) {
-			$in['geo_providers'] = implode(',', $in['geo_providers']);
-		} else {
-			$in['geo_providers'] = '';
+		/*
+		 * Proveedores de CP: el orden escrito manda sobre las casillas. Solo se
+		 * tocan si esa sección viajó en el formulario; si no, quedan como están
+		 * (guardar otra pestaña no puede dejar la tienda sin proveedores).
+		 */
+		if (array_key_exists('geo_providers_order', $in) || array_key_exists('geo_providers', $in)) {
+			$order = isset($in['geo_providers_order']) ? (string) $in['geo_providers_order'] : '';
+			if ('' !== trim($order)) {
+				$in['geo_providers'] = $order;
+			} elseif (isset($in['geo_providers']) && is_array($in['geo_providers'])) {
+				$in['geo_providers'] = implode(',', $in['geo_providers']);
+			} else {
+				$in['geo_providers'] = '';
+			}
+			unset($in['geo_providers_order']);
 		}
-		unset($in['geo_providers_order']);
 
 		MJE_Settings::update($in);
 		MJE_Settings::flush_caches();
-		self::back(['tab' => 'ajustes', 'saved' => 'settings']);
+		self::back([
+			'tab'   => 'ajustes',
+			'vista' => isset($_POST['vista']) ? sanitize_key(wp_unslash($_POST['vista'])) : 'general',
+			'saved' => 'settings',
+		]);
 	}
 
 	public static function save_carrier() {
@@ -967,22 +1607,90 @@ class MJE_Admin {
 		if (!$carrier) {
 			self::back(['tab' => 'correos', 'error' => 'Ese correo no existe.']);
 		}
-		$carrier->update_config(isset($_POST['config']) && is_array($_POST['config']) ? wp_unslash($_POST['config']) : []);
+		$config = isset($_POST['config']) && is_array($_POST['config']) ? wp_unslash($_POST['config']) : []; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Lo sanea update_config().
+
+		/*
+		 * La pantalla nunca reimprime una clave guardada, así que un campo de
+		 * clave vacío significa "no la toques", no "borrala". Sin esto, guardar
+		 * cualquier otro dato del correo dejaba la tienda sin credenciales.
+		 */
+		foreach ($carrier->fields() as $key => $field) {
+			$is_password = isset($field['type']) && 'password' === $field['type'];
+			if ($is_password && isset($config[$key]) && '' === trim((string) $config[$key])) {
+				$config[$key] = $carrier->config($key);
+			}
+		}
+
+		$carrier->update_config($config);
 		/* Credenciales nuevas: el token guardado ya no sirve. */
 		delete_transient('mje_token_' . $id);
 		self::back(['tab' => 'correos', 'saved' => 'carrier']);
 	}
 
+	/**
+	 * Trae las sucursales de un correo.
+	 *
+	 * Sirve igual para un correo con plugin propio (la clave viene con prefijo
+	 * `nativo_`) que para uno configurado acá. El código postal es lo que la
+	 * mayoría necesita para contestar: sin él, varios devuelven la lista vacía.
+	 */
 	public static function sync_branches() {
-		$id = isset($_GET['carrier']) ? sanitize_key(wp_unslash($_GET['carrier'])) : '';
-		self::guard('mje_sync_' . $id);
-		$before = count(MJE_Carriers::stored_branches($id));
-		MJE_Carriers::branches($id, '', true);
-		$after  = count(MJE_Carriers::stored_branches($id));
-		if ($after === $before && 0 === $after) {
-			self::back(['tab' => 'correos', 'error' => 'El correo no devolvió ninguna sucursal. Revisá las credenciales o cargalas a mano.']);
+		self::guard('mje_sync_branches');
+		$key  = isset($_POST['carrier']) ? sanitize_key(wp_unslash($_POST['carrier'])) : '';
+		$cp   = isset($_POST['cp']) ? MJE_Geo::normalize_cp(wp_unslash($_POST['cp'])) : '';
+		$back = ['tab' => 'correos', 'vista' => 'sucursales'];
+
+		if ('' === $key) {
+			self::back($back + ['error' => 'Elegí de qué correo traerlas.']);
 		}
-		self::back(['tab' => 'correos', 'saved' => 'branches']);
+
+		$before = count(MJE_Carriers::stored_branches($key));
+		if (0 === strpos($key, 'nativo_')) {
+			MJE_Native::branches(substr($key, strlen('nativo_')), $cp, true);
+		} else {
+			MJE_Carriers::branches($key, $cp, true);
+		}
+		$after = count(MJE_Carriers::stored_branches($key));
+
+		if ($after === $before) {
+			self::back($back + ['error' => '' === $cp
+				? 'El correo no devolvió ninguna sucursal nueva. Probá con un código postal: la mayoría las publica por zona.'
+				: sprintf('El correo no devolvió sucursales para el CP %s. Revisá la conexión o cargalas a mano.', $cp),
+			]);
+		}
+		self::back($back + ['saved' => 'branches']);
+	}
+
+	/**
+	 * Agrega el método de un correo a una zona de envío de WooCommerce.
+	 *
+	 * Es el atajo para el error más común: el correo está conectado pero su
+	 * método no está en ninguna zona, así que su tarifa no llega nunca y MJ
+	 * Envíos no tiene qué mostrar.
+	 */
+	public static function add_to_zone() {
+		self::guard('mje_add_to_zone');
+		$back = ['tab' => 'correos', 'vista' => 'conectados'];
+
+		$plugin = MJE_Native::get(isset($_POST['plugin']) ? sanitize_key(wp_unslash($_POST['plugin'])) : '');
+		if (!$plugin) {
+			self::back($back + ['error' => 'Ese correo no está instalado.']);
+		}
+		if (!class_exists('WC_Shipping_Zones')) {
+			self::back($back + ['error' => 'WooCommerce no tiene zonas de envío disponibles.']);
+		}
+
+		$zone = WC_Shipping_Zones::get_zone(isset($_POST['zone']) ? absint(wp_unslash($_POST['zone'])) : 0);
+		if (!$zone) {
+			self::back($back + ['error' => 'Esa zona de envío no existe.']);
+		}
+
+		$instance_id = $zone->add_shipping_method($plugin->method_id());
+		if (!$instance_id) {
+			self::back($back + ['error' => 'WooCommerce no pudo agregar el método a esa zona.']);
+		}
+		$zone->save();
+		self::back($back + ['saved' => 'zone']);
 	}
 
 	public static function save_branch() {
@@ -1005,11 +1713,29 @@ class MJE_Admin {
 		if (!isset($_FILES['csv']) || !is_array($_FILES['csv']) || empty($_FILES['csv']['tmp_name'])) {
 			self::back(['tab' => 'cp', 'error' => 'No llegó ningún archivo.']);
 		}
-		$file = $_FILES['csv']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$file = $_FILES['csv']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Se valida entero acá abajo.
 		if (!empty($file['error'])) {
 			self::back(['tab' => 'cp', 'error' => 'El archivo no se pudo subir (error ' . (int) $file['error'] . ').']);
 		}
-		$result = MJE_Geo::import_csv((string) $file['tmp_name']);
+
+		/*
+		 * Tres redes antes de abrir nada: que el archivo venga de verdad de una
+		 * subida (y no sea una ruta del servidor puesta a mano), que pese algo
+		 * razonable y que sea un CSV.
+		 */
+		$tmp = (string) $file['tmp_name'];
+		if (!is_uploaded_file($tmp)) {
+			self::back(['tab' => 'cp', 'error' => 'Ese archivo no llegó por el formulario.']);
+		}
+		if ((int) $file['size'] > self::CSV_MAX_BYTES) {
+			self::back(['tab' => 'cp', 'error' => sprintf('El archivo pesa más de %d MB. Partilo en varios.', self::CSV_MAX_BYTES / MB_IN_BYTES)]);
+		}
+		$checked = wp_check_filetype_and_ext($tmp, (string) $file['name'], ['csv' => 'text/csv', 'txt' => 'text/plain']);
+		if (empty($checked['ext']) || !in_array($checked['ext'], ['csv', 'txt'], true)) {
+			self::back(['tab' => 'cp', 'error' => 'Tiene que ser un archivo .csv.']);
+		}
+
+		$result = MJE_Geo::import_csv($tmp);
 		self::back([
 			'tab'   => 'cp',
 			'saved' => 'geo',

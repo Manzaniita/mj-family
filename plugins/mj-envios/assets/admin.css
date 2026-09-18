@@ -1,4 +1,11 @@
-/* Panel de MJ Envíos. Solo lo que wp-admin no trae. */
+/*
+ * Panel de MJ Envíos. Solo lo que wp-admin no trae.
+ *
+ * La pantalla se arma con tarjetas: cada bloque de configuración es una tarjeta
+ * con su título, su ayuda y su estado a la vista, en vez de una sucesión de
+ * títulos y tablas sueltas. Nada de colores de marca ni animaciones: es un
+ * panel de trabajo, tiene que leerse rápido y envejecer bien.
+ */
 
 .mje-wrap .mje-intro {
 	max-width: 760px;
@@ -6,21 +13,118 @@
 	color: #50575e;
 }
 
-.mje-wrap h3 {
-	margin: 28px 0 4px;
-	padding-top: 16px;
-	border-top: 1px solid #dcdcde;
+/* ------------------------------- Tarjetas ------------------------------- */
+
+.mje-panel {
+	margin: 16px 0;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+	max-width: 1100px;
+}
+
+.mje-panel-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+	padding: 14px 20px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.mje-panel-head h2 {
+	margin: 0;
+	padding: 0;
 	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.4;
 }
 
-.mje-wrap h4 {
-	margin: 20px 0 4px;
-	font-size: 14px;
+.mje-panel-head .mje-panel-sub {
+	flex: 1 0 100%;
+	margin: 0;
+	color: #646970;
+	font-size: 13px;
 }
 
-/* Estado de un método o de un correo. */
+.mje-panel-head .mje-panel-aside {
+	margin-left: auto;
+}
+
+.mje-panel-body {
+	padding: 4px 20px 16px;
+}
+
+.mje-panel-body > .form-table:first-child {
+	margin-top: 0;
+}
+
+.mje-panel-body > p:first-child {
+	margin-top: 12px;
+}
+
+.mje-panel-foot {
+	padding: 12px 20px;
+	border-top: 1px solid #f0f0f1;
+	background: #fbfbfc;
+	border-radius: 0 0 8px 8px;
+}
+
+.mje-panel-foot .button {
+	margin: 0;
+}
+
+/* Tarjeta de aviso: falta algo para que esto funcione. */
+.mje-panel.is-warning {
+	border-color: #dba617;
+	background: #fcf9e8;
+}
+
+.mje-panel.is-warning .mje-panel-head {
+	border-bottom-color: #f2e7bd;
+}
+
+/* -------------------------- Pestañas de segundo nivel ------------------- */
+
+.mje-subnav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin: 16px 0 0;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.mje-subnav a {
+	padding: 8px 14px;
+	border: 1px solid transparent;
+	border-bottom: 0;
+	border-radius: 6px 6px 0 0;
+	color: #50575e;
+	text-decoration: none;
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+.mje-subnav a:hover {
+	color: #1d2327;
+	background: #f6f7f7;
+}
+
+.mje-subnav a.is-active {
+	border-color: #dcdcde;
+	background: #fff;
+	color: #1d2327;
+	font-weight: 600;
+	margin-bottom: -1px;
+	padding-bottom: 9px;
+}
+
+/* ------------------------------- Estados -------------------------------- */
+
 .mje-on,
-.mje-off {
+.mje-off,
+.mje-pill {
 	display: inline-block;
 	padding: 2px 8px;
 	border-radius: 10px;
@@ -28,19 +132,64 @@
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: .04em;
+	white-space: nowrap;
 }
 
-.mje-on {
+.mje-on,
+.mje-pill.is-ok {
 	background: #edfaef;
 	color: #007017;
 }
 
-.mje-off {
+.mje-off,
+.mje-pill.is-off {
 	background: #f0f0f1;
 	color: #646970;
 }
 
-/* Lista de métodos. */
+.mje-pill.is-warn {
+	background: #fcf9e8;
+	color: #8a6116;
+}
+
+.mje-pill.is-bad {
+	background: #fcf0f1;
+	color: #b32d2e;
+}
+
+.mje-pill.is-info {
+	background: #f0f6fc;
+	color: #1d4c85;
+}
+
+/* Datos de una cuenta ya conectada: etiqueta y valor, sin formulario. */
+.mje-facts {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 10px 24px;
+	margin: 14px 0;
+}
+
+.mje-facts div {
+	min-width: 0;
+}
+
+.mje-facts dt {
+	margin: 0;
+	color: #646970;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+
+.mje-facts dd {
+	margin: 2px 0 0;
+	font-size: 14px;
+	word-break: break-word;
+}
+
+/* ---------------------------- Listas y tablas --------------------------- */
+
 .mje-methods td {
 	vertical-align: top;
 }
@@ -63,7 +212,6 @@
 	max-width: 620px;
 }
 
-/* Tablas repetibles: precios y campos propios. */
 .mje-table {
 	max-width: 1100px;
 	margin-bottom: 8px;
@@ -78,6 +226,11 @@
 	text-decoration: none;
 	font-size: 15px;
 	cursor: pointer;
+}
+
+.mje-note {
+	color: #646970;
+	font-size: 12px;
 }
 
 /* Datos del cliente. */
@@ -119,7 +272,7 @@
 	margin: 0;
 }
 
-/* Tarjetas de resumen. */
+/* Tarjetas de resumen (números grandes). */
 .mje-cards {
 	display: flex;
 	flex-wrap: wrap;
@@ -144,4 +297,47 @@
 .mje-card span {
 	color: #646970;
 	font-size: 12px;
+}
+
+/* ------------------------------ Envíos ---------------------------------- */
+
+.mje-shipments td {
+	vertical-align: middle;
+}
+
+.mje-shipments .mje-dest {
+	color: #646970;
+	font-size: 12px;
+	display: block;
+}
+
+.mje-shipments input[type="text"] {
+	width: 100%;
+	max-width: 220px;
+}
+
+.mje-filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 10px;
+	margin: 0 0 12px;
+}
+
+.mje-filters label {
+	display: block;
+	font-size: 11px;
+	color: #646970;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+	margin-bottom: 2px;
+}
+
+.mje-age {
+	font-variant-numeric: tabular-nums;
+}
+
+.mje-age.is-late {
+	color: #b32d2e;
+	font-weight: 600;
 }
