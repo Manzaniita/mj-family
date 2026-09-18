@@ -92,7 +92,6 @@
     "plugins/mj-turnos-online/inc/panel.php|WordPress.WP.EnqueuedResources.NonEnqueuedScript": 1,
     "plugins/mj-turnos-online/inc/panel.php|WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet": 2,
     "plugins/mj-turnos-online/inc/rest.php|Generic.CodeAnalysis.UnusedFunctionParameter.Found": 2,
-    "plugins/mj-turnos-online/inc/rest.php|Squiz.PHP.CommentedOutCode.Found": 1,
     "plugins/mj-turnos-online/inc/rest.php|WordPress.DB.PreparedSQL.NotPrepared": 1,
     "plugins/mj-turnos-online/inc/services.php|Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed": 1,
     "themes/mj-appearance/functions.php|Generic.CodeAnalysis.AssignmentInCondition.Found": 5,

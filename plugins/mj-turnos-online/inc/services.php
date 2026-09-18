@@ -88,9 +88,89 @@ add_action('init', function () {
 		],
 		'menu_icon'           => 'dashicons-calendar-alt',
 	]);
+
+	/*
+	 * Categorías de servicios (Pestañas, Cejas, Combos…). Sirven para agrupar la
+	 * página de servicios y el paso de elegir servicio; sin categorías cargadas
+	 * todo se ve como siempre. Mismas reglas de permisos que los servicios.
+	 */
+	register_taxonomy('mjto_service_cat', 'mjto_service', [
+		'labels'            => [
+			'name'          => 'Categorías de servicios',
+			'singular_name' => 'Categoría',
+			'menu_name'     => 'Categorías',
+			'all_items'     => 'Todas las categorías',
+			'edit_item'     => 'Editar categoría',
+			'add_new_item'  => 'Agregar categoría',
+			'new_item_name' => 'Nombre de la categoría',
+			'search_items'  => 'Buscar categorías',
+			'not_found'     => 'Todavía no hay categorías.',
+		],
+		'public'            => false,
+		'show_ui'           => true,
+		'show_in_menu'      => false,
+		'show_in_nav_menus' => false,
+		'show_admin_column' => true,
+		'show_in_rest'      => false,
+		'hierarchical'      => true,
+		'rewrite'           => false,
+		'query_var'         => false,
+		'capabilities'      => [
+			'manage_terms' => 'manage_options',
+			'edit_terms'   => 'manage_options',
+			'delete_terms' => 'manage_options',
+			'assign_terms' => 'manage_options',
+		],
+	]);
 }, 5);
 
-/* Que las pantallas del CPT resalten el menú "Turnos". */
+/** Categorías de servicios ordenadas (por el orden propio del término y el nombre). */
+function mjto_service_categories() {
+	$terms = get_terms([
+		'taxonomy'   => 'mjto_service_cat',
+		'hide_empty' => false,
+		'orderby'    => 'name',
+	]);
+	if (is_wp_error($terms) || !$terms) {
+		return [];
+	}
+	$out = [];
+	foreach ($terms as $term) {
+		$out[] = [
+			'id'          => (int) $term->term_id,
+			'slug'        => (string) $term->slug,
+			'name'        => (string) $term->name,
+			'description' => trim(wp_strip_all_tags((string) $term->description)),
+			'order'       => (int) get_term_meta($term->term_id, '_mjto_order', true),
+		];
+	}
+	usort($out, fn ($a, $b) => [$a['order'], $a['name']] <=> [$b['order'], $b['name']]);
+	return $out;
+}
+
+/* Orden de cada categoría (número chico = primero). */
+add_action('mjto_service_cat_add_form_fields', function () {
+	echo '<div class="form-field"><label for="mjto_cat_order">Orden</label><input type="number" id="mjto_cat_order" name="mjto_cat_order" value="0" step="1" /><p>Número chico = aparece primero.</p></div>';
+	wp_nonce_field('mjto_cat_order', 'mjto_cat_nonce');
+});
+add_action('mjto_service_cat_edit_form_fields', function ($term) {
+	$order = (int) get_term_meta($term->term_id, '_mjto_order', true);
+	echo '<tr class="form-field"><th scope="row"><label for="mjto_cat_order">Orden</label></th><td><input type="number" id="mjto_cat_order" name="mjto_cat_order" value="' . esc_attr($order) . '" step="1" /><p class="description">Número chico = aparece primero.</p>';
+	wp_nonce_field('mjto_cat_order', 'mjto_cat_nonce');
+	echo '</td></tr>';
+});
+$mjto_save_cat_order = function ($term_id) {
+	if (!isset($_POST['mjto_cat_nonce']) || !wp_verify_nonce(sanitize_key(wp_unslash($_POST['mjto_cat_nonce'])), 'mjto_cat_order') || !current_user_can('manage_options')) {
+		return;
+	}
+	if (isset($_POST['mjto_cat_order'])) {
+		update_term_meta($term_id, '_mjto_order', (int) $_POST['mjto_cat_order']);
+	}
+};
+add_action('created_mjto_service_cat', $mjto_save_cat_order);
+add_action('edited_mjto_service_cat', $mjto_save_cat_order);
+
+/* Que las pantallas del CPT (y de sus categorías) resalten el menú "Turnos". */
 add_filter('parent_file', function ($parent) {
 	global $current_screen;
 	if ($current_screen && 'mjto_service' === $current_screen->post_type) {
@@ -100,6 +180,9 @@ add_filter('parent_file', function ($parent) {
 });
 add_filter('submenu_file', function ($submenu) {
 	global $current_screen;
+	if ($current_screen && 'mjto_service_cat' === $current_screen->taxonomy) {
+		return 'edit-tags.php?taxonomy=mjto_service_cat&post_type=mjto_service';
+	}
 	if ($current_screen && 'mjto_service' === $current_screen->post_type) {
 		return 'edit.php?post_type=mjto_service';
 	}
@@ -168,6 +251,11 @@ function mjto_render_service_metabox($post) {
 	$color         = $get('_mjto_color', '');
 	$active        = (int) $get('_mjto_active', 1);
 	$bookable      = (int) $get('_mjto_bookable', 1);
+	$maintenance_value = $get('_mjto_maintenance_value', '');
+	$maintenance_unit  = (string) $get('_mjto_maintenance_unit', 'weeks');
+	$sections          = mjto_service_sections();
+	$saved_sections    = $is_new ? [] : get_post_meta($post->ID, '_mjto_sections', true);
+	$saved_sections    = is_array($saved_sections) ? $saved_sections : [];
 	$global_buffer = (int) mjto_opt('buffer_min');
 	$global_dep    = 'percent' === mjto_opt('deposit_type')
 		? mjto_opt('deposit_percent') . '% del precio'
@@ -219,9 +307,63 @@ function mjto_render_service_metabox($post) {
 				<p class="description">Inactivo: no aparece en la web ni se ofrece en el panel (los turnos ya cargados no se tocan). Sin reserva online: solo lo cargás vos desde el panel.</p>
 			</td>
 		</tr>
+		<tr>
+			<th scope="row"><label for="mjto_maintenance_value">Mantenimiento</label></th>
+			<td>
+				Volver cada <input type="number" id="mjto_maintenance_value" name="mjto_service[_mjto_maintenance_value]" value="<?php echo esc_attr($maintenance_value); ?>" min="0" max="999" step="1" class="small-text" placeholder="—" />
+				<select name="mjto_service[_mjto_maintenance_unit]" aria-label="Unidad">
+					<?php foreach (mjto_maintenance_units() as $unit => $unit_label) : ?>
+						<option value="<?php echo esc_attr($unit); ?>" <?php selected($maintenance_unit, $unit); ?>><?php echo esc_html($unit_label); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<p class="description">Con esto se calcula sola la fecha del próximo mantenimiento de cada visita (la podés cambiar en la ficha) y el aviso a la clienta. Vacío o 0 = la regla general de la ficha técnica.</p>
+			</td>
+		</tr>
 	</table>
-	<p class="description">La foto se elige en "Foto del servicio" (imagen destacada). El texto largo es la descripción de la página de servicios; el extracto, la frase corta de las tarjetas.</p>
+	<?php if ($sections) : ?>
+		<h4 style="margin:18px 0 4px;">Información del servicio</h4>
+		<p class="description" style="margin-top:0;">Se muestra en la página de servicios. Lo que dejes vacío no aparece. Las secciones se cambian en Turnos → Ajustes → Servicios.</p>
+		<table class="form-table" role="presentation">
+			<?php foreach ($sections as $section) : ?>
+				<tr>
+					<th scope="row"><label for="mjto_section_<?php echo esc_attr($section['key']); ?>"><?php echo esc_html($section['label']); ?></label></th>
+					<td><textarea id="mjto_section_<?php echo esc_attr($section['key']); ?>" name="mjto_service[_mjto_sections][<?php echo esc_attr($section['key']); ?>]" rows="3" class="large-text"><?php echo esc_textarea((string) ($saved_sections[$section['key']] ?? '')); ?></textarea></td>
+				</tr>
+			<?php endforeach; ?>
+		</table>
+	<?php endif; ?>
+	<p class="description">La foto se elige en "Foto del servicio" (imagen destacada) y la categoría, en el cuadro "Categorías de servicios". El texto largo es la descripción de la página de servicios; el extracto, la frase corta de las tarjetas.</p>
 	<?php
+}
+
+/** Unidades del período de mantenimiento. */
+function mjto_maintenance_units() {
+	return ['days' => 'días', 'weeks' => 'semanas', 'months' => 'meses'];
+}
+
+/**
+ * Período de mantenimiento de un servicio → ['value' => int, 'unit' => days|weeks|months]
+ * o null si no tiene (usa la regla general de la ficha).
+ */
+function mjto_service_maintenance($service_id) {
+	$service_id = (int) $service_id;
+	if ($service_id <= 0) {
+		return null;
+	}
+	$value = (int) get_post_meta($service_id, '_mjto_maintenance_value', true);
+	$unit  = (string) get_post_meta($service_id, '_mjto_maintenance_unit', true);
+	if ($value <= 0) {
+		return null;
+	}
+	return ['value' => $value, 'unit' => array_key_exists($unit, mjto_maintenance_units()) ? $unit : 'weeks'];
+}
+
+/** "4 semanas", "1 mes" con las etiquetas configuradas. */
+function mjto_maintenance_label(array $maintenance) {
+	$value = (int) $maintenance['value'];
+	$map   = ['days' => ['label_day', 'label_days'], 'weeks' => ['label_week', 'label_weeks'], 'months' => ['label_month', 'label_months']];
+	$keys  = $map[$maintenance['unit']] ?? $map['weeks'];
+	return $value . ' ' . (string) mjto_opt(1 === $value ? $keys[0] : $keys[1]);
 }
 
 add_action('save_post_mjto_service', function ($post_id, $post) {
@@ -262,6 +404,26 @@ add_action('save_post_mjto_service', function ($post_id, $post) {
 		}
 		update_post_meta($post_id, $key, $value);
 	}
+
+	/* Mantenimiento: número + unidad (0 o vacío = sin período propio). */
+	$m_value = isset($in['_mjto_maintenance_value']) ? max(0, min(999, (int) $in['_mjto_maintenance_value'])) : 0;
+	$m_unit  = isset($in['_mjto_maintenance_unit']) ? sanitize_key((string) $in['_mjto_maintenance_unit']) : 'weeks';
+	update_post_meta($post_id, '_mjto_maintenance_value', $m_value > 0 ? (string) $m_value : '');
+	update_post_meta($post_id, '_mjto_maintenance_unit', array_key_exists($m_unit, mjto_maintenance_units()) ? $m_unit : 'weeks');
+
+	/*
+	 * Secciones: se guardan por clave. Las claves que ya no están en los ajustes
+	 * se conservan (si la sección vuelve, vuelve con su texto).
+	 */
+	$saved = get_post_meta($post_id, '_mjto_sections', true);
+	$saved = is_array($saved) ? $saved : [];
+	$sent  = isset($in['_mjto_sections']) && is_array($in['_mjto_sections']) ? $in['_mjto_sections'] : [];
+	foreach (mjto_service_sections() as $section) {
+		if (array_key_exists($section['key'], $sent)) {
+			$saved[$section['key']] = sanitize_textarea_field((string) $sent[$section['key']]);
+		}
+	}
+	update_post_meta($post_id, '_mjto_sections', $saved);
 }, 10, 2);
 
 /* -------------------------------------------------------------------------
@@ -390,6 +552,27 @@ function mjto_service_public($post) {
 	$image    = $thumb_id ? wp_get_attachment_image_url($thumb_id, 'large') : '';
 	$color    = sanitize_hex_color((string) $meta('_mjto_color', ''));
 
+	/* Secciones con texto, en el orden de los ajustes. */
+	$saved_sections = get_post_meta($post->ID, '_mjto_sections', true);
+	$saved_sections = is_array($saved_sections) ? $saved_sections : [];
+	$sections       = [];
+	foreach (mjto_service_sections() as $section) {
+		$text = trim((string) ($saved_sections[$section['key']] ?? ''));
+		if ('' !== $text) {
+			$sections[] = ['key' => $section['key'], 'label' => $section['label'], 'text' => $text];
+		}
+	}
+
+	$terms      = get_the_terms($post->ID, 'mjto_service_cat');
+	$categories = [];
+	if (is_array($terms)) {
+		foreach ($terms as $term) {
+			$categories[] = ['id' => (int) $term->term_id, 'slug' => (string) $term->slug, 'name' => (string) $term->name];
+		}
+	}
+
+	$maintenance = mjto_service_maintenance($post->ID);
+
 	return [
 		'id'           => (int) $post->ID,
 		'slug'         => (string) $post->post_name,
@@ -406,6 +589,9 @@ function mjto_service_public($post) {
 		'order'        => (int) $post->menu_order,
 		'active'       => (bool) (int) $meta('_mjto_active', 1),
 		'bookable'     => (bool) (int) $meta('_mjto_bookable', 1),
+		'categories'   => $categories,
+		'sections'     => $sections,
+		'maintenance'  => $maintenance ? array_merge($maintenance, ['label' => mjto_maintenance_label($maintenance)]) : null,
 	];
 }
 

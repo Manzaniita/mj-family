@@ -1,15 +1,23 @@
 /**
- * Hoy: agenda de un día. Navegación ‹ hoy › + selector de fecha, tira semanal
- * con puntitos por cantidad de turnos, bloqueos del día, lista cronológica
- * (tarjetas con acciones), cancelados/no vino plegados abajo, FAB "Nuevo turno".
+ * Hoy: agenda de un día. Navegación ‹ hoy › + calendario del mes (cantidad de
+ * turnos por día, cerrados y bloqueados), tira semanal con puntitos por
+ * cantidad de turnos, agenda cronológica del día (turnos con sus acciones,
+ * bloqueos y huecos libres), cancelados/no vino plegados abajo, FAB "Nuevo turno".
+ * Tocar un hueco libre abre "Nuevo turno" con ese día y esa hora.
  *
  * La fecha vive en ?fecha=YYYY-MM-DD (así "atrás" del navegador funciona y
  * NuevoTurno puede volver al día creado). Se carga la semana completa de una
- * vez (GET /panel/appointments?from&to) para la tira y el día.
+ * vez (GET /panel/appointments?from&to) para la tira y los turnos; los huecos
+ * libres, los bloqueos y si el día abre salen de GET /panel/day?date. Si ese
+ * pedido falla, la agenda se arma como antes (bloqueos arriba, sin huecos).
+ *
+ * Con options.dayFreeGaps apagado (Ajustes → Panel → "Agenda del día") la
+ * vista queda como antes de 1.3: sin /panel/day, bloqueos arriba y el
+ * selector de fecha nativo en vez del calendario del mes.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CalendarDays, CalendarOff, ChevronDown, ChevronLeft, ChevronRight, Plus, Sun, WifiOff } from 'lucide-react';
+import { CalendarDays, CalendarOff, ChevronDown, ChevronLeft, ChevronRight, DoorClosed, Plus, Sun, WifiOff } from 'lucide-react';
 import { panelApi } from '@/lib/api';
 import { cn, formatTime, longDateLabel, pluralize, relativeDayLabel, weekdayLabel } from '@/lib/format';
 import { addDaysStr, isDateStr, splitDateTime, weekDates } from '@/lib/dates';
@@ -18,6 +26,7 @@ import { usePanel } from '../store';
 import { AppointmentCard } from '../components/AppointmentCard';
 import { ACTIVE_STATUSES, applyAppointmentChange } from '../components/AppointmentActions';
 import { NuevoTurno } from '../components/NuevoTurno';
+import { MonthCalendar } from '../components/MonthCalendar';
 
 const PER_PAGE = 100;
 const MAX_PAGES = 5;
@@ -67,8 +76,14 @@ export default function Hoy() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
-  const [creating, setCreating] = useState(false);
+  // "Nuevo turno": null = cerrado; { date, time? } = abierto (time viene de tocar un hueco libre).
+  const [creating, setCreating] = useState(null);
+  const [monthOpen, setMonthOpen] = useState(false);
   const [tick, setTick] = useState(0);
+  // Agenda del día (GET /panel/day): huecos libres, bloqueos y si abre. null = sin datos (cargando o falló).
+  const [dayInfo, setDayInfo] = useState(null);
+  const [dayTick, setDayTick] = useState(0);
+  const dayAgenda = store.dayFreeGaps !== false;
   const dateInput = useRef(null);
 
   // Carga de la semana (turnos + bloqueos). Se cancela si cambia la semana antes de terminar.
@@ -95,11 +110,36 @@ export default function Hoy() {
     return () => ctrl.abort();
   }, [from, to, tick]);
 
+  // Huecos y bloqueos del día elegido. Si falla, la agenda sigue como antes (sin huecos).
+  useEffect(() => {
+    if (!dayAgenda) {
+      setDayInfo(null);
+      return undefined;
+    }
+    const ctrl = new AbortController();
+    panelApi
+      .getDay(date, { signal: ctrl.signal })
+      .then((res) => {
+        if (ctrl.signal.aborted) return;
+        setDayInfo(res && typeof res === 'object' && res.date === date ? res : null);
+      })
+      .catch((e) => {
+        if (ctrl.signal.aborted || e?.name === 'AbortError') return;
+        setDayInfo(null);
+      });
+    return () => ctrl.abort();
+  }, [date, tick, dayTick, dayAgenda]);
+
   const reload = () => setTick((t) => t + 1);
 
   const handleChange = useCallback((next, meta) => {
     setItems((list) => applyAppointmentChange(list, next, meta));
+    // Cancelar, reprogramar o eliminar cambia los huecos libres del día.
+    setDayTick((t) => t + 1);
   }, []);
+
+  // Datos del día sólo si son de la fecha elegida (mientras carga otro día no se muestran los viejos).
+  const info = dayAgenda && dayInfo && dayInfo.date === date ? dayInfo : null;
 
   // Turnos del día elegido: activos en orden, cancelados/no vino aparte.
   const day = useMemo(() => items.filter((a) => a.date === date).sort(byTime), [items, date]);
@@ -116,12 +156,30 @@ export default function Hoy() {
     return map;
   }, [items]);
 
-  // Bloqueos que tocan el día.
+  // Bloqueos que tocan el día (los de /panel/day si llegaron; si no, los de la semana).
   const dayBlocks = useMemo(() => {
+    if (info && Array.isArray(info.blocks)) return info.blocks;
     const start = `${date} 00:00`;
     const end = `${date} 23:59`;
     return blocks.filter((b) => String(b.startsAt || '').slice(0, 16) <= end && String(b.endsAt || '').slice(0, 16) >= start);
-  }, [blocks, date]);
+  }, [blocks, date, info]);
+
+  const freeGaps = useMemo(() => (info && Array.isArray(info.free) ? info.free.filter((g) => g && g.from && g.to) : []), [info]);
+  const closedDay = !!info && info.open === false;
+
+  // Agenda cronológica: bloqueos + turnos activos + huecos libres (sólo con /panel/day).
+  const agenda = useMemo(() => {
+    if (!info) return null;
+    const rows = [];
+    dayBlocks.forEach((b) => {
+      const s = splitDateTime(b.startsAt);
+      const at = b.allDay || !s || s.date < date ? '00:00' : formatTime(s.time);
+      rows.push({ kind: 'block', key: `b${b.id}`, at, order: 0, block: b });
+    });
+    active.forEach((a) => rows.push({ kind: 'appt', key: `a${a.id}`, at: formatTime(a.time), order: 1, appointment: a }));
+    freeGaps.forEach((g, i) => rows.push({ kind: 'free', key: `f${i}-${g.from}`, at: formatTime(g.from), order: 2, gap: g }));
+    return rows.sort((x, y) => x.at.localeCompare(y.at) || x.order - y.order);
+  }, [info, dayBlocks, active, freeGaps, date]);
 
   const summary = useMemo(() => {
     if (!day.length) return '';
@@ -140,8 +198,11 @@ export default function Hoy() {
   const title = rel || weekdayLabel(date, 'long');
   const isToday = date === store.today;
 
-  // El input nativo (transparente) tapa el botón: el click cae en el input y
-  // abrimos el picker desde ahí; el botón queda para el teclado.
+  // Vacío: sin turnos y sin nada que mostrar en la agenda (ni huecos ni bloqueos).
+  const nothing = !day.length && !(agenda && agenda.length);
+
+  // Selector nativo (agenda del día apagada): el input transparente tapa el
+  // botón; el click cae en el input y abrimos el picker desde ahí.
   const openDatePicker = () => {
     const el = dateInput.current;
     if (!el) return;
@@ -156,6 +217,16 @@ export default function Hoy() {
     el.focus();
   };
 
+  const blockRow = (b) => (
+    <div className="flex items-center gap-2.5 rounded-tile bg-warning-soft px-3.5 py-2.5 text-sm text-warning">
+      <CalendarOff size={16} className="shrink-0" aria-hidden="true" />
+      <span className="min-w-0 flex-1 truncate">
+        <span className="font-semibold">{agenda ? 'Bloqueado' : 'Bloqueo'}</span> · {blockLabel(b, date)}
+        {b.reason ? ` · ${b.reason}` : ''}
+      </span>
+    </div>
+  );
+
   return (
     <div className="mjto-view mjto-view--hoy">
       <PageHeader
@@ -169,21 +240,25 @@ export default function Hoy() {
               Hoy
             </Button>
             <Button variant="ghost" size="sm" iconOnly icon={ChevronRight} aria-label="Día siguiente" onClick={() => setDate(addDaysStr(date, 1))} />
-            <span className="relative inline-flex">
-              <Button variant="ghost" size="sm" iconOnly icon={CalendarDays} aria-label="Ir a una fecha" onClick={openDatePicker} />
-              <input
-                ref={dateInput}
-                type="date"
-                value={date}
-                onClick={openDatePicker}
-                onChange={(e) => {
-                  if (isDateStr(e.target.value)) setDate(e.target.value);
-                }}
-                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                tabIndex={-1}
-                aria-hidden="true"
-              />
-            </span>
+            {dayAgenda ? (
+              <Button variant="ghost" size="sm" iconOnly icon={CalendarDays} aria-label="Ir a una fecha" aria-haspopup="dialog" onClick={() => setMonthOpen(true)} />
+            ) : (
+              <span className="relative inline-flex">
+                <Button variant="ghost" size="sm" iconOnly icon={CalendarDays} aria-label="Ir a una fecha" onClick={openDatePicker} />
+                <input
+                  ref={dateInput}
+                  type="date"
+                  value={date}
+                  onClick={openDatePicker}
+                  onChange={(e) => {
+                    if (isDateStr(e.target.value)) setDate(e.target.value);
+                  }}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                />
+              </span>
+            )}
           </div>
         }
       >
@@ -198,16 +273,21 @@ export default function Hoy() {
         </div>
       )}
 
-      {dayBlocks.length > 0 && (
+      {closedDay && (
+        <p className="mjto-day-closed mb-3 flex items-center gap-2.5 rounded-tile bg-surface-2 px-3.5 py-2.5 text-sm text-ink-soft">
+          <DoorClosed size={16} className="shrink-0 text-ink-faint" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            <span className="font-semibold text-ink">Cerrado</span>
+            {info.closedReason ? ` · ${info.closedReason}` : ' · no se atiende este día'}
+          </span>
+        </p>
+      )}
+
+      {/* Sin /panel/day: los bloqueos arriba, como siempre. */}
+      {!agenda && dayBlocks.length > 0 && (
         <ul className="mjto-day-blocks mb-3 flex flex-col gap-2">
           {dayBlocks.map((b) => (
-            <li key={b.id} className="flex items-center gap-2.5 rounded-tile bg-warning-soft px-3.5 py-2.5 text-sm text-warning">
-              <CalendarOff size={16} className="shrink-0" aria-hidden="true" />
-              <span className="min-w-0 flex-1 truncate">
-                <span className="font-semibold">Bloqueo</span> · {blockLabel(b, date)}
-                {b.reason ? ` · ${b.reason}` : ''}
-              </span>
-            </li>
+            <li key={b.id}>{blockRow(b)}</li>
           ))}
         </ul>
       )}
@@ -227,27 +307,40 @@ export default function Hoy() {
           <SkeletonCard />
           <SkeletonCard />
         </div>
-      ) : !day.length ? (
+      ) : nothing ? (
         <EmptyState
           icon={CalendarDays}
           title={isToday ? 'Hoy no tenés turnos' : `Sin turnos el ${weekdayLabel(date, 'long').toLowerCase()}`}
           text="Cuando reserven desde la web los vas a ver acá. También podés cargar uno vos."
           action={
-            <Button icon={Plus} onClick={() => setCreating(true)}>
+            <Button icon={Plus} onClick={() => setCreating({ date })}>
               Nuevo turno
             </Button>
           }
         />
       ) : (
         <>
+          {agenda && !day.length && <p className="mb-3 text-sm text-ink-faint">{isToday ? 'Hoy no tenés turnos todavía.' : 'Todavía no hay turnos este día.'}</p>}
           <ul className={cn('mjto-day-list flex flex-col gap-3', loading && 'opacity-70')} aria-busy={loading || undefined}>
-            {active.map((a) => (
-              <li key={a.id}>
-                <AppointmentCard appointment={a} onChange={handleChange} />
-              </li>
-            ))}
+            {agenda
+              ? agenda.map((row) => (
+                  <li key={row.key}>
+                    {row.kind === 'appt' ? (
+                      <AppointmentCard appointment={row.appointment} onChange={handleChange} />
+                    ) : row.kind === 'block' ? (
+                      blockRow(row.block)
+                    ) : (
+                      <FreeGap gap={row.gap} durationLabel={store.durationLabel} onPick={() => setCreating({ date, time: formatTime(row.gap.from) })} />
+                    )}
+                  </li>
+                ))
+              : active.map((a) => (
+                  <li key={a.id}>
+                    <AppointmentCard appointment={a} onChange={handleChange} />
+                  </li>
+                ))}
           </ul>
-          {!active.length && <p className="mb-3 text-sm text-ink-faint">Todos los turnos de este día están cancelados.</p>}
+          {!active.length && day.length > 0 && <p className="mb-3 text-sm text-ink-faint">Todos los turnos de este día están cancelados.</p>}
           {inactive.length > 0 && (
             <div className="mjto-day-inactive mt-4">
               <button
@@ -273,18 +366,43 @@ export default function Hoy() {
         </>
       )}
 
-      <Fab icon={Plus} label="Nuevo turno" onClick={() => setCreating(true)} />
+      <Fab icon={Plus} label="Nuevo turno" onClick={() => setCreating({ date })} />
 
       <NuevoTurno
-        open={creating}
-        onClose={() => setCreating(false)}
-        date={date}
+        open={!!creating}
+        onClose={() => setCreating(null)}
+        date={creating?.date || date}
+        time={creating?.time || ''}
         onCreated={(appt) => {
           if (appt?.date) setDate(appt.date);
           reload();
         }}
       />
+
+      {dayAgenda && <MonthCalendar open={monthOpen} onClose={() => setMonthOpen(false)} value={date} onPick={setDate} />}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------------- */
+
+/** Hueco libre de la agenda: "12:00 – 14:00 · Disponible"; tocarlo abre "Nuevo turno" a esa hora. */
+function FreeGap({ gap, durationLabel, onPick }) {
+  const range = `${formatTime(gap.from)} – ${formatTime(gap.to)}`;
+  const minutes = Number(gap.minutes) || 0;
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      aria-label={`${range}, disponible${minutes ? ` (${durationLabel(minutes)})` : ''}. Cargar un turno a las ${formatTime(gap.from)}`}
+      className="mjto-day-free group flex w-full items-center gap-2.5 rounded-tile border border-dashed border-line-strong px-3.5 py-2.5 text-left text-sm text-ink-soft transition-colors hover:border-accent hover:bg-accent-soft hover:text-accent active:scale-[0.99]"
+    >
+      <span className="min-w-0 flex-1 truncate">
+        <span className="font-semibold text-ink mjto-tabular group-hover:text-accent">{range}</span> · Disponible
+        {minutes > 0 && <span className="text-ink-faint group-hover:text-accent"> · {durationLabel(minutes)}</span>}
+      </span>
+      <Plus size={16} className="shrink-0" aria-hidden="true" />
+    </button>
   );
 }
 

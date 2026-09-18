@@ -148,6 +148,34 @@ export const publicApi = {
   /** POST /bookings/{token}/deposit-notice { note } → { ok } ("Ya transferí la seña"). */
   notifyDeposit: (token, note = '', opts) =>
     post(`bookings/${encodeURIComponent(token)}/deposit-notice`, { note }, opts),
+
+  /**
+   * GET /availability?token&from&to → igual que getAvailability, pero para
+   * reprogramar ese turno (su duración, sin contar su propio horario). Sin service_id.
+   */
+  getRescheduleAvailability: (token, from, to, opts) =>
+    get('availability', { token, from, to }, opts),
+
+  /**
+   * POST /bookings/{token}/reschedule { date, time } → vista del turno resultante.
+   * Con rescheduleTerms.mode 'new' vuelve OTRO token (turno nuevo que espera seña).
+   */
+  rescheduleBooking: (token, date, time, opts) =>
+    post(`bookings/${encodeURIComponent(token)}/reschedule`, { date, time }, opts),
+
+  /** POST /bookings/{token}/choice { choice: 'refund'|'credit' } → vista del turno (cambia offer.state). */
+  offerChoice: (token, choice, opts) =>
+    post(`bookings/${encodeURIComponent(token)}/choice`, { choice }, opts),
+
+  /** POST /bookings/{token}/review { rating, body, name } → { ok, status, message, review } */
+  submitReview: (token, { rating, body = '', name = '' }, opts) =>
+    post(`bookings/${encodeURIComponent(token)}/review`, { rating, body, name }, opts),
+
+  /** GET /me (con sesión) → { user: {id, name, email}, client: {firstName, …, extra}, credit } */
+  getMe: (opts) => get('me', undefined, opts),
+
+  /** GET /me/bookings (con sesión) → { upcoming, past, credit, movements }; 401 sin sesión. */
+  getMyBookings: (opts) => get('me/bookings', undefined, opts),
 };
 
 /* ---------------------------------------------------------------------------
@@ -268,6 +296,38 @@ export const panelApi = {
       },
       opts
     ),
+
+  /* ---- Agenda del día y del mes (1.3) ---- */
+
+  /** GET /panel/day?date → { date, open, closedReason, ranges, free: [{from, to, minutes}], blocks, appointments } */
+  getDay: (date, opts) => get('panel/day', { date }, opts),
+
+  /** GET /panel/month?month=YYYY-MM → { month, days: { 'YYYY-MM-DD': { count, open, blocked } } } */
+  getMonth: (month, opts) => get('panel/month', { month }, opts),
+
+  /* ---- Seña cancelada por la dueña (1.3) ---- */
+
+  /** Atajo: la devolución de la seña ya se hizo → PATCH { owner_offer: 'refunded' }. */
+  markRefunded: (id, opts) => patch(`panel/appointments/${id}`, { owner_offer: 'refunded' }, opts),
+
+  /* ---- Saldo a favor (1.3) ---- */
+
+  /** GET /panel/clients/{id}/credit → { balance, movements } */
+  getClientCredit: (id, opts) => get(`panel/clients/${id}/credit`, undefined, opts),
+
+  /** POST /panel/clients/{id}/credit { amount (+ suma / - descuenta), reason } → { balance, movements } */
+  addClientCredit: (id, amount, reason = '', opts) => post(`panel/clients/${id}/credit`, { amount, reason }, opts),
+
+  /* ---- Opiniones (1.3) ---- */
+
+  /** GET /panel/reviews?status → { items, total, counts: { pending, approved, hidden } } */
+  listReviews: (params = {}, opts) => get('panel/reviews', params, opts),
+
+  /** PATCH /panel/reviews/{id} { status?, author_name?, body? } → opinión */
+  updateReview: (id, payload, opts) => patch(`panel/reviews/${id}`, payload, opts),
+
+  /** DELETE /panel/reviews/{id} → { ok } */
+  deleteReview: (id, opts) => del(`panel/reviews/${id}`, opts),
 };
 
 /**

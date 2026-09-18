@@ -2,12 +2,15 @@
 /**
  * Base de datos del plugin: tablas propias, CRUD y shapes públicos.
  *
- * Cuatro tablas con prefijo {$wpdb->prefix}mjto_:
+ * Seis tablas con prefijo {$wpdb->prefix}mjto_:
  *  - clients      la clienta (datos de contacto + campos extra del formulario)
  *  - appointments turnos (reserva web o carga desde el panel)
  *  - visits       ficha técnica de UNA visita; la ficha de la clienta es su
  *                 línea de tiempo de visitas
  *  - blocks       bloqueos de agenda (vacaciones, feriados, franjas)
+ *  - credits      movimientos del saldo a favor de cada clienta (el saldo es
+ *                 la suma; nunca se pisa un movimiento, se agrega otro)
+ *  - reviews      opiniones de las clientas atendidas
  *
  * Todas las fechas se guardan como DATETIME/DATE en la zona horaria del
  * sitio (wp_timezone()). Nunca date()/time() a secas para la agenda.
@@ -38,6 +41,8 @@ function mjto_install_tables() {
 	$appointments = mjto_table('appointments');
 	$visits       = mjto_table('visits');
 	$blocks       = mjto_table('blocks');
+	$credits      = mjto_table('credits');
+	$reviews      = mjto_table('reviews');
 
 	dbDelta("CREATE TABLE {$clients} (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -48,6 +53,7 @@ function mjto_install_tables() {
   email VARCHAR(190) NOT NULL DEFAULT '',
   locality VARCHAR(160) NOT NULL DEFAULT '',
   age SMALLINT UNSIGNED NULL,
+  birthdate DATE NULL,
   notes TEXT NULL,
   extra LONGTEXT NULL,
   user_id BIGINT UNSIGNED NULL,
@@ -56,7 +62,8 @@ function mjto_install_tables() {
   PRIMARY KEY  (id),
   KEY phone (phone),
   KEY last_name (last_name),
-  KEY email (email)
+  KEY email (email),
+  KEY user_id (user_id)
 ) {$charset};");
 
 	dbDelta("CREATE TABLE {$appointments} (
@@ -79,9 +86,17 @@ function mjto_install_tables() {
   client_notes TEXT NULL,
   internal_notes TEXT NULL,
   reminder_sent_at DATETIME NULL,
+  reminder2_sent_at DATETIME NULL,
   cancelled_at DATETIME NULL,
   cancel_reason VARCHAR(255) NOT NULL DEFAULT '',
   cancelled_by VARCHAR(10) NOT NULL DEFAULT '',
+  credit_applied DECIMAL(12,2) NOT NULL DEFAULT 0,
+  deposit_forfeited DECIMAL(12,2) NOT NULL DEFAULT 0,
+  owner_offer VARCHAR(20) NOT NULL DEFAULT '',
+  rescheduled_from BIGINT UNSIGNED NULL,
+  reschedule_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  completed_at DATETIME NULL,
+  review_requested_at DATETIME NULL,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   PRIMARY KEY  (id),
@@ -105,12 +120,14 @@ function mjto_install_tables() {
   payment_method VARCHAR(60) NOT NULL DEFAULT '',
   control_date DATE NULL,
   retouch_date DATE NULL,
+  maintenance_sent_at DATETIME NULL,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   PRIMARY KEY  (id),
   KEY client_id (client_id),
   KEY visited_at (visited_at),
-  KEY appointment_id (appointment_id)
+  KEY appointment_id (appointment_id),
+  KEY retouch_date (retouch_date)
 ) {$charset};");
 
 	dbDelta("CREATE TABLE {$blocks} (
@@ -121,6 +138,38 @@ function mjto_install_tables() {
   created_at DATETIME NOT NULL,
   PRIMARY KEY  (id),
   KEY starts_at (starts_at)
+) {$charset};");
+
+	dbDelta("CREATE TABLE {$credits} (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  client_id BIGINT UNSIGNED NOT NULL,
+  amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  kind VARCHAR(20) NOT NULL DEFAULT 'manual',
+  reason VARCHAR(255) NOT NULL DEFAULT '',
+  appointment_id BIGINT UNSIGNED NULL,
+  created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL,
+  PRIMARY KEY  (id),
+  KEY client_id (client_id),
+  KEY appointment_id (appointment_id)
+) {$charset};");
+
+	dbDelta("CREATE TABLE {$reviews} (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  appointment_id BIGINT UNSIGNED NOT NULL,
+  client_id BIGINT UNSIGNED NOT NULL,
+  service_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  service_name VARCHAR(160) NOT NULL DEFAULT '',
+  author_name VARCHAR(160) NOT NULL DEFAULT '',
+  rating TINYINT UNSIGNED NOT NULL DEFAULT 5,
+  body TEXT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY appointment_id (appointment_id),
+  KEY status (status),
+  KEY client_id (client_id)
 ) {$charset};");
 
 	update_option('mjto_db_version', MJTO_DB_VERSION, false);
@@ -318,10 +367,30 @@ function mjto_client_columns() {
 		'email'      => 's',
 		'locality'   => 's',
 		'age'        => 'ni',
+		'birthdate'  => 'nd',
 		'notes'      => 'ntext',
 		'extra'      => 'json',
 		'user_id'    => 'ni',
 	];
+}
+
+/**
+ * Edad cumplida a hoy desde una fecha de nacimiento 'YYYY-MM-DD' (null si no
+ * es válida). La edad cargada a mano queda vieja con los años: si hay fecha,
+ * manda la fecha.
+ */
+function mjto_age_from_birthdate($birthdate) {
+	$birthdate = (string) $birthdate;
+	if (!mjto_valid_date($birthdate)) {
+		return null;
+	}
+	$today = current_datetime();
+	$birth = new DateTimeImmutable($birthdate . ' 00:00:00', wp_timezone());
+	if ($birth > $today) {
+		return null;
+	}
+	$age = (int) $birth->diff($today)->y;
+	return ($age >= 0 && $age < 130) ? $age : null;
 }
 
 /** Prepara los datos de una clienta: teléfono normalizado, email válido, edad razonable. */
@@ -343,6 +412,9 @@ function mjto_prepare_client_data(array $data) {
 		$age         = (int) $data['age'];
 		$data['age'] = ($age > 0 && $age < 130) ? $age : null;
 	}
+	if (array_key_exists('birthdate', $data)) {
+		$data['birthdate'] = (null !== mjto_age_from_birthdate($data['birthdate'])) ? (string) $data['birthdate'] : null;
+	}
 	if (isset($data['extra']) && !is_array($data['extra'])) {
 		$data['extra'] = mjto_json_to_array($data['extra']);
 	}
@@ -356,6 +428,32 @@ function mjto_get_client($id) {
 		return null;
 	}
 	$row = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . mjto_table('clients') . ' WHERE id = %d', $id), ARRAY_A);
+	return $row ? $row : null;
+}
+
+/** Clienta vinculada a un usuario de WordPress (la más antigua si hubiera varias). */
+function mjto_find_client_by_user($user_id) {
+	global $wpdb;
+	$user_id = (int) $user_id;
+	if ($user_id <= 0) {
+		return null;
+	}
+	$row = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . mjto_table('clients') . ' WHERE user_id = %d ORDER BY id ASC LIMIT 1', $user_id), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- tabla propia; los valores van por prepare.
+	return $row ? $row : null;
+}
+
+/** Clienta por email (sin cuenta vinculada o con esa misma cuenta), la más antigua. */
+function mjto_find_client_by_email($email, $user_id = 0) {
+	global $wpdb;
+	$email = sanitize_email((string) $email);
+	if (!is_email($email)) {
+		return null;
+	}
+	$row = $wpdb->get_row($wpdb->prepare(
+		'SELECT * FROM ' . mjto_table('clients') . ' WHERE email = %s AND (user_id IS NULL OR user_id = 0 OR user_id = %d) ORDER BY id ASC LIMIT 1', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- tabla propia; los valores van por prepare.
+		$email,
+		(int) $user_id
+	), ARRAY_A);
 	return $row ? $row : null;
 }
 
@@ -396,7 +494,7 @@ function mjto_update_client($id, array $data) {
 	return false !== $ok;
 }
 
-/** Baja: borra también sus visitas y sus turnos. */
+/** Baja: borra también sus visitas, sus turnos, su saldo y sus opiniones. */
 function mjto_delete_client($id) {
 	global $wpdb;
 	$id = (int) $id;
@@ -405,6 +503,8 @@ function mjto_delete_client($id) {
 	}
 	$wpdb->delete(mjto_table('visits'), ['client_id' => $id], ['%d']);
 	$wpdb->delete(mjto_table('appointments'), ['client_id' => $id], ['%d']);
+	$wpdb->delete(mjto_table('credits'), ['client_id' => $id], ['%d']);
+	$wpdb->delete(mjto_table('reviews'), ['client_id' => $id], ['%d']);
 	return false !== $wpdb->delete(mjto_table('clients'), ['id' => $id], ['%d']);
 }
 
@@ -552,10 +652,27 @@ function mjto_appointment_columns() {
 		'client_notes'        => 'ntext',
 		'internal_notes'      => 'ntext',
 		'reminder_sent_at'    => 'ndt',
+		'reminder2_sent_at'   => 'ndt',
 		'cancelled_at'        => 'ndt',
 		'cancel_reason'       => 's',
 		'cancelled_by'        => 's',
+		'credit_applied'      => 'f',
+		'deposit_forfeited'   => 'f',
+		'owner_offer'         => 's',
+		'rescheduled_from'    => 'ni',
+		'reschedule_count'    => 'i',
+		'completed_at'        => 'ndt',
+		'review_requested_at' => 'ndt',
 	];
+}
+
+/**
+ * Qué pasa con un turno que canceló la dueña y le ofreció opciones a la
+ * clienta: '' (nada que ofrecer), 'open' (esperando que elija), 'rescheduled',
+ * 'credited' (seña pasada a saldo a favor), 'refund_requested' y 'refunded'.
+ */
+function mjto_owner_offer_states() {
+	return ['', 'open', 'rescheduled', 'credited', 'refund_requested', 'refunded'];
 }
 
 /** Estados válidos de un turno. */
@@ -568,7 +685,7 @@ function mjto_appointment_select() {
 	$visits = mjto_table('visits');
 	return "SELECT a.*,
 		c.first_name AS client_first_name, c.last_name AS client_last_name, c.phone AS client_phone,
-		c.phone_raw AS client_phone_raw, c.email AS client_email, c.locality AS client_locality,
+		c.phone_raw AS client_phone_raw, c.email AS client_email, c.locality AS client_locality, c.user_id AS client_user_id,
 		(SELECT v.id FROM {$visits} v WHERE v.appointment_id = a.id ORDER BY v.id ASC LIMIT 1) AS visit_id
 		FROM " . mjto_table('appointments') . ' a
 		LEFT JOIN ' . mjto_table('clients') . ' c ON c.id = a.client_id';
@@ -607,6 +724,9 @@ function mjto_prepare_appointment_data(array $data) {
 	}
 	if (isset($data['token'])) {
 		$data['token'] = substr(preg_replace('/[^a-zA-Z0-9]/', '', (string) $data['token']), 0, 40);
+	}
+	if (isset($data['owner_offer']) && !in_array((string) $data['owner_offer'], mjto_owner_offer_states(), true)) {
+		$data['owner_offer'] = '';
 	}
 	return $data;
 }
@@ -682,7 +802,8 @@ function mjto_appointments_between($from_datetime, $to_datetime, $statuses = nul
 
 /**
  * Listado paginado para el panel.
- * args: from, to (YYYY-MM-DD inclusive), status (array), q, client_id, order (asc|desc), page, per_page.
+ * args: from, to (YYYY-MM-DD inclusive), status (array), q, client_id,
+ * owner_offer (uno de mjto_owner_offer_states(), sin vacío), order (asc|desc), page, per_page.
  */
 function mjto_query_appointments(array $args = []) {
 	global $wpdb;
@@ -692,6 +813,7 @@ function mjto_query_appointments(array $args = []) {
 		'status'    => [],
 		'q'         => '',
 		'client_id' => 0,
+		'owner_offer' => '',
 		'order'     => 'asc',
 		'page'      => 1,
 		'per_page'  => 50,
@@ -714,6 +836,9 @@ function mjto_query_appointments(array $args = []) {
 	}
 	if ((int) $args['client_id'] > 0) {
 		$where[] = $wpdb->prepare('a.client_id = %d', (int) $args['client_id']);
+	}
+	if ('' !== (string) $args['owner_offer'] && in_array((string) $args['owner_offer'], mjto_owner_offer_states(), true)) {
+		$where[] = $wpdb->prepare('a.owner_offer = %s', (string) $args['owner_offer']);
 	}
 	$q = trim((string) $args['q']);
 	if ('' !== $q) {
@@ -746,8 +871,9 @@ function mjto_visit_columns() {
 		'total'          => 'f',
 		'deposit'        => 'f',
 		'payment_method' => 's',
-		'control_date'   => 'nd',
-		'retouch_date'   => 'nd',
+		'control_date'        => 'nd',
+		'retouch_date'        => 'nd',
+		'maintenance_sent_at' => 'ndt',
 	];
 }
 
@@ -907,6 +1033,186 @@ function mjto_delete_block($id) {
 }
 
 /* -------------------------------------------------------------------------
+ * Saldo a favor (movimientos)
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Tipos de movimiento: 'deposit' (seña que pasó a saldo), 'applied' (saldo
+ * usado en una seña), 'returned' (saldo que vuelve porque la reserva no
+ * siguió), 'manual' (lo cargó o descontó la dueña).
+ */
+function mjto_credit_kinds() {
+	return ['deposit', 'applied', 'returned', 'manual'];
+}
+
+/** Saldo a favor de una clienta (suma de sus movimientos), redondeado a 2. */
+function mjto_credit_balance($client_id) {
+	global $wpdb;
+	$client_id = (int) $client_id;
+	if ($client_id <= 0) {
+		return 0.0;
+	}
+	$sum = $wpdb->get_var($wpdb->prepare('SELECT SUM(amount) FROM ' . mjto_table('credits') . ' WHERE client_id = %d', $client_id)); // phpcs:ignore WordPress.DB.PreparedSQL
+	return round(max(0.0, (float) $sum), 2);
+}
+
+/** Movimientos de una clienta, el más nuevo primero. */
+function mjto_credit_movements($client_id, $limit = 100) {
+	global $wpdb;
+	$client_id = (int) $client_id;
+	if ($client_id <= 0) {
+		return [];
+	}
+	$rows = $wpdb->get_results($wpdb->prepare('SELECT * FROM ' . mjto_table('credits') . ' WHERE client_id = %d ORDER BY created_at DESC, id DESC LIMIT %d', $client_id, max(1, (int) $limit)), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL
+	return is_array($rows) ? $rows : [];
+}
+
+/**
+ * Suma un movimiento (positivo = entra saldo, negativo = se usa). Un monto
+ * negativo nunca deja el saldo por debajo de cero: se recorta a lo que hay.
+ * → id del movimiento o false.
+ */
+function mjto_add_credit($client_id, $amount, $kind = 'manual', $reason = '', $appointment_id = null) {
+	global $wpdb;
+	$client_id = (int) $client_id;
+	$amount    = round((float) $amount, 2);
+	if ($client_id <= 0 || 0.0 === $amount) {
+		return false;
+	}
+	if ($amount < 0) {
+		$amount = -min(abs($amount), mjto_credit_balance($client_id));
+		if (0.0 === $amount) {
+			return false;
+		}
+	}
+	$kind = in_array((string) $kind, mjto_credit_kinds(), true) ? (string) $kind : 'manual';
+	$ok   = $wpdb->insert(mjto_table('credits'), [
+		'client_id'      => $client_id,
+		'amount'         => $amount,
+		'kind'           => $kind,
+		'reason'         => mb_substr(sanitize_text_field((string) $reason), 0, 255),
+		'appointment_id' => $appointment_id ? (int) $appointment_id : null,
+		'created_by'     => (int) get_current_user_id(),
+		'created_at'     => mjto_now(),
+	], ['%d', '%f', '%s', '%s', '%d', '%d', '%s']);
+	if (!$ok) {
+		return false;
+	}
+	$id = (int) $wpdb->insert_id;
+	do_action('mjto_credit_added', $id, $client_id, $amount, $kind, $appointment_id);
+	return $id;
+}
+
+/** Movimiento → shape público. */
+function mjto_credit_public($row) {
+	if (!is_array($row)) {
+		return null;
+	}
+	return [
+		'id'            => (int) $row['id'],
+		'amount'        => round((float) $row['amount'], 2),
+		'kind'          => (string) $row['kind'],
+		'reason'        => (string) $row['reason'],
+		'appointmentId' => !empty($row['appointment_id']) ? (int) $row['appointment_id'] : null,
+		'createdAt'     => (string) $row['created_at'],
+		'dateLabel'     => mjto_date_label($row['created_at']),
+	];
+}
+
+/* -------------------------------------------------------------------------
+ * Opiniones
+ * ---------------------------------------------------------------------- */
+
+/** Estados de una opinión. */
+function mjto_review_statuses() {
+	return ['pending', 'approved', 'hidden'];
+}
+
+function mjto_get_review($id) {
+	global $wpdb;
+	$row = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . mjto_table('reviews') . ' WHERE id = %d', (int) $id), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL
+	return $row ? $row : null;
+}
+
+function mjto_review_of_appointment($appointment_id) {
+	global $wpdb;
+	$row = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . mjto_table('reviews') . ' WHERE appointment_id = %d', (int) $appointment_id), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL
+	return $row ? $row : null;
+}
+
+/** Alta → id o false (una sola opinión por turno: el índice único lo garantiza). */
+function mjto_insert_review(array $data) {
+	global $wpdb;
+	$now = mjto_now();
+	$ok  = $wpdb->insert(mjto_table('reviews'), [
+		'appointment_id' => (int) $data['appointment_id'],
+		'client_id'      => (int) $data['client_id'],
+		'service_id'     => (int) ($data['service_id'] ?? 0),
+		'service_name'   => mb_substr(sanitize_text_field((string) ($data['service_name'] ?? '')), 0, 160),
+		'author_name'    => mb_substr(sanitize_text_field((string) ($data['author_name'] ?? '')), 0, 160),
+		'rating'         => max(1, min(5, (int) ($data['rating'] ?? 5))),
+		'body'           => mb_substr(sanitize_textarea_field((string) ($data['body'] ?? '')), 0, 2000),
+		'status'         => in_array((string) ($data['status'] ?? ''), mjto_review_statuses(), true) ? (string) $data['status'] : 'pending',
+		'created_at'     => $now,
+		'updated_at'     => $now,
+	], ['%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s']);
+	return $ok ? (int) $wpdb->insert_id : false;
+}
+
+/** Cambia estado, nombre visible o texto (lo que venga). → bool. */
+function mjto_update_review($id, array $data) {
+	global $wpdb;
+	$row = [];
+	$fmt = [];
+	if (isset($data['status']) && in_array((string) $data['status'], mjto_review_statuses(), true)) {
+		$row['status'] = (string) $data['status'];
+		$fmt[]         = '%s';
+	}
+	if (isset($data['author_name'])) {
+		$row['author_name'] = mb_substr(sanitize_text_field((string) $data['author_name']), 0, 160);
+		$fmt[]              = '%s';
+	}
+	if (isset($data['body'])) {
+		$row['body'] = mb_substr(sanitize_textarea_field((string) $data['body']), 0, 2000);
+		$fmt[]       = '%s';
+	}
+	if (!$row) {
+		return true;
+	}
+	$row['updated_at'] = mjto_now();
+	$fmt[]             = '%s';
+	return false !== $wpdb->update(mjto_table('reviews'), $row, ['id' => (int) $id], $fmt, ['%d']);
+}
+
+function mjto_delete_review($id) {
+	global $wpdb;
+	return false !== $wpdb->delete(mjto_table('reviews'), ['id' => (int) $id], ['%d']);
+}
+
+/**
+ * Listado de opiniones. args: status ('' = todas), service_id, page, per_page.
+ * → ['items' => filas, 'total' => int].
+ */
+function mjto_query_reviews(array $args = []) {
+	global $wpdb;
+	$args     = wp_parse_args($args, ['status' => '', 'service_id' => 0, 'page' => 1, 'per_page' => 50]);
+	$per_page = max(1, min(200, (int) $args['per_page']));
+	$offset   = (max(1, (int) $args['page']) - 1) * $per_page;
+	$where    = ['1=1'];
+	if (in_array((string) $args['status'], mjto_review_statuses(), true)) {
+		$where[] = $wpdb->prepare('status = %s', (string) $args['status']);
+	}
+	if ((int) $args['service_id'] > 0) {
+		$where[] = $wpdb->prepare('service_id = %d', (int) $args['service_id']);
+	}
+	$where_sql = implode(' AND ', $where);
+	$table     = mjto_table('reviews');
+	$total     = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE {$where_sql}"); // phpcs:ignore WordPress.DB.PreparedSQL
+	$rows      = $wpdb->get_results("SELECT * FROM {$table} WHERE {$where_sql} ORDER BY created_at DESC, id DESC " . $wpdb->prepare('LIMIT %d OFFSET %d', $per_page, $offset), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL
+	return ['items' => is_array($rows) ? $rows : [], 'total' => $total];
+}
+
+/* -------------------------------------------------------------------------
  * Shapes públicos (camelCase, para REST y panel)
  * ---------------------------------------------------------------------- */
 
@@ -930,8 +1236,13 @@ function mjto_client_public($row, $with_stats = false) {
 	if (!is_array($row)) {
 		return null;
 	}
-	$phone  = (string) ($row['phone'] ?? '');
-	$wa     = mjto_whatsapp_number($phone);
+	$phone     = (string) ($row['phone'] ?? '');
+	$wa        = mjto_whatsapp_number($phone);
+	$birthdate = mjto_dt_or_null($row['birthdate'] ?? '');
+	$age       = $birthdate ? mjto_age_from_birthdate($birthdate) : null;
+	if (null === $age && isset($row['age']) && '' !== $row['age'] && null !== $row['age']) {
+		$age = (int) $row['age'];
+	}
 	$public = [
 		'id'        => (int) ($row['id'] ?? 0),
 		'firstName' => (string) ($row['first_name'] ?? ''),
@@ -941,7 +1252,9 @@ function mjto_client_public($row, $with_stats = false) {
 		'phoneRaw'  => (string) ($row['phone_raw'] ?? ''),
 		'email'     => (string) ($row['email'] ?? ''),
 		'locality'  => (string) ($row['locality'] ?? ''),
-		'age'       => (isset($row['age']) && '' !== $row['age'] && null !== $row['age']) ? (int) $row['age'] : null,
+		'age'       => $age,
+		'birthdate' => $birthdate,
+		'userId'    => !empty($row['user_id']) ? (int) $row['user_id'] : null,
 		'notes'     => (string) ($row['notes'] ?? ''),
 		'extra'     => (object) mjto_json_to_array($row['extra'] ?? ''),
 		'whatsapp'  => [
@@ -953,6 +1266,7 @@ function mjto_client_public($row, $with_stats = false) {
 	];
 	if ($with_stats) {
 		$next = isset($row['next_appointment']) && is_array($row['next_appointment']) ? $row['next_appointment'] : null;
+		$public['credit']          = (int) mjto_opt('credit_enabled') ? mjto_credit_balance((int) $public['id']) : 0.0;
 		$public['visitsCount']     = (int) ($row['visits_count'] ?? 0);
 		$public['lastVisit']       = mjto_dt_or_null($row['last_visit'] ?? '');
 		$public['nextAppointment'] = $next ? [
@@ -1059,9 +1373,17 @@ function mjto_appointment_public($row, $with_client = true) {
 			'links'  => $links,
 		],
 		'reminderSentAt'    => mjto_dt_or_null($row['reminder_sent_at'] ?? ''),
+		'reminder2SentAt'   => mjto_dt_or_null($row['reminder2_sent_at'] ?? ''),
 		'cancelledAt'       => mjto_dt_or_null($row['cancelled_at'] ?? ''),
 		'cancelReason'      => (string) ($row['cancel_reason'] ?? ''),
 		'cancelledBy'       => (string) ($row['cancelled_by'] ?? ''),
+		'creditApplied'     => (float) ($row['credit_applied'] ?? 0),
+		'depositForfeited'  => (float) ($row['deposit_forfeited'] ?? 0),
+		'ownerOffer'        => (string) ($row['owner_offer'] ?? ''),
+		'rescheduledFrom'   => !empty($row['rescheduled_from']) ? (int) $row['rescheduled_from'] : null,
+		'rescheduleCount'   => (int) ($row['reschedule_count'] ?? 0),
+		'completedAt'       => mjto_dt_or_null($row['completed_at'] ?? ''),
+		'reviewRequestedAt' => mjto_dt_or_null($row['review_requested_at'] ?? ''),
 		'createdAt'         => mjto_dt_or_null($row['created_at'] ?? ''),
 		'updatedAt'         => mjto_dt_or_null($row['updated_at'] ?? ''),
 	];
@@ -1096,6 +1418,7 @@ function mjto_visit_public($row) {
 		'paymentMethod' => (string) ($row['payment_method'] ?? ''),
 		'controlDate'   => mjto_dt_or_null($row['control_date'] ?? ''),
 		'retouchDate'   => mjto_dt_or_null($row['retouch_date'] ?? ''),
+		'maintenanceSentAt' => mjto_dt_or_null($row['maintenance_sent_at'] ?? ''),
 		'createdAt'     => mjto_dt_or_null($row['created_at'] ?? ''),
 		'updatedAt'     => mjto_dt_or_null($row['updated_at'] ?? ''),
 	];

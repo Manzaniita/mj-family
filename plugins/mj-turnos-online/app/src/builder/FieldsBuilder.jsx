@@ -51,7 +51,16 @@ const TYPE_LABELS = {
   toggle: 'Sí / No',
 };
 
-const FORM_TYPES_DEFAULT = ['text', 'tel', 'email', 'textarea', 'select', 'number'];
+/* En el formulario público la opción única se muestra como lista de opciones, no como chips. */
+const FORM_TYPE_LABELS = {
+  radio: 'Opciones (una sola)',
+};
+
+const typeLabel = (kind, type) => (kind === 'form' && FORM_TYPE_LABELS[type]) || TYPE_LABELS[type] || type;
+
+const FORM_TYPES_DEFAULT = ['text', 'tel', 'email', 'textarea', 'select', 'radio', 'number', 'date'];
+/* Tipos del formulario que llevan opciones. */
+const FORM_OPTION_TYPES = ['select', 'radio'];
 const FICHA_TYPES_DEFAULT = ['checkbox_group', 'radio', 'select', 'text', 'textarea', 'number', 'money', 'date', 'toggle'];
 
 const ROLE_DEFS = [
@@ -77,12 +86,13 @@ const SYSTEM_FORM_FIELDS = [
   { key: 'email', label: 'Email', placeholder: 'Para mandarte la confirmación', type: 'email', required: false, enabled: true, options: [], system: true },
   { key: 'locality', label: 'Localidad', placeholder: '', type: 'text', required: true, enabled: true, options: [], system: true },
   { key: 'notes', label: '¿Algo que quieras contarnos?', placeholder: '', type: 'textarea', required: false, enabled: true, options: [], system: true },
+  { key: 'birthdate', label: 'Fecha de nacimiento', placeholder: '', type: 'date', required: false, enabled: false, options: [], system: true },
 ];
 
 const typeOptions = (kind) => {
   const fromBoot = BOOT.fieldTypes && Array.isArray(BOOT.fieldTypes[kind]) ? BOOT.fieldTypes[kind] : null;
   const list = fromBoot && fromBoot.length ? fromBoot : kind === 'ficha' ? FICHA_TYPES_DEFAULT : FORM_TYPES_DEFAULT;
-  return list.map((v) => ({ value: v, label: TYPE_LABELS[v] || v }));
+  return list.map((v) => ({ value: v, label: typeLabel(kind, v) }));
 };
 
 const roleOptions = () => {
@@ -181,7 +191,7 @@ export function normFormFields(raw, defaults) {
       type,
       required: locked ? true : bool(f.required),
       enabled: locked ? true : bool(f.enabled, true),
-      options: type === 'select' ? normOptions(f.options) : [],
+      options: FORM_OPTION_TYPES.includes(type) ? normOptions(f.options) : [],
       system: isSystem,
     });
   });
@@ -245,7 +255,7 @@ const clean = (obj) => Object.fromEntries(Object.entries(obj).filter(([k]) => !k
 export function serializeForm(fields) {
   return fields.map((f) => ({
     ...clean(f),
-    options: f.type === 'select' ? f.options.map((o) => ({ value: o.value, label: o.label })) : [],
+    options: FORM_OPTION_TYPES.includes(f.type) ? f.options.map((o) => ({ value: o.value, label: o.label })) : [],
   }));
 }
 
@@ -531,7 +541,7 @@ function FieldCard({ field, kind, index, total, takenKeys, errors = {}, onChange
 
   const summaryBadges = (
     <>
-      <Badge tone="neutral" size="sm">{TYPE_LABELS[field.type] || field.type}</Badge>
+      <Badge tone="neutral" size="sm">{typeLabel(kind, field.type)}</Badge>
       {field.system && (
         <Badge tone="info" size="sm" icon={Lock}>
           Sistema

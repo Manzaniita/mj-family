@@ -54,7 +54,7 @@ export function normalizeBootstrap(raw) {
   deposit.percent = num(deposit.percent, 30);
   deposit.hours = num(deposit.hours, 24);
   const cancel = { allowed: bool(o.cancel?.allowed, true), hoursBefore: num(o.cancel?.hoursBefore, 24) };
-  const counts = { today: 0, pending: 0, awaitingDeposit: 0, depositNotified: 0, ...(b.counts || {}) };
+  const counts = { today: 0, pending: 0, awaitingDeposit: 0, depositNotified: 0, refundRequests: 0, pendingReviews: 0, ...(b.counts || {}) };
   Object.keys(counts).forEach((k) => {
     counts[k] = num(counts[k], 0);
   });
@@ -69,6 +69,13 @@ export function normalizeBootstrap(raw) {
       deposit,
       cancel,
       cajaEnabled: bool(o.cajaEnabled, true),
+      /* 1.3: todo apagado si el bootstrap no lo trae (el panel se ve igual que antes). */
+      ownerCancelOffer: bool(o.ownerCancelOffer, false),
+      creditEnabled: bool(o.creditEnabled, false),
+      reviewsEnabled: bool(o.reviewsEnabled, false),
+      accountMode: ['optional', 'required'].includes(o.accountMode) ? o.accountMode : 'off',
+      /* Agenda del día en Hoy (huecos libres, bloqueos intercalados, calendario del mes): prendida si no viene. */
+      dayFreeGaps: bool(o.dayFreeGaps, true),
       business: { ...BUSINESS, ...(o.business || {}) },
       whatsappCountry: String(o.whatsappCountry || '54'),
       whatsappPrefix: String(o.whatsappPrefix || '549'),
@@ -235,6 +242,11 @@ function buildStore(boot, { loading, error, refresh, reload, setCounts }) {
     deposit: o.deposit,
     cancel: o.cancel,
     cajaEnabled: o.cajaEnabled,
+    ownerCancelOffer: o.ownerCancelOffer,
+    creditEnabled: o.creditEnabled,
+    reviewsEnabled: o.reviewsEnabled,
+    accountMode: o.accountMode,
+    dayFreeGaps: o.dayFreeGaps,
     business: o.business,
     currency,
     user: b.user,

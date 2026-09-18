@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { BellRing, CalendarCheck, CalendarDays, Clock, Coins, ExternalLink, LogOut, MoreHorizontal, Users, Wallet, WifiOff } from 'lucide-react';
+import { BellRing, CalendarCheck, CalendarDays, Clock, Coins, ExternalLink, HandCoins, LogOut, MoreHorizontal, Users, Wallet, WifiOff } from 'lucide-react';
 import { BASE_PATH, HOME_URL, SITE_NAME, THEME } from '@/lib/config';
 import { cn, initials, longDateLabel } from '@/lib/format';
 import { Button, EmptyState, Spinner, ToastProvider } from '@/ui';
@@ -73,7 +73,8 @@ function useNavItems() {
     { to: '/turnos', label: 'Turnos', icon: CalendarDays, badge: c.pending + c.awaitingDeposit },
     { to: '/clientas', label: 'Clientas', icon: Users },
     store.cajaEnabled ? { to: '/caja', label: 'Caja', icon: Wallet } : null,
-    { to: '/mas', label: 'Más', icon: MoreHorizontal },
+    // Opiniones esperando revisión (1.3): el contador va en "Más", donde se moderan.
+    { to: '/mas', label: 'Más', icon: MoreHorizontal, badge: c.pendingReviews },
   ].filter(Boolean);
 }
 
@@ -141,6 +142,7 @@ function CounterPill({ icon: Icon, count, label, tone, to }) {
     warning: 'bg-warning-soft text-warning',
     violet: 'bg-violet-soft text-violet',
     info: 'bg-info-soft text-info',
+    danger: 'bg-danger-soft text-danger',
   };
   return (
     <Link
@@ -170,6 +172,7 @@ function Topbar() {
           <CounterPill icon={Clock} count={c.pending} label={store.statusLabel('pending')} tone="warning" to="/turnos?estado=pending" />
           <CounterPill icon={Coins} count={c.awaitingDeposit} label={store.statusLabel('awaiting_deposit')} tone="violet" to="/turnos?estado=awaiting_deposit" />
           <CounterPill icon={BellRing} count={c.depositNotified} label="Avisaron seña" tone="info" to="/turnos?estado=awaiting_deposit&aviso=1" />
+          <CounterPill icon={HandCoins} count={c.refundRequests} label="Pidieron devolución" tone="danger" to="/turnos?estado=cancelled&devolucion=1" />
         </div>
         <div className="hidden shrink-0 items-center gap-1 lg:flex">
           <a href={store.urls.site || HOME_URL} className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink">

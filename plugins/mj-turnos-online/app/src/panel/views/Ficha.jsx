@@ -5,12 +5,15 @@
  * visita con carry y abre el editor); banner con las advertencias de la última
  * visita; pestañas Visitas (línea de tiempo, más reciente arriba) y Turnos
  * (tarjetas con acciones); eliminar clienta con confirmación doble.
+ *
+ * 1.3: "Saldo a favor" (si options.creditEnabled o si ya tiene saldo) y
+ * "Cuenta en la web" (si las cuentas están prendidas o ya tiene una vinculada).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, CalendarPlus, Cake, ClipboardList, ClipboardPlus, Mail, MapPin, MessageCircle, Pencil, Phone, StickyNote, Trash2, UserX } from 'lucide-react';
 import { panelApi } from '@/lib/api';
-import { cn, dateLabel, fullName, initials, pluralize, prettyPhone } from '@/lib/format';
+import { cn, dateLabel, fullName, initials, pluralize, prettyPhone, shortDateLabel } from '@/lib/format';
 import { useToast, Button, ConfirmDialog, EmptyState, PageHeader, SectionTitle, Skeleton, SkeletonCard, Tabs } from '@/ui';
 import { usePanel } from '../store';
 import ClientForm from '../components/ClientForm';
@@ -18,6 +21,8 @@ import VisitSummary from '../components/VisitSummary';
 import AppointmentCard from '../components/AppointmentCard';
 import NuevoTurno from '../components/NuevoTurno';
 import WhatsAppMenu from '../components/WhatsAppMenu';
+import ClientCredit, { normalizeCredit } from '../components/ClientCredit';
+import ClientAccount from '../components/ClientAccount';
 
 const CANCELLED = ['cancelled', 'no_show'];
 
@@ -58,6 +63,8 @@ export default function Ficha() {
   const [client, setClient] = useState(null);
   const [visits, setVisits] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [account, setAccount] = useState(null);
+  const [credit, setCredit] = useState(() => normalizeCredit(null));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -77,6 +84,8 @@ export default function Ficha() {
         setClient(res?.client || null);
         setVisits(Array.isArray(res?.visits) ? [...res.visits].sort(byVisitDesc) : []);
         setAppointments(Array.isArray(res?.appointments) ? res.appointments : []);
+        setAccount(res?.account && typeof res.account === 'object' ? res.account : null);
+        setCredit(normalizeCredit(res?.credit));
         setError(null);
       } catch (err) {
         if (!silent) setError(err);
@@ -110,6 +119,9 @@ export default function Ficha() {
     const next = upcoming.find((a) => !CANCELLED.includes(a.status)) || upcoming[0];
     return next || past[0] || null;
   }, [upcoming, past]);
+
+  const showCredit = !!client && (store.creditEnabled || credit.balance > 0);
+  const showAccount = !!client && (store.accountMode !== 'off' || !!client.userId || !!account);
 
   const visitAppointment = (visit) => (visit?.appointmentId ? appointments.find((a) => Number(a.id) === Number(visit.appointmentId)) || null : null);
 
@@ -254,7 +266,11 @@ export default function Ficha() {
                   ) : (
                     <InfoLine icon={Phone}>Sin teléfono</InfoLine>
                   )}
-                  {client.age !== null && client.age !== undefined && client.age !== '' && <InfoLine icon={Cake}>{`${client.age} años`}</InfoLine>}
+                  {client.age !== null && client.age !== undefined && client.age !== '' ? (
+                    <InfoLine icon={Cake}>{`${client.age} años${client.birthdate ? ` · cumple el ${shortDateLabel(client.birthdate)}` : ''}`}</InfoLine>
+                  ) : (
+                    client.birthdate && <InfoLine icon={Cake}>{`Cumple el ${shortDateLabel(client.birthdate)}`}</InfoLine>
+                  )}
                   <InfoLine icon={MapPin}>{client.locality}</InfoLine>
                   {client.email && (
                     <InfoLine icon={Mail}>
@@ -276,10 +292,14 @@ export default function Ficha() {
                       .filter(([, v]) => v !== '' && v !== null && v !== undefined)
                       .map(([k, v]) => {
                         const def = store.formFields.find((f) => f.key === k);
+                        let shown = Array.isArray(v) ? v.join(', ') : String(v);
+                        // Tipos nuevos de 1.3: fecha legible y la etiqueta de la opción elegida.
+                        if (def?.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(shown)) shown = dateLabel(shown, { year: true });
+                        if (def?.type === 'radio' && Array.isArray(def.options)) shown = def.options.find((o) => String(o.value) === shown)?.label || shown;
                         return (
                           <div key={k} className="flex min-w-0 gap-2">
                             <dt className="shrink-0 text-ink-faint">{def?.label || k}:</dt>
-                            <dd className="m-0 min-w-0 truncate text-ink">{Array.isArray(v) ? v.join(', ') : String(v)}</dd>
+                            <dd className="m-0 min-w-0 truncate text-ink">{shown}</dd>
                           </div>
                         );
                       })}
@@ -299,6 +319,22 @@ export default function Ficha() {
             </div>
           </section>
         )
+      )}
+
+      {(showCredit || showAccount) && (
+        <div className={cn('mjto-ficha-extras mt-3 grid grid-cols-1 gap-3', showCredit && showAccount && 'md:grid-cols-2')}>
+          {showCredit && <ClientCredit clientId={client.id} credit={credit} onChange={setCredit} />}
+          {showAccount && (
+            <ClientAccount
+              client={client}
+              account={account}
+              onChanged={(c) => {
+                if (c && c.id) setClient((cur) => ({ ...(cur || {}), ...c }));
+                load({ silent: true });
+              }}
+            />
+          )}
+        </div>
       )}
 
       {latestWarnings.length > 0 && (

@@ -8,7 +8,7 @@
  *   whatsapp:{number, url}, canCancel }
  */
 import { useState } from 'react';
-import { CalendarCheck, Clock, Hourglass, PartyPopper, Plus } from 'lucide-react';
+import { CalendarCheck, CalendarDays, Clock, Hourglass, PartyPopper, Plus } from 'lucide-react';
 import { Button, StatusBadge } from '@/ui';
 import { DepositCard, Summary, summaryItem, useBooking } from '../shared';
 
@@ -30,6 +30,9 @@ export default function ResultStep({ result, service, onViewStatus, onRestart })
     (status === 'confirmed' ? t('booking_success_auto') : status === 'awaiting_deposit' ? t('booking_success_deposit') : t('booking_success_pending'));
   const Icon = ICONS[status] || CalendarCheck;
   const item = summaryItem({ service, appointment: result.appointment, deposit: depositRequired ? deposit.amount : 0, cfg });
+  // Con cuenta (la tenía o se creó recién): enlace a "Mis turnos". Es un enlace: la página se recarga y toma la sesión.
+  const withAccount = cfg.account.mode !== 'off' && !cfg.canManage && (cfg.account.loggedIn || !!result.accountCreated);
+  const myBookingsHref = withAccount ? result.myBookingsUrl || cfg.account.myBookingsUrl : '';
 
   return (
     <div className="mjto-booking__result animate-up">
@@ -55,6 +58,11 @@ export default function ResultStep({ result, service, onViewStatus, onRestart })
         {result.token && (
           <Button variant="secondary" onClick={onViewStatus} icon={CalendarCheck}>
             {t('booking_status_link')}
+          </Button>
+        )}
+        {myBookingsHref && (
+          <Button variant="ghost" href={myBookingsHref} icon={CalendarDays}>
+            {t('my_bookings_title')}
           </Button>
         )}
         <Button variant="ghost" onClick={onRestart} icon={Plus}>

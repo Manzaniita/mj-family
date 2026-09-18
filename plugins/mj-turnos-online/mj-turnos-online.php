@@ -2,25 +2,28 @@
 /**
  * Plugin Name: MJ Turnos Online
  * Description: Reserva de turnos online con agenda, ficha técnica por clienta, seña, recordatorios y panel para la dueña. La clienta elige servicio, día y hora desde /turnos; la administradora entra a la misma URL y ve el panel. Se integra con el tema MJ Appearance (menú, portada, página de servicios) y funciona con cualquier tema mediante el shortcode [mj_turnos]. No necesita WooCommerce.
- * Version: 1.2.1
+ * Version: 1.3.0
  * Author: MJ
  * Text Domain: mj-turnos-online
  */
 
 defined('ABSPATH') || exit;
 
-define('MJTO_VERSION', '1.2.1');
+define('MJTO_VERSION', '1.3.0');
 define('MJTO_FILE', __FILE__);
 define('MJTO_DIR', plugin_dir_path(__FILE__));
 define('MJTO_URL', plugin_dir_url(__FILE__));
 define('MJTO_CAP', 'mjto_manage');
-define('MJTO_DB_VERSION', '1');
+define('MJTO_DB_VERSION', '2');
 
 require_once MJTO_DIR . 'inc/options.php';       // Opciones, página Turnos → Ajustes, menú y helpers.
 require_once MJTO_DIR . 'inc/db.php';            // Tablas, CRUD y shapes públicos.
 require_once MJTO_DIR . 'inc/services.php';      // CPT mjto_service + metabox + helpers.
 require_once MJTO_DIR . 'inc/availability.php';  // Motor de disponibilidad.
 require_once MJTO_DIR . 'inc/bookings.php';      // Crear reserva, estados, ficha automática, seña.
+require_once MJTO_DIR . 'inc/accounts.php';      // Cuenta de la clienta: alta en la reserva, "Mis turnos", precarga.
+require_once MJTO_DIR . 'inc/policies.php';      // Reprogramar y cancelar según las reglas, saldo a favor, cancelación de la dueña.
+require_once MJTO_DIR . 'inc/reviews.php';       // Opiniones de las clientas atendidas.
 require_once MJTO_DIR . 'inc/notifications.php'; // Plantillas, mails, links de WhatsApp, cron.
 require_once MJTO_DIR . 'inc/receipts.php';      // Comprobante de la seña (sobre MJ Medios de Pago).
 require_once MJTO_DIR . 'inc/rest.php';          // REST mjto/v1 (público + panel).
@@ -47,11 +50,30 @@ function mjto_activate() {
 	if (!wp_next_scheduled('mjto_hourly')) {
 		wp_schedule_event(time(), 'hourly', 'mjto_hourly');
 	}
+	if (!wp_next_scheduled('mjto_tick')) {
+		wp_schedule_event(time(), 'mjto_5min', 'mjto_tick');
+	}
 }
 
 /* Al desactivar solo se apaga el cron: las tablas y los datos quedan (ver LEEME). */
 register_deactivation_hook(__FILE__, function () {
 	wp_clear_scheduled_hook('mjto_hourly');
+	wp_clear_scheduled_hook('mjto_tick');
+});
+
+/*
+ * Tarea frecuente: la seña que vence a la hora y el recordatorio de "una hora
+ * antes" no pueden esperar a la tarea horaria. Cada cuántos minutos corre es
+ * un filtro (mjto_tick_minutes); WordPress la dispara cuando hay visitas, así
+ * que con un cron real del hosting es exacta.
+ */
+add_filter('cron_schedules', function ($schedules) { // phpcs:ignore WordPress.WP.CronInterval.ChangeDetected -- 5 minutos por defecto: menos de 15 a propósito (la seña vence a la hora).
+	$minutes = max(1, (int) apply_filters('mjto_tick_minutes', 5));
+	$schedules['mjto_5min'] = [
+		'interval' => $minutes * MINUTE_IN_SECONDS,
+		'display'  => 'MJ Turnos: tarea frecuente',
+	];
+	return $schedules;
 });
 
 /* -------------------------------------------------------------------------
@@ -66,6 +88,9 @@ add_action('init', function () {
 	}
 	if (!wp_next_scheduled('mjto_hourly')) {
 		wp_schedule_event(time(), 'hourly', 'mjto_hourly');
+	}
+	if (!wp_next_scheduled('mjto_tick')) {
+		wp_schedule_event(time(), 'mjto_5min', 'mjto_tick');
 	}
 }, 5);
 

@@ -2,6 +2,7 @@
  * Más (spec A.11): bloqueos de agenda (próximos + BlockForm + eliminar),
  * exportar CSV (clientas / visitas / turnos por rango), enlaces (reserva
  * pública, Ajustes, Servicios, cerrar sesión) e info (versión, zona horaria).
+ * 1.3: Opiniones (ReviewsSection), sólo si están prendidas o ya hay alguna.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarOff, Download, ExternalLink, Info, LogOut, Plus, RefreshCw, Scissors, Settings, Trash2 } from 'lucide-react';
@@ -12,6 +13,7 @@ import { addDaysStr, addMonthsStr, endOfMonth, isDateStr, splitDateTime, startOf
 import { useToast, Button, ConfirmDialog, DateInput, EmptyState, SectionTitle, Select, Skeleton, PageHeader } from '@/ui';
 import { usePanel } from '../store';
 import BlockForm from '../components/BlockForm';
+import ReviewsSection from '../components/ReviewsSection';
 
 const EXPORTS = [
   { value: 'visits', label: 'Visitas (ficha técnica)' },
@@ -180,6 +182,9 @@ export default function Mas() {
         )}
         <p className="mt-2 text-xs text-ink-faint">Se muestran los bloqueos de los próximos 12 meses ({pluralize(blocks.length, 'bloqueo')}).</p>
       </section>
+
+      {/* Opiniones (se oculta sola si no se usan) */}
+      <ReviewsSection />
 
       {/* Exportar */}
       <section aria-label="Exportar">

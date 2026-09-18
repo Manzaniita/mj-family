@@ -123,23 +123,46 @@ function mjto_public_config() {
 			'openDays'       => (object) $open_days,
 		],
 		'confirmMode'  => (string) $o['confirm_mode'],
+		/*
+		 * Los datos para transferir (alias, CBU, titular, link de pago) ya no van
+		 * acá: se muestran recién en la vista de la reserva, a quien reservó
+		 * (GET /bookings/{token}). Las claves quedan vacías por compatibilidad.
+		 */
 		'deposit'      => [
 			'type'         => (string) $o['deposit_type'],
 			'amount'       => (float) $o['deposit_amount'],
 			'percent'      => (float) $o['deposit_percent'],
-			'instructions' => (string) $o['deposit_instructions'],
-			'link'         => (string) $o['deposit_link'],
+			'instructions' => '',
+			'link'         => '',
 			'hours'        => (int) $o['deposit_hours'],
 		],
 		'cancel'       => [
 			'allowed'     => (bool) $o['client_can_cancel'],
 			'hoursBefore' => (int) $o['cancel_hours_before'],
 		],
+		'reschedule'   => [
+			'allowed'     => (bool) $o['client_can_reschedule'],
+			'hoursBefore' => (int) $o['reschedule_hours_before'],
+		],
+		'creditEnabled' => (bool) $o['credit_enabled'],
+		'account'      => [
+			'mode'          => mjto_account_mode(),
+			'passwordMin'   => mjto_account_password_min(),
+			'loggedIn'      => is_user_logged_in(),
+			'prefill'       => (bool) $o['account_prefill'],
+			'myBookingsUrl' => mjto_my_bookings_url(),
+		],
+		'categories'   => mjto_service_categories(),
+		'groupByCategory' => (bool) $o['services_group_by_category'],
+		'reviews'      => mjto_reviews_enabled()
+			? array_merge(['enabled' => true], mjto_reviews_summary((int) apply_filters('mjto_config_reviews', 12)))
+			: ['enabled' => false, 'count' => 0, 'average' => 0, 'items' => []],
 		'priceVisible' => (bool) $o['price_visible'],
 		'currency'     => mjto_currency(),
 		'restUrl'      => esc_url_raw(rest_url('mjto/v1/')),
 		'homeUrl'      => home_url('/'),
 		'loginUrl'     => wp_login_url(home_url('/' . mjto_page_slug())), // Para la dueña sin sesión: vuelve al panel.
+		'logoutUrl'    => is_user_logged_in() ? str_replace('&amp;', '&', wp_logout_url(home_url('/' . mjto_page_slug()))) : '',
 	];
 }
 

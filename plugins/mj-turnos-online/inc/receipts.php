@@ -110,7 +110,8 @@ function mjto_receipt_object($appointment_id) {
 		'customer'     => '' !== $name ? $name : 'Clienta',
 		'email'        => (string) ($client['email'] ?? ''),
 		'phone'        => (string) ($client['phone'] ?? ''),
-		'total'        => (float) ($row['depositRequired'] ?? 0),
+		/* Lo que tenía que transferir: la seña menos el saldo a favor que ya usó. */
+		'total'        => max(0, (float) ($row['depositRequired'] ?? 0) - (float) ($row['creditApplied'] ?? 0)),
 		'currency'     => strtoupper((string) ($currency['code'] ?? 'ARS')),
 		'status_label' => (string) ($row['statusLabel'] ?? ''),
 		'method'       => (string) ($row['depositMethod'] ?? ''),
@@ -186,8 +187,8 @@ function mjto_receipt_state($appointment_id) {
 	if (!$row) {
 		return '';
 	}
-	/* La seña ya cobrada es un comprobante aprobado. */
-	if ((float) ($row['deposit_paid'] ?? 0) > 0) {
+	/* La seña ya cobrada entera es un comprobante aprobado (una parte cubierta con saldo a favor no alcanza). */
+	if ((float) ($row['deposit_paid'] ?? 0) > 0 && (float) $row['deposit_paid'] + 0.004 >= (float) ($row['deposit_required'] ?? 0)) {
 		return MJPM_Receipts::STATUS_OK;
 	}
 
@@ -222,7 +223,7 @@ function mjto_receipt_set_state($appointment_id, $decision, $reason = '') {
 			return;
 		}
 		/* Ya está confirmado y cobrado: no hay nada que hacer. */
-		if ('confirmed' === (string) $row['status'] && (float) ($row['deposit_paid'] ?? 0) > 0) {
+		if ('confirmed' === (string) $row['status'] && (float) ($row['deposit_paid'] ?? 0) + 0.004 >= (float) ($row['deposit_required'] ?? 0)) {
 			return;
 		}
 		mjto_set_status(
@@ -237,10 +238,41 @@ function mjto_receipt_set_state($appointment_id, $decision, $reason = '') {
 		return;
 	}
 
-	if (MJPM_Receipts::STATUS_NO === $decision && '' !== trim((string) $reason)) {
-		mjto_receipt_add_note((int) $appointment_id, sprintf('Comprobante de la seña rechazado: %s', trim((string) $reason)));
+	if (MJPM_Receipts::STATUS_NO === $decision) {
+		if ('' !== trim((string) $reason)) {
+			mjto_receipt_add_note((int) $appointment_id, sprintf('Comprobante de la seña rechazado: %s', trim((string) $reason)));
+		}
+		/*
+		 * Rechazado: vuelve a correr el plazo para mandar otro. Sin esto el turno
+		 * quedaba retenido para siempre (el aviso de "ya transferí" lo frena).
+		 */
+		$hours = max(0, (int) mjto_opt('deposit_hours'));
+		if ('awaiting_deposit' === (string) $row['status'] && $hours > 0) {
+			mjto_update_appointment((int) $appointment_id, [
+				'deposit_notified_at' => null,
+				'deposit_deadline'    => current_datetime()->modify('+' . $hours . ' hours')->format('Y-m-d H:i:s'),
+			]);
+		}
 	}
 }
+
+/*
+ * Subir el comprobante es avisar que transfirió: el turno deja de poder
+ * vencer (la dueña lo está revisando) y ella recibe el aviso, igual que con
+ * "Ya transferí la seña".
+ */
+add_action('mjpm_receipt_created', function ($id, $row) {
+	if (!is_array($row) || MJTO_RECEIPT_CONTEXT !== (string) ($row['context'] ?? '')) {
+		return;
+	}
+	$appointment = mjto_get_appointment((int) ($row['object_id'] ?? 0));
+	if (!$appointment || !in_array((string) $appointment['status'], ['awaiting_deposit', 'pending'], true)) {
+		return;
+	}
+	if (empty(mjto_dt_or_null($appointment['deposit_notified_at'] ?? ''))) {
+		mjto_client_deposit_notice((string) $appointment['token'], '');
+	}
+}, 10, 2);
 
 /**
  * Deja el motivo del rechazo en la nota interna del turno, que es donde la dueña

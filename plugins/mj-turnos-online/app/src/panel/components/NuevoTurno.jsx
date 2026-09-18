@@ -6,7 +6,8 @@
  * POST /panel/appointments → onCreated(turno).
  *
  * @param {{ open: boolean, onClose: () => void, client?: object (clienta fija: no se muestra el buscador),
- *   date?: string ('YYYY-MM-DD' inicial), onCreated?: (appointment) => void }} props
+ *   date?: string ('YYYY-MM-DD' inicial), time?: string ('HH:MM' preferido: se elige si está libre),
+ *   onCreated?: (appointment) => void }} props
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
@@ -21,7 +22,7 @@ import { DateTimePicker } from './Reprogramar';
 const OTHER = 'other';
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
-export function NuevoTurno({ open, onClose, client: fixedClient = null, date: initialDate = '', onCreated }) {
+export function NuevoTurno({ open, onClose, client: fixedClient = null, date: initialDate = '', time: initialTime = '', onCreated }) {
   const store = usePanel();
   const toast = useToast();
 
@@ -262,6 +263,7 @@ export function NuevoTurno({ open, onClose, client: fixedClient = null, date: in
             free={free}
             onFreeChange={setFree}
             reloadKey={reloadKey}
+            preferredTime={isTimeStr(initialTime) && date === initialDate ? initialTime : ''}
           />
           {isOther && !free && <p className="mt-2 text-xs text-ink-faint">Para un turno libre los horarios se calculan con la duración por defecto; si necesitás otra, activá «Otro horario».</p>}
           {(errors.date || errors.time) && (

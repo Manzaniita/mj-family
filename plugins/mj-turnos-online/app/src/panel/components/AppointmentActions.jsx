@@ -2,12 +2,13 @@
  * Acciones de un turno: botón rápido según el estado + menú "…" con todo:
  * Confirmar, Seña recibida, Abrir ficha, WhatsApp, Reprogramar, Marcar
  * atendida, No vino, Volver a confirmado, Editar precio/notas, Cancelar,
- * Eliminar.
+ * Eliminar. Desde 1.3, "Marcar seña devuelta" cuando la clienta pidió la
+ * devolución (o todavía no eligió) después de que la dueña canceló con opciones.
  *
  * Contrato con quien lo usa:
  *  - onChange(next, meta): después de cada cambio, `next` es el turno
  *    actualizado (mjto_appointment_public) o null si se eliminó;
- *    meta = { action: 'status'|'deposit'|'reschedule'|'cancel'|'update'|'visit'|'delete', id }.
+ *    meta = { action: 'status'|'deposit'|'reschedule'|'cancel'|'update'|'visit'|'refund'|'delete', id }.
  *    applyAppointmentChange(lista, next, meta) aplica eso a una lista.
  *  - onOpenFicha(appointment): reemplaza el comportamiento por defecto de
  *    "Abrir ficha" (useOpenFicha: navega a la visita del turno o la crea con
@@ -17,7 +18,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarClock, Check, CheckCheck, ClipboardList, Coins, MessageCircle, MoreHorizontal, Pencil, RotateCcw, Trash2, UserX, XCircle } from 'lucide-react';
+import { CalendarClock, Check, CheckCheck, ClipboardList, Coins, HandCoins, MessageCircle, MoreHorizontal, Pencil, RotateCcw, Trash2, UserX, XCircle } from 'lucide-react';
 import { panelApi } from '@/lib/api';
 import { cn, dateLabel, formatTime, fullName, prettyPhone } from '@/lib/format';
 import { Button, Checkbox, ConfirmDialog, Modal, MoneyInput, Textarea, useToast } from '@/ui';
@@ -45,6 +46,8 @@ export function appointmentAbilities(appointment) {
     noShow: active,
     reactivate: s === 'completed' || s === 'cancelled' || s === 'no_show',
     cancel: active,
+    /* La devolución se puede marcar mientras la clienta no eligió otra cosa. */
+    refund: appointment?.ownerOffer === 'refund_requested' || appointment?.ownerOffer === 'open',
   };
 }
 
@@ -235,6 +238,22 @@ export function AppointmentActions({ appointment, onChange, onOpenFicha, compact
     }
   };
 
+  const markRefunded = async () => {
+    if (busy) return;
+    setBusy('refund');
+    try {
+      const next = await panelApi.markRefunded(appointment.id);
+      emit(next, 'refund');
+      store.refresh().catch(() => {});
+      toast.success('Seña marcada como devuelta.');
+    } catch (e) {
+      toast.error(e);
+    } finally {
+      setBusy('');
+      setDialog(null);
+    }
+  };
+
   const depositLabel = num(appointment.depositPaid) > 0 ? 'Editar seña' : s === 'confirmed' ? 'Registrar seña' : 'Seña recibida';
   const fichaLabel = appointment.visitId ? 'Ver ficha' : 'Abrir ficha';
 
@@ -257,6 +276,7 @@ export function AppointmentActions({ appointment, onChange, onOpenFicha, compact
       icon: RotateCcw,
       onSelect: () => setStatus('confirmed', { notify: false }, { key: 'reactivate', success: `Turno ${lower('confirmed')} de nuevo.` }),
     },
+    can.refund && { key: 'refund', label: 'Marcar seña devuelta', icon: HandCoins, onSelect: () => setDialog('refund') },
     { key: 'edit', label: 'Editar precio y notas', icon: Pencil, onSelect: () => setDialog('edit') },
     can.cancel && { key: 'cancel', label: 'Cancelar turno', icon: XCircle, tone: 'danger', divider: true, onSelect: () => setDialog('cancel') },
     { key: 'delete', label: 'Eliminar', icon: Trash2, tone: 'danger', divider: !can.cancel, onSelect: () => setDialog('delete') },
@@ -266,6 +286,7 @@ export function AppointmentActions({ appointment, onChange, onOpenFicha, compact
   let quick = null;
   if (s === 'pending') quick = { label: 'Confirmar', icon: Check, onClick: () => setDialog('confirm') };
   else if (s === 'awaiting_deposit') quick = { label: 'Seña recibida', icon: Coins, onClick: () => setDialog('deposit') };
+  else if (appointment.ownerOffer === 'refund_requested') quick = { label: 'Marcar devuelta', icon: HandCoins, onClick: () => setDialog('refund') };
   else if (can.ficha) quick = { label: appointment.visitId ? 'Ficha' : 'Abrir ficha', icon: ClipboardList, onClick: ficha, loading: openingId === Number(appointment.id) };
 
   const menuDescription = `${dateLabel(appointment.date)} · ${formatTime(appointment.time)}${appointment.serviceName ? ` · ${appointment.serviceName}` : ''}`;
@@ -326,6 +347,18 @@ export function AppointmentActions({ appointment, onChange, onOpenFicha, compact
         cancelLabel="Volver"
         tone="danger"
         loading={busy === 'delete'}
+      />
+
+      <ConfirmDialog
+        open={dialog === 'refund'}
+        onClose={() => setDialog(null)}
+        onConfirm={markRefunded}
+        title="¿Ya le devolviste la seña?"
+        text={`${name} · ${menuDescription}. ${num(appointment.depositPaid) > 0 ? `Seña de ${store.formatPrice(appointment.depositPaid)}. ` : ''}Queda registrado que la devolución está hecha.`}
+        confirmLabel="Sí, está devuelta"
+        cancelLabel="Volver"
+        icon={HandCoins}
+        loading={busy === 'refund'}
       />
 
       <DepositDialog appointment={appointment} open={dialog === 'deposit'} onClose={() => setDialog(null)} onChanged={(next) => emit(next, 'deposit')} />

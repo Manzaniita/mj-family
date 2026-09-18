@@ -37,7 +37,24 @@ function mjto_default_templates() {
 		'tpl_client_reminder_subject'      => 'Recordatorio: tu turno del {fecha} a las {hora}',
 		'tpl_client_reminder_body'         => "Hola {nombre}:\n\nTe recordamos tu turno de {servicio} el {fecha} a las {hora}.\n\nDónde: {direccion}\n\nSi necesitás cambiarlo, escribinos por WhatsApp: {whatsapp_negocio}\nEstado del turno: {link_turno}\n\n¡Te esperamos!\n{negocio}",
 		'tpl_client_cancelled_subject'     => 'Tu turno del {fecha} fue cancelado',
-		'tpl_client_cancelled_body'        => "Hola {nombre}:\n\nTu turno de {servicio} del {fecha} a las {hora} quedó cancelado.\nMotivo: {motivo}\n\nSi querés reservar otro día, escribinos por WhatsApp: {whatsapp_negocio}\n\nGracias,\n{negocio}",
+		'tpl_client_cancelled_body'        => "Hola {nombre}:\n\nTu turno de {servicio} del {fecha} a las {hora} quedó cancelado.\nMotivo: {motivo}\n{seña_resultado}\n\nSi querés reservar otro día, escribinos por WhatsApp: {whatsapp_negocio}\n\nGracias,\n{negocio}",
+		'tpl_client_reminder2_subject'     => 'En un rato te espero: {servicio} a las {hora}',
+		'tpl_client_reminder2_body'        => "Hola {nombre}:\n\nTe recuerdo que hoy a las {hora} es tu turno de {servicio}.\n\nDónde: {direccion}\n\n¡Nos vemos!\n{negocio}",
+		'tpl_client_rescheduled_subject'   => 'Tu turno cambió: {fecha} a las {hora}',
+		'tpl_client_rescheduled_body'      => "Hola {nombre}:\n\nTu turno de {servicio} quedó para el {fecha} a las {hora}.\n{seña_resultado}\n\nEstado del turno: {link_turno}\n\n¡Gracias!\n{negocio}",
+		'tpl_client_owner_cancel_subject'  => 'Tuvimos que cancelar tu turno del {fecha}',
+		'tpl_client_owner_cancel_body'     => "Hola {nombre}:\n\nPerdón: tuvimos que cancelar tu turno de {servicio} del {fecha} a las {hora}.\nMotivo: {motivo}\n\nTu seña de {sena_pagada} no se pierde. Entrá acá y elegí qué preferís (otro día, la devolución o dejarla como saldo a favor): {link_turno}\n\nGracias por entender,\n{negocio}",
+		'tpl_client_maintenance_subject'   => 'Se acerca tu próximo {servicio}',
+		'tpl_client_maintenance_body'      => "¡Hola {nombre}!\n\nYa se acerca el momento recomendado para tu próximo mantenimiento de {servicio} ({fecha_mantenimiento}).\nSi querés, podés reservar tu próximo turno desde acá:\n\n{link_reserva}\n\n{negocio}",
+		'tpl_client_review_subject'        => '¿Cómo te fue con tu {servicio}?',
+		'tpl_client_review_body'           => "Hola {nombre}:\n\nGracias por venir. Si tenés un minuto, contanos cómo te fue con tu {servicio}: tu opinión ayuda a otras personas a animarse.\n\n{link_opinion}\n\n{negocio}",
+		// Para la dueña, por los cambios que hace la clienta
+		'tpl_owner_reschedule_subject'     => '{nombre_completo} reprogramó su turno: ahora {fecha} a las {hora}',
+		'tpl_owner_reschedule_body'        => "Hola:\n\n{nombre_completo} reprogramó su turno de {servicio} desde la web.\n\nAhora: {fecha} a las {hora}\nAntes: {fecha_anterior}\n{seña_resultado}\n\nVer el turno: {link_turno}\n\n— {negocio}",
+		'tpl_owner_refund_subject'         => '{nombre_completo} pidió la devolución de la seña',
+		'tpl_owner_refund_body'            => "Hola:\n\n{nombre_completo} eligió la devolución de la seña de {sena_pagada} del turno que cancelaste ({servicio}, {fecha} a las {hora}).\n\nTeléfono: {telefono}\n\nCuando la devuelvas, marcala como devuelta desde el panel.\n\n— {negocio}",
+		'tpl_owner_review_subject'         => 'Nueva opinión de {nombre_completo} ({puntaje}/5)',
+		'tpl_owner_review_body'            => "Hola:\n\n{nombre_completo} dejó una opinión sobre {servicio}.\n\nPuntaje: {puntaje}/5\n{opinion}\n\nEstado: {estado_opinion}. La podés ocultar o publicar desde el panel (Más → Opiniones).\n\n— {negocio}",
 		// WhatsApp (texto plano): los manda la dueña desde el panel
 		'tpl_wa_confirm'                   => '¡Hola {nombre}! Soy de {negocio}. Tu turno de {servicio} quedó confirmado para el {fecha} a las {hora}. ¡Te espero!',
 		'tpl_wa_deposit'                   => '¡Hola {nombre}! Te escribo de {negocio} por tu turno de {servicio} del {fecha} a las {hora}. Para confirmarlo falta la seña de {sena}. {instrucciones_sena} ¡Gracias!',
@@ -58,7 +75,23 @@ function mjto_default_form_fields() {
 		['key' => 'phone', 'label' => 'Teléfono / WhatsApp', 'placeholder' => 'Ej: 11 5555 1234', 'type' => 'tel', 'required' => true, 'enabled' => true, 'options' => [], 'system' => true],
 		['key' => 'email', 'label' => 'Email', 'placeholder' => 'Para mandarte la confirmación', 'type' => 'email', 'required' => false, 'enabled' => true, 'options' => [], 'system' => true],
 		['key' => 'locality', 'label' => 'Localidad', 'placeholder' => '', 'type' => 'text', 'required' => true, 'enabled' => true, 'options' => [], 'system' => true],
+		/* Apagado por defecto: con la fecha, la edad se calcula sola en la ficha de la clienta. */
+		['key' => 'birthdate', 'label' => 'Fecha de nacimiento', 'placeholder' => '', 'type' => 'date', 'required' => false, 'enabled' => false, 'options' => [], 'system' => true],
 		['key' => 'notes', 'label' => '¿Algo que quieras contarnos?', 'placeholder' => '', 'type' => 'textarea', 'required' => false, 'enabled' => true, 'options' => [], 'system' => true],
+	];
+}
+
+/**
+ * Secciones de información de cada servicio (clave → etiqueta). Cada servicio
+ * completa las que quiera desde su ficha; las vacías no se muestran. Se
+ * renombran, agregan y quitan en Turnos → Ajustes → Servicios.
+ */
+function mjto_default_service_sections() {
+	return [
+		['key' => 'incluye', 'label' => 'Qué incluye'],
+		['key' => 'cuidados', 'label' => 'Cuidados'],
+		['key' => 'recomendaciones', 'label' => 'Recomendaciones'],
+		['key' => 'info', 'label' => 'Información adicional'],
 	];
 }
 
@@ -183,6 +216,18 @@ function mjto_default_messages() {
 		'invalid_status'         => 'Ese estado no existe.',
 		'visit_not_found'        => 'No encontramos esa visita.',
 		'db'                     => 'No pudimos guardar los datos. Probá de nuevo.',
+		'invalid_date_field'     => 'Revisá la fecha de "%s".',
+		'login_required'         => 'Para reservar tenés que ingresar a tu cuenta (o crearla en este mismo paso).',
+		'account_exists'         => 'Ya hay una cuenta con ese email. Ingresá con tu contraseña y seguí con la reserva.',
+		'password_short'         => 'La contraseña tiene que tener al menos %s caracteres.',
+		'account_failed'         => 'No pudimos crear tu cuenta. Probá de nuevo en un momento.',
+		'cannot_reschedule'      => 'Este turno ya no se puede reprogramar desde la web.',
+		'reschedule_same'        => 'Elegiste el mismo día y horario que ya tenías.',
+		'offer_closed'           => 'Esa opción ya no está disponible para este turno.',
+		'review_closed'          => 'Todavía no podés opinar sobre este turno (o ya lo hiciste).',
+		'review_invalid'         => 'Elegí un puntaje de 1 a 5.',
+		'review_not_found'       => 'No encontramos esa opinión.',
+		'not_yours'              => 'Ese turno no es de tu cuenta.',
 	];
 }
 
@@ -207,6 +252,10 @@ function mjto_optional_text_keys() {
 		'business_instagram',
 		'mail_from_name',
 		'panel_title',
+		'my_bookings_url',
+		'booking_account_text',
+		'review_text',
+		'label_maintenance',
 	];
 }
 
@@ -242,17 +291,60 @@ function mjto_option_defaults() {
 		'cancel_hours_before'   => 24,
 		'booking_policy'        => '',
 		'rate_limit'            => 5,         // reservas por IP cada 10 minutos
+		'rate_limit_reads'      => 120,       // consultas públicas (disponibilidad, estado) por IP cada 10 minutos
+		/*
+		 * Cambios y cancelaciones desde la web. Todo apagado por defecto: sin
+		 * tocar nada, la clienta solo puede cancelar como siempre y la seña no
+		 * cambia de manos.
+		 */
+		'client_can_reschedule'   => 0,
+		'reschedule_hours_before' => 48,      // Con esta anticipación o más, la seña se conserva.
+		'reschedule_late'         => 'block', // block (no se puede) | new_deposit (pierde la seña y abona otra)
+		'cancel_late_allowed'     => 0,       // Puede cancelar igual más cerca del turno (sin devolución).
+		'deposit_on_cancel'       => 'none',  // none | credit: la seña de una cancelación a tiempo queda como saldo a favor.
+		'credit_enabled'          => 0,       // Saldo a favor: se usa solo en la próxima seña.
+		'owner_cancel_offer'      => 0,       // Cuando cancela la dueña, la clienta elige qué hacer con la seña.
+		'owner_offer_reschedule'  => 1,
+		'owner_offer_refund'      => 1,
+		'owner_offer_credit'      => 1,
+		// Cuenta de la clienta
+		'account_mode'            => 'off',   // off | optional | required
+		'account_password_min'    => 8,
+		'account_prefill'         => 1,       // Con sesión, el formulario arranca con sus datos guardados.
+		'my_bookings_url'         => '',      // Vacío = la del tema (Mi cuenta → Mis turnos) o /{slug}?mis-turnos=1.
 		// Notificaciones
 		'owner_email'           => (string) get_option('admin_email'),
 		'owner_notify_new'      => 1,
 		'owner_notify_cancel'   => 1,
 		'owner_notify_deposit_notice' => 1,
+		'owner_notify_reschedule' => 1,
+		'owner_notify_refund'   => 1,
+		'owner_notify_review'   => 1,
 		'client_email_enabled'  => 1,
 		'reminder_enabled'      => 1,
 		'reminder_hours_before' => 24,
+		'reminder2_enabled'     => 0,
+		'reminder2_hours_before' => 1,
+		'maintenance_enabled'   => 0,
+		'maintenance_days_before' => 2,
 		'mail_from_name'        => '', // Vacío = nombre del negocio.
 		'cancel_reason_client'          => 'Cancelado por la clienta desde la web', // {motivo} cuando cancela desde su link.
 		'cancel_reason_deposit_expired' => 'Seña no recibida a tiempo',             // {motivo} cuando vence la seña.
+		'cancel_reason_late_reschedule' => 'Reprogramado con poca anticipación: la seña no se conserva',
+		// Resultado de la seña en los mails ({seña_resultado})
+		'deposit_result_credit'   => 'Tu seña de {sena_pagada} quedó como saldo a favor para tu próximo turno.',
+		'deposit_result_lost'     => 'Por la política de cambios, la seña de {sena_pagada} no se devuelve.',
+		'deposit_result_kept'     => 'Tu seña de {sena_pagada} sigue valiendo para el turno nuevo.',
+		'deposit_result_new'      => 'Para confirmar el turno nuevo hace falta una seña nueva de {sena}.',
+		// Opiniones
+		'reviews_enabled'         => 0,
+		'reviews_auto_publish'    => 1,
+		'reviews_publish_min'     => 1,       // Se publican solas desde este puntaje (las demás esperan revisión).
+		'reviews_delay_hours'     => 2,       // Cuánto después de marcarla atendida se le pide la opinión.
+		'reviews_name_format'     => 'first_initial', // full | first | first_initial
+		// Servicios
+		'service_sections'        => mjto_default_service_sections(),
+		'services_group_by_category' => 0, // Apagado como todo lo nuevo; se prende en Ajustes → Servicios.
 		// Negocio
 		'business_name'         => '', // Vacío = nombre del sitio.
 		'business_address'      => '', // Vacío = dirección del tema, si existe.
@@ -331,6 +423,57 @@ function mjto_option_defaults() {
 		'booking_status_not_found'     => 'No encontramos ese turno. Revisá el link o escribinos.',
 		'booking_new_booking'          => 'Hacer otra reserva',
 		'booking_whatsapp_label'       => 'WhatsApp',
+		// Cuenta en la reserva
+		'booking_account_title'        => 'Tu cuenta',
+		'booking_account_text'         => 'Creá una contraseña: con tu cuenta ves tus turnos y la próxima vez no tenés que cargar todo de nuevo.',
+		'booking_account_optional'     => 'Crear mi cuenta con estos datos',
+		'booking_password_label'       => 'Contraseña',
+		'booking_password_hint'        => 'Mínimo {min} caracteres.',
+		'booking_account_login'        => 'Ya tengo cuenta: ingresar',
+		'booking_logged_as'            => 'Reservás como {nombre}.',
+		'booking_not_you'              => '¿No sos vos? Salir',
+		// Seña con saldo a favor y comprobante
+		'booking_credit_applied'       => 'Se usan {monto} de tu saldo a favor.',
+		'booking_deposit_to_pay'       => 'A transferir',
+		'booking_receipt_title'        => 'Comprobante de la transferencia',
+		// Reprogramar
+		'booking_reschedule_button'    => 'Reprogramar',
+		'booking_reschedule_title'     => 'Elegí el nuevo día y horario',
+		'booking_reschedule_confirm'   => 'Confirmar el cambio',
+		'booking_reschedule_keep'      => 'Faltan {horas} h o más para tu turno: si reprogramás, la seña se conserva.',
+		'booking_reschedule_lose'      => 'Faltan menos de {horas} h para tu turno: si reprogramás, la seña no se conserva y vas a tener que abonar una nueva.',
+		'booking_reschedule_blocked'   => 'Faltan menos de {horas} h para tu turno: ya no se puede reprogramar desde acá.',
+		'booking_rescheduled_done'     => '¡Listo! Tu turno quedó para el {fecha} a las {hora}.',
+		// Cancelar según las reglas
+		'booking_cancel_keep'          => 'Cancelás con {horas} h o más de anticipación: tu seña queda como saldo a favor para el próximo turno.',
+		'booking_cancel_lose'          => 'Faltan menos de {horas} h para tu turno: si cancelás, la seña no se devuelve.',
+		// Cuando cancela la dueña
+		'booking_offer_title'          => 'Tuvimos que cancelar tu turno',
+		'booking_offer_text'           => 'Perdón por el cambio. Tu seña no se pierde: elegí qué preferís.',
+		'booking_offer_reschedule'     => 'Elegir otro día',
+		'booking_offer_refund'         => 'Pedir la devolución',
+		'booking_offer_credit'         => 'Dejarla como saldo a favor',
+		'booking_offer_refund_done'    => 'Listo: te avisamos cuando hagamos la devolución.',
+		'booking_offer_refunded'       => 'La seña ya te fue devuelta.',
+		'booking_offer_credit_done'    => 'Listo: la seña quedó como saldo a favor en tu cuenta.',
+		// Mis turnos
+		'my_bookings_title'            => 'Mis turnos',
+		'my_bookings_empty'            => 'Todavía no tenés turnos.',
+		'my_bookings_upcoming'         => 'Próximos',
+		'my_bookings_past'             => 'Anteriores',
+		'my_bookings_view'             => 'Ver turno',
+		'my_bookings_login'            => 'Ingresá a tu cuenta para ver tus turnos.',
+		'my_bookings_book'             => 'Reservar un turno',
+		// Opinión
+		'review_title'                 => 'Contanos cómo te fue',
+		'review_text'                  => 'Tu opinión ayuda a otras personas a animarse.',
+		'review_rating_label'          => 'Tu puntaje',
+		'review_body_label'            => 'Tu opinión',
+		'review_name_label'            => 'Tu nombre (como querés que aparezca)',
+		'review_submit'                => 'Enviar opinión',
+		'review_thanks'                => '¡Gracias por tu opinión!',
+		'review_thanks_pending'        => '¡Gracias! La vamos a publicar después de leerla.',
+		'review_section_title'         => 'Opiniones',
 		// Página de servicios
 		'services_eyebrow'      => 'Servicios',
 		'services_title'        => 'Servicios',
@@ -344,6 +487,14 @@ function mjto_option_defaults() {
 		'label_from'            => 'desde',
 		'label_minutes'         => 'min',
 		'label_hours'           => 'h',
+		'label_credit'          => 'Saldo a favor',
+		'label_maintenance'     => 'Mantenimiento recomendado: cada {periodo}',
+		'label_day'             => 'día',
+		'label_days'            => 'días',
+		'label_week'            => 'semana',
+		'label_weeks'           => 'semanas',
+		'label_month'           => 'mes',
+		'label_months'          => 'meses',
 		'price_visible'         => 1,
 		'status_labels'         => mjto_default_status_labels(),
 		// Formulario público y ficha técnica
@@ -357,6 +508,7 @@ function mjto_option_defaults() {
 		'panel_theme'           => 'theme', // theme | light | dark
 		'panel_accent'          => '',      // Vacío = acento del tema, si existe; si no, #e11d84.
 		'caja_enabled'          => 1,
+		'panel_free_gaps'       => 1, // La agenda del día muestra los horarios libres y lo bloqueado entre los turnos.
 		// Al BORRAR el plugin (no al desactivarlo): 1 = se borran clientas, turnos, fichas, servicios y ajustes.
 		'delete_on_uninstall'   => 0,
 		// Moneda sin WooCommerce
@@ -411,6 +563,9 @@ function mjto_get_options() {
 	}
 	if (!is_array($o['panel_roles'])) {
 		$o['panel_roles'] = [];
+	}
+	if (!is_array($o['service_sections'])) {
+		$o['service_sections'] = $defaults['service_sections'];
 	}
 	if ('' === trim((string) $o['owner_email']) || !is_email($o['owner_email'])) {
 		$o['owner_email'] = (string) get_option('admin_email');
@@ -593,7 +748,7 @@ function mjto_currency() {
 function mjto_public_copy_keys() {
 	$keys = [];
 	foreach (array_keys(mjto_option_defaults()) as $key) {
-		if (0 === strpos($key, 'booking_') || 0 === strpos($key, 'label_')) {
+		if (preg_match('/^(booking_|label_|my_bookings_|review_)/', $key)) {
 			$keys[] = $key;
 		}
 	}
@@ -634,8 +789,20 @@ function mjto_placeholder_list() {
 		'{link_turno}'         => 'Link público al estado del turno',
 		'{fecha_control}'      => 'Fecha sugerida de control',
 		'{fecha_retoque}'      => 'Fecha sugerida de retoque',
+		'{fecha_mantenimiento}' => 'Fecha del próximo mantenimiento (la de la ficha)',
 		'{motivo}'             => 'Motivo de cancelación',
 		'{estado}'             => 'Estado del turno',
+		'{sena_pagada}'        => 'Seña que ya pagó (también {seña_pagada})',
+		'{seña_resultado}'     => 'Qué pasó con la seña en un cambio o cancelación (textos de Cambios y cancelaciones)',
+		'{fecha_anterior}'     => 'Fecha y hora que tenía antes de reprogramar',
+		'{saldo}'              => 'Saldo a favor de la clienta',
+		'{link_reserva}'       => 'Link para reservar ese mismo servicio',
+		'{link_mis_turnos}'    => 'Link a "Mis turnos" (su cuenta)',
+		'{link_opinion}'       => 'Link para dejar su opinión',
+		'{puntaje}'            => 'Puntaje de la opinión (1 a 5)',
+		'{opinion}'            => 'Texto de la opinión',
+		'{estado_opinion}'     => 'Si la opinión quedó publicada o esperando revisión',
+		'{instagram_negocio}'  => 'Instagram del negocio',
 	];
 }
 
@@ -644,7 +811,43 @@ function mjto_placeholder_list() {
  * ---------------------------------------------------------------------- */
 
 function mjto_form_field_types() {
-	return ['text', 'tel', 'email', 'textarea', 'select', 'number'];
+	return ['text', 'tel', 'email', 'textarea', 'select', 'radio', 'number', 'date'];
+}
+
+/** Secciones de información de los servicios, normalizadas: [['key' => …, 'label' => …], …]. */
+function mjto_service_sections() {
+	return mjto_normalize_service_sections(mjto_opt('service_sections'));
+}
+
+/** Lista de secciones (array o texto "clave | Etiqueta" por línea) → claves únicas y etiquetas limpias. */
+function mjto_normalize_service_sections($value) {
+	if (is_string($value)) {
+		$lines = preg_split('/\r\n|\r|\n/', $value);
+		$value = [];
+		foreach ($lines as $line) {
+			$line = trim($line);
+			if ('' === $line) {
+				continue;
+			}
+			$parts   = array_map('trim', explode('|', $line, 2));
+			$value[] = isset($parts[1]) ? ['key' => $parts[0], 'label' => $parts[1]] : ['key' => '', 'label' => $parts[0]];
+		}
+	}
+	$out  = [];
+	$seen = [];
+	foreach ((array) $value as $section) {
+		if (!is_array($section)) {
+			continue;
+		}
+		$label = sanitize_text_field((string) ($section['label'] ?? ''));
+		$key   = mjto_field_key($section['key'] ?? '', $label);
+		if ('' === $key || '' === $label || isset($seen[$key])) {
+			continue;
+		}
+		$seen[$key] = true;
+		$out[]      = ['key' => $key, 'label' => $label];
+	}
+	return $out;
 }
 
 function mjto_ficha_field_types() {
@@ -738,6 +941,17 @@ function mjto_normalize_form_fields($fields) {
 			$required = true;
 			$enabled  = true;
 		}
+		/*
+		 * Con cuenta obligatoria, el email es el usuario: siempre activo y
+		 * obligatorio. Con cuenta opcional se pide solo si tilda "crear mi
+		 * cuenta" (lo valida mjto_booking_account_plan), y el campo queda activo.
+		 */
+		if ('email' === $key && 'required' === (string) mjto_opt('account_mode')) {
+			$required = true;
+			$enabled  = true;
+		} elseif ('email' === $key && 'optional' === (string) mjto_opt('account_mode')) {
+			$enabled = true; // Obligatorio solo si ella lo configuró así.
+		}
 		$seen[$key] = true;
 		$out[]      = [
 			'key'         => $key,
@@ -746,7 +960,7 @@ function mjto_normalize_form_fields($fields) {
 			'type'        => $type,
 			'required'    => $required,
 			'enabled'     => $enabled,
-			'options'     => 'select' === $type ? array_map(fn ($o) => ['value' => $o['value'], 'label' => $o['label']], mjto_normalize_field_options($field['options'] ?? [])) : [],
+			'options'     => in_array($type, ['select', 'radio'], true) ? array_map(fn ($o) => ['value' => $o['value'], 'label' => $o['label']], mjto_normalize_field_options($field['options'] ?? [])) : [],
 			'system'      => $is_system,
 		];
 	}
@@ -831,10 +1045,14 @@ function mjto_option_tabs() {
 	return [
 		'agenda'         => 'Agenda',
 		'reservas'       => 'Reservas y seña',
+		'cambios'        => 'Cambios y cancelaciones',
+		'cuentas'        => 'Cuentas',
 		'notificaciones' => 'Notificaciones',
 		'textos'         => 'Textos y páginas',
 		'formulario'     => 'Formulario',
+		'servicios'      => 'Servicios',
 		'ficha'          => 'Ficha técnica',
+		'opiniones'      => 'Opiniones',
 		'panel'          => 'Panel',
 	];
 }
@@ -862,21 +1080,59 @@ function mjto_option_schema() {
 		'deposit_receipt'      => ['reservas', 'enum', ['no', 'opcional', 'obligatorio']],
 		'deposit_receipt_text' => ['reservas', 'textarea'],
 		'deposit_receipt_confirm' => ['reservas', 'bool'],
-		'client_can_cancel'    => ['reservas', 'bool'],
-		'cancel_hours_before'  => ['reservas', 'int', [0, 720]],
 		'booking_policy'       => ['reservas', 'textarea'],
 		'rate_limit'           => ['reservas', 'int', [1, 1000]],
+		'rate_limit_reads'     => ['reservas', 'int', [10, 10000]],
+		// Cambios y cancelaciones
+		'client_can_cancel'       => ['cambios', 'bool'],
+		'cancel_hours_before'     => ['cambios', 'int', [0, 720]],
+		'cancel_late_allowed'     => ['cambios', 'bool'],
+		'deposit_on_cancel'       => ['cambios', 'enum', ['none', 'credit']],
+		'client_can_reschedule'   => ['cambios', 'bool'],
+		'reschedule_hours_before' => ['cambios', 'int', [0, 720]],
+		'reschedule_late'         => ['cambios', 'enum', ['block', 'new_deposit']],
+		'credit_enabled'          => ['cambios', 'bool'],
+		'owner_cancel_offer'      => ['cambios', 'bool'],
+		'owner_offer_reschedule'  => ['cambios', 'bool'],
+		'owner_offer_refund'      => ['cambios', 'bool'],
+		'owner_offer_credit'      => ['cambios', 'bool'],
+		'cancel_reason_late_reschedule' => ['cambios', 'text'],
+		'deposit_result_credit'   => ['cambios', 'text'],
+		'deposit_result_lost'     => ['cambios', 'text'],
+		'deposit_result_kept'     => ['cambios', 'text'],
+		'deposit_result_new'      => ['cambios', 'text'],
+		// Cuentas
+		'account_mode'            => ['cuentas', 'enum', ['off', 'optional', 'required']],
+		'account_password_min'    => ['cuentas', 'int', [6, 64]],
+		'account_prefill'         => ['cuentas', 'bool'],
+		'my_bookings_url'         => ['cuentas', 'text'],
 		// Notificaciones
 		'owner_email'                 => ['notificaciones', 'email'],
 		'owner_notify_new'            => ['notificaciones', 'bool'],
 		'owner_notify_cancel'         => ['notificaciones', 'bool'],
 		'owner_notify_deposit_notice' => ['notificaciones', 'bool'],
+		'owner_notify_reschedule'     => ['notificaciones', 'bool'],
+		'owner_notify_refund'         => ['notificaciones', 'bool'],
+		'owner_notify_review'         => ['notificaciones', 'bool'],
 		'client_email_enabled'        => ['notificaciones', 'bool'],
 		'reminder_enabled'            => ['notificaciones', 'bool'],
 		'reminder_hours_before'       => ['notificaciones', 'int', [1, 720]],
+		'reminder2_enabled'           => ['notificaciones', 'bool'],
+		'reminder2_hours_before'      => ['notificaciones', 'int', [1, 720]],
+		'maintenance_enabled'         => ['notificaciones', 'bool'],
+		'maintenance_days_before'     => ['notificaciones', 'int', [0, 60]],
 		'mail_from_name'              => ['notificaciones', 'text'],
 		'cancel_reason_client'          => ['notificaciones', 'text'],
 		'cancel_reason_deposit_expired' => ['notificaciones', 'text'],
+		// Servicios
+		'service_sections'           => ['servicios', 'service_sections'],
+		'services_group_by_category' => ['servicios', 'bool'],
+		// Opiniones
+		'reviews_enabled'      => ['opiniones', 'bool'],
+		'reviews_auto_publish' => ['opiniones', 'bool'],
+		'reviews_publish_min'  => ['opiniones', 'int', [1, 5]],
+		'reviews_delay_hours'  => ['opiniones', 'int', [0, 720]],
+		'reviews_name_format'  => ['opiniones', 'enum', ['first_initial', 'first', 'full']],
 		// Negocio y páginas
 		'business_name'         => ['textos', 'text'],
 		'business_address'      => ['textos', 'text'],
@@ -911,6 +1167,7 @@ function mjto_option_schema() {
 		'panel_theme'           => ['panel', 'enum', ['theme', 'light', 'dark']],
 		'panel_accent'          => ['panel', 'hex'],
 		'caja_enabled'          => ['panel', 'bool'],
+		'panel_free_gaps'       => ['panel', 'bool'],
 		'delete_on_uninstall'   => ['panel', 'bool'],
 		'currency_symbol'       => ['panel', 'text'],
 		'currency_decimals'     => ['panel', 'int', [0, 4]],
@@ -920,7 +1177,7 @@ function mjto_option_schema() {
 		if (isset($s[$key])) {
 			continue;
 		}
-		if (preg_match('/^(home_|booking_|services_|label_|msg_)/', $key)) {
+		if (preg_match('/^(home_|booking_|services_|label_|msg_|my_bookings_|review_)/', $key)) {
 			$s[$key] = ['textos', 'text'];
 		} elseif (0 === strpos($key, 'tpl_')) {
 			$s[$key] = ['notificaciones', substr($key, -8) === '_subject' ? 'text' : 'textarea'];
@@ -1124,6 +1381,9 @@ function mjto_sanitize_options($input) {
 					$out[$key] = mjto_normalize_ficha_blocks($raw);
 				}
 				break;
+			case 'service_sections':
+				$out[$key] = mjto_normalize_service_sections(is_array($raw) ? $raw : (string) $raw);
+				break;
 			default:
 				$out[$key] = sanitize_text_field((string) $raw);
 		}
@@ -1174,6 +1434,7 @@ add_action('admin_menu', function () {
 	/* WP acepta URLs absolutas como slug: abre el panel en el sitio. */
 	add_submenu_page('mjto', 'Abrir el panel', 'Abrir el panel', MJTO_CAP, mjto_panel_url());
 	add_submenu_page('mjto', 'Servicios', 'Servicios', 'manage_options', 'edit.php?post_type=mjto_service');
+	add_submenu_page('mjto', 'Categorías', 'Categorías', 'manage_options', 'edit-tags.php?taxonomy=mjto_service_cat&post_type=mjto_service');
 });
 
 /** URL del panel de la dueña (misma URL que la reserva pública). */
@@ -1617,19 +1878,146 @@ function mjto_settings_tab_reservas() {
 		?>
 	</table>
 
-	<h2>Cancelación por la clienta</h2>
-	<table class="form-table" role="presentation">
-		<?php
-		mjto_field_row('Permitir', '', fn () => mjto_field_check('client_can_cancel', 'La clienta puede cancelar su turno desde la página de estado'), '');
-		mjto_field_row('Hasta cuántas horas antes', 'cancel_hours_before', fn () => mjto_field_number('cancel_hours_before', 0, 720, 1, 'horas'), 'Más cerca del turno, la web le pide que escriba por WhatsApp.');
-		?>
-	</table>
+	<p>La cancelación y los cambios de la clienta se configuran en <a href="<?php echo esc_url(add_query_arg('tab', 'cambios', admin_url('admin.php?page=mjto'))); ?>">Cambios y cancelaciones</a>.</p>
 
 	<h2>Antes de reservar</h2>
 	<table class="form-table" role="presentation">
 		<?php
 		mjto_field_row('Política / indicaciones', 'booking_policy', fn () => mjto_field_textarea('booking_policy', 5, 'Ej: Vení con el pelo lavado y sin productos. Si no podés venir, avisá con 24 h de anticipación para que le demos el lugar a otra persona.'), 'Se muestra en el paso de datos, bajo el título "' . esc_html(mjto_opt('booking_policy_title')) . '" (editable en Textos). Vacío = no se muestra.');
 		mjto_field_row('Límite anti-spam', 'rate_limit', fn () => mjto_field_number('rate_limit', 1, 1000, 1, 'reservas por IP cada 10 minutos'), 'Protege el formulario público de robots. Un número bajo alcanza.');
+		mjto_field_row('Límite de consultas', 'rate_limit_reads', fn () => mjto_field_number('rate_limit_reads', 10, 10000, 1, 'consultas por IP cada 10 minutos'), 'Cuántas veces una misma conexión puede pedir horarios libres o el estado de un turno. Una clienta normal usa unas pocas decenas; el freno es para robots.');
+		?>
+	</table>
+	<?php
+}
+
+/* ---- Cambios y cancelaciones ----------------------------------------- */
+function mjto_settings_tab_cambios() {
+	?>
+	<p>Qué puede hacer la clienta desde su turno (su link o "Mis turnos") y qué pasa con la seña en cada caso. La regla se aplica sola: la clienta ve antes de confirmar qué va a pasar.</p>
+
+	<h2>Cancelación por la clienta</h2>
+	<table class="form-table" role="presentation">
+		<?php
+		mjto_field_row('Permitir', '', fn () => mjto_field_check('client_can_cancel', 'La clienta puede cancelar su turno desde la web'), '');
+		mjto_field_row('Anticipación', 'cancel_hours_before', fn () => mjto_field_number('cancel_hours_before', 0, 720, 1, 'horas antes o más'), 'Con esta anticipación, la cancelación es "a tiempo".');
+		mjto_field_row('La seña de una cancelación a tiempo', '', fn () => mjto_field_radios('deposit_on_cancel', [
+			'none'   => 'No se toca (la resolvés vos)',
+			'credit' => 'Queda como saldo a favor de la clienta',
+		]), 'El saldo a favor necesita la opción de abajo prendida.');
+		mjto_field_row('Más cerca del turno', '', fn () => mjto_field_check('cancel_late_allowed', 'Puede cancelar igual, pero pierde la seña'), 'Apagado, pasado el plazo la web le pide que te escriba.');
+		?>
+	</table>
+
+	<h2>Reprogramar</h2>
+	<table class="form-table" role="presentation">
+		<?php
+		mjto_field_row('Permitir', '', fn () => mjto_field_check('client_can_reschedule', 'La clienta puede cambiar el día y el horario desde la web'), 'Ve solo los horarios libres, igual que al reservar.');
+		mjto_field_row('Anticipación', 'reschedule_hours_before', fn () => mjto_field_number('reschedule_hours_before', 0, 720, 1, 'horas antes o más'), 'Con esta anticipación, la seña se conserva para el turno nuevo.');
+		mjto_field_row('Más cerca del turno', '', fn () => mjto_field_radios('reschedule_late', [
+			'block'       => 'No puede reprogramar desde la web',
+			'new_deposit' => 'Puede, pero pierde la seña y abona una nueva',
+		]), 'Con "abona una nueva", el turno viejo se cancela (la seña queda perdida) y el nuevo espera su seña como una reserva más.');
+		mjto_field_row('Motivo en el turno viejo', 'cancel_reason_late_reschedule', fn () => mjto_field_text('cancel_reason_late_reschedule', null, 'large-text'), 'Se guarda como motivo de la cancelación del turno viejo ({motivo}).');
+		?>
+	</table>
+
+	<h2>Saldo a favor</h2>
+	<table class="form-table" role="presentation">
+		<?php
+		mjto_field_row('Usar saldo a favor', '', fn () => mjto_field_check('credit_enabled', 'Cada clienta tiene su saldo a favor y se usa solo en la seña de su próxima reserva'), 'Se ve en su cuenta y en su ficha del panel, donde también lo podés sumar o descontar a mano (por ejemplo, cuando lo usa para pagar el servicio). Si la reserva no sigue, el saldo usado vuelve.');
+		?>
+	</table>
+
+	<h2>Cuando cancelás vos</h2>
+	<table class="form-table" role="presentation">
+		<?php
+		mjto_field_row('Ofrecer opciones', '', fn () => mjto_field_check('owner_cancel_offer', 'Si el turno tenía seña pagada, la clienta elige qué hacer con ella'), 'Al cancelar desde el panel aparece la casilla "Ofrecerle opciones". Le llega un mail con el link a su turno.');
+		mjto_field_row('Qué puede elegir', '', function () {
+			mjto_field_check('owner_offer_reschedule', 'Otro día y horario (conserva la seña)');
+			echo '<br>';
+			mjto_field_check('owner_offer_refund', 'La devolución de la seña (te avisa y la marcás devuelta desde el panel)');
+			echo '<br>';
+			mjto_field_check('owner_offer_credit', 'Dejarla como saldo a favor (necesita el saldo a favor prendido)');
+		}, '');
+		?>
+	</table>
+
+	<h2>Qué dicen los mails sobre la seña</h2>
+	<p>Es el comodín <code>{seña_resultado}</code> de los mails de cancelación y de cambio de turno. Podés usar <code>{sena_pagada}</code> y <code>{sena}</code>.</p>
+	<table class="form-table" role="presentation">
+		<?php
+		mjto_field_row('Pasó a saldo a favor', 'deposit_result_credit', fn () => mjto_field_text('deposit_result_credit', null, 'large-text'), '');
+		mjto_field_row('Se perdió', 'deposit_result_lost', fn () => mjto_field_text('deposit_result_lost', null, 'large-text'), '');
+		mjto_field_row('Se conserva', 'deposit_result_kept', fn () => mjto_field_text('deposit_result_kept', null, 'large-text'), '');
+		mjto_field_row('Hace falta una nueva', 'deposit_result_new', fn () => mjto_field_text('deposit_result_new', null, 'large-text'), '');
+		?>
+	</table>
+	<?php
+}
+
+/* ---- Cuentas --------------------------------------------------------- */
+function mjto_settings_tab_cuentas() {
+	$has_woo = function_exists('wc_create_new_customer');
+	?>
+	<p>La cuenta de la clienta es un usuario de WordPress<?php echo $has_woo ? ' (cliente de WooCommerce: la misma cuenta de la tienda)' : ''; ?>. Con cuenta ve sus turnos en "Mis turnos", y la próxima vez el formulario arranca con sus datos. Nunca ve los turnos de otra persona. El link de cada turno (el que llega por mail) sigue funcionando igual, con o sin cuenta.</p>
+	<table class="form-table" role="presentation">
+		<?php
+		mjto_field_row('Cuenta al reservar', '', fn () => mjto_field_radios('account_mode', [
+			'off'      => 'No se pide (como siempre)',
+			'optional' => 'Opcional: puede crearla en el mismo paso de sus datos',
+			'required' => 'Obligatoria: la crea en el mismo paso (o ingresa si ya tiene)',
+		]), 'Con cuenta, el email pasa a ser obligatorio (es su usuario).');
+		mjto_field_row('Largo mínimo de la contraseña', 'account_password_min', fn () => mjto_field_number('account_password_min', 6, 64, 1, 'caracteres'), '');
+		mjto_field_row('Datos guardados', '', fn () => mjto_field_check('account_prefill', 'Con la sesión iniciada, el formulario arranca con los datos de su última reserva'), '');
+		mjto_field_row('Dirección de "Mis turnos"', 'my_bookings_url', fn () => mjto_field_text('my_bookings_url', mjto_my_bookings_url(true), 'large-text'), 'Para el comodín {link_mis_turnos}. Vacío = la de "Mi cuenta" del tema MJ Appearance o, sin ese tema, la página de turnos con la lista.');
+		?>
+	</table>
+	<?php
+}
+
+/* ---- Servicios ------------------------------------------------------- */
+function mjto_settings_tab_servicios() {
+	[$o]   = mjto_settings_values();
+	$lines = [];
+	foreach (mjto_normalize_service_sections($o['service_sections']) as $section) {
+		$lines[] = $section['key'] . ' | ' . $section['label'];
+	}
+	?>
+	<p>Los servicios se cargan en <a href="<?php echo esc_url(admin_url('edit.php?post_type=mjto_service')); ?>">Turnos → Servicios</a>: nombre, foto, precio, duración, descripción, categoría, mantenimiento y las secciones de abajo.</p>
+	<table class="form-table" role="presentation">
+		<?php
+		mjto_field_row('Secciones de cada servicio', 'service_sections', function () use ($lines) {
+			printf(
+				'<textarea id="mjto_service_sections" name="mjto_options[service_sections]" rows="6" class="large-text code">%s</textarea>',
+				esc_textarea(implode("\n", $lines))
+			);
+		}, 'Una por línea: <code>clave | Etiqueta</code> (por ejemplo <code>cuidados | Cuidados posteriores</code>). La clave identifica lo que ya cargaste en cada servicio: si cambiás solo la etiqueta, el texto se conserva. Las secciones vacías no se muestran.');
+		mjto_field_row('Categorías', '', fn () => mjto_field_check('services_group_by_category', 'En la página de servicios y al reservar, agrupar por categoría'), 'Las categorías se crean en <a href="' . esc_url(admin_url('edit-tags.php?taxonomy=mjto_service_cat&post_type=mjto_service')) . '">Turnos → Categorías</a>. Sin categorías cargadas no cambia nada.');
+		?>
+	</table>
+	<?php
+}
+
+/* ---- Opiniones ------------------------------------------------------- */
+function mjto_settings_tab_opiniones() {
+	?>
+	<p>Cuando marcás un turno como atendido, a la clienta le llega un mail para que cuente cómo le fue. Las opiniones se administran desde el panel (Más → Opiniones): ocultar, publicar o borrar.</p>
+	<table class="form-table" role="presentation">
+		<?php
+		mjto_field_row('Pedir opiniones', '', fn () => mjto_field_check('reviews_enabled', 'Mandar el mail de opinión después de cada turno atendido'), 'Solo a clientas con email. Una opinión por turno.');
+		mjto_field_row('Cuándo', 'reviews_delay_hours', fn () => mjto_field_number('reviews_delay_hours', 0, 720, 1, 'horas después de marcarlo atendido'), '');
+		mjto_field_row('Publicación', '', function () {
+			mjto_field_check('reviews_auto_publish', 'Se publican solas');
+			echo '<br><label style="display:inline-block; margin-top:8px;">Desde ';
+			mjto_field_number('reviews_publish_min', 1, 5, 1, 'estrellas (las de menos esperan que las revises)');
+			echo '</label>';
+		}, 'Apagado, todas esperan tu revisión antes de verse.');
+		mjto_field_row('Cómo se muestra el nombre', '', fn () => mjto_field_radios('reviews_name_format', [
+			'first_initial' => 'Nombre e inicial del apellido (Ana G.)',
+			'first'         => 'Solo el nombre (Ana)',
+			'full'          => 'Como lo escribió ella',
+		]), '');
 		?>
 	</table>
 	<?php
@@ -1648,14 +2036,29 @@ function mjto_settings_tab_notificaciones() {
 			echo '<br>';
 			mjto_field_check('owner_notify_cancel', 'Cuando una clienta cancela');
 			echo '<br>';
-			mjto_field_check('owner_notify_deposit_notice', 'Cuando una clienta avisa que transfirió la seña');
+			mjto_field_check('owner_notify_deposit_notice', 'Cuando una clienta avisa que transfirió la seña (o sube el comprobante)');
+			echo '<br>';
+			mjto_field_check('owner_notify_reschedule', 'Cuando una clienta reprograma su turno');
+			echo '<br>';
+			mjto_field_check('owner_notify_refund', 'Cuando una clienta pide la devolución de la seña');
+			echo '<br>';
+			mjto_field_check('owner_notify_review', 'Cuando llega una opinión');
 		}, '');
 		mjto_field_row('Mails a la clienta', '', function () {
 			mjto_field_check('client_email_enabled', 'Enviar mails a la clienta (recibida / seña / confirmado / cancelado)');
 			echo '<br>';
 			mjto_field_check('reminder_enabled', 'Enviar recordatorio antes del turno');
-		}, 'Solo si la clienta dejó su email. El recordatorio se manda una vez, con la anticipación de abajo (el sitio revisa cada hora).');
-		mjto_field_row('Recordatorio: horas antes', 'reminder_hours_before', fn () => mjto_field_number('reminder_hours_before', 1, 720, 1, 'horas'), '');
+			echo '<br>';
+			mjto_field_check('reminder2_enabled', 'Enviar un segundo recordatorio, más corto, poco antes del turno');
+		}, 'Solo si la clienta dejó su email. Cada recordatorio se manda una vez (el sitio revisa cada pocos minutos). Si reservó más cerca del turno que el primer recordatorio, recibe solo el segundo.');
+		mjto_field_row('Primer recordatorio', 'reminder_hours_before', fn () => mjto_field_number('reminder_hours_before', 1, 720, 1, 'horas antes'), '');
+		mjto_field_row('Segundo recordatorio', 'reminder2_hours_before', fn () => mjto_field_number('reminder2_hours_before', 1, 720, 1, 'horas antes'), 'Tiene que ser menos que el primero.');
+		mjto_field_row('Aviso de mantenimiento', '', function () {
+			mjto_field_check('maintenance_enabled', 'Avisarle a la clienta cuando se acerca su próximo mantenimiento');
+			echo '<br><label style="display:inline-block; margin-top:8px;">';
+			mjto_field_number('maintenance_days_before', 0, 60, 1, 'días antes de la fecha');
+			echo '</label>';
+		}, 'La fecha es la de "retoque / próximo mantenimiento" de la última visita: sale sola del período de cada servicio (Turnos → Servicios) y la podés cambiar en la ficha. No se manda si la clienta ya tiene un turno reservado.');
 		mjto_field_row('Nombre del remitente', 'mail_from_name', fn () => mjto_field_text('mail_from_name', mjto_business_name()), 'Vacío = nombre del negocio.');
 		?>
 	</table>
@@ -1683,13 +2086,21 @@ function mjto_settings_tab_notificaciones() {
 			'owner_new'            => 'Reserva nueva',
 			'owner_cancel'         => 'Cancelación de una clienta',
 			'owner_deposit_notice' => 'Aviso de seña transferida',
+			'owner_reschedule'     => 'Una clienta reprogramó',
+			'owner_refund'         => 'Una clienta pidió la devolución',
+			'owner_review'         => 'Opinión nueva',
 		],
 		'Mails para la clienta' => [
-			'client_received'  => 'Reserva recibida (modo manual: queda pendiente)',
-			'client_deposit'   => 'Esperando la seña',
-			'client_confirmed' => 'Turno confirmado',
-			'client_reminder'  => 'Recordatorio',
-			'client_cancelled' => 'Turno cancelado',
+			'client_received'     => 'Reserva recibida (modo manual: queda pendiente)',
+			'client_deposit'      => 'Esperando la seña',
+			'client_confirmed'    => 'Turno confirmado',
+			'client_reminder'     => 'Recordatorio',
+			'client_reminder2'    => 'Segundo recordatorio',
+			'client_rescheduled'  => 'Turno reprogramado',
+			'client_cancelled'    => 'Turno cancelado',
+			'client_owner_cancel' => 'Cancelaste vos y le ofrecés opciones',
+			'client_maintenance'  => 'Se acerca el mantenimiento',
+			'client_review'       => 'Pedido de opinión',
 		],
 	];
 	foreach ($mail_groups as $group => $templates) :
@@ -1783,6 +2194,56 @@ function mjto_copy_field_labels() {
 			'booking_status_not_found'     => 'Mensaje: turno no encontrado',
 			'booking_new_booking'          => 'Enlace "hacer otra reserva"',
 			'booking_whatsapp_label'       => 'Etiqueta del botón de WhatsApp',
+			'booking_credit_applied'       => 'Saldo a favor usado en la seña ({monto})',
+			'booking_deposit_to_pay'       => 'Etiqueta "a transferir"',
+			'booking_receipt_title'        => 'Título del comprobante',
+		],
+		'account' => [
+			'booking_account_title'    => 'Título del bloque de cuenta',
+			'booking_account_text'     => 'Texto del bloque de cuenta',
+			'booking_account_optional' => 'Casilla "crear mi cuenta" (cuenta opcional)',
+			'booking_password_label'   => 'Etiqueta de la contraseña',
+			'booking_password_hint'    => 'Ayuda de la contraseña ({min})',
+			'booking_account_login'    => 'Enlace "ya tengo cuenta"',
+			'booking_logged_as'        => 'Reserva con sesión ({nombre})',
+			'booking_not_you'          => 'Enlace "no sos vos"',
+			'my_bookings_title'        => 'Mis turnos: título',
+			'my_bookings_empty'        => 'Mis turnos: sin turnos',
+			'my_bookings_upcoming'     => 'Mis turnos: próximos',
+			'my_bookings_past'         => 'Mis turnos: anteriores',
+			'my_bookings_view'         => 'Mis turnos: ver turno',
+			'my_bookings_login'        => 'Mis turnos: sin sesión',
+			'my_bookings_book'         => 'Mis turnos: reservar',
+		],
+		'changes' => [
+			'booking_reschedule_button'  => 'Botón reprogramar',
+			'booking_reschedule_title'   => 'Título al reprogramar',
+			'booking_reschedule_confirm' => 'Botón confirmar el cambio',
+			'booking_reschedule_keep'    => 'A tiempo: la seña se conserva ({horas})',
+			'booking_reschedule_lose'    => 'Tarde: la seña se pierde ({horas})',
+			'booking_reschedule_blocked' => 'Tarde: no se puede ({horas})',
+			'booking_rescheduled_done'   => 'Reprogramado ({fecha}, {hora})',
+			'booking_cancel_keep'        => 'Cancelar a tiempo: saldo a favor ({horas})',
+			'booking_cancel_lose'        => 'Cancelar tarde: sin devolución ({horas})',
+			'booking_offer_title'        => 'Cancelaste vos: título',
+			'booking_offer_text'         => 'Cancelaste vos: texto',
+			'booking_offer_reschedule'   => 'Opción: otro día',
+			'booking_offer_refund'       => 'Opción: devolución',
+			'booking_offer_credit'       => 'Opción: saldo a favor',
+			'booking_offer_refund_done'  => 'Devolución pedida',
+			'booking_offer_refunded'     => 'Devolución hecha',
+			'booking_offer_credit_done'  => 'Pasó a saldo a favor',
+		],
+		'review' => [
+			'review_title'          => 'Título',
+			'review_text'           => 'Texto',
+			'review_rating_label'   => 'Etiqueta del puntaje',
+			'review_body_label'     => 'Etiqueta de la opinión',
+			'review_name_label'     => 'Etiqueta del nombre',
+			'review_submit'         => 'Botón enviar',
+			'review_thanks'         => 'Gracias (publicada)',
+			'review_thanks_pending' => 'Gracias (a revisar)',
+			'review_section_title'  => 'Título de la sección de opiniones',
 		],
 		'services' => [
 			'services_eyebrow'     => 'Antetítulo',
@@ -1798,6 +2259,14 @@ function mjto_copy_field_labels() {
 			'label_from'     => '"desde" (precio orientativo)',
 			'label_minutes'  => 'Abreviatura de minutos',
 			'label_hours'    => 'Abreviatura de horas',
+			'label_credit'   => 'Saldo a favor',
+			'label_maintenance' => 'Mantenimiento del servicio ({periodo})',
+			'label_day'      => 'día',
+			'label_days'     => 'días',
+			'label_week'     => 'semana',
+			'label_weeks'    => 'semanas',
+			'label_month'    => 'mes',
+			'label_months'   => 'meses',
 		],
 	];
 }
@@ -1822,11 +2291,22 @@ function mjto_message_field_labels() {
 			'spam'                   => 'Reserva rechazada (anti-spam)',
 			'rate_limited'           => 'Demasiados intentos',
 			'booking_failed'         => 'No se pudo guardar la reserva',
+			'invalid_date_field'     => 'Fecha inválida en un campo',
+			'login_required'         => 'Hace falta cuenta',
+			'account_exists'         => 'Ya existe una cuenta con ese email',
+			'password_short'         => 'Contraseña corta',
+			'account_failed'         => 'No se pudo crear la cuenta',
 		],
 		'En la página de estado del turno' => [
 			'not_found'           => 'Turno no encontrado',
 			'already_cancelled'   => 'Turno ya cancelado',
 			'deposit_not_pending' => 'Turno que no espera seña',
+			'cannot_reschedule'   => 'Ya no se puede reprogramar',
+			'reschedule_same'     => 'Mismo día y horario',
+			'offer_closed'        => 'Opción ya elegida',
+			'review_closed'       => 'No se puede opinar',
+			'review_invalid'      => 'Puntaje inválido',
+			'not_yours'           => 'Turno de otra cuenta',
 		],
 		'En el panel' => [
 			'client_required'  => 'Faltan nombre o teléfono',
@@ -1834,6 +2314,7 @@ function mjto_message_field_labels() {
 			'client_mismatch'  => 'Turno de otra clienta',
 			'invalid_status'   => 'Estado inexistente',
 			'visit_not_found'  => 'Visita no encontrada',
+			'review_not_found' => 'Opinión no encontrada',
 			'db'               => 'Error al guardar',
 		],
 	];
@@ -1937,6 +2418,22 @@ function mjto_settings_tab_textos() {
 			<?php mjto_field_row($label, $key, fn () => mjto_field_text($key, null, 'large-text'), mjto_optional_text_desc($key)); ?>
 		<?php endforeach; ?>
 	</table>
+
+	<?php
+	$extra_groups = [
+		'account' => 'Cuenta y "Mis turnos"',
+		'changes' => 'Reprogramar y cancelar',
+		'review'  => 'Opinión',
+	];
+	foreach ($extra_groups as $group => $group_title) :
+		?>
+		<h2><?php echo esc_html($group_title); ?></h2>
+		<table class="form-table" role="presentation">
+			<?php foreach ($labels[$group] as $key => $label) : ?>
+				<?php mjto_field_row($label, $key, fn () => mjto_field_text($key, null, 'large-text'), mjto_optional_text_desc($key)); ?>
+			<?php endforeach; ?>
+		</table>
+	<?php endforeach; ?>
 
 	<h2>Página de servicios</h2>
 	<table class="form-table" role="presentation">
@@ -2079,6 +2576,7 @@ function mjto_settings_tab_panel() {
 		mjto_field_row('Apariencia', 'panel_theme', fn () => mjto_field_select('panel_theme', ['theme' => 'Como el sitio (tema MJ Appearance)', 'light' => 'Clara (día)', 'dark' => 'Oscura (noche)']), 'Con "como el sitio" sigue el modo elegido en el tema; sin el tema, clara.');
 		mjto_field_row('Color de acento', 'panel_accent', fn () => mjto_field_text('panel_accent', mjto_panel_accent(), 'small-text', 'text'), 'Hexadecimal, ej. <code>#e11d84</code>. Vacío = acento del tema (o fucsia si no hay tema).');
 		mjto_field_row('Caja', '', fn () => mjto_field_check('caja_enabled', 'Mostrar la pestaña Caja (cobrado, señas, métodos de pago, export)'), '');
+		mjto_field_row('Agenda del día', '', fn () => mjto_field_check('panel_free_gaps', 'Mostrar los horarios libres y lo bloqueado entre los turnos, con un calendario del mes'), 'Tocando un horario libre se carga un turno ahí. Desmarcado, la agenda muestra solo los turnos, como antes.');
 		mjto_field_row('Al borrar el plugin', '', fn () => mjto_field_check('delete_on_uninstall', 'Borrar también las clientas, los turnos, las fichas, los servicios y estos ajustes'), 'Solo al <strong>borrar</strong> el plugin desde Plugins, nunca al desactivarlo. Desmarcado, todo queda en la base por si lo volvés a instalar; se limpian igual los permisos, las tareas programadas y los contadores.');
 		?>
 	</table>

@@ -3,15 +3,20 @@
  * salen de `options.formFields` (los mismos del formulario público); los
  * campos custom (system=false) se guardan en `extra`.
  *
+ * Fecha de nacimiento (1.3): aparece si el campo de sistema `birthdate` está
+ * activo en el formulario o si la clienta ya tiene una cargada. Con fecha, la
+ * edad sale de ahí (la calcula el servidor) y el campo "Edad" queda de lectura.
+ *
  *   <ClientForm open={open} onClose={() => setOpen(false)} client={clientOrNull}
  *               onSaved={(client) => …} />
  *
  * Llama a `onSaved(client)` con la clienta devuelta por el servidor y después a `onClose()`.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { useToast, Button, FieldRow, Input, Modal, Select, Textarea } from '@/ui';
+import { useToast, Button, DateInput, FieldRow, Input, Modal, Select, Textarea } from '@/ui';
 import { panelApi } from '@/lib/api';
 import { phoneDigits } from '@/lib/format';
+import { isDateStr } from '@/lib/dates';
 import { useUid } from '@/lib/a11y';
 import { usePanel } from '../store';
 
@@ -21,9 +26,18 @@ const SYSTEM_DEFAULTS = {
   phone: { label: 'Teléfono / WhatsApp', type: 'tel' },
   email: { label: 'Email', type: 'email' },
   locality: { label: 'Localidad', type: 'text' },
+  birthdate: { label: 'Fecha de nacimiento', type: 'date' },
 };
 
 const str = (v) => (v === null || v === undefined ? '' : String(v));
+
+/** Edad cumplida a `today` desde 'YYYY-MM-DD' (null si no es válida o es futura). Espejo de mjto_age_from_birthdate(). */
+export function ageFromBirthdate(birthdate, today) {
+  if (!isDateStr(birthdate) || !isDateStr(today) || birthdate > today) return null;
+  let age = Number(today.slice(0, 4)) - Number(birthdate.slice(0, 4));
+  if (today.slice(5) < birthdate.slice(5)) age -= 1;
+  return age >= 0 && age < 130 ? age : null;
+}
 
 function initialForm(client, customFields) {
   const extra = client?.extra && typeof client.extra === 'object' ? client.extra : {};
@@ -38,18 +52,20 @@ function initialForm(client, customFields) {
     email: str(client?.email),
     locality: str(client?.locality),
     age: client?.age === null || client?.age === undefined || client?.age === '' ? '' : String(client.age),
+    birthdate: isDateStr(client?.birthdate) ? client.birthdate : '',
     notes: str(client?.notes),
     extra: custom,
   };
 }
 
-/** Campo custom del formulario público (text|tel|email|textarea|select|number). */
+/** Campo custom del formulario público (text|tel|email|textarea|select|radio|number|date). */
 function CustomField({ field, value, onChange, error }) {
   const common = { label: field.label || field.key, placeholder: field.placeholder || '', required: !!field.required, error };
   switch (field.type) {
     case 'textarea':
       return <Textarea {...common} rows={2} value={value} onChange={(e) => onChange(e.target.value)} />;
     case 'select':
+    case 'radio':
       return (
         <Select
           {...common}
@@ -59,6 +75,8 @@ function CustomField({ field, value, onChange, error }) {
           onChange={(e) => onChange(e.target.value)}
         />
       );
+    case 'date':
+      return <DateInput label={common.label} required={common.required} error={error} value={isDateStr(value) ? value : ''} onChange={onChange} clearable />;
     case 'number':
       return <Input {...common} type="number" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} />;
     case 'tel':
@@ -88,6 +106,10 @@ export default function ClientForm({ client = null, open, onClose, onSaved }) {
     [store.formFields]
   );
 
+  // Fecha de nacimiento: sólo si el campo está activo en el formulario o la clienta ya tiene una.
+  const birthdateField = store.formFields.find((f) => f && f.key === 'birthdate') || null;
+  const showBirthdate = (!!birthdateField && birthdateField.enabled !== false) || isDateStr(client?.birthdate);
+
   const [form, setForm] = useState(() => initialForm(client, customFields));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -110,7 +132,8 @@ export default function ClientForm({ client = null, open, onClose, onSaved }) {
     if (!form.first_name.trim()) next.first_name = 'Escribí el nombre.';
     if (phoneDigits(form.phone).length < 6) next.phone = 'Escribí un teléfono válido (al menos 6 dígitos).';
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) next.email = 'Ese email no parece válido.';
-    if (form.age !== '' && (!/^\d{1,3}$/.test(form.age) || Number(form.age) > 120)) next.age = 'Edad inválida.';
+    if (form.age !== '' && !form.birthdate && (!/^\d{1,3}$/.test(form.age) || Number(form.age) > 120)) next.age = 'Edad inválida.';
+    if (showBirthdate && form.birthdate && (!isDateStr(form.birthdate) || ageFromBirthdate(form.birthdate, store.today) === null)) next.birthdate = 'Fecha inválida.';
     customFields.forEach((f) => {
       if (f.required && !str(form.extra[f.key]).trim()) next[`extra.${f.key}`] = 'Completá este campo.';
     });
@@ -132,6 +155,11 @@ export default function ClientForm({ client = null, open, onClose, onSaved }) {
       notes: form.notes,
       extra: form.extra,
     };
+    if (showBirthdate) {
+      payload.birthdate = form.birthdate;
+      // Con fecha, la edad la calcula el servidor: no se pisa la cargada a mano.
+      if (form.birthdate) delete payload.age;
+    }
     setSaving(true);
     try {
       const saved = editing ? await panelApi.updateClient(client.id, payload) : await panelApi.createClient(payload);
@@ -154,7 +182,9 @@ export default function ClientForm({ client = null, open, onClose, onSaved }) {
     phone: sysField('phone'),
     email: sysField('email'),
     locality: sysField('locality'),
+    birthdate: sysField('birthdate'),
   };
+  const birthAge = form.birthdate ? ageFromBirthdate(form.birthdate, store.today) : null;
 
   return (
     <Modal
@@ -219,18 +249,47 @@ export default function ClientForm({ client = null, open, onClose, onSaved }) {
             onChange={(e) => set('email', e.target.value)}
           />
         </FieldRow>
-        <FieldRow cols={3}>
-          <Input
-            label={f.locality.label}
-            placeholder={f.locality.placeholder || ''}
-            autoComplete="off"
-            value={form.locality}
-            error={errors.locality}
-            onChange={(e) => set('locality', e.target.value)}
-            className="sm:col-span-2"
-          />
-          <Input label="Edad" type="number" inputMode="numeric" min={0} max={120} value={form.age} error={errors.age} onChange={(e) => set('age', e.target.value)} />
-        </FieldRow>
+        {showBirthdate ? (
+          <>
+            <Input
+              label={f.locality.label}
+              placeholder={f.locality.placeholder || ''}
+              autoComplete="off"
+              value={form.locality}
+              error={errors.locality}
+              onChange={(e) => set('locality', e.target.value)}
+            />
+            <FieldRow cols={3}>
+              <DateInput
+                label={f.birthdate.label}
+                value={form.birthdate}
+                max={store.today}
+                error={errors.birthdate}
+                onChange={(v) => set('birthdate', v)}
+                clearable
+                className="sm:col-span-2"
+              />
+              {form.birthdate ? (
+                <Input label="Edad" value={birthAge === null ? '' : `${birthAge} años`} readOnly disabled help="Sale de la fecha de nacimiento." />
+              ) : (
+                <Input label="Edad" type="number" inputMode="numeric" min={0} max={120} value={form.age} error={errors.age} onChange={(e) => set('age', e.target.value)} />
+              )}
+            </FieldRow>
+          </>
+        ) : (
+          <FieldRow cols={3}>
+            <Input
+              label={f.locality.label}
+              placeholder={f.locality.placeholder || ''}
+              autoComplete="off"
+              value={form.locality}
+              error={errors.locality}
+              onChange={(e) => set('locality', e.target.value)}
+              className="sm:col-span-2"
+            />
+            <Input label="Edad" type="number" inputMode="numeric" min={0} max={120} value={form.age} error={errors.age} onChange={(e) => set('age', e.target.value)} />
+          </FieldRow>
+        )}
         {customFields.length > 0 && (
           <FieldRow>
             {customFields.map((cf) => (

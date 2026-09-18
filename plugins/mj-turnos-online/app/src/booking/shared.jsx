@@ -76,6 +76,50 @@ export const COPY_DEFAULTS = {
   booking_status_title: 'Estado de tu turno',
   booking_status_not_found: 'No encontramos esa reserva. Puede que haya sido eliminada.',
   booking_new_booking: 'Hacer otra reserva',
+  /* 1.3.0: cuenta, saldo a favor, reprogramar, cancelación de la dueña, Mis turnos y opiniones. */
+  booking_account_title: 'Tu cuenta',
+  booking_account_text: 'Creá una contraseña: con tu cuenta ves tus turnos y la próxima vez no tenés que cargar todo de nuevo.',
+  booking_account_optional: 'Crear mi cuenta con estos datos',
+  booking_password_label: 'Contraseña',
+  booking_password_hint: 'Mínimo {min} caracteres.',
+  booking_account_login: 'Ya tengo cuenta: ingresar',
+  booking_logged_as: 'Reservás como {nombre}.',
+  booking_not_you: '¿No sos vos? Salir',
+  booking_credit_applied: 'Se usan {monto} de tu saldo a favor.',
+  booking_deposit_to_pay: 'A transferir',
+  booking_receipt_title: 'Comprobante de la transferencia',
+  booking_reschedule_button: 'Reprogramar',
+  booking_reschedule_title: 'Elegí el nuevo día y horario',
+  booking_reschedule_confirm: 'Confirmar el cambio',
+  booking_rescheduled_done: '¡Listo! Tu turno quedó para el {fecha} a las {hora}.',
+  booking_offer_title: 'Tuvimos que cancelar tu turno',
+  booking_offer_text: 'Perdón por el cambio. Tu seña no se pierde: elegí qué preferís.',
+  booking_offer_reschedule: 'Elegir otro día',
+  booking_offer_refund: 'Pedir la devolución',
+  booking_offer_credit: 'Dejarla como saldo a favor',
+  booking_offer_refund_done: 'Listo: te avisamos cuando hagamos la devolución.',
+  booking_offer_refunded: 'La seña ya te fue devuelta.',
+  booking_offer_credit_done: 'Listo: la seña quedó como saldo a favor en tu cuenta.',
+  my_bookings_title: 'Mis turnos',
+  my_bookings_empty: 'Todavía no tenés turnos.',
+  my_bookings_upcoming: 'Próximos',
+  my_bookings_past: 'Anteriores',
+  my_bookings_view: 'Ver turno',
+  my_bookings_login: 'Ingresá a tu cuenta para ver tus turnos.',
+  my_bookings_book: 'Reservar un turno',
+  review_title: 'Contanos cómo te fue',
+  review_text: 'Tu opinión ayuda a otras personas a animarse.',
+  review_rating_label: 'Tu puntaje',
+  review_body_label: 'Tu opinión',
+  review_name_label: 'Tu nombre (como querés que aparezca)',
+  review_submit: 'Enviar opinión',
+  review_thanks: '¡Gracias por tu opinión!',
+  review_thanks_pending: '¡Gracias! La vamos a publicar después de leerla.',
+  review_section_title: 'Opiniones',
+  label_credit: 'Saldo a favor',
+  label_maintenance: 'Mantenimiento recomendado: cada {periodo}',
+  /* No están en la spec: mismo texto que el error del servidor (review_invalid). */
+  review_invalid: 'Elegí un puntaje de 1 a 5.',
 };
 
 export const STATUS_DEFAULTS = {
@@ -130,14 +174,25 @@ export function normalizeConfig(raw) {
       deposit: num(s.deposit, 0),
       color: String(s.color || ''),
       image: s.image || null,
+      categories: (Array.isArray(s.categories) ? s.categories : [])
+        .filter((cat) => cat && typeof cat === 'object')
+        .map((cat) => ({ id: num(cat.id, 0), slug: String(cat.slug || ''), name: String(cat.name || '') })),
+      sections: (Array.isArray(s.sections) ? s.sections : [])
+        .filter((sec) => sec && String(sec.text || '').trim() !== '')
+        .map((sec) => ({ key: String(sec.key || ''), label: String(sec.label || ''), text: String(sec.text || '') })),
+      maintenance: s.maintenance && typeof s.maintenance === 'object' && String(s.maintenance.label || '') !== '' ? { ...s.maintenance, label: String(s.maintenance.label) } : null,
     }));
+  const categories = (Array.isArray(c.categories) ? c.categories : [])
+    .filter((cat) => cat && typeof cat === 'object' && num(cat.id, 0) > 0)
+    .map((cat) => ({ id: num(cat.id, 0), slug: String(cat.slug || ''), name: String(cat.name || ''), description: String(cat.description || ''), order: num(cat.order, 0) }));
+  const accountMode = ['optional', 'required'].includes(c.account?.mode) ? c.account.mode : 'off';
   const fields = (Array.isArray(c.form?.fields) ? c.form.fields : [])
     .filter((f) => f && f.key && f.enabled !== false)
     .map((f) => ({
       key: String(f.key),
       label: String(f.label || f.key),
       placeholder: String(f.placeholder || ''),
-      type: ['text', 'tel', 'email', 'textarea', 'select', 'number'].includes(f.type) ? f.type : 'text',
+      type: ['text', 'tel', 'email', 'textarea', 'select', 'radio', 'number', 'date'].includes(f.type) ? f.type : 'text',
       required: bool(f.required, false),
       options: Array.isArray(f.options) ? f.options.map((o) => (typeof o === 'string' ? { value: o, label: o } : { value: String(o.value ?? ''), label: String(o.label ?? o.value ?? '') })) : [],
       system: bool(f.system, false),
@@ -158,6 +213,19 @@ export function normalizeConfig(raw) {
     cancel: { allowed: bool(c.cancel?.allowed, true), hoursBefore: num(c.cancel?.hoursBefore, 24) },
     priceVisible: bool(c.priceVisible, true),
     currency: { ...CUR, ...(c.currency || {}) },
+    reschedule: { allowed: bool(c.reschedule?.allowed, false), hoursBefore: num(c.reschedule?.hoursBefore, 24) },
+    creditEnabled: bool(c.creditEnabled, false),
+    account: {
+      mode: accountMode,
+      passwordMin: Math.max(1, num(c.account?.passwordMin, 8)),
+      loggedIn: bool(c.account?.loggedIn, false),
+      prefill: bool(c.account?.prefill, false),
+      myBookingsUrl: String(c.account?.myBookingsUrl || ''),
+    },
+    categories,
+    groupByCategory: bool(c.groupByCategory, false) && categories.length > 0,
+    loginUrl: String(c.loginUrl || ''),
+    logoutUrl: String(c.logoutUrl || ''),
   };
 }
 
@@ -194,6 +262,63 @@ export function loginUrl(cfg) {
   return `${siteHomeUrl()}wp-login.php?redirect_to=${encodeURIComponent(back)}`;
 }
 
+/**
+ * Login de la clienta: el mismo login de WordPress, pero con vuelta a esta
+ * página (la reserva o "Mis turnos"), no al panel.
+ * @param {object} cfg
+ * @param {string} [back] URL de vuelta; por defecto, la página actual.
+ */
+export function accountLoginUrl(cfg, back) {
+  let target = back;
+  if (!target) {
+    try {
+      target = window.location.href.split('#')[0];
+    } catch (e) {
+      target = panelUrl(cfg);
+    }
+  }
+  const base = cfg?.loginUrl || BOOT.loginUrl || (BOOT.urls && BOOT.urls.login) || `${siteHomeUrl()}wp-login.php`;
+  try {
+    const url = new URL(base, window.location.href);
+    url.searchParams.set('redirect_to', target);
+    return url.toString();
+  } catch (e) {
+    return `${siteHomeUrl()}wp-login.php?redirect_to=${encodeURIComponent(target)}`;
+  }
+}
+
+/** Parámetro de la URL actual (?mis-turnos=1, ?opinar=1). '' si no está. */
+export function urlParam(name) {
+  try {
+    return new URLSearchParams(window.location.search).get(name) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+/** Saca un parámetro de la URL sin recargar (por ejemplo, ?mis-turnos al ir a reservar). */
+export function dropUrlParam(name) {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has(name)) return;
+    url.searchParams.delete(name);
+    window.history.replaceState(window.history.state, '', url.toString());
+  } catch (e) {
+    /* sin history API: queda como está */
+  }
+}
+
+/** Token de la página de estado (/{slug}/t/{token}) si el widget está montado ahí. '' si no. */
+export function pathToken(slug) {
+  try {
+    const re = new RegExp(`/${String(slug || 'turnos').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/t/([A-Za-z0-9]{8,64})/?$`);
+    const m = re.exec(window.location.pathname);
+    return m ? m[1] : '';
+  } catch (e) {
+    return '';
+  }
+}
+
 /* ---------------------------------------------------------------------------
  * Token de la última reserva (sessionStorage): "Ver el estado de mi turno".
  * ------------------------------------------------------------------------- */
@@ -210,11 +335,34 @@ export function loadToken(slug) {
   }
 }
 
-export function saveToken(slug, token) {
+/**
+ * @param {string} slug
+ * @param {string} token
+ * @param {{ open?: boolean }} [opts] open: al recargar la página, abrir directo el estado
+ *   (se usa cuando la reserva creó la cuenta y hay que recargar para tomar la sesión).
+ */
+export function saveToken(slug, token, { open = false } = {}) {
   try {
-    window.sessionStorage.setItem(tokenKey(slug), JSON.stringify({ token, at: Date.now() }));
+    window.sessionStorage.setItem(tokenKey(slug), JSON.stringify({ token, at: Date.now(), ...(open ? { open: true } : {}) }));
   } catch (e) {
     /* modo privado / storage bloqueado: no pasa nada */
+  }
+}
+
+/**
+ * ¿Quedó pedido abrir el estado al cargar? Con `consume` lo borra (se lee una
+ * sola vez); sin él, solo mira (para inicializadores que StrictMode repite).
+ */
+export function takeOpenFlag(slug, { consume = true } = {}) {
+  try {
+    const raw = window.sessionStorage.getItem(tokenKey(slug));
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data || !data.open) return false;
+    if (consume) window.sessionStorage.setItem(tokenKey(slug), JSON.stringify({ token: data.token, at: data.at }));
+    return true;
+  } catch (e) {
+    return false;
   }
 }
 
@@ -449,6 +597,8 @@ export function DepositCard({ deposit, receipt, token, whatsapp, notified = fals
   const [error, setError] = useState('');
   if (!deposit) return null;
   const deadlineLabel = deposit.deadlineLabel || (deposit.deadline ? formatDateTime(deposit.deadline, { year: false }) : '');
+  /* deposit.amount ya es lo que falta transferir (seña menos el saldo a favor usado). */
+  const creditApplied = Number(deposit.creditApplied) > 0 ? Number(deposit.creditApplied) : 0;
 
   const notify = async () => {
     if (!token) return;
@@ -469,10 +619,11 @@ export function DepositCard({ deposit, receipt, token, whatsapp, notified = fals
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-accent">{t('booking_deposit_title')}</p>
-          <p className="mt-1 text-sm text-ink-soft">{t('booking_deposit_amount_label')}</p>
+          <p className="mt-1 text-sm text-ink-soft">{creditApplied > 0 ? t('booking_deposit_to_pay') : t('booking_deposit_amount_label')}</p>
         </div>
         <p className="font-display text-2xl font-bold tracking-tight text-ink mjto-tabular">{priceOf(deposit.amount)}</p>
       </div>
+      {creditApplied > 0 && <p className="mt-2 text-sm text-success">{t('booking_credit_applied', { monto: priceOf(creditApplied) })}</p>}
       {deposit.instructions && (
         <p className="mt-3 whitespace-pre-wrap rounded-tile bg-surface px-4 py-3 text-sm leading-relaxed text-ink">{deposit.instructions}</p>
       )}

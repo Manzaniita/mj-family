@@ -6,11 +6,13 @@
  *
  * Los filtros viven en la URL (?rango&desde&hasta&estado&q) así se pueden
  * compartir y "atrás" los conserva. Las pastillas de la barra superior
- * pueden enlazar a /turnos?estado=pending, etc.
+ * pueden enlazar a /turnos?estado=pending, etc. ?devolucion=1 (1.3) muestra
+ * los cancelados donde la clienta pidió que le devuelvan la seña, de cualquier
+ * fecha (GET /panel/appointments?owner_offer=refund_requested).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BellRing, CalendarDays, Plus, Search, WifiOff, X } from 'lucide-react';
+import { BellRing, CalendarDays, HandCoins, Plus, Search, WifiOff, X } from 'lucide-react';
 import { panelApi } from '@/lib/api';
 import { friendlyDate, pluralize } from '@/lib/format';
 import { addDaysStr, endOfMonth, endOfWeek, isDateStr, startOfMonth, startOfWeek } from '@/lib/dates';
@@ -75,6 +77,7 @@ export default function Turnos() {
   );
   const q = String(params.get('q') || '').trim();
   const notifiedOnly = params.get('aviso') === '1';
+  const refundOnly = params.get('devolucion') === '1';
 
   // Siempre sobre los params actuales (el debounce del buscador puede disparar
   // después de que se tocó un chip).
@@ -103,7 +106,11 @@ export default function Turnos() {
     return () => clearTimeout(t);
   }, [qInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const bounds = useMemo(() => rangeBounds(range, store.today, store.weekStart, { from: customFrom, to: customTo }), [range, store.today, store.weekStart, customFrom, customTo]);
+  // Devoluciones pendientes: sin rango de fechas (el pedido puede ser de un turno pasado o futuro).
+  const bounds = useMemo(
+    () => (refundOnly ? { from: '', to: '', order: 'desc' } : rangeBounds(range, store.today, store.weekStart, { from: customFrom, to: customTo })),
+    [refundOnly, range, store.today, store.weekStart, customFrom, customTo]
+  );
   const statusKey = statuses.join(',');
 
   // Lista paginada.
@@ -132,6 +139,8 @@ export default function Turnos() {
             to: bounds.to || undefined,
             status: statuses.length ? statuses : undefined,
             q: q || undefined,
+            // Pedidos de devolución: los filtra el servidor (owner_offer).
+            owner_offer: refundOnly ? 'refund_requested' : undefined,
             order: bounds.order,
             page: nextPage,
             per_page: PER_PAGE,
@@ -153,11 +162,11 @@ export default function Turnos() {
         }
       }
     },
-    [bounds.from, bounds.to, bounds.order, statusKey, q] // eslint-disable-line react-hooks/exhaustive-deps
+    [bounds.from, bounds.to, bounds.order, statusKey, q, refundOnly] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   useEffect(() => {
-    if (range === 'custom' && (!customFrom || !customTo)) {
+    if (range === 'custom' && !refundOnly && (!customFrom || !customTo)) {
       setItems([]);
       setTotal(0);
       setLoading(false);
@@ -165,7 +174,7 @@ export default function Turnos() {
     }
     fetchPage(1);
     return () => ctrlRef.current?.abort();
-  }, [fetchPage, range, customFrom, customTo, tick]);
+  }, [fetchPage, range, customFrom, customTo, refundOnly, tick]);
 
   const reload = () => setTick((t) => t + 1);
 
@@ -181,7 +190,13 @@ export default function Turnos() {
     update({ estado: [...set].join(',') });
   };
 
-  const visible = useMemo(() => (notifiedOnly ? items.filter((a) => !!a.depositNotifiedAt && a.status === 'awaiting_deposit') : items), [items, notifiedOnly]);
+  const visible = useMemo(() => {
+    let list = items;
+    if (notifiedOnly) list = list.filter((a) => !!a.depositNotifiedAt && a.status === 'awaiting_deposit');
+    // El servidor ya trae sólo los pedidos; esto saca al instante los que se marcan como devueltos.
+    if (refundOnly) list = list.filter((a) => a.ownerOffer === 'refund_requested');
+    return list;
+  }, [items, notifiedOnly, refundOnly]);
 
   const groups = useMemo(() => {
     const map = new Map();
@@ -193,15 +208,16 @@ export default function Turnos() {
   }, [visible]);
 
   const hasMore = items.length < total;
-  const customIncomplete = range === 'custom' && (!customFrom || !customTo);
-  const hasFilters = statuses.length > 0 || !!q || notifiedOnly || range !== DEFAULT_RANGE;
+  const customIncomplete = range === 'custom' && !refundOnly && (!customFrom || !customTo);
+  const hasFilters = statuses.length > 0 || !!q || notifiedOnly || refundOnly || range !== DEFAULT_RANGE;
+  const showRefundChip = refundOnly || store.counts.refundRequests > 0;
 
   return (
     <div className="mjto-view mjto-view--turnos">
       <PageHeader
         eyebrow="Agenda"
         title="Turnos"
-        subtitle={loading ? 'Cargando…' : customIncomplete ? 'Elegí las dos fechas del rango.' : `${pluralize(total, 'turno')}${notifiedOnly && visible.length !== items.length ? ` · ${visible.length} con aviso de seña` : ''}`}
+        subtitle={loading ? 'Cargando…' : customIncomplete ? 'Elegí las dos fechas del rango.' : `${pluralize(total, 'turno')}${notifiedOnly && visible.length !== items.length ? ` · ${visible.length} con aviso de seña` : ''}${refundOnly ? ` · ${total === 1 ? 'pidió' : 'pidieron'} la devolución` : ''}`}
         actions={
           <Button size="sm" icon={Plus} onClick={() => setCreating(true)}>
             <span className="hidden sm:inline">Nuevo turno</span>
@@ -212,7 +228,7 @@ export default function Turnos() {
         <div className="mjto-filters flex flex-col gap-3">
           <ChipGroup scroll className="sm:flex-wrap sm:mx-0 sm:px-0">
             {RANGES.map((r) => (
-              <Chip key={r.key} active={range === r.key} onClick={() => update({ rango: r.key === DEFAULT_RANGE ? '' : r.key })} size="sm" icon={r.key === 'custom' ? CalendarDays : undefined}>
+              <Chip key={r.key} active={!refundOnly && range === r.key} onClick={() => update({ rango: r.key === DEFAULT_RANGE ? '' : r.key, devolucion: '' })} size="sm" icon={r.key === 'custom' ? CalendarDays : undefined}>
                 {r.label}
               </Chip>
             ))}
@@ -259,8 +275,20 @@ export default function Turnos() {
               >
                 Avisaron seña
               </Chip>
+              {showRefundChip && (
+                <Chip
+                  active={refundOnly}
+                  onClick={() => update({ devolucion: refundOnly ? '' : '1', estado: refundOnly ? '' : 'cancelled', aviso: '' })}
+                  size="sm"
+                  icon={HandCoins}
+                  tone="danger"
+                  count={store.counts.refundRequests > 0 ? store.counts.refundRequests : undefined}
+                >
+                  Pidieron devolución
+                </Chip>
+              )}
               {hasFilters && (
-                <Chip size="sm" tone="outline" icon={X} onClick={() => update({ rango: '', desde: '', hasta: '', estado: '', q: '', aviso: '' })}>
+                <Chip size="sm" tone="outline" icon={X} onClick={() => update({ rango: '', desde: '', hasta: '', estado: '', q: '', aviso: '', devolucion: '' })}>
                   Limpiar
                 </Chip>
               )}
@@ -286,7 +314,7 @@ export default function Turnos() {
           text={hasFilters ? 'Probá con otro rango, otro estado u otra búsqueda.' : 'Cuando reserven desde la web los vas a ver acá. También podés cargar uno vos.'}
           action={
             hasFilters ? (
-              <Button variant="secondary" onClick={() => update({ rango: '', desde: '', hasta: '', estado: '', q: '', aviso: '' })}>
+              <Button variant="secondary" onClick={() => update({ rango: '', desde: '', hasta: '', estado: '', q: '', aviso: '', devolucion: '' })}>
                 Limpiar filtros
               </Button>
             ) : (

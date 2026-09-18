@@ -6,6 +6,10 @@
  * `useAvailability()` vive acá y lo usa el widget: cachea la disponibilidad
  * por servicio y mes, expone `invalidate()` para el 409 (horario tomado) y
  * toma "hoy" de la respuesta del servidor (zona horaria del sitio).
+ *
+ * Reprogramar: `useAvailability(0, schedule, token)` pide GET /availability?token=
+ * (la duración del turno, sin contar su propio horario) y el mismo DateStep
+ * sirve para elegir el nuevo día y hora (nextLabel / nextIcon / nextLoading).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Clock } from 'lucide-react';
@@ -18,9 +22,12 @@ import { Alert, StepFooter, useBooking } from '../shared';
 /**
  * @param {number} serviceId
  * @param {{ maxDaysAhead: number }} schedule
+ * @param {string} [token] turno a reprogramar: la disponibilidad se pide por token, sin service_id.
  * @returns {{ today, maxDate, month, setMonth, days, loading, loaded, error, hasDays, isEnabled, slotsFor, reload, invalidate }}
  */
-export function useAvailability(serviceId, schedule) {
+export function useAvailability(serviceId, schedule, token = '') {
+  // Clave de la caché: el servicio (reserva nueva) o el token (reprogramar).
+  const source = token ? `t-${token}` : serviceId ? String(serviceId) : '';
   const maxDaysAhead = Math.max(1, Number(schedule?.maxDaysAhead) || 60);
   const [today, setToday] = useState(() => todayStr());
   const [month, setMonth] = useState(() => monthKey(todayStr()));
@@ -31,13 +38,13 @@ export function useAvailability(serviceId, schedule) {
   const abortRef = useRef(null);
 
   const maxDate = addDaysStr(today, maxDaysAhead);
-  const entry = serviceId ? cache[`${serviceId}:${month}`] : null;
+  const entry = source ? cache[`${source}:${month}`] : null;
 
   useEffect(() => {
-    if (!serviceId || entry) return undefined;
+    if (!source || entry) return undefined;
     const from = startOfMonth(`${month}-01`) < today ? today : startOfMonth(`${month}-01`);
     const to = endOfMonth(`${month}-01`) > maxDate ? maxDate : endOfMonth(`${month}-01`);
-    const key = `${serviceId}:${month}`;
+    const key = `${source}:${month}`;
     if (from > to) {
       setCache((c) => ({ ...c, [key]: { days: {} } }));
       return undefined;
@@ -47,8 +54,10 @@ export function useAvailability(serviceId, schedule) {
     abortRef.current = controller;
     setLoading(true);
     setError('');
-    publicApi
-      .getAvailability(serviceId, from, to, { signal: controller.signal })
+    const request = token
+      ? publicApi.getRescheduleAvailability(token, from, to, { signal: controller.signal })
+      : publicApi.getAvailability(serviceId, from, to, { signal: controller.signal });
+    request
       .then((res) => {
         const days = {};
         Object.entries((res && res.days) || {}).forEach(([d, slots]) => {
@@ -66,34 +75,34 @@ export function useAvailability(serviceId, schedule) {
       });
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceId, month, version, !!entry]);
+  }, [source, month, version, !!entry]);
 
   const days = entry?.days || {};
   const hasDays = useMemo(() => Object.values(days).some((s) => s.length > 0), [days]);
 
   const slotsFor = useCallback(
     (date) => {
-      if (!date || !serviceId) return [];
-      const e = cache[`${serviceId}:${monthKey(date)}`];
+      if (!date || !source) return [];
+      const e = cache[`${source}:${monthKey(date)}`];
       return (e && e.days[date]) || [];
     },
-    [cache, serviceId]
+    [cache, source]
   );
 
   const isEnabled = useCallback((date) => (days[date] || []).length > 0, [days]);
 
   const invalidate = useCallback(
     (mk) => {
-      if (!serviceId) return;
+      if (!source) return;
       setCache((c) => {
         const next = { ...c };
-        if (mk) delete next[`${serviceId}:${mk}`];
-        else Object.keys(next).forEach((k) => k.startsWith(`${serviceId}:`) && delete next[k]);
+        if (mk) delete next[`${source}:${mk}`];
+        else Object.keys(next).forEach((k) => k.startsWith(`${source}:`) && delete next[k]);
         return next;
       });
       setVersion((v) => v + 1);
     },
-    [serviceId]
+    [source]
   );
 
   const reload = useCallback(() => invalidate(month), [invalidate, month]);
@@ -102,9 +111,10 @@ export function useAvailability(serviceId, schedule) {
 }
 
 /**
- * @param {{ service, date, time, onDateChange, onTimeChange, onBack, onNext, notice?: string, availability }} props
+ * @param {{ service, date, time, onDateChange, onTimeChange, onBack, onNext, notice?: string, availability,
+ *   nextLabel?: string, nextIcon?: Component, nextLoading?: boolean }} props
  */
-export default function DateStep({ service, date, time, onDateChange, onTimeChange, onBack, onNext, notice, availability }) {
+export default function DateStep({ service, date, time, onDateChange, onTimeChange, onBack, onNext, notice, availability, nextLabel, nextIcon, nextLoading = false }) {
   const { t, cfg, durationOf } = useBooking();
   const { today, maxDate, month, setMonth, loading, loaded, error, hasDays, isEnabled, slotsFor, reload } = availability;
   const slots = slotsFor(date);
@@ -184,11 +194,11 @@ export default function DateStep({ service, date, time, onDateChange, onTimeChan
         </section>
       </div>
       <StepFooter>
-        <Button variant="ghost" onClick={onBack} icon={ArrowLeft}>
+        <Button variant="ghost" onClick={onBack} icon={ArrowLeft} disabled={nextLoading}>
           {t('booking_back')}
         </Button>
-        <Button onClick={onNext} disabled={!date || !time} iconRight={ArrowRight} size="lg">
-          {t('booking_next')}
+        <Button onClick={onNext} disabled={!date || !time} icon={nextIcon} iconRight={nextIcon ? undefined : ArrowRight} loading={nextLoading} size="lg">
+          {nextLabel || t('booking_next')}
         </Button>
       </StepFooter>
     </div>

@@ -137,7 +137,7 @@ function mjto_validate_public_form(array $input) {
 		return mjto_booking_error('spam', 400);
 	}
 	$extra_in = isset($input['extra']) && is_array($input['extra']) ? $input['extra'] : [];
-	$client   = ['first_name' => '', 'last_name' => '', 'phone' => '', 'email' => '', 'locality' => ''];
+	$client   = ['first_name' => '', 'last_name' => '', 'phone' => '', 'email' => '', 'locality' => '', 'birthdate' => ''];
 	$extra    = [];
 	$notes    = '';
 	$errors   = [];
@@ -197,9 +197,17 @@ function mjto_validate_public_form(array $input) {
 					}
 					break;
 				case 'select':
+				case 'radio':
 					$valid = array_map(fn ($o) => (string) $o['value'], (array) $field['options']);
 					if ($valid && !in_array($value, $valid, true)) {
 						$err($key, $field, 'invalid_option');
+					}
+					break;
+				case 'date':
+					if (!mjto_valid_date($value)) {
+						$err($key, $field, 'invalid_date_field');
+					} elseif ('birthdate' === $key && null === mjto_age_from_birthdate($value)) {
+						$err($key, $field, 'invalid_date_field');
 					}
 					break;
 			}
@@ -268,17 +276,48 @@ function mjto_validate_panel_client(array $input) {
  * Clienta de la reserva: la indicada por id, la existente con ese teléfono
  * (se completan email/localidad/apellido/extra si estaban vacíos, nunca se
  * pisa el nombre) o una nueva. → id o WP_Error.
+ *
+ * Con cuenta ($user_id > 0) primero se busca la clienta de esa cuenta, y sus
+ * datos se actualizan con lo que acaba de escribir (es ella, con sesión). Una
+ * ficha que ya existía sin cuenta solo se vincula si coinciden el teléfono Y
+ * el email: así nadie ve la historia de otra persona creando una cuenta con
+ * sus datos (ver mjto_should_link_client en inc/accounts.php).
  */
-function mjto_resolve_booking_client(array $parsed) {
+function mjto_resolve_booking_client(array $parsed, $user_id = 0) {
 	if (!empty($parsed['client_id'])) {
 		return (int) $parsed['client_id'];
 	}
-	$c        = $parsed['client'];
-	$extra    = isset($parsed['extra']) && is_array($parsed['extra']) ? $parsed['extra'] : [];
+	$c       = $parsed['client'];
+	$extra   = isset($parsed['extra']) && is_array($parsed['extra']) ? $parsed['extra'] : [];
+	$user_id = (int) $user_id;
+
+	if ($user_id > 0) {
+		$own = mjto_find_client_by_user($user_id);
+		if ($own) {
+			$patch = array_filter($c, fn ($v) => '' !== (string) $v);
+			if ($extra) {
+				$patch['extra'] = array_merge(mjto_json_to_array($own['extra'] ?? ''), array_filter($extra, fn ($v) => '' !== (string) $v));
+			}
+			if ($patch) {
+				mjto_update_client($own['id'], $patch);
+			}
+			return (int) $own['id'];
+		}
+	}
+
 	$existing = mjto_find_client_by_phone($c['phone']);
+	if ($existing && $user_id > 0 && !empty($existing['user_id']) && (int) $existing['user_id'] !== $user_id) {
+		$existing = null; // Es de otra cuenta: esta reserva arma su propia ficha.
+	}
+	if ($existing && $user_id > 0 && empty($existing['user_id']) && !mjto_should_link_client($existing, $c, $user_id)) {
+		$existing = null; // Ficha sin cuenta que no se puede atribuir a esta cuenta: se arma una nueva.
+	}
 	if ($existing) {
 		$patch = [];
-		foreach (['last_name', 'email', 'locality'] as $key) {
+		if ($user_id > 0 && empty($existing['user_id'])) {
+			$patch['user_id'] = $user_id;
+		}
+		foreach (['last_name', 'email', 'locality', 'birthdate'] as $key) {
 			if ('' === trim((string) ($existing[$key] ?? '')) && '' !== (string) ($c[$key] ?? '')) {
 				$patch[$key] = $c[$key];
 			}
@@ -312,6 +351,12 @@ function mjto_resolve_booking_client(array $parsed) {
 	if ($extra) {
 		$data['extra'] = $extra;
 	}
+	if ($user_id > 0) {
+		$data['user_id'] = $user_id;
+	}
+	if ('' === (string) ($data['birthdate'] ?? '')) {
+		unset($data['birthdate']);
+	}
 	$id = mjto_insert_client($data);
 	if (!$id) {
 		return mjto_booking_error('db', 500);
@@ -330,22 +375,38 @@ function mjto_resolve_booking_client(array $parsed) {
  * (web) o client_id | client {…} + service_name, duration_min, price,
  * internal_notes, status (panel).
  * $opts: force (saltar disponibilidad), notify (default true), status (forzar),
- * ignore_notice (default true desde el panel).
+ * ignore_notice (default true desde el panel), client_id (web: reserva de una
+ * clienta ya conocida, sin formulario — la usa "reprogramar con seña nueva"),
+ * rescheduled_from (id del turno que reemplaza).
  * → fila del turno (mjto_get_appointment) o WP_Error con status.
  */
 function mjto_create_booking(array $input, $source = 'web', array $opts = []) {
 	$source = ('panel' === $source) ? 'panel' : 'web';
 	$opts   = wp_parse_args($opts, [
-		'force'         => false,
-		'notify'        => true,
-		'status'        => '',
-		'ignore_notice' => ('panel' === $source),
+		'force'            => false,
+		'notify'           => true,
+		'status'           => '',
+		'ignore_notice'    => ('panel' === $source),
+		'client_id'        => 0,
+		'rescheduled_from' => 0,
 	]);
 
 	/* 1. Clienta (validación; el alta se hace recién con el horario asegurado). */
-	$parsed = ('web' === $source) ? mjto_validate_public_form($input) : mjto_validate_panel_client($input);
-	if (is_wp_error($parsed)) {
-		return $parsed;
+	$account = ['user_id' => 0, 'create' => false];
+	if ('web' === $source && (int) $opts['client_id'] > 0) {
+		$parsed = ['client_id' => (int) $opts['client_id'], 'client' => [], 'extra' => [], 'notes' => ''];
+	} else {
+		$parsed = ('web' === $source) ? mjto_validate_public_form($input) : mjto_validate_panel_client($input);
+		if (is_wp_error($parsed)) {
+			return $parsed;
+		}
+		/* Cuenta de la clienta (Turnos → Ajustes → Cuentas): se valida acá y se crea con el horario asegurado. */
+		if ('web' === $source) {
+			$account = mjto_booking_account_plan($input, $parsed);
+			if (is_wp_error($account)) {
+				return $account;
+			}
+		}
 	}
 
 	/* 3. Servicio (antes que la fecha porque define la duración). */
@@ -422,8 +483,18 @@ function mjto_create_booking(array $input, $source = 'web', array $opts = []) {
 		}
 	}
 
-	/* 2. Clienta: reutilizar por teléfono o dar de alta. */
-	$client_id = mjto_resolve_booking_client($parsed);
+	/* 2. Cuenta nueva (si corresponde) y clienta: la de la cuenta, la del teléfono o una nueva. */
+	$user_id = (int) $account['user_id'];
+	if (!empty($account['create'])) {
+		$user_id = mjto_booking_account_create($account);
+		if (is_wp_error($user_id)) {
+			if ($locked) {
+				mjto_release_lock($date);
+			}
+			return $user_id;
+		}
+	}
+	$client_id = mjto_resolve_booking_client($parsed, $user_id);
 	if (is_wp_error($client_id)) {
 		if ($locked) {
 			mjto_release_lock($date);
@@ -449,6 +520,7 @@ function mjto_create_booking(array $input, $source = 'web', array $opts = []) {
 		'token'            => mjto_new_token(),
 		'client_notes'     => (string) ($parsed['notes'] ?? ''),
 		'internal_notes'   => ('panel' === $source) ? sanitize_textarea_field((string) ($input['internal_notes'] ?? '')) : '',
+		'rescheduled_from' => (int) $opts['rescheduled_from'] > 0 ? (int) $opts['rescheduled_from'] : null,
 	];
 	$data = (array) apply_filters('mjto_booking_insert_data', $data, $input, $source, $opts);
 	$id   = mjto_insert_appointment($data);
@@ -459,13 +531,18 @@ function mjto_create_booking(array $input, $source = 'web', array $opts = []) {
 		return mjto_booking_error('db', 500);
 	}
 
-	/* 7. Ficha automática si nace confirmado. */
+	/* 7. Saldo a favor: cubre la seña (o una parte) sin que la clienta haga nada. */
+	if ('awaiting_deposit' === $status && function_exists('mjto_apply_credit_to_booking')) {
+		$status = mjto_apply_credit_to_booking($id);
+	}
+
+	/* 8. Ficha automática si nace confirmado. */
 	if ('confirmed' === $status) {
 		mjto_ensure_visit($id);
 	}
 	$appointment = mjto_get_appointment($id);
 
-	/* 8. Notificaciones. */
+	/* 9. Notificaciones. */
 	if (!empty($opts['notify']) && $appointment) {
 		if (function_exists('mjto_notify_owner_new')) {
 			mjto_notify_owner_new($appointment);
@@ -478,7 +555,7 @@ function mjto_create_booking(array $input, $source = 'web', array $opts = []) {
 		}
 	}
 
-	/* 9. Aviso a quien quiera engancharse. */
+	/* 10. Aviso a quien quiera engancharse. */
 	do_action('mjto_booking_created', $appointment, $source);
 	return $appointment;
 }
@@ -506,6 +583,7 @@ function mjto_set_status($id, $new, array $ctx = []) {
 	}
 	$ctx = wp_parse_args($ctx, [
 		'notify'         => false,
+		'notify_owner'   => true, // Aviso a la dueña cuando cancela la clienta o el sistema.
 		'reason'         => '',
 		'by'             => 'owner',
 		'deposit_paid'   => null,
@@ -532,6 +610,14 @@ function mjto_set_status($id, $new, array $ctx = []) {
 		$data['cancel_reason'] = '';
 		$data['cancelled_by']  = '';
 	}
+	if ('completed' === $new && 'completed' !== $old) {
+		$data['completed_at'] = mjto_now(); // Desde acá corre la espera del pedido de opinión.
+	}
+	if ('no_show' === $new && 'no_show' !== $old) {
+		/* No vino: la seña queda perdida (constancia para la caja y la ficha). */
+		$paid = array_key_exists('deposit_paid', $data) ? (float) $data['deposit_paid'] : (float) $row['deposit_paid'];
+		$data['deposit_forfeited'] = max(0, $paid);
+	}
 	if (!mjto_update_appointment($id, $data)) {
 		return mjto_booking_error('db', 500);
 	}
@@ -552,7 +638,7 @@ function mjto_set_status($id, $new, array $ctx = []) {
 				mjto_notify_client($fresh, 'cancelled');
 			}
 		}
-		if ('cancelled' === $new && in_array($by, ['client', 'system'], true) && function_exists('mjto_notify_owner_cancel')) {
+		if ('cancelled' === $new && !empty($ctx['notify_owner']) && in_array($by, ['client', 'system'], true) && function_exists('mjto_notify_owner_cancel')) {
 			mjto_notify_owner_cancel($fresh);
 		}
 		do_action('mjto_status_changed', $fresh, $old, $new, $ctx);
@@ -651,7 +737,8 @@ function mjto_reschedule($id, $date, $time, $duration_min = null, $service_id = 
 	$data['starts_at']        = $starts_at;
 	$data['ends_at']          = $ends_at;
 	$data['duration_min']     = $duration;
-	$data['reminder_sent_at'] = null; // Fecha nueva, recordatorio nuevo.
+	$data['reminder_sent_at']  = null; // Fecha nueva, recordatorios nuevos.
+	$data['reminder2_sent_at'] = null;
 	$ok = mjto_update_appointment($id, $data);
 	if ($locked) {
 		mjto_release_lock($date);
@@ -670,8 +757,9 @@ function mjto_reschedule($id, $date, $time, $duration_min = null, $service_id = 
 			$patch['service_name'] = isset($data['service_name']) ? $data['service_name'] : (string) $visit['service_name'];
 		}
 		if ($old_date !== $date) {
-			$old_suggest = mjto_suggest_dates($old_date);
-			$new_suggest = mjto_suggest_dates($date);
+			$sid         = isset($patch['service_id']) ? (int) $patch['service_id'] : (int) $visit['service_id'];
+			$old_suggest = mjto_suggest_dates($old_date, (int) $visit['service_id']);
+			$new_suggest = mjto_suggest_dates($date, $sid);
 			$vdata       = mjto_json_to_array($visit['data']);
 			$roles       = mjto_ficha_fields_by_role();
 			foreach (['control' => 'control_date', 'retouch' => 'retouch_date'] as $k => $col) {
@@ -703,26 +791,16 @@ function mjto_reschedule($id, $date, $time, $duration_min = null, $service_id = 
  * Acciones de la clienta (por token)
  * ---------------------------------------------------------------------- */
 
-/** ¿La clienta puede cancelar este turno desde la web ahora mismo? */
+/** ¿La clienta puede cancelar este turno desde la web ahora mismo? (reglas de inc/policies.php) */
 function mjto_booking_can_cancel($appointment) {
 	$row = mjto_appointment_row($appointment);
-	if (!$row || !(int) mjto_opt('client_can_cancel')) {
-		return false;
-	}
-	if (!in_array((string) $row['status'], ['pending', 'awaiting_deposit', 'confirmed'], true)) {
-		return false;
-	}
-	$starts = mjto_local_ts($row['starts_at']);
-	if (null === $starts) {
-		return false;
-	}
-	$hours = max(0, (float) mjto_opt('cancel_hours_before'));
-	return ($starts - current_datetime()->getTimestamp()) >= (int) round($hours * 3600);
+	return $row ? (bool) mjto_cancel_terms($row)['allowed'] : false;
 }
 
 /**
- * Cancelación desde la web. Respeta client_can_cancel y cancel_hours_before;
- * solo pending / awaiting_deposit / confirmed. → fila del turno o WP_Error.
+ * Cancelación desde la web con las reglas de Cambios y cancelaciones: a
+ * tiempo, la seña puede quedar como saldo a favor; tarde (si se permite), se
+ * pierde. → fila del turno o WP_Error.
  */
 function mjto_client_cancel($token) {
 	$row = mjto_get_appointment_by_token($token);
@@ -732,11 +810,7 @@ function mjto_client_cancel($token) {
 	if ('cancelled' === $row['status']) {
 		return mjto_booking_error('already_cancelled', 400);
 	}
-	if (!mjto_booking_can_cancel($row)) {
-		return mjto_booking_error('cannot_cancel', 400);
-	}
-	$reason = (string) apply_filters('mjto_client_cancel_reason', (string) mjto_opt('cancel_reason_client'), $row);
-	return mjto_set_status($row['id'], 'cancelled', ['by' => 'client', 'reason' => $reason, 'notify' => true]);
+	return mjto_policy_client_cancel($row);
 }
 
 /**
@@ -759,7 +833,8 @@ function mjto_client_deposit_notice($token, $note = '') {
 		$prefix = (string) apply_filters('mjto_deposit_note_prefix', 'Aviso de seña', $row);
 		$line   = $prefix . ' (' . $stamp . '): ' . $note;
 		$notes  = trim((string) ($row['client_notes'] ?? ''));
-		$data['client_notes'] = ('' !== $notes ? $notes . "\n" : '') . $line;
+		/* Con tope: el aviso se puede repetir y las notas no pueden crecer sin límite (se conserva lo último). */
+		$data['client_notes'] = mb_substr(('' !== $notes ? $notes . "\n" : '') . $line, -4000);
 	}
 	if (!mjto_update_appointment($row['id'], $data)) {
 		return mjto_booking_error('db', 500);
@@ -821,8 +896,12 @@ function mjto_date_add($date, $days = 0, $months = 0) {
  * ['control' => 'YYYY-MM-DD' | '', 'retouch' => …]. Usa los offsets de los
  * campos con rol control_date / retouch_date; si no hay campo con ese rol,
  * 3 días / 4 meses. Un campo con ambos offsets en 0 no sugiere nada ('').
+ *
+ * Con $service_id, si el servicio tiene su propio período de mantenimiento
+ * (Turnos → Servicios), el retoque sale de ahí: "Lash lifting: cada 6
+ * semanas" pisa la regla general de la ficha.
  */
-function mjto_suggest_dates($date) {
+function mjto_suggest_dates($date, $service_id = 0) {
 	$out = ['control' => '', 'retouch' => ''];
 	if (!mjto_valid_date($date)) {
 		return $out;
@@ -840,7 +919,14 @@ function mjto_suggest_dates($date) {
 			$out[$k] = mjto_date_add($date, $days, $months);
 		}
 	}
-	return (array) apply_filters('mjto_suggest_dates', $out, $date);
+	$maintenance = function_exists('mjto_service_maintenance') ? mjto_service_maintenance($service_id) : null;
+	if ($maintenance) {
+		$value          = (int) $maintenance['value'];
+		$out['retouch'] = 'months' === $maintenance['unit']
+			? mjto_date_add($date, 0, $value)
+			: mjto_date_add($date, 'weeks' === $maintenance['unit'] ? $value * 7 : $value, 0);
+	}
+	return (array) apply_filters('mjto_suggest_dates', $out, $date, (int) $service_id);
 }
 
 /**
@@ -1132,7 +1218,7 @@ function mjto_new_visit_row($client_id, $appointment, $visited_at, $service_id, 
 			$data[$roles['payment_method']['key']] = mjto_visit_payment_value($roles['payment_method'], $appointment['deposit_method']);
 		}
 	}
-	$suggest = mjto_suggest_dates($visited_at);
+	$suggest = mjto_suggest_dates($visited_at, (int) $service_id);
 	foreach (['control' => 'control_date', 'retouch' => 'retouch_date'] as $k => $role) {
 		if (isset($roles[$role]) && '' === (string) ($data[$roles[$role]['key']] ?? '')) {
 			$data[$roles[$role]['key']] = $suggest[$k];
@@ -1224,6 +1310,10 @@ function mjto_save_visit($visit_id, array $input) {
 		'data'     => $data,
 		'warnings' => mjto_compute_warnings($data),
 	]);
+	/* Fecha de mantenimiento cambiada a mano: el aviso a la clienta se vuelve a armar para la fecha nueva. */
+	if (array_key_exists('retouch_date', $cols) && (string) $cols['retouch_date'] !== (string) mjto_dt_or_null($visit['retouch_date'] ?? '')) {
+		$patch['maintenance_sent_at'] = null;
+	}
 	if (isset($input['visited_at']) && mjto_valid_date($input['visited_at'])) {
 		$patch['visited_at'] = (string) $input['visited_at'];
 	}

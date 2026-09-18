@@ -57,6 +57,26 @@ add_action('rest_api_init', function () {
 		'callback'            => 'mjto_rest_deposit_notice',
 		'permission_callback' => '__return_true',
 	]);
+	register_rest_route($ns, '/bookings/' . $token . '/reschedule', [
+		'methods'             => WP_REST_Server::CREATABLE,
+		'callback'            => 'mjto_rest_reschedule_booking',
+		'permission_callback' => '__return_true',
+	]);
+	register_rest_route($ns, '/bookings/' . $token . '/choice', [
+		'methods'             => WP_REST_Server::CREATABLE,
+		'callback'            => 'mjto_rest_offer_choice',
+		'permission_callback' => '__return_true',
+	]);
+	register_rest_route($ns, '/bookings/' . $token . '/review', [
+		'methods'             => WP_REST_Server::CREATABLE,
+		'callback'            => 'mjto_rest_submit_review',
+		'permission_callback' => '__return_true',
+	]);
+	register_rest_route($ns, '/reviews', [
+		'methods'             => WP_REST_Server::READABLE,
+		'callback'            => 'mjto_rest_reviews',
+		'permission_callback' => '__return_true',
+	]);
 
 	/* ---- Panel ---- */
 	$panel = 'mjto_rest_can_manage';
@@ -168,6 +188,48 @@ add_action('rest_api_init', function () {
 		'methods'             => WP_REST_Server::READABLE,
 		'callback'            => 'mjto_rest_panel_availability',
 		'permission_callback' => $panel,
+	]);
+
+	register_rest_route($ns, '/panel/day', [
+		'methods'             => WP_REST_Server::READABLE,
+		'callback'            => 'mjto_rest_panel_day',
+		'permission_callback' => $panel,
+	]);
+	register_rest_route($ns, '/panel/month', [
+		'methods'             => WP_REST_Server::READABLE,
+		'callback'            => 'mjto_rest_panel_month',
+		'permission_callback' => $panel,
+	]);
+
+	register_rest_route($ns, '/panel/clients/' . $id . '/credit', [
+		[
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'mjto_rest_client_credit',
+			'permission_callback' => $panel,
+		],
+		[
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'mjto_rest_client_credit_add',
+			'permission_callback' => $panel,
+		],
+	]);
+
+	register_rest_route($ns, '/panel/reviews', [
+		'methods'             => WP_REST_Server::READABLE,
+		'callback'            => 'mjto_rest_panel_reviews',
+		'permission_callback' => $panel,
+	]);
+	register_rest_route($ns, '/panel/reviews/' . $id, [
+		[
+			'methods'             => WP_REST_Server::EDITABLE,
+			'callback'            => 'mjto_rest_panel_update_review',
+			'permission_callback' => $panel,
+		],
+		[
+			'methods'             => WP_REST_Server::DELETABLE,
+			'callback'            => 'mjto_rest_panel_delete_review',
+			'permission_callback' => $panel,
+		],
 	]);
 });
 
@@ -330,24 +392,37 @@ function mjto_rest_rate_count() {
 	set_transient($key, ((int) get_transient($key)) + 1, 10 * MINUTE_IN_SECONDS);
 }
 
+/**
+ * Freno de las consultas públicas (horarios libres, estado de un turno,
+ * opiniones y las acciones con token): rate_limit_reads por IP cada 10
+ * minutos. Cada consulta suma. La dueña con sesión no tiene freno.
+ * → true si puede seguir, WP_Error 429 si no.
+ */
+function mjto_rest_read_guard() {
+	if (current_user_can(MJTO_CAP)) {
+		return true;
+	}
+	$key   = 'mjto_rr_' . md5(mjto_rest_ip());
+	$count = (int) get_transient($key);
+	if ($count >= max(10, (int) mjto_opt('rate_limit_reads'))) {
+		return mjto_booking_error('rate_limited', 429);
+	}
+	set_transient($key, $count + 1, 10 * MINUTE_IN_SECONDS);
+	return true;
+}
+
+/** Token de la ruta (solo letras y números). */
+function mjto_rest_token(WP_REST_Request $request) {
+	return preg_replace('/[^a-zA-Z0-9]/', '', (string) $request->get_param('token'));
+}
+
 /* -------------------------------------------------------------------------
  * Shapes para la vista pública de una reserva
  * ---------------------------------------------------------------------- */
 
-/** ¿La clienta puede cancelar este turno desde la web? (ajustes + estado + anticipación). */
+/** ¿La clienta puede cancelar este turno desde la web? (reglas de Cambios y cancelaciones). */
 function mjto_rest_can_cancel(array $row) {
-	if (!(int) mjto_opt('client_can_cancel')) {
-		return false;
-	}
-	if (!in_array((string) ($row['status'] ?? ''), ['pending', 'awaiting_deposit', 'confirmed'], true)) {
-		return false;
-	}
-	$ts = mjto_local_ts($row['starts_at'] ?? '');
-	if (null === $ts) {
-		return false;
-	}
-	$hours = max(0, (int) mjto_opt('cancel_hours_before'));
-	return ($ts - current_datetime()->getTimestamp()) >= $hours * HOUR_IN_SECONDS;
+	return (bool) mjto_cancel_terms($row)['allowed'];
 }
 
 /** Fecha y hora larga en español: "sábado 12 de septiembre, 14:00". */
@@ -383,9 +458,13 @@ function mjto_rest_status_message($status) {
 function mjto_rest_booking_view(array $row) {
 	$public   = mjto_appointment_public($row, false);
 	$status   = (string) $public['status'];
-	$amount   = (float) $public['depositRequired'];
-	$required = ('awaiting_deposit' === $status && $amount > 0);
+	$due      = mjto_deposit_due($row);
+	$amount   = ('awaiting_deposit' === $status) ? $due : (float) $public['depositRequired'];
+	$required = ('awaiting_deposit' === $status && $due > 0);
 	$deadline = $public['depositDeadline'];
+	$cancel   = mjto_cancel_terms($row);
+	$move     = mjto_reschedule_terms($row);
+	$offer    = (string) $public['ownerOffer'];
 	$business = mjto_business_whatsapp();
 	$wa_url   = '';
 	if ('' !== $business) {
@@ -414,7 +493,10 @@ function mjto_rest_booking_view(array $row) {
 		'deposit'         => [
 			'required'      => $required,
 			'amount'        => $amount,
+			'total'         => (float) $public['depositRequired'],
 			'paid'          => (float) $public['depositPaid'],
+			'creditApplied' => (float) $public['creditApplied'],
+			'forfeited'     => (float) $public['depositForfeited'],
 			'instructions'  => (string) mjto_opt('deposit_instructions'),
 			'link'          => (string) mjto_opt('deposit_link'),
 			'deadline'      => $deadline,
@@ -424,7 +506,20 @@ function mjto_rest_booking_view(array $row) {
 			'number' => $business,
 			'url'    => $wa_url,
 		],
-		'canCancel'       => mjto_rest_can_cancel($row),
+		'canCancel'       => (bool) $cancel['allowed'],
+		'cancelTerms'     => $cancel,
+		'canReschedule'   => (bool) $move['allowed'],
+		'rescheduleTerms' => $move,
+		/* La dueña canceló y la clienta elige: reschedule | refund | credit. */
+		'offer'           => [
+			'state'   => $offer,
+			'open'    => mjto_offer_open($row),
+			'choices' => mjto_offer_open($row) ? mjto_offer_choices() : [],
+			'amount'  => (float) $public['depositPaid'],
+		],
+		'review'          => function_exists('mjto_review_state') ? mjto_review_state($row) : null,
+		'serviceId'       => (int) $public['serviceId'],
+		'myBookingsUrl'   => 'off' !== mjto_account_mode() ? mjto_my_bookings_url() : '',
 		'depositNotified' => !empty($public['depositNotifiedAt']),
 		'cancelReason'    => 'cancelled' === $status ? $public['cancelReason'] : '',
 		/*
@@ -444,11 +539,33 @@ function mjto_rest_config(WP_REST_Request $request) {
 	return rest_ensure_response(mjto_public_config());
 }
 
-/* GET /availability?service_id=&from=&to= → {days: {date: [slots]}, timezone, now} */
+/*
+ * GET /availability?service_id=&from=&to=[&token=] → {days: {date: [slots]}, timezone, now}
+ * Con el token de un turno que se puede reprogramar, ese turno no cuenta como
+ * ocupado y se usa su duración (la clienta ve los horarios a los que se puede mover).
+ */
 function mjto_rest_availability(WP_REST_Request $request) {
-	$service = mjto_get_service((int) $request->get_param('service_id'));
-	if (!$service || !$service['active'] || !$service['bookable']) {
-		return mjto_booking_error('invalid_service_public', 400);
+	$guard = mjto_rest_read_guard();
+	if (is_wp_error($guard)) {
+		return $guard;
+	}
+	mjto_maybe_expire_deposits();
+
+	$exclude = 0;
+	$token   = preg_replace('/[^a-zA-Z0-9]/', '', (string) $request->get_param('token'));
+	if ('' !== $token) {
+		$own = mjto_get_appointment_by_token($token);
+		if (!$own || !mjto_reschedule_terms($own)['allowed']) {
+			return mjto_booking_error('cannot_reschedule', 400);
+		}
+		$exclude = (int) $own['id'];
+		$svc     = (int) $own['service_id'] > 0 ? mjto_get_service((int) $own['service_id']) : null;
+		$service = ['id' => (int) $own['service_id'], 'name' => (string) $own['service_name'], 'duration' => (int) $own['duration_min'], 'buffer' => $svc ? $svc['buffer'] : null];
+	} else {
+		$service = mjto_get_service((int) $request->get_param('service_id'));
+		if (!$service || !$service['active'] || !$service['bookable']) {
+			return mjto_booking_error('invalid_service_public', 400);
+		}
 	}
 	$today = mjto_today();
 	$from  = mjto_rest_date($request->get_param('from'));
@@ -462,7 +579,7 @@ function mjto_rest_availability(WP_REST_Request $request) {
 	if ($to < $from) {
 		return mjto_booking_error('invalid_range', 400);
 	}
-	return rest_ensure_response(mjto_availability($service, $from, $to));
+	return rest_ensure_response(mjto_availability($service, $from, $to, $exclude));
 }
 
 /* POST /bookings → 201 vista pública de la reserva */
@@ -470,6 +587,7 @@ function mjto_rest_create_booking(WP_REST_Request $request) {
 	if (mjto_rest_rate_limited()) {
 		return mjto_booking_error('rate_limited', 429);
 	}
+	mjto_maybe_expire_deposits();
 
 	$input = [
 		'service_id' => (int) $request->get_param('service_id'),
@@ -480,9 +598,13 @@ function mjto_rest_create_booking(WP_REST_Request $request) {
 		'phone'      => sanitize_text_field((string) $request->get_param('phone')),
 		'email'      => sanitize_text_field((string) $request->get_param('email')), // Se valida con is_email() y recién ahí se sanitiza (mjto_validate_public_form).
 		'locality'   => sanitize_text_field((string) $request->get_param('locality')),
+		'birthdate'  => sanitize_text_field((string) $request->get_param('birthdate')),
 		'notes'      => sanitize_textarea_field((string) $request->get_param('notes')),
 		'extra'      => mjto_rest_sanitize_extra($request->get_param('extra')),
 		'website'    => sanitize_text_field((string) $request->get_param('website')), // Honeypot: tiene que venir vacío.
+		/* Cuenta (Turnos → Ajustes → Cuentas). La contraseña va tal cual: no se sanitiza (se hashea). */
+		'password'       => (string) $request->get_param('password'),
+		'create_account' => mjto_rest_bool($request->get_param('create_account')),
 	];
 
 	/* Campos custom del formulario mandados sueltos (no dentro de extra). */
@@ -514,23 +636,98 @@ function mjto_rest_create_booking(WP_REST_Request $request) {
 	}
 
 	mjto_rest_rate_count(); // Recién acá: el cupo lo gastan las reservas creadas, no los intentos.
-	$response = rest_ensure_response(mjto_rest_booking_view($appointment));
+	$view = mjto_rest_booking_view($appointment);
+	/* Se acaba de crear la cuenta: la página tiene que recargarse para tomar la sesión nueva. */
+	$view['accountCreated'] = mjto_account_created_now() > 0;
+	$response               = rest_ensure_response($view);
 	$response->set_status(201);
 	return $response;
 }
 
 /* GET /bookings/{token} → vista pública */
 function mjto_rest_get_booking(WP_REST_Request $request) {
-	$row = mjto_get_appointment_by_token((string) $request->get_param('token'));
+	$guard = mjto_rest_read_guard();
+	if (is_wp_error($guard)) {
+		return $guard;
+	}
+	mjto_maybe_expire_deposits();
+	$row = mjto_get_appointment_by_token(mjto_rest_token($request));
 	if (!$row) {
 		return mjto_booking_error('not_found', 404);
 	}
 	return rest_ensure_response(mjto_rest_booking_view($row));
 }
 
+/* POST /bookings/{token}/reschedule {date, time} → vista pública del turno resultante (puede ser otro token) */
+function mjto_rest_reschedule_booking(WP_REST_Request $request) {
+	$guard = mjto_rest_read_guard();
+	if (is_wp_error($guard)) {
+		return $guard;
+	}
+	$result = mjto_client_reschedule(mjto_rest_token($request), mjto_rest_date($request->get_param('date')), mjto_rest_time($request->get_param('time')));
+	if (is_wp_error($result)) {
+		return mjto_rest_ensure_status($result, 400);
+	}
+	return rest_ensure_response(mjto_rest_booking_view($result));
+}
+
+/* POST /bookings/{token}/choice {choice: refund|credit} → vista pública */
+function mjto_rest_offer_choice(WP_REST_Request $request) {
+	$guard = mjto_rest_read_guard();
+	if (is_wp_error($guard)) {
+		return $guard;
+	}
+	$result = mjto_client_offer_choice(mjto_rest_token($request), sanitize_key((string) $request->get_param('choice')));
+	if (is_wp_error($result)) {
+		return mjto_rest_ensure_status($result, 400);
+	}
+	return rest_ensure_response(mjto_rest_booking_view($result));
+}
+
+/* POST /bookings/{token}/review {rating, body, name} → {ok, status, review} */
+function mjto_rest_submit_review(WP_REST_Request $request) {
+	$guard = mjto_rest_read_guard();
+	if (is_wp_error($guard)) {
+		return $guard;
+	}
+	$review = mjto_submit_review(
+		mjto_rest_token($request),
+		(int) $request->get_param('rating'),
+		sanitize_textarea_field((string) $request->get_param('body')),
+		sanitize_text_field((string) $request->get_param('name'))
+	);
+	if (is_wp_error($review)) {
+		return mjto_rest_ensure_status($review, 400);
+	}
+	return rest_ensure_response([
+		'ok'      => true,
+		'status'  => (string) $review['status'],
+		'message' => 'approved' === (string) $review['status'] ? (string) mjto_opt('review_thanks') : (string) mjto_opt('review_thanks_pending'),
+		'review'  => mjto_review_public($review),
+	]);
+}
+
+/* GET /reviews?limit=&service_id= → {count, average, items} (solo publicadas) */
+function mjto_rest_reviews(WP_REST_Request $request) {
+	$guard = mjto_rest_read_guard();
+	if (is_wp_error($guard)) {
+		return $guard;
+	}
+	if (!mjto_reviews_enabled()) {
+		return rest_ensure_response(['count' => 0, 'average' => 0, 'items' => []]);
+	}
+	$limit = (int) $request->get_param('limit');
+	$limit = $limit > 0 ? min(50, $limit) : 12;
+	return rest_ensure_response(mjto_reviews_summary($limit, (int) $request->get_param('service_id')));
+}
+
 /* POST /bookings/{token}/cancel → {ok, status, statusLabel} */
 function mjto_rest_cancel_booking(WP_REST_Request $request) {
-	$token = (string) $request->get_param('token');
+	$guard = mjto_rest_read_guard();
+	if (is_wp_error($guard)) {
+		return $guard;
+	}
+	$token = mjto_rest_token($request);
 	$row   = mjto_get_appointment_by_token($token);
 	if (!$row) {
 		return mjto_booking_error('not_found', 404);
@@ -545,12 +742,18 @@ function mjto_rest_cancel_booking(WP_REST_Request $request) {
 		'ok'          => 'cancelled' === $status,
 		'status'      => $status,
 		'statusLabel' => mjto_status_label($status),
+		/* La vista completa, para mostrar qué pasó con la seña sin otra consulta. */
+		'booking'     => $fresh ? mjto_rest_booking_view($fresh) : null,
 	]);
 }
 
 /* POST /bookings/{token}/deposit-notice {note} → {ok} */
 function mjto_rest_deposit_notice(WP_REST_Request $request) {
-	$token = (string) $request->get_param('token');
+	$guard = mjto_rest_read_guard();
+	if (is_wp_error($guard)) {
+		return $guard;
+	}
+	$token = mjto_rest_token($request);
 	$row   = mjto_get_appointment_by_token($token);
 	if (!$row) {
 		return mjto_booking_error('not_found', 404);
@@ -600,12 +803,22 @@ function mjto_panel_counts() {
 		'awaiting_deposit',
 		$today . ' 00:00:00'
 	)); // phpcs:ignore WordPress.DB.PreparedSQL
+	$refunds = (int) $wpdb->get_var($wpdb->prepare(
+		'SELECT COUNT(*) FROM ' . mjto_table('appointments') . ' WHERE owner_offer = %s', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- tabla propia; los valores van por prepare.
+		'refund_requested'
+	)); // phpcs:ignore WordPress.DB.PreparedSQL
+	$reviews = (int) $wpdb->get_var($wpdb->prepare(
+		'SELECT COUNT(*) FROM ' . mjto_table('reviews') . ' WHERE status = %s', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- tabla propia; los valores van por prepare.
+		'pending'
+	)); // phpcs:ignore WordPress.DB.PreparedSQL
 
 	return [
 		'today'           => $count(['from' => $today, 'to' => $today, 'status' => $active]),
 		'pending'         => $count(['from' => $today, 'status' => ['pending']]),
 		'awaitingDeposit' => $count(['from' => $today, 'status' => ['awaiting_deposit']]),
 		'depositNotified' => $notified,
+		'refundRequests'  => $refunds,
+		'pendingReviews'  => $reviews,
 	];
 }
 
@@ -667,6 +880,12 @@ function mjto_panel_bootstrap() {
 				'allowed'     => (bool) $o['client_can_cancel'],
 				'hoursBefore' => (int) $o['cancel_hours_before'],
 			],
+			/* Lo nuevo de 1.3: el panel muestra cada cosa solo si está prendida. */
+			'ownerCancelOffer'  => (bool) $o['owner_cancel_offer'] && (bool) mjto_offer_choices(),
+			'creditEnabled'     => (bool) $o['credit_enabled'],
+			'reviewsEnabled'    => (bool) $o['reviews_enabled'],
+			'accountMode'       => mjto_account_mode(),
+			'dayFreeGaps'       => (bool) $o['panel_free_gaps'],
 			'cajaEnabled'       => (bool) $o['caja_enabled'],
 			'visitPrefillCarry' => (bool) $o['visit_prefill_carry'],
 			'priceVisible'      => (bool) $o['price_visible'],
@@ -712,6 +931,7 @@ function mjto_rest_appointments(WP_REST_Request $request) {
 		'status'    => mjto_rest_statuses($request->get_param('status')),
 		'q'         => sanitize_text_field((string) $request->get_param('q')),
 		'client_id' => (int) $request->get_param('client_id'),
+		'owner_offer' => sanitize_key((string) $request->get_param('owner_offer')),
 		'order'     => ('desc' === strtolower((string) $request->get_param('order'))) ? 'desc' : 'asc',
 		'page'      => $page,
 		'per_page'  => $per_page,
@@ -741,6 +961,9 @@ function mjto_rest_client_input($data) {
 	if (array_key_exists('age', $data)) {
 		$age        = (int) $data['age'];
 		$out['age'] = ($age > 0 && $age < 130) ? $age : null;
+	}
+	if (array_key_exists('birthdate', $data)) {
+		$out['birthdate'] = mjto_rest_date($data['birthdate']);
 	}
 	if (array_key_exists('notes', $data)) {
 		$out['notes'] = sanitize_textarea_field((string) $data['notes']);
@@ -898,7 +1121,24 @@ function mjto_rest_update_appointment(WP_REST_Request $request) {
 		}
 	}
 
-	/* 4) Cambio de estado (con seña, motivo y aviso). */
+	/* 4) Devolución de la seña hecha (la había pedido la clienta al cancelar la dueña). */
+	if (mjto_rest_has($request, 'owner_offer') && 'refunded' === sanitize_key((string) $request->get_param('owner_offer'))) {
+		$result = mjto_mark_refunded($id);
+		if (is_wp_error($result)) {
+			return mjto_rest_ensure_status($result, 400);
+		}
+	}
+
+	/* 5) Cancelación de la dueña: con "offer", la clienta elige qué hacer con la seña. */
+	if ('cancelled' === $status && 'cancelled' !== (string) $row['status']) {
+		$result = mjto_owner_cancel($id, $reason, mjto_rest_bool($request->get_param('offer')), $notify);
+		if (is_wp_error($result)) {
+			return mjto_rest_ensure_status($result, 400);
+		}
+		return rest_ensure_response(mjto_appointment_public(mjto_get_appointment($id)));
+	}
+
+	/* 6) Cambio de estado (con seña, motivo y aviso). */
 	if ('' !== $status && $status !== (string) $row['status']) {
 		if (!in_array($status, mjto_valid_statuses(), true)) {
 			return mjto_rest_error('mjto_invalid_status', 'Ese estado no existe.', 400);
@@ -990,7 +1230,21 @@ function mjto_rest_get_client(WP_REST_Request $request) {
 		'client'       => mjto_rest_client_with_stats($row, $visits, $appointments),
 		'visits'       => mjto_rest_items($visits, 'mjto_visit_public'),
 		'appointments' => mjto_rest_items($appointments, fn ($a) => mjto_appointment_public($a)),
+		'account'      => mjto_rest_client_account($row),
+		'credit'       => [
+			'balance'   => mjto_credit_balance($id),
+			'movements' => mjto_rest_items(mjto_credit_movements($id, 50), 'mjto_credit_public'),
+		],
 	]);
+}
+
+/** Cuenta de WordPress vinculada a una clienta → {id, email, name} o null. */
+function mjto_rest_client_account(array $row) {
+	$user = !empty($row['user_id']) ? get_userdata((int) $row['user_id']) : null;
+	if (!$user) {
+		return null;
+	}
+	return ['id' => (int) $user->ID, 'email' => (string) $user->user_email, 'name' => (string) $user->display_name];
 }
 
 /* POST /panel/clients → 201 clienta */
@@ -1033,6 +1287,31 @@ function mjto_rest_update_client(WP_REST_Request $request) {
 		$other = mjto_find_client_by_phone($data['phone']);
 		if ($other && (int) $other['id'] !== $id && !mjto_rest_bool($request->get_param('force'))) {
 			return mjto_rest_error('mjto_client_exists', 'Ese teléfono ya es de otra clienta: ' . mjto_full_name($other['first_name'], $other['last_name']) . '.', 409, ['clientId' => (int) $other['id']]);
+		}
+	}
+	/*
+	 * Vincular (o desvincular) la cuenta a mano: la dueña sabe quién es quién.
+	 * account_email vacío = sin cuenta; un email = la cuenta con ese email.
+	 */
+	if (mjto_rest_has($request, 'account_email')) {
+		$typed = trim(sanitize_text_field((string) $request->get_param('account_email')));
+		$email = sanitize_email($typed);
+		if ('' !== $typed && !is_email($email)) {
+			/* Un email mal escrito no puede desvincular la cuenta por quedar vacío al sanitizarlo. */
+			return mjto_rest_error('mjto_invalid_email', 'Revisá el email: no parece válido.', 400, ['field' => 'account_email']);
+		}
+		if ('' === $email) {
+			$data['user_id'] = null;
+		} else {
+			$user = get_user_by('email', $email);
+			if (!$user) {
+				return mjto_rest_error('mjto_account_not_found', 'No hay ninguna cuenta con ese email.', 404, ['field' => 'account_email']);
+			}
+			$other = mjto_find_client_by_user($user->ID);
+			if ($other && (int) $other['id'] !== $id) {
+				return mjto_rest_error('mjto_account_taken', 'Esa cuenta ya está vinculada a otra clienta: ' . mjto_full_name($other['first_name'], $other['last_name']) . '.', 409, ['clientId' => (int) $other['id']]);
+			}
+			$data['user_id'] = (int) $user->ID;
 		}
 	}
 	if ($data && !mjto_update_client($id, $data)) {
@@ -1356,4 +1635,162 @@ function mjto_rest_panel_availability(WP_REST_Request $request) {
 		'date'  => $date,
 		'slots' => array_values((array) $slots),
 	]);
+}
+
+/* -------------------------------------------------------------------------
+ * Panel: calendario (día con huecos libres y mes con cantidades)
+ * ---------------------------------------------------------------------- */
+
+/*
+ * GET /panel/day?date= → {date, open, closedReason, ranges, free, blocks, appointments}
+ * Todo lo de un día en una sola consulta: los turnos (menos los cancelados),
+ * los bloqueos y los huecos libres, para armar la agenda como
+ * "10:00 Lash lifting · 12:00 Disponible · 16:00 Bloqueado".
+ */
+function mjto_rest_panel_day(WP_REST_Request $request) {
+	$date = mjto_rest_date($request->get_param('date'));
+	if ('' === $date) {
+		$date = mjto_today();
+	}
+	$gaps         = mjto_day_free_gaps($date);
+	$appointments = mjto_appointments_between($date . ' 00:00:00', $date . ' 23:59:59', ['pending', 'awaiting_deposit', 'confirmed', 'completed', 'no_show']);
+	$blocks       = mjto_get_blocks_between($date . ' 00:00:00', $date . ' 23:59:59');
+	return rest_ensure_response([
+		'date'         => $date,
+		'open'         => (bool) $gaps['open'],
+		'closedReason' => $gaps['closedReason'],
+		'ranges'       => $gaps['ranges'],
+		'free'         => $gaps['free'],
+		'blocks'       => mjto_rest_items($blocks, 'mjto_block_public'),
+		'appointments' => mjto_rest_items($appointments, fn ($a) => mjto_appointment_public($a)),
+	]);
+}
+
+/*
+ * GET /panel/month?month=YYYY-MM → {month, days: {date: {count, open, blocked}}}
+ * Cuántos turnos activos tiene cada día del mes y si abre, para pintar el calendario.
+ */
+function mjto_rest_panel_month(WP_REST_Request $request) {
+	global $wpdb;
+	$month = preg_match('/^\d{4}-\d{2}$/', (string) $request->get_param('month')) ? (string) $request->get_param('month') : current_datetime()->format('Y-m');
+	$from  = $month . '-01';
+	if (!mjto_valid_date($from)) {
+		return mjto_rest_error('mjto_invalid_date', 'Elegí un mes válido.', 400);
+	}
+	$to   = (new DateTimeImmutable($from, wp_timezone()))->format('Y-m-t');
+	$rows = $wpdb->get_results($wpdb->prepare(
+		'SELECT DATE(starts_at) AS d, COUNT(*) AS n FROM ' . mjto_table('appointments') . " WHERE status IN ('pending','awaiting_deposit','confirmed','completed') AND starts_at BETWEEN %s AND %s GROUP BY DATE(starts_at)", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- tabla propia; los valores van por prepare.
+		$from . ' 00:00:00',
+		$to . ' 23:59:59'
+	), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL
+	$counts = [];
+	foreach ((array) $rows as $r) {
+		$counts[(string) $r['d']] = (int) $r['n'];
+	}
+	$blocked = [];
+	foreach (mjto_get_blocks_between($from . ' 00:00:00', $to . ' 23:59:59') as $block) {
+		$day  = new DateTimeImmutable(substr((string) $block['starts_at'], 0, 10) . ' 00:00:00', wp_timezone());
+		$last = substr((string) $block['ends_at'], 0, 10);
+		$guard = 0;
+		while ($guard++ < 62 && $day->format('Y-m-d') <= $last) {
+			$blocked[$day->format('Y-m-d')] = true;
+			$day                            = $day->modify('+1 day');
+		}
+	}
+	$days = [];
+	$day  = new DateTimeImmutable($from . ' 00:00:00', wp_timezone());
+	while ($day->format('Y-m-d') <= $to) {
+		$key        = $day->format('Y-m-d');
+		$days[$key] = [
+			'count'   => $counts[$key] ?? 0,
+			'open'    => (bool) mjto_day_ranges($key),
+			'blocked' => isset($blocked[$key]),
+		];
+		$day = $day->modify('+1 day');
+	}
+	return rest_ensure_response(['month' => $month, 'days' => (object) $days]);
+}
+
+/* -------------------------------------------------------------------------
+ * Panel: saldo a favor de una clienta
+ * ---------------------------------------------------------------------- */
+
+/* GET /panel/clients/{id}/credit → {balance, movements} */
+function mjto_rest_client_credit(WP_REST_Request $request) {
+	$id = (int) $request->get_param('id');
+	if (!mjto_get_client($id)) {
+		return mjto_rest_error('mjto_not_found', 'No encontramos esa clienta.', 404);
+	}
+	return rest_ensure_response([
+		'balance'   => mjto_credit_balance($id),
+		'movements' => mjto_rest_items(mjto_credit_movements($id, 100), 'mjto_credit_public'),
+	]);
+}
+
+/* POST /panel/clients/{id}/credit {amount (+ suma / - descuenta), reason} → {balance, movements} */
+function mjto_rest_client_credit_add(WP_REST_Request $request) {
+	$id = (int) $request->get_param('id');
+	if (!mjto_get_client($id)) {
+		return mjto_rest_error('mjto_not_found', 'No encontramos esa clienta.', 404);
+	}
+	$amount = mjto_rest_money($request->get_param('amount'));
+	if (null === $amount || 0.0 === (float) $amount) {
+		return mjto_rest_error('mjto_invalid_amount', 'Indicá un monto distinto de cero (negativo para descontar).', 400, ['field' => 'amount']);
+	}
+	$reason  = mb_substr(sanitize_text_field((string) $request->get_param('reason')), 0, 255);
+	$balance = mjto_credit_balance($id);
+	if ($amount < 0 && abs($amount) > $balance + 0.004) {
+		return mjto_rest_error('mjto_credit_exceeds', 'El descuento supera el saldo a favor (' . mjto_format_price($balance) . ').', 400, ['field' => 'amount', 'balance' => $balance]);
+	}
+	if (!mjto_add_credit($id, $amount, 'manual', $reason)) {
+		return mjto_rest_error('mjto_credit_failed', 'No se pudo guardar el movimiento.', 500);
+	}
+	return mjto_rest_client_credit($request);
+}
+
+/* -------------------------------------------------------------------------
+ * Panel: opiniones
+ * ---------------------------------------------------------------------- */
+
+/* GET /panel/reviews?status=&page=&per_page= → {items, total, counts} */
+function mjto_rest_panel_reviews(WP_REST_Request $request) {
+	[$page, $per_page] = mjto_rest_paging($request, 50, 200);
+	$status = sanitize_key((string) $request->get_param('status'));
+	$result = mjto_query_reviews(['status' => $status, 'page' => $page, 'per_page' => $per_page]);
+	$counts = [];
+	foreach (mjto_review_statuses() as $st) {
+		$counts[$st] = (int) mjto_query_reviews(['status' => $st, 'per_page' => 1])['total'];
+	}
+	return rest_ensure_response([
+		'items'  => mjto_rest_items($result['items'], 'mjto_review_panel'),
+		'total'  => (int) $result['total'],
+		'counts' => $counts,
+	]);
+}
+
+/* PATCH /panel/reviews/{id} {status, author_name, body} → opinión */
+function mjto_rest_panel_update_review(WP_REST_Request $request) {
+	$id = (int) $request->get_param('id');
+	if (!mjto_get_review($id)) {
+		return mjto_booking_error('review_not_found', 404);
+	}
+	$data = [];
+	foreach (['status', 'author_name', 'body'] as $key) {
+		if (mjto_rest_has($request, $key)) {
+			$data[$key] = (string) $request->get_param($key);
+		}
+	}
+	if (!mjto_update_review($id, $data)) {
+		return mjto_booking_error('db', 500);
+	}
+	return rest_ensure_response(mjto_review_panel(mjto_get_review($id)));
+}
+
+/* DELETE /panel/reviews/{id} → {ok} */
+function mjto_rest_panel_delete_review(WP_REST_Request $request) {
+	$id = (int) $request->get_param('id');
+	if (!mjto_get_review($id)) {
+		return mjto_booking_error('review_not_found', 404);
+	}
+	return rest_ensure_response(['ok' => mjto_delete_review($id)]);
 }

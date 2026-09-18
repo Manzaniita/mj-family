@@ -415,8 +415,9 @@ function mjto_available_slots($service, $date, $exclude_id = 0, $ignore_notice =
  * [hoy, hoy + max_days_ahead] y a 62 días como máximo:
  * ['days' => ['YYYY-MM-DD' => ['09:00', …]], 'timezone' => …, 'now' => 'YYYY-MM-DD HH:MM', 'from', 'to'].
  * Cada día del rango aparece (con [] si está cerrado o lleno).
+ * $exclude_id: turno que no cuenta como ocupado (la clienta reprogramando el suyo).
  */
-function mjto_availability($service, $from, $to) {
+function mjto_availability($service, $from, $to, $exclude_id = 0) {
 	$window = mjto_booking_window();
 	$tz     = wp_timezone();
 	$from   = mjto_valid_date($from) ? (string) $from : $window['today'];
@@ -436,7 +437,7 @@ function mjto_availability($service, $from, $to) {
 	if ($to >= $from) {
 		$spec  = mjto_service_spec($service);
 		$ctx   = mjto_slot_context(false);
-		$busy  = mjto_busy_map($from, $to, 0);
+		$busy  = mjto_busy_map($from, $to, (int) $exclude_id);
 		$day   = new DateTimeImmutable($from . ' 00:00:00', $tz);
 		$guard = 0;
 		while ($guard++ < 70) {
@@ -457,6 +458,59 @@ function mjto_availability($service, $from, $to) {
 		'from'     => $from,
 		'to'       => $to,
 	];
+}
+
+/**
+ * Huecos libres de un día para el calendario del panel: las franjas de
+ * atención menos lo ocupado (turnos con su descanso y bloqueos), sin mirar la
+ * anticipación ni la duración de ningún servicio. Se descartan los huecos
+ * más cortos que slot_step y la parte que ya pasó.
+ * → ['open' => bool, 'closedReason' => string|null, 'ranges' => [['09:00','13:00'], …],
+ *    'free' => [['from' => '12:00', 'to' => '14:00', 'minutes' => 120], …]]
+ */
+function mjto_day_free_gaps($date) {
+	$date   = (string) $date;
+	$out    = ['open' => false, 'closedReason' => mjto_closed_date_reason($date), 'ranges' => [], 'free' => []];
+	$ranges = mjto_day_ranges($date);
+	if (!$ranges) {
+		return $out;
+	}
+	$out['open']   = true;
+	$out['ranges'] = $ranges;
+	$tz            = wp_timezone();
+	$day           = new DateTimeImmutable($date . ' 00:00:00', $tz);
+	$now           = current_datetime()->getTimestamp();
+	$step          = max(5, (int) mjto_opt('slot_step'));
+	$busy          = mjto_busy_intervals($date);
+	foreach ($ranges as $range) {
+		$start = $day->setTime(...array_map('intval', explode(':', $range[0])))->getTimestamp();
+		$end   = '24:00' === $range[1] ? $day->modify('+1 day')->getTimestamp() : $day->setTime(...array_map('intval', explode(':', $range[1])))->getTimestamp();
+		$start = max($start, $now);
+		$cur   = $start;
+		foreach ($busy as $b) {
+			if ($b[1] <= $cur || $b[0] >= $end) {
+				continue;
+			}
+			if ($b[0] > $cur && ($b[0] - $cur) >= $step * 60) {
+				$out['free'][] = [$cur, min($b[0], $end)];
+			}
+			$cur = max($cur, $b[1]);
+			if ($cur >= $end) {
+				break;
+			}
+		}
+		if ($cur < $end && ($end - $cur) >= $step * 60) {
+			$out['free'][] = [$cur, $end];
+		}
+	}
+	$out['free'] = array_map(function ($gap) use ($tz) {
+		return [
+			'from'    => (new DateTimeImmutable('@' . $gap[0]))->setTimezone($tz)->format('H:i'),
+			'to'      => (new DateTimeImmutable('@' . $gap[1]))->setTimezone($tz)->format('H:i'),
+			'minutes' => (int) round(($gap[1] - $gap[0]) / 60),
+		];
+	}, $out['free']);
+	return $out;
 }
 
 /**

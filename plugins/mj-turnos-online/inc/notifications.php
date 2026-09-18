@@ -15,11 +15,19 @@ defined('ABSPATH') || exit;
  * Placeholders y render
  * ---------------------------------------------------------------------- */
 
-/** URL pública del estado de un turno: /{slug}/t/{token}. */
+/**
+ * URL pública del estado de un turno. Con el tema MJ Appearance es
+ * /{slug}/t/{token} (una ruta de su tienda); con cualquier otro tema, la
+ * página del shortcode con ?turno={token}, que el widget abre solo (esa
+ * ruta de tres partes ahí no existe y daría 404).
+ */
 function mjto_booking_status_url($token) {
 	$token = preg_replace('/[^a-zA-Z0-9]/', '', (string) $token);
 	if ('' === $token) {
 		return home_url('/' . mjto_page_slug());
+	}
+	if (!function_exists('mj_spa_handles_path')) {
+		return add_query_arg('turno', $token, home_url('/' . mjto_page_slug()));
 	}
 	return home_url('/' . mjto_page_slug() . '/t/' . $token);
 }
@@ -75,7 +83,11 @@ function mjto_placeholders($appointment, array $extra = []) {
 
 	$starts   = $row ? (string) ($row['starts_at'] ?? '') : '';
 	$ts       = mjto_local_ts($starts);
+	/* {sena}: lo que falta transferir (la seña menos el saldo a favor usado); si ya está paga, la seña entera. */
 	$deposit  = $row ? (float) ($row['deposit_required'] ?? 0) : 0.0;
+	$due      = $row ? max(0.0, $deposit - (float) ($row['deposit_paid'] ?? 0)) : 0.0;
+	$deposit  = ($row && 'awaiting_deposit' === (string) ($row['status'] ?? '') && $due > 0) ? $due : $deposit;
+	$paid     = $row ? (float) ($row['deposit_paid'] ?? 0) : 0.0;
 	$price    = $row ? (float) ($row['price'] ?? 0) : 0.0;
 	$deadline = $row ? mjto_dt_or_null($row['deposit_deadline'] ?? '') : null;
 	$status   = $row ? (string) ($row['status'] ?? '') : '';
@@ -97,13 +109,19 @@ function mjto_placeholders($appointment, array $extra = []) {
 		}
 	}
 	if (('' === $control || '' === $retouch) && '' !== $date) {
-		$suggest = mjto_suggest_dates($date);
+		$suggest = mjto_suggest_dates($date, $row ? (int) ($row['service_id'] ?? 0) : 0);
 		$control = '' !== $control ? $control : $suggest['control'];
 		$retouch = '' !== $retouch ? $retouch : $suggest['retouch'];
 	}
 
 	$business_wa = mjto_business_whatsapp();
 	$link_pago   = trim((string) $o['deposit_link']);
+	$service_id  = $row ? (int) ($row['service_id'] ?? 0) : 0;
+	$service     = $service_id > 0 ? mjto_get_service($service_id) : null;
+	$link_book   = ($service && !empty($service['slug']))
+		? add_query_arg('servicio', $service['slug'], home_url('/' . mjto_page_slug()))
+		: home_url('/' . mjto_page_slug());
+	$credit      = ($row && !empty($row['client_id']) && function_exists('mjto_credit_balance')) ? mjto_credit_balance((int) $row['client_id']) : 0.0;
 
 	$map = [
 		'{nombre}'                  => $first,
@@ -129,8 +147,21 @@ function mjto_placeholders($appointment, array $extra = []) {
 		'{link_turno}'              => $row && !empty($row['token']) ? mjto_booking_status_url($row['token']) : '',
 		'{fecha_control}'           => '' !== $control ? mjto_long_date($control . ' 00:00:00') : '',
 		'{fecha_retoque}'           => '' !== $retouch ? mjto_long_date($retouch . ' 00:00:00') : '',
+		'{fecha_mantenimiento}'     => '' !== $retouch ? mjto_long_date($retouch . ' 00:00:00') : '',
 		'{motivo}'                  => $row ? (string) ($row['cancel_reason'] ?? '') : '',
 		'{estado}'                  => '' !== $status ? mjto_status_label($status) : '',
+		'{sena_pagada}'             => $paid > 0 ? mjto_format_price($paid) : '',
+		'{seña_pagada}'             => $paid > 0 ? mjto_format_price($paid) : '',
+		'{seña_resultado}'          => '',
+		'{fecha_anterior}'          => '',
+		'{saldo}'                   => $credit > 0 ? mjto_format_price($credit) : '',
+		'{link_reserva}'            => $link_book,
+		'{link_mis_turnos}'         => function_exists('mjto_my_bookings_url') && 'off' !== mjto_account_mode() ? mjto_my_bookings_url() : '',
+		'{link_opinion}'            => $row && !empty($row['token']) && function_exists('mjto_review_url') ? mjto_review_url($row['token']) : '',
+		'{puntaje}'                 => '',
+		'{opinion}'                 => '',
+		'{estado_opinion}'          => '',
+		'{instagram_negocio}'       => mjto_business_instagram(),
 	];
 
 	foreach ($extra as $key => $value) {
@@ -248,12 +279,19 @@ function mjto_mail($to, $subject, $body, array $args = []) {
  * Notificaciones a la dueña
  * ---------------------------------------------------------------------- */
 
-/** Mail a la dueña ($kind: new | cancel | deposit_notice), si la opción owner_notify_* está activa. → bool */
-function mjto_notify_owner($appointment, $kind) {
+/**
+ * Mail a la dueña ($kind: new | cancel | deposit_notice | reschedule | refund |
+ * review), si la opción owner_notify_* está activa. $extra suma o pisa
+ * comodines ({fecha_anterior}, {seña_resultado}, {puntaje}…). → bool
+ */
+function mjto_notify_owner($appointment, $kind, array $extra = []) {
 	$kinds = [
 		'new'            => ['owner_notify_new', 'tpl_owner_new_subject', 'tpl_owner_new_body'],
 		'cancel'         => ['owner_notify_cancel', 'tpl_owner_cancel_subject', 'tpl_owner_cancel_body'],
 		'deposit_notice' => ['owner_notify_deposit_notice', 'tpl_owner_deposit_notice_subject', 'tpl_owner_deposit_notice_body'],
+		'reschedule'     => ['owner_notify_reschedule', 'tpl_owner_reschedule_subject', 'tpl_owner_reschedule_body'],
+		'refund'         => ['owner_notify_refund', 'tpl_owner_refund_subject', 'tpl_owner_refund_body'],
+		'review'         => ['owner_notify_review', 'tpl_owner_review_subject', 'tpl_owner_review_body'],
 	];
 	if (!isset($kinds[$kind])) {
 		return false;
@@ -269,7 +307,7 @@ function mjto_notify_owner($appointment, $kind) {
 	if (!apply_filters('mjto_notify_owner', true, $row, $kind)) {
 		return false;
 	}
-	$placeholders = mjto_placeholders($row);
+	$placeholders = mjto_placeholders($row, $extra);
 	$subject      = mjto_render_template((string) mjto_opt($subject_key), $placeholders);
 	$body         = mjto_render_template((string) mjto_opt($body_key), $placeholders);
 	$client_email = sanitize_email((string) ($row['client_email'] ?? ''));
@@ -300,19 +338,24 @@ function mjto_notify_owner_deposit_notice($appointment) {
 /** Tipos de mail a la clienta → [asunto, cuerpo]. */
 function mjto_client_mail_kinds() {
 	return [
-		'received'  => ['tpl_client_received_subject', 'tpl_client_received_body'],
-		'deposit'   => ['tpl_client_deposit_subject', 'tpl_client_deposit_body'],
-		'confirmed' => ['tpl_client_confirmed_subject', 'tpl_client_confirmed_body'],
-		'reminder'  => ['tpl_client_reminder_subject', 'tpl_client_reminder_body'],
-		'cancelled' => ['tpl_client_cancelled_subject', 'tpl_client_cancelled_body'],
+		'received'     => ['tpl_client_received_subject', 'tpl_client_received_body'],
+		'deposit'      => ['tpl_client_deposit_subject', 'tpl_client_deposit_body'],
+		'confirmed'    => ['tpl_client_confirmed_subject', 'tpl_client_confirmed_body'],
+		'reminder'     => ['tpl_client_reminder_subject', 'tpl_client_reminder_body'],
+		'reminder2'    => ['tpl_client_reminder2_subject', 'tpl_client_reminder2_body'],
+		'rescheduled'  => ['tpl_client_rescheduled_subject', 'tpl_client_rescheduled_body'],
+		'cancelled'    => ['tpl_client_cancelled_subject', 'tpl_client_cancelled_body'],
+		'owner_cancel' => ['tpl_client_owner_cancel_subject', 'tpl_client_owner_cancel_body'],
+		'maintenance'  => ['tpl_client_maintenance_subject', 'tpl_client_maintenance_body'],
+		'review'       => ['tpl_client_review_subject', 'tpl_client_review_body'],
 	];
 }
 
 /**
- * Mail a la clienta ($kind: received | deposit | confirmed | reminder | cancelled)
- * si client_email_enabled y tiene email. Reply-To: la dueña. → bool
+ * Mail a la clienta (uno de mjto_client_mail_kinds()) si client_email_enabled
+ * y tiene email. Reply-To: la dueña. $extra suma o pisa comodines. → bool
  */
-function mjto_notify_client($appointment, $kind) {
+function mjto_notify_client($appointment, $kind, array $extra = []) {
 	$kinds = mjto_client_mail_kinds();
 	if (!isset($kinds[$kind]) || !(int) mjto_opt('client_email_enabled')) {
 		return false;
@@ -333,7 +376,7 @@ function mjto_notify_client($appointment, $kind) {
 		return false;
 	}
 	[$subject_key, $body_key] = $kinds[$kind];
-	$placeholders = mjto_placeholders($row);
+	$placeholders = mjto_placeholders($row, $extra);
 	$subject      = mjto_render_template((string) mjto_opt($subject_key), $placeholders);
 	$body         = mjto_render_template((string) mjto_opt($body_key), $placeholders);
 	$sent         = mjto_mail($email, $subject, $body, [
@@ -422,18 +465,28 @@ function mjto_client_whatsapp_url($appointment) {
  * ---------------------------------------------------------------------- */
 
 add_action('mjto_hourly', 'mjto_cron_hourly');
+add_action('mjto_tick', 'mjto_cron_hourly');
 
-/** Corre cada hora (evento mjto_hourly, programado en la activación). */
+/**
+ * Corre cada hora (mjto_hourly) y en la tarea frecuente (mjto_tick, cada 5
+ * minutos). Cada paso marca lo que ya hizo, así que correrlo de más no
+ * duplica nada.
+ */
 function mjto_cron_hourly() {
-	mjto_cron_send_reminders();
 	mjto_cron_expire_deposits();
+	mjto_cron_send_reminders();
+	mjto_cron_send_reminders2();
+	mjto_cron_maintenance();
+	mjto_cron_review_requests();
 	do_action('mjto_cron_hourly_done');
 }
 
 /**
  * Recordatorios: turnos confirmados que empiezan entre ahora y ahora +
  * reminder_hours_before, sin recordatorio enviado y con email. Se marca
- * reminder_sent_at solo si el mail salió. → cantidad enviada.
+ * reminder_sent_at solo si el mail salió. Con el segundo recordatorio
+ * prendido, un turno que ya está dentro de su ventana recibe solo ese (no
+ * dos mails seguidos). → cantidad enviada.
  */
 function mjto_cron_send_reminders() {
 	global $wpdb;
@@ -444,13 +497,19 @@ function mjto_cron_send_reminders() {
 	if ($hours <= 0) {
 		return 0;
 	}
-	$now   = current_datetime();
-	$from  = $now->format('Y-m-d H:i:s');
+	$now  = current_datetime();
+	$from = $now;
+	if ((int) mjto_opt('reminder2_enabled')) {
+		$h2 = max(0, (float) mjto_opt('reminder2_hours_before'));
+		if ($h2 > 0 && $h2 < $hours) {
+			$from = $now->modify('+' . (int) round($h2 * 60) . ' minutes');
+		}
+	}
 	$until = $now->modify('+' . (int) round($hours * 60) . ' minutes')->format('Y-m-d H:i:s');
 	$limit = max(1, (int) apply_filters('mjto_cron_batch', 50));
 	$rows  = $wpdb->get_results($wpdb->prepare(
-		mjto_appointment_select() . " WHERE a.status = 'confirmed' AND a.reminder_sent_at IS NULL AND a.starts_at >= %s AND a.starts_at <= %s AND c.email <> '' ORDER BY a.starts_at ASC LIMIT %d",
-		$from,
+		mjto_appointment_select() . " WHERE a.status = 'confirmed' AND a.reminder_sent_at IS NULL AND a.starts_at > %s AND a.starts_at <= %s AND c.email <> '' ORDER BY a.starts_at ASC LIMIT %d",
+		$from->format('Y-m-d H:i:s'),
 		$until,
 		$limit
 	), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL
@@ -466,8 +525,42 @@ function mjto_cron_send_reminders() {
 }
 
 /**
+ * Segundo recordatorio (el corto, "en un rato te espero"): turnos confirmados
+ * que empiezan dentro de reminder2_hours_before. → cantidad enviada.
+ */
+function mjto_cron_send_reminders2() {
+	global $wpdb;
+	if (!(int) mjto_opt('reminder2_enabled') || !(int) mjto_opt('client_email_enabled')) {
+		return 0;
+	}
+	$hours = max(0, (float) mjto_opt('reminder2_hours_before'));
+	if ($hours <= 0) {
+		return 0;
+	}
+	$now   = current_datetime();
+	$until = $now->modify('+' . (int) round($hours * 60) . ' minutes')->format('Y-m-d H:i:s');
+	$limit = max(1, (int) apply_filters('mjto_cron_batch', 50));
+	$rows  = $wpdb->get_results($wpdb->prepare(
+		mjto_appointment_select() . " WHERE a.status = 'confirmed' AND a.reminder2_sent_at IS NULL AND a.starts_at > %s AND a.starts_at <= %s AND c.email <> '' ORDER BY a.starts_at ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL -- el SELECT común es fijo; los valores van por prepare.
+		$now->format('Y-m-d H:i:s'),
+		$until,
+		$limit
+	), ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL
+	$sent = 0;
+	foreach ((array) $rows as $row) {
+		if (mjto_notify_client($row, 'reminder2')) {
+			mjto_update_appointment($row['id'], ['reminder2_sent_at' => mjto_now()]);
+			$sent++;
+			do_action('mjto_reminder2_sent', $row);
+		}
+	}
+	return $sent;
+}
+
+/**
  * Señas vencidas: turnos esperando seña cuyo plazo pasó y la clienta no
- * avisó que transfirió → se cancelan (por el sistema, con aviso). Solo si
+ * avisó que transfirió (ni subió el comprobante) → se cancelan (por el
+ * sistema, con aviso) y el saldo a favor que hubieran usado vuelve. Solo si
  * deposit_hours > 0. → cantidad cancelada.
  */
 function mjto_cron_expire_deposits() {
@@ -484,11 +577,127 @@ function mjto_cron_expire_deposits() {
 	$count = 0;
 	foreach ((array) $rows as $row) {
 		$reason = (string) apply_filters('mjto_deposit_expired_reason', (string) mjto_opt('cancel_reason_deposit_expired'), $row);
-		$result = mjto_set_status($row['id'], 'cancelled', ['by' => 'system', 'reason' => $reason, 'notify' => true]);
-		if (!is_wp_error($result)) {
-			$count++;
-			do_action('mjto_deposit_expired', $result);
+		$result = mjto_set_status($row['id'], 'cancelled', ['by' => 'system', 'reason' => $reason, 'notify' => false]);
+		if (is_wp_error($result)) {
+			continue;
 		}
+		$returned = function_exists('mjto_return_applied_credit') ? mjto_return_applied_credit($result) : 0.0;
+		$fresh    = mjto_get_appointment((int) $row['id']);
+		mjto_notify_client($fresh, 'cancelled', [
+			'seña_resultado' => $returned > 0 ? mjto_deposit_result_text('credit', $fresh, $returned) : '',
+		]);
+		$count++;
+		do_action('mjto_deposit_expired', $fresh);
 	}
 	return $count;
+}
+
+/**
+ * Vence las señas atrasadas en el momento de una consulta (disponibilidad,
+ * reserva, estado de un turno): así el horario de una seña que venció a la
+ * hora vuelve a estar libre aunque la tarea programada todavía no haya
+ * corrido. Una vez por minuto como mucho.
+ */
+function mjto_maybe_expire_deposits() {
+	if ((int) mjto_opt('deposit_hours') <= 0 || get_transient('mjto_expire_check')) {
+		return;
+	}
+	set_transient('mjto_expire_check', 1, MINUTE_IN_SECONDS);
+	mjto_cron_expire_deposits();
+}
+
+/**
+ * Aviso de mantenimiento: visitas cuya fecha de retoque / próximo
+ * mantenimiento cae dentro de maintenance_days_before, sin aviso mandado, de
+ * clientas con email y sin un turno ya reservado para adelante. Solo la
+ * última visita de cada clienta (una visita vieja no avisa). → cantidad enviada.
+ */
+function mjto_cron_maintenance() {
+	global $wpdb;
+	if (!(int) mjto_opt('maintenance_enabled') || !(int) mjto_opt('client_email_enabled')) {
+		return 0;
+	}
+	$today  = mjto_today();
+	$until  = mjto_date_add($today, max(0, (int) mjto_opt('maintenance_days_before')));
+	$visits = mjto_table('visits');
+	$apps   = mjto_table('appointments');
+	$limit  = max(1, (int) apply_filters('mjto_cron_batch', 50));
+	// phpcs:disable WordPress.DB.PreparedSQL -- tablas propias; los valores van por prepare.
+	$rows   = $wpdb->get_results($wpdb->prepare(
+		"SELECT v.*, c.first_name AS client_first_name, c.last_name AS client_last_name, c.phone AS client_phone,
+			c.phone_raw AS client_phone_raw, c.email AS client_email, c.locality AS client_locality
+		FROM {$visits} v
+		INNER JOIN " . mjto_table('clients') . " c ON c.id = v.client_id
+		WHERE v.retouch_date IS NOT NULL AND v.retouch_date >= %s AND v.retouch_date <= %s
+			AND v.maintenance_sent_at IS NULL AND c.email <> ''
+			AND v.id = (SELECT v2.id FROM {$visits} v2 WHERE v2.client_id = v.client_id ORDER BY v2.visited_at DESC, v2.id DESC LIMIT 1)
+			AND NOT EXISTS (SELECT 1 FROM {$apps} a WHERE a.client_id = v.client_id AND a.status IN ('pending','awaiting_deposit','confirmed') AND a.starts_at >= %s)
+		ORDER BY v.retouch_date ASC LIMIT %d",
+		$today,
+		$until,
+		$today . ' 00:00:00',
+		$limit
+	), ARRAY_A);
+	// phpcs:enable
+	$sent = 0;
+	foreach ((array) $rows as $visit) {
+		/* El mail se arma como si fuera un turno: la clienta, el servicio y la fecha de la visita. */
+		$row = [
+			'id'                => 0,
+			'client_id'         => (int) $visit['client_id'],
+			'service_id'        => (int) $visit['service_id'],
+			'service_name'      => (string) $visit['service_name'],
+			'starts_at'         => (string) $visit['visited_at'] . ' 00:00:00',
+			'status'            => '',
+			'client_first_name' => $visit['client_first_name'],
+			'client_last_name'  => $visit['client_last_name'],
+			'client_phone'      => $visit['client_phone'],
+			'client_phone_raw'  => $visit['client_phone_raw'],
+			'client_email'      => $visit['client_email'],
+			'client_locality'   => $visit['client_locality'],
+		];
+		$extra = ['fecha_mantenimiento' => mjto_long_date($visit['retouch_date'] . ' 00:00:00')];
+		if (mjto_notify_client($row, 'maintenance', $extra)) {
+			mjto_update_visit((int) $visit['id'], ['maintenance_sent_at' => mjto_now()]);
+			$sent++;
+			do_action('mjto_maintenance_sent', $visit);
+		}
+	}
+	return $sent;
+}
+
+/**
+ * Pedido de opinión: turnos atendidos hace reviews_delay_hours o más (y no
+ * más de 30 días), sin pedido mandado ni opinión cargada. → cantidad enviada.
+ */
+function mjto_cron_review_requests() {
+	global $wpdb;
+	if (!function_exists('mjto_reviews_enabled') || !mjto_reviews_enabled() || !(int) mjto_opt('client_email_enabled')) {
+		return 0;
+	}
+	$now     = current_datetime();
+	$ready   = $now->modify('-' . max(0, (int) mjto_opt('reviews_delay_hours')) . ' hours')->format('Y-m-d H:i:s');
+	$oldest  = $now->modify('-' . max(1, (int) apply_filters('mjto_review_request_max_days', 30)) . ' days')->format('Y-m-d H:i:s');
+	$reviews = mjto_table('reviews');
+	$limit   = max(1, (int) apply_filters('mjto_cron_batch', 50));
+	// phpcs:disable WordPress.DB.PreparedSQL -- el SELECT común y la tabla son fijos; los valores van por prepare.
+	$rows    = $wpdb->get_results($wpdb->prepare(
+		mjto_appointment_select() . " WHERE a.status = 'completed' AND a.completed_at IS NOT NULL AND a.completed_at <= %s AND a.completed_at >= %s
+			AND a.review_requested_at IS NULL AND c.email <> ''
+			AND NOT EXISTS (SELECT 1 FROM {$reviews} r WHERE r.appointment_id = a.id)
+		ORDER BY a.completed_at ASC LIMIT %d",
+		$ready,
+		$oldest,
+		$limit
+	), ARRAY_A);
+	// phpcs:enable
+	$sent = 0;
+	foreach ((array) $rows as $row) {
+		if (mjto_notify_client($row, 'review')) {
+			mjto_update_appointment((int) $row['id'], ['review_requested_at' => mjto_now()]);
+			$sent++;
+			do_action('mjto_review_requested', $row);
+		}
+	}
+	return $sent;
 }

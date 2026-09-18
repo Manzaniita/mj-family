@@ -27,9 +27,10 @@ export function isOpenDay(weeklyHours, date) {
  * Calendario + horarios libres + "Otro horario".
  * @param {{ serviceId?: number, durationMin?: number, excludeId?: number, date: string, time: string,
  *   onDateChange: (date) => void, onTimeChange: (time) => void, free: boolean,
- *   onFreeChange: (free: boolean) => void, reloadKey?: number, min?: string, className? }} props
+ *   onFreeChange: (free: boolean) => void, reloadKey?: number, min?: string, className?,
+ *   preferredTime?: string (si está libre y no hay horario elegido, se elige solo: el hueco tocado en Hoy) }} props
  */
-export function DateTimePicker({ serviceId = 0, durationMin = 0, excludeId = 0, date, time, onDateChange, onTimeChange, free, onFreeChange, reloadKey = 0, min, className }) {
+export function DateTimePicker({ serviceId = 0, durationMin = 0, excludeId = 0, date, time, onDateChange, onTimeChange, free, onFreeChange, reloadKey = 0, min, className, preferredTime = '' }) {
   const { schedule, weekStart, today } = usePanel();
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +48,9 @@ export function DateTimePicker({ serviceId = 0, durationMin = 0, excludeId = 0, 
       )
       .then((res) => {
         if (ctrl.signal.aborted) return;
-        setSlots(Array.isArray(res?.slots) ? res.slots : []);
+        const list = Array.isArray(res?.slots) ? res.slots : [];
+        setSlots(list);
+        if (preferredTime && !time && list.includes(preferredTime)) onTimeChange?.(preferredTime);
       })
       .catch((e) => {
         if (ctrl.signal.aborted || e?.name === 'AbortError') return;

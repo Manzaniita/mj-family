@@ -2,19 +2,30 @@
  * Tarjeta de un turno (Hoy, Turnos, Ficha → Turnos): hora inicio–fin, clienta
  * (link a la ficha) + teléfono, servicio, chip de estado, badges "Avisó seña"
  * (depositNotifiedAt), "Sin ficha" (confirmado sin visitId), seña pagada,
- * origen web, notas; y las acciones (AppointmentActions).
+ * origen web, notas; y las acciones (AppointmentActions). Desde 1.3 también:
+ * qué eligió la clienta con la seña cuando cancela la dueña (ownerOffer), la
+ * parte de la seña que salió del saldo a favor y la seña perdida.
  *
  * @param {{ appointment: object, onChange?: (next, meta) => void, onOpenFicha?: (appointment) => void,
  *   showDate?: boolean (fecha además de la hora: listas de varios días), compact?: boolean, className? }} props
  */
 import { Link } from 'react-router-dom';
-import { BellRing, ClipboardList, Coins, Globe, Receipt, StickyNote } from 'lucide-react';
+import { Ban, BellRing, ClipboardList, Coins, Globe, HandCoins, Hourglass, PiggyBank, Receipt, StickyNote } from 'lucide-react';
 import { cn, dateLabel, formatTime, fullName, prettyPhone, timeAgo } from '@/lib/format';
 import { Badge, StatusBadge } from '@/ui';
 import { usePanel } from '../store';
 import { AppointmentActions } from './AppointmentActions';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
+/** Estado de la seña cuando cancela la dueña con opciones → etiqueta y tono (los textos son del panel). */
+export const OWNER_OFFER_BADGES = {
+  open: { label: 'Esperando que elija qué hacer con la seña', short: 'Seña: elige ella', tone: 'warning', icon: Hourglass },
+  refund_requested: { label: 'Pidió la devolución de la seña', short: 'Pidió devolución', tone: 'danger', icon: HandCoins },
+  refunded: { label: 'Seña devuelta', short: 'Seña devuelta', tone: 'neutral', icon: HandCoins },
+  credited: { label: 'La seña quedó como saldo a favor', short: 'Seña a saldo', tone: 'info', icon: PiggyBank },
+  rescheduled: { label: 'Eligió otro día con la misma seña', short: 'Pasó a otro día', tone: 'info', icon: Hourglass },
+};
 
 export function AppointmentCard({ appointment, onChange, onOpenFicha, showDate = false, compact = false, className }) {
   const store = usePanel();
@@ -34,6 +45,9 @@ export function AppointmentCard({ appointment, onChange, onOpenFicha, showDate =
   /* null cuando este turno no pide comprobante o el plugin no está. */
   const receipt = a.receipt || null;
   const phone = prettyPhone(client.phoneRaw || client.phone);
+  const offer = OWNER_OFFER_BADGES[a.ownerOffer] || null;
+  const creditApplied = num(a.creditApplied);
+  const forfeited = num(a.depositForfeited);
 
   return (
     <article
@@ -74,7 +88,7 @@ export function AppointmentCard({ appointment, onChange, onOpenFicha, showDate =
           {num(a.price) > 0 && <span className="text-ink-soft"> · {store.formatPrice(a.price)}</span>}
         </p>
 
-        {(notified || missingFicha || paid > 0 || receipt || (required > 0 && paid <= 0 && a.status === 'awaiting_deposit') || a.source === 'web') && (
+        {(notified || missingFicha || paid > 0 || receipt || (required > 0 && paid <= 0 && a.status === 'awaiting_deposit') || a.source === 'web' || offer || creditApplied > 0 || forfeited > 0) && (
           <div className="mjto-appt__badges mt-2 flex flex-wrap items-center gap-1.5">
             {notified && (
               <Badge tone="info" icon={BellRing} title={`Avisó seña ${timeAgo(a.depositNotifiedAt)}`}>
@@ -95,6 +109,21 @@ export function AppointmentCard({ appointment, onChange, onOpenFicha, showDate =
             {required > 0 && paid <= 0 && a.status === 'awaiting_deposit' && (
               <Badge tone="violet" icon={Coins}>
                 Seña {store.formatPrice(required)}
+              </Badge>
+            )}
+            {creditApplied > 0 && (
+              <Badge tone="info" icon={PiggyBank} title={`${store.formatPrice(creditApplied)} de la seña salieron del saldo a favor de la clienta`}>
+                {store.formatPrice(creditApplied)} de saldo a favor
+              </Badge>
+            )}
+            {forfeited > 0 && (
+              <Badge tone="danger" icon={Ban} title="Seña que la clienta perdió (no vino o canceló tarde)">
+                Seña perdida {store.formatPrice(forfeited)}
+              </Badge>
+            )}
+            {offer && (
+              <Badge tone={offer.tone} icon={offer.icon} title={offer.label}>
+                {offer.short}
               </Badge>
             )}
             {/* Comprobante de la seña: lo guarda MJ Medios de Pago y se revisa en su bandeja. */}

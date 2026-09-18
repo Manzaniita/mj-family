@@ -11,7 +11,12 @@ Reserva de turnos online con agenda, ficha técnica por clienta, seña, recordat
    - **Confirmado al instante** (auto).
 3. **Vos entrás a la misma URL** (`/turnos`) con tu sesión de WordPress y ves el **panel**: la agenda del día, los turnos, las clientas con su ficha, la caja y los bloqueos. También desde la barra de arriba ("Turnos") o desde *Turnos → Abrir el panel*. Si querés ver la reserva como la ve una clienta: `/turnos?vista=publica`.
 4. **Cada turno confirmado crea una ficha** de esa visita (historial químico, análisis de la fibra, trabajo técnico, caja y seguimiento). Las opciones marcadas como advertencia (por ejemplo, elasticidad crítica) aparecen resaltadas. La ficha de la clienta es su línea de tiempo de visitas: la próxima vez ya tenés precargado lo que se repite.
-5. **Recordatorios**: el día anterior (o las horas que elijas) se manda un email automático a las clientas con turno confirmado. Desde el panel también mandás WhatsApp con un toque: confirmar, pedir la seña, recordar, control post servicio, retoque.
+5. **Recordatorios**: el día anterior (o las horas que elijas) se manda un email automático a las clientas con turno confirmado, y si querés un segundo, más corto, poco antes del turno. Desde el panel también mandás WhatsApp con un toque: confirmar, pedir la seña, recordar, control post servicio, retoque.
+6. **Cambios y cancelaciones con reglas** (apagado hasta que lo prendas): la clienta reprograma o cancela desde su turno y la seña sigue la regla que elegiste. Por ejemplo: con 48 h o más la conserva; con menos, la pierde y abona una nueva; si cancela a tiempo, queda como saldo a favor. Si cancelás vos, le podés ofrecer que elija: otro día, la devolución o saldo a favor.
+7. **Cuenta de la clienta** (opcional u obligatoria): la crea en el mismo paso de sus datos, ve sus turnos en "Mis turnos" y la próxima vez el formulario arranca con sus datos. El link de cada turno sigue funcionando sin cuenta.
+8. **Saldo a favor**: la seña de una cancelación a tiempo (o lo que cargues a mano) queda en su ficha y se usa sola en la seña de la próxima reserva.
+9. **Mantenimiento**: cada servicio puede tener su período ("cada 4 semanas"); la fecha del próximo mantenimiento se calcula sola en la ficha, la podés cambiar, y a la clienta le llega un aviso unos días antes con el link para reservar.
+10. **Opiniones**: después de marcar un turno como atendido, a la clienta le llega un mail para contar cómo le fue. Se publican solas (o después de que las revises) y se administran desde el panel.
 
 ## Instalación
 
@@ -23,20 +28,24 @@ Reserva de turnos online con agenda, ficha técnica por clienta, seña, recordat
 ## Qué configurar (Turnos → Ajustes)
 
 - **Agenda**: horarios por día (`09:00-13:00, 15:00-20:00`; vacío = cerrado), cada cuántos minutos se ofrecen horarios, descanso entre turnos, anticipación mínima, hasta cuántos días adelante, duración por defecto, días cerrados (feriados, vacaciones) y con qué día empieza la semana.
-- **Reservas y seña**: modo de confirmación, seña fija o porcentaje, instrucciones para transferir (alias, CBU, titular), link de pago opcional, horas para enviarla, si la clienta puede cancelar y con cuánta anticipación, texto de política, límite anti-spam.
-- **Notificaciones**: tu email, qué avisos querés recibir, recordatorio y todas las plantillas de email y WhatsApp (con los placeholders listados ahí mismo).
+- **Reservas y seña**: modo de confirmación, seña fija o porcentaje, instrucciones para transferir (alias, CBU, titular), link de pago opcional, horas para enviarla (con 1, el horario se libera a la hora), comprobante, texto de política, límites anti-spam.
+- **Cambios y cancelaciones**: si la clienta puede cancelar y reprogramar, con cuánta anticipación, qué pasa con la seña a tiempo y tarde, saldo a favor, y qué le ofrecés cuando cancelás vos.
+- **Cuentas**: sin cuenta, opcional u obligatoria; largo de la contraseña; precarga de datos; dirección de "Mis turnos".
+- **Notificaciones**: tu email, qué avisos querés recibir, los dos recordatorios, el aviso de mantenimiento y todas las plantillas de email y WhatsApp (con los placeholders listados ahí mismo).
 - **Textos y páginas**: nombre, dirección y WhatsApp del negocio (si están vacíos usa los del tema), URL de la página de turnos, etiquetas del menú y del header, textos de la portada y de la reserva, página de servicios, nombres de los estados, si se muestra el precio.
-- **Formulario**: qué datos pide la reserva (nombre y teléfono son obligatorios siempre; podés renombrar, desactivar o agregar campos).
+- **Formulario**: qué datos pide la reserva (nombre y teléfono son obligatorios siempre; podés renombrar, desactivar o agregar campos: texto, opciones Sí/No, lista, número, fecha). La fecha de nacimiento es un campo propio: con ella la edad se calcula sola.
+- **Servicios**: las secciones de información de cada servicio (qué incluye, cuidados, recomendaciones…) y si se agrupan por categoría. Las categorías se cargan en *Turnos → Categorías*.
 - **Ficha técnica**: los bloques y campos de la ficha, con opciones y advertencias. Viene armada para alisados; se puede restaurar la ficha por defecto.
+- **Opiniones**: si se piden, cuánto después del turno, si se publican solas y cómo se muestra el nombre.
 - **Panel**: título, quién más puede entrar (roles), apariencia clara u oscura, color de acento, si se muestra la caja, y la moneda (si no tenés WooCommerce).
 
 ## El panel
 
-- **Hoy**: la agenda del día con navegación por fecha. En cada turno: confirmar, registrar la seña, abrir la ficha, WhatsApp con plantillas, reprogramar, marcar atendida o "no vino", cancelar (con motivo y aviso opcional), eliminar. Botón "Nuevo turno" para cargar reservas por teléfono (podés elegir "otro horario" fuera de la grilla).
+- **Hoy**: la agenda del día con navegación por fecha y calendario del mes: los turnos, los horarios libres y lo bloqueado. En cada turno: confirmar, registrar la seña, abrir la ficha, WhatsApp con plantillas, reprogramar, marcar atendida o "no vino", cancelar (con motivo y aviso opcional), eliminar. Botón "Nuevo turno" para cargar reservas por teléfono (podés elegir "otro horario" fuera de la grilla).
 - **Turnos**: listado por rangos (hoy, mañana, semana, mes, próximos, pasados, personalizado), filtros por estado y buscador.
-- **Clientas**: buscador por nombre o teléfono, filtros por año y mes, orden. Tocando una clienta se abre su **ficha**: datos, advertencias de la última visita, sus visitas (con el detalle de cada una) y sus turnos. "Nueva visita" carga una visita sin turno.
+- **Clientas**: buscador por nombre o teléfono, filtros por año y mes, orden. Tocando una clienta se abre su **ficha**: datos, advertencias de la última visita, sus visitas (con el detalle de cada una), sus turnos, su saldo a favor y la cuenta vinculada. "Nueva visita" carga una visita sin turno.
 - **Caja**: cobrado, señas y visitas del mes, desglose por método de pago y exportación a CSV.
-- **Más**: bloqueos de agenda (un día, varios días o una franja), exportar clientas/visitas/turnos, enlaces a la reserva pública, a los ajustes y a los servicios, cerrar sesión.
+- **Más**: bloqueos de agenda (un día, varios días o una franja), opiniones, exportar clientas/visitas/turnos, enlaces a la reserva pública, a los ajustes y a los servicios, cerrar sesión.
 
 ## Prueba corta
 
@@ -53,9 +62,9 @@ Reserva de turnos online con agenda, ficha técnica por clienta, seña, recordat
 - Al desactivar el plugin no se borra nada: las clientas, turnos, fichas y ajustes quedan en la base para cuando lo vuelvas a activar. Al **borrarlo** desde Plugins tampoco, salvo que en Turnos → Ajustes → El panel marques «Al borrar el plugin»; lo que sí se limpia siempre es el permiso del panel, la tarea programada y los contadores.
 - Los horarios de la agenda y de los turnos usan la zona horaria configurada en *Ajustes → Generales* de WordPress. Revisá que sea la de tu ciudad.
 - Los emails automáticos salen con el nombre del negocio y responden a tu email (el de *Notificaciones*).
-- Los recordatorios y la cancelación de señas vencidas corren con la tarea programada de WordPress (cada hora, cuando hay visitas al sitio). Si tu hosting permite un cron real, mejor.
+- Los recordatorios, los avisos de mantenimiento, los pedidos de opinión y la cancelación de señas vencidas corren con la tarea programada de WordPress (cada 5 minutos, cuando hay visitas al sitio). Además, una seña vencida se libera en el momento en que alguien consulta los horarios, así que un horario no queda trabado aunque la tarea se atrase. Para que el recordatorio de "una hora antes" salga puntual, conviene un cron real del hosting.
 - Las exportaciones son CSV con separador `;`, listas para abrir en Excel en español.
-- El límite anti-spam cuenta las **reservas creadas** por IP cada 10 minutos (el número de *Reservas y seña*) y, aparte, frena a quien insiste con 4 veces esa cantidad de intentos fallidos. Por seguridad usa solo la IP con la que llega la conexión (`REMOTE_ADDR`), sin mirar cabeceras de proxy, que cualquiera puede falsificar. Si tu hosting está detrás de un proxy o CDN (Cloudflare, Nginx como reverse proxy, un balanceador) y no reescribe esa IP, todas las visitantes comparten la misma y el límite se vuelve global. En ese caso, primero fijate si el hosting tiene una opción para "restaurar la IP real"; si no, agregá en un plugin propio o en el `functions.php` del tema hijo un filtro que tome la cabecera **solo de tu proxy de confianza** (el plugin descarta lo que no sea una IP válida):
+- Hay dos límites por IP, cada 10 minutos (los dos en *Reservas y seña*): las **reservas creadas** y las **consultas públicas** (horarios libres, estado de un turno, opiniones y las acciones desde el link del turno). Un intento de reserva que falla no gasta el primero, pero sí cuenta como consulta. Por seguridad usa solo la IP con la que llega la conexión (`REMOTE_ADDR`), sin mirar cabeceras de proxy, que cualquiera puede falsificar. Si tu hosting está detrás de un proxy o CDN (Cloudflare, Nginx como reverse proxy, un balanceador) y no reescribe esa IP, todas las visitantes comparten la misma y el límite se vuelve global. En ese caso, primero fijate si el hosting tiene una opción para "restaurar la IP real"; si no, agregá en un plugin propio o en el `functions.php` del tema hijo un filtro que tome la cabecera **solo de tu proxy de confianza** (el plugin descarta lo que no sea una IP válida):
 
   ```php
   add_filter('mjto_client_ip', function ($ip) {
