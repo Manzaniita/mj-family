@@ -14,7 +14,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_VERSION', '3.18.1');
+define('MJ_VERSION', '3.18.2');
 
 /*
  * Versión de la librería de íconos que usa el panel de ajustes. Se puede fijar
@@ -356,8 +356,17 @@ add_action('wp_enqueue_scripts', function () {
 
 	wp_enqueue_style('mj-fonts', mj_fonts_url(), [], null);
 
+	/*
+	 * SIN ?ver=. Los chunks que la SPA baja bajo demanda (checkout, cuenta,
+	 * páginas…) importan `./app-<hash>.js` a secas, y para el navegador un
+	 * módulo ES se identifica por su URL completa, query incluida: con
+	 * `app-<hash>.js?ver=123` de entrada y `app-<hash>.js` desde el chunk, React
+	 * se carga DOS veces y cualquier hook del chunk revienta con el error 321
+	 * ("Invalid hook call"). El hash del nombre ya invalida la caché, así que
+	 * la versión sobra. El CSS va igual, por coherencia.
+	 */
 	if ($css) {
-		wp_enqueue_style('mj-app', $css['uri'], [], (string) filemtime($css['path']));
+		wp_enqueue_style('mj-app', $css['uri'], [], null); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- el hash del nombre versiona el archivo.
 		$design_css = mj_design_css();
 		if ('' !== $design_css) {
 			wp_add_inline_style('mj-app', $design_css);
@@ -365,7 +374,7 @@ add_action('wp_enqueue_scripts', function () {
 	}
 
 	if ($js) {
-		wp_enqueue_script('mj-app', $js['uri'], [], (string) filemtime($js['path']), true);
+		wp_enqueue_script('mj-app', $js['uri'], [], null, true); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- sin ?ver a propósito: ver el comentario de arriba.
 		wp_add_inline_script('mj-app', 'window.MJ = ' . wp_json_encode(mj_app_config()) . ';', 'before');
 	}
 }, 20);
