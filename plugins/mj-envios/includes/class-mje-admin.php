@@ -1179,9 +1179,13 @@ class MJE_Admin {
 		echo '<p class="mje-intro">Estos correos ya están conectados desde su propio plugin. MJ Envíos no les vuelve a pedir usuario ni clave: usa esa conexión, se queda con la tarifa que calculan y le aplica tus reglas.</p>';
 
 		foreach (MJE_Native::all() as $id => $plugin) {
-			$connected = $plugin->connected();
-			$in_zone   = $plugin->in_any_zone();
-			$missing   = $connected ? $plugin->missing() : [];
+			$connected = MJE_Native::connected($plugin);
+			$in_zone   = (bool) MJE_Native::ask($id . ' · zonas', function () use ($plugin) {
+				return $plugin->in_any_zone();
+			}, false);
+			$missing   = $connected ? (array) MJE_Native::ask($id . ' · pendientes', function () use ($plugin) {
+				return $plugin->missing();
+			}, []) : [];
 			$aside     = $connected
 				? ($in_zone ? ($missing ? self::pill('le falta configuración', 'warn') : self::pill('conectado', 'ok')) : self::pill('fuera de las zonas', 'warn'))
 				: self::pill('sin conectar', 'bad');
@@ -1200,10 +1204,14 @@ class MJE_Admin {
 				continue;
 			}
 
-			self::facts($plugin->summary());
+			self::facts((array) MJE_Native::ask($id . ' · cuenta', function () use ($plugin) {
+				return $plugin->summary();
+			}, []));
 
 			/* Dónde está su método: es lo que decide si su tarifa llega al carrito. */
-			$instances = $plugin->zone_instances();
+			$instances = (array) MJE_Native::ask($id . ' · zonas', function () use ($plugin) {
+				return $plugin->zone_instances();
+			}, []);
 			if ($instances) {
 				echo '<p><strong>Zonas de envío:</strong></p><ul class="mje-note">';
 				foreach ($instances as $instance) {
@@ -1242,7 +1250,7 @@ class MJE_Admin {
 			}
 
 			/* Lo que le falta para poder cotizar, antes que cualquier otra cosa. */
-			foreach ($plugin->missing() as $falta) {
+			foreach ($missing as $falta) {
 				printf('<p class="mje-falta"><strong>%s</strong> %s</p>', esc_html('Falta completar:'), esc_html($falta));
 			}
 

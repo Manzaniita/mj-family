@@ -259,22 +259,18 @@ class MJE_Native_Correo extends MJE_Native_Plugin {
 			return $suyas;
 		}
 
-		try {
+		$agencies = MJE_Native::ask($this->id() . ' · sucursales', function () use ($province) {
 			$factory = new \Corrarfo\Service\ServiceFactory();
 			$service = $factory->get();
-		} catch (Exception $e) {
-			MJE_Geo::log($this->id(), 'sucursales: ' . $e->getMessage());
-			return [];
-		}
-		if (!is_object($service) || !method_exists($service, 'getBranches')) {
-			return [];
-		}
-
-		$query = ['provinceCode' => $province, 'stateId' => $province];
-		if (class_exists('Corrarfo\Lib\Utils') && method_exists('Corrarfo\Lib\Utils', 'getCustomerId')) {
-			$query['customerId'] = \Corrarfo\Lib\Utils::getCustomerId();
-		}
-		$agencies = $service->getBranches($query);
+			if (!is_object($service) || !method_exists($service, 'getBranches')) {
+				return [];
+			}
+			$query = ['provinceCode' => $province, 'stateId' => $province];
+			if (class_exists('Corrarfo\Lib\Utils') && method_exists('Corrarfo\Lib\Utils', 'getCustomerId')) {
+				$query['customerId'] = \Corrarfo\Lib\Utils::getCustomerId();
+			}
+			return $service->getBranches($query);
+		}, []);
 		if (!is_array($agencies)) {
 			return [];
 		}
@@ -305,12 +301,9 @@ class MJE_Native_Correo extends MJE_Native_Plugin {
 			WC()->session->set(CORRARFO_CHOSEN_PROVINCE_CODE, $province);
 		}
 
-		try {
-			$rows = \Corrarfo\Orders\Branch::listBranches();
-		} catch (Exception $e) {
-			MJE_Geo::log($this->id(), 'sucursales (su propia lista): ' . $e->getMessage());
-			return [];
-		}
+		$rows = MJE_Native::ask($this->id() . ' · sucursales (su propia lista)', function () {
+			return \Corrarfo\Orders\Branch::listBranches();
+		}, []);
 		if (!is_array($rows)) {
 			return [];
 		}

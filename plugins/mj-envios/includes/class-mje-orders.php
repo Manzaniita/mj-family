@@ -157,7 +157,10 @@ class MJE_Orders {
 		if ('' !== $rate_id) {
 			$order->update_meta_data('_mje_native_rate', $rate_id);
 		}
-		$plugin->stamp_order($order, $rate_id, (string) $def['native_service'], $branch);
+		MJE_Native::ask($plugin->id() . ' · sello del pedido', function () use ($plugin, $order, $rate_id, $def, $branch) {
+			$plugin->stamp_order($order, $rate_id, (string) $def['native_service'], $branch);
+			return true;
+		}, false);
 	}
 
 	/**
@@ -176,7 +179,10 @@ class MJE_Orders {
 		if ('' === $rate_id || !$plugin) {
 			return;
 		}
-		$plugin->stamp_item($item, $rate_id);
+		MJE_Native::ask($plugin->id() . ' · sello de la línea', function () use ($plugin, $item, $rate_id) {
+			$plugin->stamp_item($item, $rate_id);
+			return true;
+		}, false);
 	}
 
 	public static function stamp_and_save($order) {

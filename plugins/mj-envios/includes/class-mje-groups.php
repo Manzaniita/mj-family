@@ -245,7 +245,10 @@ class MJE_Groups {
 				continue;
 			}
 			$zone = '';
-			foreach ($plugin->zone_instances() as $instance) {
+			$instances = (array) MJE_Native::ask($plugin->id() . ' · zonas', function () use ($plugin) {
+				return $plugin->zone_instances();
+			}, []);
+			foreach ($instances as $instance) {
 				if ($instance['enabled'] && '' !== $instance['zone']) {
 					$zone = (string) $instance['zone'];
 					break;

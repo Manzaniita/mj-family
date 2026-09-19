@@ -71,6 +71,39 @@ class MJE_Native {
 	/* ----------------------------- Adaptadores --------------------------- */
 
 	/**
+	 * Le pregunta algo al plugin del correo sin que pueda tumbar la tienda.
+	 *
+	 * Los plugins de los correos son ajenos y tiran excepciones: uno sin
+	 * credenciales cargadas contesta "access token no válido o indefinido" a
+	 * cualquier cosa que se le pregunte. Hasta acá eso era un error 500 en medio
+	 * del checkout —el código postal no resolvía, el carrito no calculaba el
+	 * envío— por un correo que la tienda ni siquiera estaba usando.
+	 *
+	 * Se atrapa Throwable y no Exception: varios de esos plugins fallan con
+	 * TypeError o Error (llamar a un método de null) cuando les falta la cuenta,
+	 * y eso NO es una Exception.
+	 *
+	 * @param string   $scope   Qué se le estaba preguntando, para el log.
+	 * @param callable $fn      La pregunta.
+	 * @param mixed    $default Qué contestar cuando el correo falla.
+	 */
+	public static function ask($scope, callable $fn, $default = []) {
+		try {
+			return $fn();
+		} catch (\Throwable $e) {
+			MJE_Geo::log('nativo', (string) $scope . ': ' . $e->getMessage());
+			return $default;
+		}
+	}
+
+	/** ¿Este correo está conectado? Su plugin contesta, o se lo da por no conectado. */
+	public static function connected(MJE_Native_Plugin $plugin) {
+		return (bool) self::ask($plugin->id() . ' · conexión', function () use ($plugin) {
+			return $plugin->connected();
+		}, false);
+	}
+
+	/**
 	 * Los adaptadores cuyo plugin está realmente instalado.
 	 *
 	 * El filtro recibe las clases, no las instancias: un adaptador de otro
@@ -91,7 +124,13 @@ class MJE_Native {
 				continue;
 			}
 			$plugin = new $class();
-			if (!$plugin instanceof MJE_Native_Plugin || !$plugin->available()) {
+			if (!$plugin instanceof MJE_Native_Plugin) {
+				continue;
+			}
+			$available = self::ask($class . ' · instalado', function () use ($plugin) {
+				return $plugin->available();
+			}, false);
+			if (!$available) {
 				continue;
 			}
 			self::$plugins[$plugin->id()] = $plugin;
@@ -297,7 +336,7 @@ class MJE_Native {
 
 		try {
 			WC()->shipping()->calculate_shipping_for_package($package, $key);
-		} catch (Exception $e) {
+		} catch (\Throwable $e) {
 			MJE_Geo::log('nativo', 'cotización suelta: ' . $e->getMessage());
 		} finally {
 			remove_filter('woocommerce_cart_shipping_packages', $suplantar, 99);
@@ -342,7 +381,13 @@ class MJE_Native {
 		 * esto, en cambio, se pregunta una vez por respuesta.
 		 */
 		foreach (self::all() as $id => $plugin) {
-			if (isset($out[$id]) || in_array($id, $quoted, true) || !$plugin->connected() || !$plugin->in_any_zone()) {
+			if (isset($out[$id]) || in_array($id, $quoted, true) || !self::connected($plugin)) {
+				continue;
+			}
+			$in_zone = self::ask($id . ' · zonas', function () use ($plugin) {
+				return $plugin->in_any_zone();
+			}, false);
+			if (!$in_zone) {
 				continue;
 			}
 			$out[$id] = 'no devolvió ninguna tarifa para ese destino';
@@ -461,7 +506,10 @@ class MJE_Native {
 		$data   = MJE_Cart::session_data();
 		$branch = (string) $data['branch'];
 		if ('' !== $branch) {
-			$plugin->remember_branch($branch);
+			self::ask($plugin->id() . ' · sucursal elegida', function () use ($plugin, $branch) {
+				$plugin->remember_branch($branch);
+				return true;
+			}, false);
 		}
 		return $packages;
 	}
@@ -483,7 +531,10 @@ class MJE_Native {
 				return $rows;
 			}
 		}
-		$fetched = $plugin->branches($postcode, $state);
+		$fetched = self::ask($plugin->id() . ' · sucursales', function () use ($plugin, $postcode, $state) {
+			return $plugin->branches($postcode, $state);
+		}, []);
+		$fetched = is_array($fetched) ? $fetched : [];
 		foreach ($fetched as $branch) {
 			MJE_Carriers::save_branch($carrier, $branch, 'nativo');
 		}
@@ -504,11 +555,13 @@ class MJE_Native {
 			return [];
 		}
 		foreach (self::all() as $plugin) {
-			if (!$plugin->connected()) {
+			if (!self::connected($plugin)) {
 				continue;
 			}
-			$rows = $plugin->resolve_cp($postcode);
-			if ($rows) {
+			$rows = self::ask($plugin->id() . ' · código postal', function () use ($plugin, $postcode) {
+				return $plugin->resolve_cp($postcode);
+			}, []);
+			if (is_array($rows) && $rows) {
 				return $rows;
 			}
 		}

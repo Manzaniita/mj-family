@@ -41,7 +41,9 @@ class MJE_Tracking {
 		/* Si despachó un correo con plugin propio, el link lo sabe su adaptador. */
 		$plugin = MJE_Native::get((string) $order->get_meta('_mje_native_plugin'));
 		if ($plugin) {
-			$url = $plugin->tracking_url('{codigo}');
+			$url = (string) MJE_Native::ask($plugin->id() . ' · seguimiento', function () use ($plugin) {
+				return $plugin->tracking_url('{codigo}');
+			}, '');
 			if ('' !== $url) {
 				/* tracking_url() escapa el código para la URL: acá va la marca cruda. */
 				return str_replace(rawurlencode('{codigo}'), '{codigo}', $url);

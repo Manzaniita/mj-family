@@ -46,7 +46,9 @@ class MJE_Native_Andreani extends MJE_Native_Plugin {
 		if (!$this->available()) {
 			return false;
 		}
-		return (bool) Andreani_Settings_Service::has_valid_credentials();
+		return (bool) MJE_Native::ask($this->id() . ' · credenciales', function () {
+			return Andreani_Settings_Service::has_valid_credentials();
+		}, false);
 	}
 
 	public function settings_url() {
@@ -93,7 +95,9 @@ class MJE_Native_Andreani extends MJE_Native_Plugin {
 			}
 		}
 
-		$cp = (string) Andreani_Settings_Service::get('cp_origen', '');
+		$cp = (string) MJE_Native::ask($this->id() . ' · origen', function () {
+			return Andreani_Settings_Service::get('cp_origen', '');
+		}, '');
 		if ('' !== $cp) {
 			$rows[] = ['label' => 'Código postal de origen', 'value' => $cp];
 		}
@@ -111,7 +115,9 @@ class MJE_Native_Andreani extends MJE_Native_Plugin {
 		if (!class_exists('Andreani_Client_Type') || !class_exists('Andreani_Api_Manager')) {
 			return [];
 		}
-		$type = Andreani_Client_Type::from_id(Andreani_Api_Manager::get_client_type());
+		$type = MJE_Native::ask($this->id() . ' · tipo de cuenta', function () {
+			return Andreani_Client_Type::from_id(Andreani_Api_Manager::get_client_type());
+		}, null);
 		if (!$type || !method_exists($type, 'info_option_name')) {
 			return [];
 		}
@@ -123,7 +129,9 @@ class MJE_Native_Andreani extends MJE_Native_Plugin {
 		if (!class_exists('Andreani_Client_Type') || !class_exists('Andreani_Api_Manager')) {
 			return '';
 		}
-		$type = Andreani_Client_Type::from_id(Andreani_Api_Manager::get_client_type());
+		$type = MJE_Native::ask($this->id() . ' · tipo de cuenta', function () {
+			return Andreani_Client_Type::from_id(Andreani_Api_Manager::get_client_type());
+		}, null);
 		return $type && method_exists($type, 'label') ? (string) $type->label() : '';
 	}
 
@@ -132,14 +140,19 @@ class MJE_Native_Andreani extends MJE_Native_Plugin {
 		if (!class_exists('Andreani_Origen')) {
 			return '';
 		}
-		$origen = Andreani_Origen::get();
+		$origen = MJE_Native::ask($this->id() . ' · origen', function () {
+			return Andreani_Origen::get();
+		}, []);
+		if (!is_array($origen)) {
+			return '';
+		}
 		if (!empty($origen['sucursal_nombre'])) {
 			return (string) $origen['sucursal_nombre'];
 		}
 		$parts = array_filter([
-			trim((string) $origen['calle'] . ' ' . (string) $origen['numero']),
-			(string) $origen['localidad'],
-			(string) $origen['provincia'],
+			trim((string) (isset($origen['calle']) ? $origen['calle'] : '') . ' ' . (string) (isset($origen['numero']) ? $origen['numero'] : '')),
+			(string) (isset($origen['localidad']) ? $origen['localidad'] : ''),
+			(string) (isset($origen['provincia']) ? $origen['provincia'] : ''),
 		]);
 		return implode(', ', $parts);
 	}
@@ -193,7 +206,9 @@ class MJE_Native_Andreani extends MJE_Native_Plugin {
 		if ('' === $postcode || !$this->connected() || !class_exists('Andreani_Api_Manager')) {
 			return [];
 		}
-		$data = Andreani_Api_Manager::get_sucursales($postcode);
+		$data = MJE_Native::ask($this->id() . ' · sucursales', function () use ($postcode) {
+			return Andreani_Api_Manager::get_sucursales($postcode);
+		}, []);
 		if (is_wp_error($data) || !is_array($data) || empty($data['options'])) {
 			return [];
 		}
