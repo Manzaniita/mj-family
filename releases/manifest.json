@@ -3,21 +3,21 @@
         "Slug":  "mj-appearance",
         "Name":  "MJ Appearance",
         "Type":  "theme",
-        "Version":  "3.29.0",
+        "Version":  "3.30.0",
         "Parent":  null,
-        "Zip":  "mj-appearance-3.29.0.zip",
-        "SizeKB":  584,
-        "Sha256":  "9882656ab49c7b69e868395b1944b62ef45d51d892d27291ef2865fd2e685ce0"
+        "Zip":  "mj-appearance-3.30.0.zip",
+        "SizeKB":  586,
+        "Sha256":  "abb67787caf4ecc49e282d1a8447adbecd68524e20d2a79f4a92156d620bf046"
     },
     {
         "Slug":  "mj-atelier",
         "Name":  "MJ Atelier",
         "Type":  "theme",
-        "Version":  "1.1.1",
+        "Version":  "1.2.0",
         "Parent":  "mj-appearance",
-        "Zip":  "mj-atelier-1.1.1.zip",
-        "SizeKB":  607,
-        "Sha256":  "5ca3482249ade323e9d2e17b3c5ea8872b217b4ff698894c1ffd467db7ab9087"
+        "Zip":  "mj-atelier-1.2.0.zip",
+        "SizeKB":  608,
+        "Sha256":  "ed47ae36ea3fc1b283f1d5096a46abe7eeab293139e6f104bf88ad9ea5f35ec2"
     },
     {
         "Slug":  "mj-colegas",
@@ -53,11 +53,11 @@
         "Slug":  "mj-envios",
         "Name":  "MJ Envíos",
         "Type":  "plugin",
-        "Version":  "1.9.0",
+        "Version":  "1.10.1",
         "Parent":  null,
-        "Zip":  "mj-envios-1.9.0.zip",
-        "SizeKB":  151,
-        "Sha256":  "2483171029ae4a48195a09bffb1965d71ffdca3bc226f18bb27a293c53392a82"
+        "Zip":  "mj-envios-1.10.1.zip",
+        "SizeKB":  154,
+        "Sha256":  "f0e1b07df452091617c56b59f0a3e7e7becc487e6d20b8a1df9befd7088a5d1e"
     },
     {
         "Slug":  "mj-erp",
