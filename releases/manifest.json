@@ -3,11 +3,11 @@
         "Slug":  "mj-appearance",
         "Name":  "MJ Appearance",
         "Type":  "theme",
-        "Version":  "3.30.0",
+        "Version":  "3.31.0",
         "Parent":  null,
-        "Zip":  "mj-appearance-3.30.0.zip",
+        "Zip":  "mj-appearance-3.31.0.zip",
         "SizeKB":  586,
-        "Sha256":  "abb67787caf4ecc49e282d1a8447adbecd68524e20d2a79f4a92156d620bf046"
+        "Sha256":  "7e3fd6a26ad1a00a96f75aa2529862853e8c10468a1ef67153fe80fa546f48cc"
     },
     {
         "Slug":  "mj-atelier",
@@ -17,7 +17,7 @@
         "Parent":  "mj-appearance",
         "Zip":  "mj-atelier-1.2.0.zip",
         "SizeKB":  608,
-        "Sha256":  "ed47ae36ea3fc1b283f1d5096a46abe7eeab293139e6f104bf88ad9ea5f35ec2"
+        "Sha256":  "94cdef3be05cf2ab67ea0d0256dbb5754e4482f018ab0af28968200ae64f7d92"
     },
     {
         "Slug":  "mj-colegas",
@@ -27,7 +27,7 @@
         "Parent":  null,
         "Zip":  "mj-colegas-1.1.0.zip",
         "SizeKB":  28,
-        "Sha256":  "f2b48ff7ea5b75185994042b74df873e3c35f8cef7381ea3a1574fa74f578862"
+        "Sha256":  "431f2f9b1bc3a2e7c8982d1ccb8d23f3686683b8168ed6c4a7668816c8835907"
     },
     {
         "Slug":  "mj-core",
@@ -37,7 +37,7 @@
         "Parent":  null,
         "Zip":  "mj-core-1.1.0.zip",
         "SizeKB":  24,
-        "Sha256":  "77dd16364d7e0782e896954cb23f6988043efb7d22ff253267110fab17dfd4ab"
+        "Sha256":  "412c2e5b8ded3a4b688b6b72ee02c4e2d60458f471c2015a699d79f8a1f823e1"
     },
     {
         "Slug":  "mj-dolar",
@@ -47,17 +47,17 @@
         "Parent":  null,
         "Zip":  "mj-dolar-1.2.0.zip",
         "SizeKB":  51,
-        "Sha256":  "bf7ae21c73e78d9bea2ceed2c7125e4624bf2edebad2eb4e981f282966ecbc7e"
+        "Sha256":  "79e7a5b1f12e88e3ed4748345ba60460561afce08140e14a215d2eaf27b8416e"
     },
     {
         "Slug":  "mj-envios",
         "Name":  "MJ Envíos",
         "Type":  "plugin",
-        "Version":  "1.10.1",
+        "Version":  "1.11.0",
         "Parent":  null,
-        "Zip":  "mj-envios-1.10.1.zip",
-        "SizeKB":  154,
-        "Sha256":  "f0e1b07df452091617c56b59f0a3e7e7becc487e6d20b8a1df9befd7088a5d1e"
+        "Zip":  "mj-envios-1.11.0.zip",
+        "SizeKB":  160,
+        "Sha256":  "090388d2242e50d92e35a41685ffd9dafd9d41dca15a464616868a03128344df"
     },
     {
         "Slug":  "mj-erp",
@@ -67,7 +67,7 @@
         "Parent":  null,
         "Zip":  "mj-erp-1.23.0.zip",
         "SizeKB":  684,
-        "Sha256":  "7557fdf142f16d81588dd26be268d15e3dd1334a0c2a18b9cd932c5d616da7d1"
+        "Sha256":  "b0ec34c68d5eb960f89ea0343007e396ceea7047141eb7e4aa1c25df639bb067"
     },
     {
         "Slug":  "mj-fidelidad",
@@ -77,7 +77,7 @@
         "Parent":  null,
         "Zip":  "mj-fidelidad-1.1.0.zip",
         "SizeKB":  27,
-        "Sha256":  "28c512f55508af32aa0510ff3699a3814fdb8708b26713c4764ce693f29a751e"
+        "Sha256":  "03fd0a3de04ae74e00cdee230a040f880b9ad82e273e3f2641fc72f15013a25d"
     },
     {
         "Slug":  "mj-fotos-rapidas",
@@ -87,7 +87,7 @@
         "Parent":  null,
         "Zip":  "mj-fotos-rapidas-1.4.0.zip",
         "SizeKB":  13,
-        "Sha256":  "4ee3a136638f07819aca3e0c9f5dfcdb6766663168dd33cdce7519796e301a1d"
+        "Sha256":  "6a2f2aecb38486647818946c1f082ca83026320a2b95021fa1d539e1df93c14c"
     },
     {
         "Slug":  "mj-glossyhair",
@@ -97,7 +97,7 @@
         "Parent":  "mj-appearance",
         "Zip":  "mj-glossyhair-1.1.1.zip",
         "SizeKB":  90,
-        "Sha256":  "9c424a3c54cdeec03d28ce8f6f7e666af51ad59f9fc3e424726b8aaf87e1daf9"
+        "Sha256":  "72be8cd8af9878d17c2a0ae547b02ac25a379d12f273bfdc9e34ed1869534b27"
     },
     {
         "Slug":  "mj-jazbeauty",
@@ -107,7 +107,7 @@
         "Parent":  "mj-appearance",
         "Zip":  "mj-jazbeauty-1.1.0.zip",
         "SizeKB":  15,
-        "Sha256":  "853e332ce337d09d66cf05b141e401155c123143ec2d8d762ed003d6ad30c06f"
+        "Sha256":  "b13c1bef176d39a14bb39cd782a0c850fb3c342e99d887c176e81b5c761e986c"
     },
     {
         "Slug":  "mj-medios-pago",
@@ -117,7 +117,7 @@
         "Parent":  null,
         "Zip":  "mj-medios-pago-1.6.0.zip",
         "SizeKB":  117,
-        "Sha256":  "428a1c339bfa4d0be0743cbddebd9a5dd5272c06b6379d71aaf53f9b8e76b1fe"
+        "Sha256":  "4b3254cc2fa828fdd37a95dc6b18e08b9cbf31c3665f0283536e4f38549f94c5"
     },
     {
         "Slug":  "mj-optimizador-imagenes",
@@ -127,7 +127,7 @@
         "Parent":  null,
         "Zip":  "mj-optimizador-imagenes-1.2.0.zip",
         "SizeKB":  46,
-        "Sha256":  "eba2d3ae78da0b917d0dfff3c53393cf286fc13b891d0324f07e434b34225096"
+        "Sha256":  "76270b140b71c06cd141423bb1b7fe2f86528b481187ea3f67beff2ee5f89dbd"
     },
     {
         "Slug":  "mj-turnos-online",
@@ -137,7 +137,7 @@
         "Parent":  null,
         "Zip":  "mj-turnos-online-1.4.0.zip",
         "SizeKB":  297,
-        "Sha256":  "9ae3b8d060e2820e91844e0d76119103692fd61d62f383d6269004a098076e77"
+        "Sha256":  "f0b7ab924ce700b95d2688eb4f18df20d1fd2ed84edb8cc2123d779d930f5e17"
     },
     {
         "Slug":  "mj-yamana",
@@ -147,6 +147,6 @@
         "Parent":  "mj-appearance",
         "Zip":  "mj-yamana-1.1.1.zip",
         "SizeKB":  328,
-        "Sha256":  "a31ad88fa2605780c4632bde0eadf881b66e6b79b415546d9dba516707d56a07"
+        "Sha256":  "397d2028c4bb4b9b51de82f044e6a0062d130a78ad69381d8544db5ff9cd5b49"
     }
 ]
