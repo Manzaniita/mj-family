@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, Check, ChevronLeft, CreditCard, Loader2, AlertCircle, Zap, Pencil, Wallet } from 'lucide-react';
@@ -22,6 +22,7 @@ import {
   formFields,
   gatewaysFor,
   hasShipping,
+  isExtraKey,
   methodBySlug,
   missingFor,
   rememberedQuote,
@@ -411,6 +412,29 @@ export default function Checkout() {
    */
   const shippingRatesRaw = cartShipping?.rates ?? [];
   const shippingCost = shippingRatesRaw.length > 0 ? cartShipping?.cost ?? null : null;
+
+  /*
+   * Los datos del envío que el servidor ya sabe del cliente: el DNI que pide el
+   * correo, por ejemplo, cargado en una compra anterior. Se completan una sola
+   * vez y nunca pisan lo que el cliente esté escribiendo ahora. La dirección NO
+   * entra acá: esa se carga en este checkout y viene de otro lado.
+   */
+  const hydrated = useRef(false);
+  useEffect(() => {
+    const saved = cartShipping?.fields;
+    if (hydrated.current || !saved || Object.keys(saved).length === 0) return;
+    hydrated.current = true;
+    setExtra((prev) => {
+      const merged = { ...prev };
+      Object.entries(saved).forEach(([key, value]) => {
+        if (!isExtraKey(key)) return;
+        if (String(merged[key] ?? '').trim() === '' && String(value ?? '').trim() !== '') {
+          merged[key] = String(value);
+        }
+      });
+      return merged;
+    });
+  }, [cartShipping?.fields]);
   // Ajuste por medio de pago (plugin MJ Medios de Pago) + otras fees del servidor.
   const payMethod = findMethod(payment);
   const adjustment = resolveAdjustment({ items, method: payMethod, server, syncing, live: IS_WP });
@@ -553,6 +577,28 @@ export default function Checkout() {
 
   /** Compra rápida: el envío se calcula ya, con los datos que ya teníamos. */
   const prefetchShipping = (data) => syncShippingRates(data);
+
+  /*
+   * Lo que el método elegido pide y todavía no está.
+   *
+   * Sirve para lo mismo que el aviso de antes de comprar, pero acá decide otra
+   * cosa: la compra rápida se apaga sola si falta algo. El resumen no tiene
+   * dónde cargar el DNI que pide el correo, así que un atajo que después va a
+   * fallar es peor que mostrar el formulario.
+   */
+  const faltanDelEnvio = hasShipping()
+    ? missingFor(methodBySlug(shippingRates.find((r) => r.selected)?.slug || ''), {
+        ...extra,
+        postcode: destino.postcode,
+        state: destino.state,
+        city: destino.city,
+        address_1: destino.address,
+        address_2: destino.address2,
+      })
+    : [];
+  useEffect(() => {
+    if (express && faltanDelEnvio.length > 0) setExpress(false);
+  }, [express, faltanDelEnvio.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (placed) {
     /* Mientras llega la respuesta del servidor, lo que ya se sabía del medio elegido. */

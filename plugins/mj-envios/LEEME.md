@@ -104,6 +104,22 @@ Lo que el cliente carga al comprar queda guardado en su cuenta (lo hace
 WooCommerce) y la próxima compra arranca completa; lo corrige en **Mi cuenta →
 Direcciones**.
 
+### Los datos que exige el plugin de un correo
+
+El plugin de un correo puede agregarle campos propios a la dirección del pedido:
+el de Andreani, por ejemplo, agrega un **DNI obligatorio**. Son suyos, pero
+WooCommerce los exige al cerrar la compra, y sin ellos el pedido se cae con
+«Parámetro no válido: billing_address».
+
+MJ Envíos los adopta solos: aparecen en **Datos del cliente** como un campo más,
+con el nombre que les puso su plugin y en el modo que ese plugin pide, y se
+configuran como cualquier otro. Lo que carga el cliente viaja a la dirección del
+pedido con el nombre que ese plugin espera, y lo que ya tenga guardado de una
+compra anterior viene completado.
+
+Si ponés uno de esos campos en **No se pide** y su plugin lo exige, ningún pedido
+se va a poder cerrar. El aviso está abajo del campo.
+
 ---
 
 ## Código postal, provincia y localidad
@@ -147,6 +163,17 @@ propia pantalla de envíos y le podés dar el alta o imprimir el rótulo desde a
 
 > Instalar o desactivar el plugin de un correo no rompe nada: si no está, MJ
 > Envíos ni lo nombra y sigue funcionando igual.
+
+---
+
+## Un correo caído no rompe la tienda
+
+Los plugins de los correos son ajenos y fallan: uno instalado **sin credenciales
+cargadas** contesta «access token no válido o indefinido» a cualquier cosa que se
+le pregunte. MJ Envíos le pregunta siempre con red: lo que falle queda anotado en
+el registro `mj-envios` con el nombre del correo y el motivo, y la tienda sigue
+con lo que sabe. El código postal se completa igual, el carrito calcula igual y
+el checkout ofrece los otros métodos.
 
 ---
 

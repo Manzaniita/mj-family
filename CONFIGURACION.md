@@ -1097,6 +1097,23 @@ pedir más o menos desde su ficha. Lo que queda en **Heredar** sigue al general,
 así subir una regla general alcanza a todos los métodos que nunca se tocaron a
 mano. Es la misma regla que usan los comprobantes de MJ Medios de Pago.
 
+### Los datos que exige el plugin de un correo
+
+Un plugin de correo puede agregarle campos propios a la dirección del pedido:
+el de Andreani, por ejemplo, agrega un **DNI obligatorio**. Esos campos son
+suyos, no de MJ Envíos, pero WooCommerce los exige igual al cerrar la compra: si
+falta uno, el pedido se cae con *«Parámetro no válido: billing_address»* y el
+cliente no entiende nada.
+
+MJ Envíos los adopta solos. Aparecen en **Datos del cliente** como un campo más,
+con el nombre que les puso su plugin y en el modo que ese plugin pide
+(obligatorio si él los exige), y se configuran como cualquier otro. Lo que carga
+el cliente viaja a la dirección del pedido con el nombre que espera ese plugin, y
+lo que ya tenga guardado de una compra anterior viene completado.
+
+Si un campo así se pone en **No se pide** y su plugin lo exige, **ningún pedido
+se puede cerrar**: el aviso está escrito abajo del campo.
+
 ### El código postal
 
 El cliente pone el CP y la tienda completa provincia y localidad sola. De dónde

@@ -106,9 +106,18 @@ export const addressFields = (method) => fieldsOf(method).filter((f) => ADDRESS_
 /** Un campo de dirección puntual (para saber si es obligatorio o cómo se llama). */
 export const addressField = (method, key) => fieldsOf(method).find((f) => f.key === key) ?? null;
 
+/**
+ * ¿Es un dato del método y no del contacto ni de la dirección?
+ *
+ * Sirve para saber qué se puede completar con lo que el servidor ya sabe del
+ * cliente: la dirección la escribe él en este checkout, y pisarla con la de una
+ * compra anterior sería mandarle el pedido a otro lado.
+ */
+export const isExtraKey = (key) =>
+  !ADDRESS_KEYS.includes(key) && !CONTACT_KEYS.includes(key) && key !== 'branch';
+
 /** Lo que se pregunta después de elegir el método (DNI, quién recibe, horario…). */
-export const extraFields = (method) =>
-  fieldsOf(method).filter((f) => !ADDRESS_KEYS.includes(f.key) && !CONTACT_KEYS.includes(f.key) && f.key !== 'branch');
+export const extraFields = (method) => fieldsOf(method).filter((f) => isExtraKey(f.key));
 
 /**
  * El contacto y la dirección del formulario, con las claves de MJ Envíos.

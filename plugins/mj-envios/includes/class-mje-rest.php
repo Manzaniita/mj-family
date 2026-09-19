@@ -402,7 +402,11 @@ class MJE_REST {
 			'destination' => $def ? (string) $def['destination'] : '',
 			'branch'      => (string) $data['branch'],
 			'city'        => (string) $data['city'],
-			'fields'      => is_array($data['fields']) ? array_map('strval', $data['fields']) : [],
+			/* Lo cargado en esta compra, sobre lo que el cliente ya tenía guardado de antes. */
+			'fields'      => array_merge(
+				MJE_Extras::known(),
+				is_array($data['fields']) ? array_map('strval', $data['fields']) : []
+			),
 			'problems'    => array_values(MJE_Cart::problems()),
 			'freeFrom'    => (float) MJE_Rates::free_threshold(),
 			'rates'       => MJE_Rates::storefront_rates(),

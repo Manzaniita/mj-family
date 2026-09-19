@@ -279,7 +279,34 @@ dependen de que el servidor de nadie esté arriba.
 así que si algo no cotiza vas a poder ver si fue el usuario, la clave, un
 tiempo de espera agotado o una respuesta rara.
 
-### 3.8. Qué pasa si el correo no responde
+### 3.8. El dato que exige el plugin de un correo
+
+Con el plugin de Andreani instalado, WooCommerce exige un **DNI** en la dirección
+del pedido. MJ Envíos lo adopta como un campo más.
+
+1. En **MJ → Envíos → Datos del cliente**, buscá el campo con el nombre que le
+   puso ese plugin (**DNI**). Tiene que estar en *Se pide, obligatorio* y avisar
+   abajo quién lo pide.
+2. Comprá con una cuenta que nunca lo haya cargado.
+
+**Qué tiene que pasar:** el paso de envío lo pide, y el pedido se cierra. En el
+pedido de wp-admin el DNI queda en la dirección, que es donde lo busca el plugin
+del correo.
+
+3. Comprá de nuevo con esa misma cuenta.
+
+**Qué tiene que pasar:** el DNI viene completado; no hay que escribirlo otra vez.
+
+4. Probá la **compra rápida** con una cuenta a la que le falte ese dato.
+
+**Qué tiene que pasar:** el atajo no aparece (o se apaga solo) y se muestra el
+formulario. Nunca tiene que dejar apretar «Comprar ahora» para después fallar.
+
+**Señal de que algo está mal:** al confirmar, el checkout dice *«Parámetro(s) no
+válido(s): shipping_address, billing_address»*. Eso es un campo obligatorio de
+otro plugin que no está viajando con el pedido.
+
+### 3.9. Qué pasa si el correo no responde
 
 Esto es lo más importante de todo, y se prueba fácil: poné mal la clave del
 correo a propósito.
@@ -290,6 +317,13 @@ métodos. El cliente no queda encerrado sin poder comprar.
 **Señal de que algo está mal:** el checkout se cuelga, tarda diez segundos, o
 no muestra ningún método de envío. Eso es una venta perdida cada vez que el
 correo tenga un mal día.
+
+Probá también con el correo **instalado pero sin credenciales**, que es el caso
+que rompía la tienda: el código postal tiene que seguir completando provincia y
+localidad, y el carrito tiene que seguir calculando el envío con los otros
+métodos. Un **error 500** en `wp-json/mje/v1/geo/cp` o en
+`wp-json/wc/store/v1/cart/update-customer` es la señal de que un correo se está
+llevando puesta la tienda.
 
 ---
 

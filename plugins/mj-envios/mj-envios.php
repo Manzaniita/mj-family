@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Envíos
  * Description: Métodos de envío propios, creados y editados desde el panel: a domicilio, a sucursal del correo, retiro en el local, zona propia por código postal, envío gratis o "a coordinar". Cada método decide con qué condiciones aparece (destino, CP, provincia, monto, peso, productos, usuario), con qué medios de pago se combina, qué datos le pide al cliente y de dónde sale su precio: tabla propia, precio fijo o cotización en vivo con Vía Cargo, Andreani o Correo Argentino. El checkout de la tienda lo muestra paso a paso, valida el código postal y completa provincia y localidad solo.
- * Version: 1.10.1
+ * Version: 1.11.0
  * Author: MJ
  * Requires Plugins: woocommerce
  * Requires at least: 6.2
@@ -94,7 +94,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJE_VERSION', '1.10.1');
+define('MJE_VERSION', '1.11.0');
 define('MJE_FILE', __FILE__);
 define('MJE_DIR', plugin_dir_path(__FILE__));
 define('MJE_URL', plugin_dir_url(__FILE__));
@@ -114,6 +114,7 @@ MJ_Menu::init();
 require_once MJE_DIR . 'includes/class-mje-install.php';
 require_once MJE_DIR . 'includes/class-mje-settings.php';
 require_once MJE_DIR . 'includes/class-mje-geo.php';
+require_once MJE_DIR . 'includes/class-mje-extras.php';
 require_once MJE_DIR . 'includes/class-mje-fields.php';
 require_once MJE_DIR . 'includes/class-mje-groups.php';
 require_once MJE_DIR . 'includes/class-mje-methods.php';
@@ -146,6 +147,7 @@ final class MJE_Plugin {
 			return;
 		}
 
+		MJE_Extras::init();
 		MJE_Groups::init();
 		MJE_Carriers::init();
 		MJE_Native::init();

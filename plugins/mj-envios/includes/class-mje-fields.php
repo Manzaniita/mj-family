@@ -77,6 +77,27 @@ class MJE_Fields {
 			'notes'      => ['label' => 'Aclaraciones para la entrega', 'type' => 'textarea', 'target' => 'meta', 'default' => 'no'],
 		];
 
+		/*
+		 * Los datos que exige otro plugin en la dirección (el DNI de Andreani, por
+		 * ejemplo). Entran como un campo más para que el paso de envío los pida y
+		 * se configuren desde el panel: WooCommerce los valida al cerrar el pedido
+		 * aunque la tienda no los conozca, y sin ellos la compra no se puede cerrar.
+		 */
+		foreach (MJE_Extras::fields() as $key => $extra) {
+			if (isset($fields[$key])) {
+				continue;
+			}
+			$fields[$key] = [
+				'label'   => $extra['label'],
+				'type'    => $extra['type'],
+				'target'  => 'extra',
+				'default' => $extra['required'] ? 'obligatorio' : 'no',
+				'options' => implode("\n", array_values($extra['choices'])),
+				'help'    => sprintf('Lo pide %s en la dirección del pedido. Si acá no se pide y es obligatorio para ese plugin, los pedidos no se pueden cerrar.', $extra['plugin']),
+				'extra'   => $extra['id'],
+			];
+		}
+
 		foreach (self::custom() as $key => $def) {
 			$fields[$key] = [
 				'label'   => (string) $def['label'],
