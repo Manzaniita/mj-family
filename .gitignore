@@ -60,6 +60,11 @@ phpcs.csv
 .cache/
 .parcel-cache/
 coverage/
+# Sesiones y preferencias locales de agentes. AGENTS.md sí se versiona.
+.claude/
+.codex/
+.codex-log/
+AGENTS.override.md
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

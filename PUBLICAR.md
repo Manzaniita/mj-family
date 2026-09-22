@@ -5,7 +5,41 @@ el circuito completo: cómo se arma un zip, cómo se publica, cómo lo pide cada
 tienda sola, y qué hay que tocar cuando se crea un plugin o un tema nuevo para
 que todo siga sincronizado.
 
+## Consulta por tema
+
+Preparar y verificar un cambio no equivale a publicarlo. Consultá el
+checklist del caso, y la sección de publicación solo cuando corresponda.
+
+- [Circuito completo](#circuito)
+- [Armar ZIP y configurar herramientas](#empaquetar)
+- [MJ Core y acceso al repositorio privado](#actualizaciones)
+- [Crear una Release](#publicar)
+- [Qué versiones cambiar](#versiones)
+- [Primera instalación o vuelta atrás](#instalar)
+- [Checklist de un paquete nuevo](#paquete-nuevo)
+- [Checklist de un cambio existente](#cambio-existente)
+- [Errores que rompen la distribución](#prohibiciones)
+- [Diagnóstico](#diagnostico)
+
+<a id="alcance"></a>
+
+## Alcance de cada acción
+
+| Pedido | Hasta dónde se trabaja |
+| --- | --- |
+| Analizar | Lectura y diagnóstico; sin editar. |
+| Implementar o preparar para GitHub | Cambios, documentación, versiones si corresponden y verificación local. |
+| Subir código al repositorio | Commit/push según lo pedido; no crea por sí solo una Release. |
+| Publicar una versión | Empaquetar, commit, etiqueta, push y Release; requiere pedido explícito. |
+
+Los checklists separan preparación y publicación. No invoques `publicar.ps1`
+para un cambio únicamente de documentación de desarrollo. El script usa
+`git add -A`: revisá todos los cambios antes de ejecutarlo y no incluyas trabajo
+ajeno. Su confirmación interactiva sucede después de generar los ZIP.
+
 ---
+
+<a id="circuito"></a>
 
 ## 1. El circuito, de un vistazo
 
@@ -16,7 +50,7 @@ que todo siga sincronizado.
   subir la versión  ──────────  cabecera del plugin o style.css (+ su constante)
         │
         ▼
-  .\tools\verificar.ps1  ─────  sintaxis, PHP 7.4, reglas de WordPress, builds
+  .\tools\verificar.ps1  ─────  PHP, reglas, builds, copias y documentación
         │
         ▼
   .\tools\publicar.ps1  ──────  arma los zip, commit, etiqueta, push
@@ -37,11 +71,33 @@ Tres reglas sostienen todo lo demás:
    carpeta `mj-erp/`, y la tienda lo reconoce porque tiene un plugin instalado en
    `mj-erp/`. Una carpeta no se renombra nunca.
 3. **MJ Core actualiza, no instala.** Un plugin o tema nuevo se sube a mano la
-   primera vez en cada tienda que lo use. De ahí en adelante se actualiza solo.
+   primera vez en cada tienda que lo use. Después ofrece las versiones nuevas;
+   la instalación automática depende de lo habilitado en WordPress.
 
 ---
 
+<a id="empaquetar"></a>
+
 ## 2. Sacar los zip
+
+<a id="herramientas"></a>
+
+### Configuración de herramientas
+
+| Fuente | Qué controla |
+| --- | --- |
+| `tools/releases.config.json` → `roots` | Carpetas de plugins y temas a detectar. |
+| `builds` | Instalación, compilación y archivo esperado de cada app. |
+| `exclude` | Nombres y patrones excluidos del ZIP, aplicados en cada nivel. |
+| `bundles` | Paquetes que componen cada tienda; no instala nada. |
+| `output` | Carpeta de ZIP y manifiestos generados. |
+| `tools/sincronizar-compartido.ps1` → `$compartidos` | Fuente y consumidores de cada archivo compartido. |
+| `tools/verificar.ps1` y `.github/workflows/verificar.yml` | Controles locales, versiones de CI y apps a compilar. |
+| `.github/workflows/documentacion.yml` | Control liviano de documentos e instrucciones. |
+
+Los `AGENTS.md`, overrides y carpetas locales de agentes quedan fuera del ZIP.
+No excluyas todos los Markdown: los `LEEME.md` de usuario sí se distribuyen.
+No edites `releases/MANIFEST.md` ni `releases/manifest.json` a mano.
 
 ```powershell
 .\tools\build-releases.ps1
@@ -82,6 +138,8 @@ actualización**: con el mismo número, ninguna tienda lo va a ofrecer.
 | `manifest.json` | Lo mismo, para scripts. |
 
 ---
+
+<a id="actualizaciones"></a>
 
 ## 3. Las actualizaciones automáticas (MJ Core)
 
@@ -167,15 +225,13 @@ Desde ahí, MJ Core se actualiza a sí mismo como los demás.
 
 ### Estado de cada tienda
 
-| Tienda | MJ Core | Token |
-| --- | --- | --- |
-| MJ Importaciones | Instalado | `MJ Importaciones Actualizaciones`, sin vencimiento |
-| GlossyHair | Falta | — |
-| Yamana | Falta | — |
-
-Cuando se crea, revoca o vence un token, actualizar esta tabla.
+El único registro operativo está en [TIENDAS.md](TIENDAS.md#composicion).
+Cuando se instala MJ Core o se cambia un token, actualizá ahí el estado y la
+fecha de comprobación. No guardes el valor de tokens en la documentación.
 
 ---
+
+<a id="publicar"></a>
 
 ## 4. Publicar en GitHub
 
@@ -186,8 +242,9 @@ Cuando se crea, revoca o vence un token, actualizar esta tabla.
 Eso hace, en orden: comprueba que git y la sesión de GitHub estén bien, arma los
 paquetes (sección 2), comitea lo que haya cambiado, crea la etiqueta con la
 fecha de hoy, sube rama y etiqueta, y publica **todos los zip** de `releases/`
-como **Release** colgada de esa etiqueta. Antes de subir nada muestra qué va a
-hacer y pide confirmación.
+como **Release** colgada de esa etiqueta. Después de empaquetar y antes del
+commit/push muestra el resumen y pide confirmación. No ejecuta por sí mismo
+`verificar.ps1`: ese control debe haber pasado antes.
 
 Que suban todos los zip y no solo los que cambiaron es a propósito: cada
 Release queda completa por sí sola, y el catálogo de MJ Core nunca pierde un
@@ -195,7 +252,7 @@ paquete aunque haga meses que no cambia.
 
 ```powershell
 .\tools\publicar.ps1 -Mensaje "Arregla el carrito" -Version v2026.10.01b   # segunda publicación del día
-.\tools\publicar.ps1 -Mensaje "Solo docs" -SkipBuild
+.\tools\publicar.ps1 -Mensaje "Paquetes ya compilados y verificados" -SkipBuild
 .\tools\publicar.ps1 -Mensaje "..." -Notas notas.md                        # notas propias
 ```
 
@@ -234,6 +291,8 @@ las últimas 20.
 
 ---
 
+<a id="versiones"></a>
+
 ## 5. Numerar las versiones
 
 Se usa `MAYOR.MENOR.PARCHE`:
@@ -246,9 +305,19 @@ Dónde se escribe cada una (las dos, siempre juntas):
 
 | Paquete | Archivo | Además |
 | --- | --- | --- |
-| Temas hijo | `style.css` → `Version:` | — |
+| Temas hijo | `style.css` → `Version:` | su constante `*_VERSION` en `functions.php` |
 | MJ Appearance | `style.css` → `Version:` | `MJ_VERSION` en `functions.php` |
 | Plugins | cabecera `* Version:` del archivo principal | su constante `MJ*_VERSION` |
+
+La versión del paquete cambia cuando cambia su contenido distribuido. No hace
+falta subirla por guías de agentes excluidas del ZIP, documentación de la raíz,
+CI o herramientas que no alteren lo distribuido. Si se cambia un `LEEME.md`
+incluido en el ZIP para entregarlo a tiendas, también corresponde una versión
+nueva; nunca se reemplaza el ZIP de una versión ya publicada.
+
+Si existe `readme.txt`, mantené `Stable tag` alineado. Las versiones de esquema
+(`*_DB_VERSION`) son independientes y solo cambian cuando hay una migración.
+El `version` de `package.json` no es la versión WordPress del paquete.
 
 La cabecera es la que lee WordPress y la que usa el script para nombrar el zip.
 La constante es la que usa el código, por ejemplo para versionar CSS y JS. Si
@@ -260,6 +329,8 @@ nuevo, **se publican los dos juntos**. Si la tienda actualiza el hijo sin el
 padre, WordPress muestra un aviso en el escritorio en vez de fallar en silencio.
 
 ---
+
+<a id="instalar"></a>
 
 ## 6. Subir a mano
 
@@ -305,6 +376,8 @@ vale es el zip publicado en la Release.
 
 ---
 
+<a id="paquete-nuevo"></a>
+
 ## 7. Agregar un plugin o un tema nuevo
 
 Esta es la lista para que un paquete nuevo quede sincronizado con todo: el
@@ -342,8 +415,8 @@ documentación. Los pasos marcados **siempre** no se saltean nunca.
       `.\tools\sincronizar-compartido.ps1`, y en el archivo principal hacer
       `require_once` de `includes/compartido/class-mj-log.php` y llamar a
       `MJ_Log::init()`.
-- [ ] Nunca editar la copia de `includes/compartido/`: se edita `shared/` y se
-      vuelve a repartir.
+- [ ] Nunca editar las copias de `compartido/` (en `includes/`, `inc/` o la raíz
+      del plugin): se edita `shared/` y se vuelve a repartir.
 
 ### La verificación
 
@@ -355,48 +428,65 @@ documentación. Los pasos marcados **siempre** no se saltean nunca.
       `phpcs.xml.dist`.
 - [ ] **Siempre.** `.\tools\verificar.ps1` en verde.
 
-### Las tiendas
+### Composición de tiendas
 
 - [ ] **Siempre.** Sumarlo a cada tienda que lo use en `bundles` de
       `tools/releases.config.json`.
-- [ ] **Siempre.** Publicarlo con `.\tools\publicar.ps1`. Sin Release, MJ Core no
-      lo conoce.
-- [ ] **Siempre.** Subirlo **a mano la primera vez** en cada tienda que lo use
-      (sección 6). MJ Core no instala paquetes nuevos: los actualiza una vez que
-      están.
-- [ ] Revisar en MJ → Actualizaciones de esa tienda que aparezca en la
-      tabla como "Al día".
 
-### La documentación
+### Documentación de la preparación
 
-- [ ] **Siempre.** `README.md`: fila en la tabla de temas o plugins, y en "Cómo se
-      arma cada tienda".
+- [ ] **Siempre.** `README.md`: fila en la tabla de temas o plugins. El mapa
+      técnico del plugin va en `plugins/AGENTS.md`; una guía local solo si aporta
+      reglas o rutas específicas.
 - [ ] **Siempre.** `CONFIGURACION.md`: dónde se configura (sección 3), y sus
       constantes y filtros (sección 4).
 - [ ] **Siempre.** `TIENDAS.md`: sumarlo a la tabla de cada tienda que lo use.
 - [ ] `AUDITORIA.md`: si estaba en el backlog, sacarlo de ahí.
 - [ ] Si toca plata o el checkout: su paso a paso en `PRUEBAS-EN-LA-TIENDA.md`.
 
+### Publicación e instalación: solo cuando el usuario las pide
+
+- [ ] Publicarlo con `.\tools\publicar.ps1`. Sin Release, MJ Core no lo conoce.
+- [ ] **Siempre.** Subirlo **a mano la primera vez** en cada tienda que lo use
+      (sección 6). MJ Core no instala paquetes nuevos: los actualiza una vez que
+      están.
+- [ ] Revisar en MJ → Actualizaciones de esa tienda que aparezca en la
+      tabla como "Al día".
+
 ---
+
+<a id="cambio-existente"></a>
 
 ## 8. Cambiar un plugin o un tema que ya existe
 
+### Preparación del cambio
+
 - [ ] Hacer el cambio. Si suma un ajuste, anotarlo en `CONFIGURACION.md`.
-- [ ] **Subir la versión** en la cabecera **y** en la constante (sección 5).
-- [ ] Si el cambio necesita un padre o un plugin más nuevo, subir y publicar esos
-      también, y actualizar la versión mínima que se declara.
+- [ ] Si cambia contenido distribuido, **subir la versión** en la cabecera y
+      en la constante; también `Stable tag` si existe (sección 5).
+- [ ] Si el cambio necesita un padre o plugin más nuevo, preparar sus versiones
+      también y actualizar la versión mínima. Publicarlos juntos cuando se autorice.
 - [ ] Si se tocó `shared/`: `.\tools\sincronizar-compartido.ps1`, y **subir la
       versión de cada plugin que recibió la copia**. Si no, esas tiendas nunca
       reciben el cambio.
 - [ ] Si se tocó el React: el `dist/` compilado va en el commit (el servidor no
       tiene Node).
-- [ ] `.\tools\verificar.ps1` en verde.
-- [ ] Actualizar la versión en la tabla de `README.md`.
+- [ ] `.\tools\verificar.ps1` en verde, o `-Rapido` si no cambió React.
+      Incluye comprobar copias compartidas y documentación.
+- [ ] Actualizar la tabla de `README.md` si cambió una versión y la documentación
+      funcional afectada; retirar pendientes realmente resueltos de `AUDITORIA.md`.
+- [ ] Revisar el diff, las instrucciones del área y `git diff --check`. Informar
+      pruebas ejecutadas y pendientes. La preparación puede terminar acá.
+
+### Publicación: solo por pedido explícito
+
 - [ ] `.\tools\publicar.ps1 -Mensaje "…"`.
 - [ ] En una tienda: **Buscar versiones nuevas ahora** y actualizar. Si toca plata
       o el checkout, probar ahí antes de actualizar las otras.
 
 ---
+
+<a id="prohibiciones"></a>
 
 ## 9. Lo que no hay que hacer nunca
 
@@ -413,6 +503,8 @@ documentación. Los pasos marcados **siempre** no se saltean nunca.
   nunca en el repositorio.
 
 ---
+
+<a id="diagnostico"></a>
 
 ## 10. Cuando algo no anda
 

@@ -26,3 +26,7 @@
 themes/mj-appearance/dist/**   linguist-generated=true
 plugins/mj-turnos-online/dist/** linguist-generated=true
 package-lock.json              linguist-generated=true
+composer.lock                  linguist-generated=true
+releases/MANIFEST.md            linguist-generated=true
+releases/manifest.json          linguist-generated=true
+**/compartido/**                linguist-generated=true

@@ -3,7 +3,7 @@
     Revisa todo el proyecto antes de publicar. Lo mismo que corre el CI.
 
 .DESCRIPTION
-    Cuatro pasos, en orden de importancia:
+    Seis controles, con el mismo alcance que el CI:
 
       1. Sintaxis de PHP (php -l) sobre todos los .php.
          Tolerancia cero. Un error acá es una pantalla blanca en una tienda.
@@ -16,6 +16,9 @@
 
       4. Que compilen las dos apps (el tema y los turnos).
          Si el build falla, mejor enterarse acá que al ir a publicar.
+
+      5. Copias compartidas presentes e idénticas a su fuente.
+      6. Documentación, enlaces e instrucciones para Codex.
 
 .PARAMETER Rapido
     Saltea el paso 4 (los builds), que es el que más tarda.
@@ -101,7 +104,7 @@ Nota "PHP: $php"
 # ---------------------------------------------------------------------------
 # 1. Sintaxis de PHP.
 # ---------------------------------------------------------------------------
-Titulo "1/4  Sintaxis de PHP"
+Titulo "1/6  Sintaxis de PHP"
 
 # --cached y --others: lo que ya está versionado MÁS lo que todavía no se
 # commiteó. Sin --others, un archivo recién creado no se revisaría, que es
@@ -127,7 +130,7 @@ if ($rotos.Count -eq 0) {
 # ---------------------------------------------------------------------------
 # 2. Compatibilidad con PHP 7.4.
 # ---------------------------------------------------------------------------
-Titulo "2/4  Compatibilidad con PHP 7.4"
+Titulo "2/6  Compatibilidad con PHP 7.4"
 
 $salida = & $php $phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 7.4- `
     --extensions=php --ignore="*/vendor/*,*/node_modules/*,*/dist/*" `
@@ -145,7 +148,7 @@ if ($codigo -eq 0) {
 # ---------------------------------------------------------------------------
 # 3. Reglas de WordPress, contra la foto de referencia.
 # ---------------------------------------------------------------------------
-Titulo "3/4  Reglas de WordPress (seguridad y base de datos)"
+Titulo "3/6  Reglas de WordPress (seguridad y base de datos)"
 
 $informe = Join-Path ([System.IO.Path]::GetTempPath()) "mj-phpcs.json"
 & $php $phpcs --report=json --no-colors --report-file="$informe" -q 2>&1 | Out-Null
@@ -166,7 +169,7 @@ if ($Foto) {
 # ---------------------------------------------------------------------------
 # 4. Que compilen las dos apps.
 # ---------------------------------------------------------------------------
-Titulo "4/4  Compilación de las apps"
+Titulo "4/6  Compilación de las apps"
 
 if ($Rapido) {
     Nota "Salteado (-Rapido)."
@@ -191,7 +194,13 @@ if ($Rapido) {
 
             if (-not (Test-Path "node_modules")) {
                 Nota "$($app.Nombre): instalando dependencias..."
-                cmd /c "npm install --no-audit --no-fund > `"$log`" 2>&1"
+                cmd /c "npm ci --no-audit --no-fund > `"$log`" 2>&1"
+                if ($LASTEXITCODE -ne 0) {
+                    $fallos += "Dependencias: $($app.Nombre)"
+                    Mal "No se pudieron instalar las dependencias de $($app.Nombre)."
+                    if (Test-Path $log) { Get-Content $log -Tail 15 | ForEach-Object { Nota $_ } }
+                    continue
+                }
             }
 
             cmd /c "npm run build > `"$log`" 2>&1"
@@ -210,6 +219,22 @@ if ($Rapido) {
     }
 }
 $pasos++
+
+# ---------------------------------------------------------------------------
+# 5. Copias compartidas: usar la misma lista de consumidores que al repartir.
+# ---------------------------------------------------------------------------
+Titulo "5/6  Copias de shared/"
+& (Join-Path $raiz "tools\sincronizar-compartido.ps1") -Verificar
+$pasos++
+if ($LASTEXITCODE -ne 0) { $fallos += "Copias compartidas desincronizadas" }
+
+# ---------------------------------------------------------------------------
+# 6. Documentación y guías de agentes.
+# ---------------------------------------------------------------------------
+Titulo "6/6  Documentación e instrucciones"
+& $php (Join-Path $raiz "tools\verificar-documentacion.php")
+$pasos++
+if ($LASTEXITCODE -ne 0) { $fallos += "Documentación e instrucciones" }
 
 # ---------------------------------------------------------------------------
 # Resultado.

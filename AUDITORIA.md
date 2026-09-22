@@ -1,28 +1,43 @@
 # Auditoría de la familia MJ y cierre de la versión 1
 
-Hecha el 17 de septiembre de 2026 sobre el commit `36fc230` (MJ Appearance
-3.18.2) y puesta al día el 18 de septiembre, después de cerrar los puntos 2, 3,
-4 y 6 de la Fase 0 y el 7 de la Fase 1 (sección 6): lo hecho se sacó de las
-listas y se anota tachado en el orden sugerido. Reemplaza a `ANALISIS.md` (del
-12 de septiembre) y a `PLUGINS-MJ.md` (el plan): lo que ahí seguía vigente está
-acá, ordenado en tres listas:
+Auditoría técnica original del 17/9/2026 sobre `36fc230`, actualizada en parte
+el 18/9. La reorganización documental del 22/9/2026 revisó inventario, guías y
+herramientas; **no volvió a auditar todo el código ni consultó tiendas o Actions**.
+Las cifras y hallazgos técnicos originales son históricos salvo indicación
+expresa. Confirmá cada pendiente en el código actual antes de implementarlo.
 
-1. **Qué falta para cerrar la versión 1** con lo que ya existe (sección 3).
-2. **Qué mejorar** de lo que ya anda (sección 4).
-3. **Qué se puede sumar después** (sección 5).
+Las versiones vigentes del fuente están en [README.md](README.md); instalación
+y pruebas operativas, en [TIENDAS.md](TIENDAS.md). No confundir versión del
+fuente, paquete publicado y versión instalada. Los números de línea de los
+hallazgos son orientativos: buscá el símbolo o función, no dependas de esa línea.
 
-Cómo se hizo: lectura completa del PHP y del JavaScript de los nueve plugins,
-el tema padre, los tres hijos, `shared/` y `tools/`; `.\tools\verificar.ps1`
-en verde; el estado real de GitHub (Releases, corridas del CI). No se ejecutó
-nada contra una tienda: lo que dice "sin probar" sigue sin probar.
+Al resolver un pendiente, retiralo de las listas y del orden sugerido en el
+mismo cambio; el detalle de lo hecho queda en Git. No mantengas listas paralelas
+de tareas completadas ni cierres pruebas manuales con evidencia de un build.
+
+## Consulta por tema
+
+- [Inventario y cifras históricas](#inventario).
+- [Estado anotado por paquete](#estado).
+- [Pendientes para la v1](#pendientes-v1).
+- [Consistencia y documentación](#consistencia).
+- [Mejoras por área](#mejoras).
+- [Funciones futuras](#backlog).
+- [Orden de trabajo](#orden).
+- [Decisiones de arquitectura](#decisiones).
 
 ---
 
+<a id="inventario"></a>
+
 ## 1. En números
+
+Inventario de paquetes comprobado el 22/9/2026. Las demás cifras corresponden
+a la auditoría del 17–18/9 y no son indicadores del estado actual.
 
 | | |
 | --- | --- |
-| Paquetes | 9 plugins + 1 tema padre + 3 temas hijo |
+| Paquetes (inventario actual) | 10 plugins + 1 tema padre + 4 temas hijo |
 | Líneas propias (sin `dist/`, sin dependencias) | ~146.000, de las cuales MJ ERP ~72.000 (49 %) |
 | Archivos PHP | 160, todos compilan en 7.4 y 8.4 |
 | Rutas REST propias | ~145 (87 del ERP) |
@@ -33,12 +48,15 @@ nada contra una tienda: lo que dice "sin probar" sigue sin probar.
 
 ---
 
+<a id="estado"></a>
+
 ## 2. Estado de cada pieza
 
-Estado para cerrar la v1: **Cerrado** = no tiene nada bloqueante; **Casi** =
+Estado anotado en la revisión técnica original, pendiente de revalidar contra
+las versiones actuales. **Cerrado** = no tiene nada bloqueante; **Casi** =
 faltan cosas chicas; **Falta** = hay una pieza grande pendiente.
 
-| Paquete | Versión | Estado | Qué le falta para la v1 |
+| Paquete | Versión anotada | Estado anotado | Qué le falta para la v1 |
 | --- | --- | --- | --- |
 | MJ Appearance | 3.31.0 | Casi | Reseñas en la ficha; tope de 1000 productos; subcarpeta. (Frenos y `/catalog-stock`: hechos en 3.19.0.) |
 | GlossyHair / Yamana | 1.1.1 | Cerrado | `*_REQUIRES` en 3.19.0. |
@@ -53,9 +71,11 @@ faltan cosas chicas; **Falta** = hay una pieza grande pendiente.
 | MJ Core | 1.1.0 | Casi | Instalarlo en GlossyHair y Yamana. Sin reporte de versiones ni rollback (mejora, no bloqueante). |
 | MJ Optimizador | 1.1.1 | Cerrado | Borra el original sin escalar aunque no haya backup (ver 3.2). |
 | MJ Fotos Rápidas | 1.3.0 | Cerrado | Todo lo de la v1 hecho en 1.3.0. Queda la guarda de WooCommerce (avisa `Requires Plugins`, alcanza). |
-| Circuito de publicación | — | Casi | El CI nunca corrió (3.1). `publicar.ps1` sin rollback si falla la Release. |
+| Circuito de publicación | — | Casi | Confirmar una corrida actual de CI (3.1). `publicar.ps1` sin rollback si falla la Release. |
 
 ---
+
+<a id="pendientes-v1"></a>
 
 ## 3. Qué falta para cerrar la versión 1
 
@@ -64,22 +84,23 @@ arreglar en el código. Cada punto trae el archivo para ir directo.
 
 ### 3.1. Afuera del código
 
-- [ ] **El CI de GitHub nunca corrió.** Las 30 corridas de
+- [ ] **Confirmar que el CI de GitHub ya puede correr.** En la revisión
+      original, las 30 corridas de
       `.github/workflows/verificar.yml`, desde el primer commit del 14 de
-      septiembre, terminan en `startup_failure` sin crear un solo job. El
-      archivo pasa `actionlint` en sus dos versiones, no tiene BOM ni tabs, el
-      workflow figura como activo y Actions está habilitado. Lo que queda es la
-      cuenta: minutos de Actions agotados o facturación en un repositorio
-      privado. El aviso se ve solo en la pestaña Actions de github.com. Hasta
-      que se resuelva, **la única red de seguridad es `.\tools\verificar.ps1`
-      en la máquina.**
+      septiembre, terminaban en `startup_failure` sin crear un solo job. El
+      archivo pasaba `actionlint`, el workflow figuraba como activo y Actions
+      estaba habilitado. La hipótesis pendiente era minutos o facturación de
+      la cuenta privada; el archivo por sí solo no confirma esa causa. Falta
+      evidencia actual de una corrida: verificar en GitHub antes de cerrar este
+      pendiente. Mantener `.\tools\verificar.ps1` local como requisito.
 - [ ] **Instalar MJ Core en GlossyHair y Yamana**, con un token por tienda
-      (`PUBLICAR.md`, sección 3). Hoy dos de las tres tiendas se actualizan a
-      mano, y nadie sabe qué versión corren.
+      (`PUBLICAR.md`, sección 3). Según el registro operativo previo, esas dos
+      tiendas se actualizaban a mano. Confirmar su estado y el alta de Jaz en
+      `TIENDAS.md`.
 - [ ] **Probar en la tienda real** MJ Dólar, MJ Medios de Pago, MJ Envíos y, del
       ERP, corregir ventas, devoluciones/RMA, saldo a favor y entrega por
-      partes. Es la lista de `PRUEBAS-EN-LA-TIENDA.md`, pendiente desde hace
-      una semana. Todo eso toca plata, stock o el checkout.
+      partes. Es la lista de `PRUEBAS-EN-LA-TIENDA.md`, sin evidencia operativa
+      registrada. Todo eso toca plata, stock o el checkout.
 - [ ] **Probar el puente con Andreani en MJ Importaciones**, que es la única
       tienda con cuenta de un correo. Hasta que se pruebe con una compra real,
       no encender la cotización en vivo en las otras tiendas: no tienen cuenta
@@ -104,8 +125,10 @@ permisos mal cerrados. Ordenadas por lo que más duele.
 - [ ] **Colegas: se sella el porcentaje pero no la base de la comisión**
       (`inc/orders.php:98-100`): cambiar "total ↔ subtotal" recalcula
       liquidaciones históricas ya pagadas.
-- [ ] **Turnos: `MJTO_DB_VERSION = '1'` y migrar es volver a correr `dbDelta`**
-      (`inc/db.php:130-134`). La primera migración real necesita el mecanismo.
+- [ ] **Revalidar las migraciones de Turnos entre versiones instaladas.**
+      El hallazgo original se hizo con esquema `1`; el fuente actual declara
+      `MJTO_DB_VERSION = '2'`. Revisar `inc/db.php` y el arranque sobre una base
+      anterior antes de dar por resuelto el recorrido de actualización.
 
 ### 3.4. Ajustes y funciones que mienten
 
@@ -135,10 +158,12 @@ Cosas que la pantalla ofrece y el código no hace. Peor que no tenerlas.
       (`store/catalog.js`). Dejarlo escrito en `CONFIGURACION.md` o devolverle
       el formulario.
 
+<a id="consistencia"></a>
+
 ### 3.5. Consistencia y documentación
 
-- [ ] **Faltan cinco `LEEME.md`**: Dólar, Medios de Pago, Core, ERP y
-      Optimizador. La convención ya está escrita en `README.md` (un `LEEME.md`
+- [ ] **Faltan seis `LEEME.md`**: Dólar, Medios de Pago, Core, ERP,
+      Optimizador y Fotos Rápidas. La convención ya está escrita en `README.md` (un `LEEME.md`
       por plugin; el `readme.txt`, donde existe, solo cabecera con `Stable tag`
       y changelog) y los `readme.txt` del ERP, Dólar y Optimizador ya la
       cumplen. Se escribe el de cada plugin cuando se lo toque.
@@ -153,6 +178,8 @@ Cosas que la pantalla ofrece y el código no hace. Peor que no tenerlas.
       configuración.
 
 ---
+
+<a id="mejoras"></a>
 
 ## 4. Mejoras a lo que ya anda
 
@@ -275,6 +302,8 @@ No frenan la v1. Ordenadas por área; dentro de cada una, por valor.
 
 ---
 
+<a id="backlog"></a>
+
 ## 5. Qué se puede sumar después
 
 Lo que quedaba vigente del plan (`PLUGINS-MJ.md`), revisado contra lo que ya
@@ -355,46 +384,40 @@ existe. Tamaño: chico = días, mediano = una o dos semanas, grande = más.
 
 ---
 
+<a id="orden"></a>
+
 ## 6. El orden que sugiero
 
 ### Fase 0 — cerrar la v1 (sección 3)
 
-1. Resolver la cuenta de GitHub para que el CI arranque, e instalar MJ Core en
-   las dos tiendas que faltan. Nada de código. **Pendiente.**
-2. ~~Los permisos del ERP y los frenos del tema.~~ Hecho el 18/9 (ERP 1.22.0,
-   MJ Appearance 3.19.0).
-3. ~~Los cuatro `uninstall.php` y la integridad al borrar una venta.~~ Hecho el
-   18/9 (Turnos 1.2.1, Colegas 1.0.1, Fotos Rápidas 1.3.0, ERP 1.22.0).
-4. ~~Los ajustes fantasma, el `*_REQUIRES`, la constante de Fotos Rápidas, los
-   `readme.txt` y el i18n.~~ Hecho el 18/9. Quedan los cinco `LEEME.md` (3.5).
-5. Las pruebas en la tienda real. Lo único que no se hace desde el código.
-   **Pendiente**, y ahora con Caja, Reportes y los frenos sumados a la lista.
-6. Lo que sigue abierto de 3.2 y 3.3: frenos y datos de la seña en Turnos, el
-   `/cotizar` y el CSV de Envíos, el Optimizador y el `uninstall.php` de Medios
-   de Pago.
+1. Confirmar una corrida real de CI y el estado de MJ Core en las tiendas.
+2. Ejecutar y registrar los recorridos manuales pendientes, incluidos Caja,
+   Reportes y las integraciones con correos.
+3. Revalidar y resolver lo que siga vigente de las secciones 3.2 a 3.4.
+4. Completar los seis manuales pendientes y resolver la deuda del publicador
+   de la sección 3.5 cuando se trabaje en esas áreas.
 
 ### Fase 1 — lo que mueve plata
 
-7. ~~Caja y Reportes en el ERP.~~ Hecho el 18/9 (ERP 1.22.0). Falta probarlos
-   en la tienda (`PRUEBAS-EN-LA-TIENDA.md`, secciones 7 y 8).
-8. MJ Vencimiento de Pedidos.
-9. MJ Tiempos de Entrega.
-10. Arrancar el trámite de ARCA aunque el Facturador venga después.
+5. MJ Vencimiento de Pedidos.
+6. MJ Tiempos de Entrega.
+7. Arrancar el trámite de ARCA aunque el Facturador venga después.
 
 ### Fase 2 — crecer
 
-10. Reseñas en la ficha y el catálogo paginado (4.1), antes de que un catálogo
-    grande lo pida a los gritos.
-11. Lista de Precios, Avisos de Stock, Precios Mayoristas.
-12. Tests sobre la plata del ERP y partir los archivos grandes.
+8. Reseñas en la ficha y catálogo paginado (4.1).
+9. Lista de Precios, Avisos de Stock y Precios Mayoristas.
+10. Tests sobre la plata del ERP y separar responsabilidades de archivos grandes.
 
 ### Fase 3 — lo que depende de afuera
 
-13. Cotización en vivo y etiquetas, cuando haya cuenta con un correo.
-14. Facturador, cuando esté el certificado.
-15. Pago online de la seña y portal de la colega.
+11. Cotización en vivo y etiquetas, según la integración disponible de cada correo.
+12. Facturador, cuando esté el certificado.
+13. Pago online de la seña y portal de la colega.
 
 ---
+
+<a id="decisiones"></a>
 
 ## 7. Lo que está bien y no se toca
 

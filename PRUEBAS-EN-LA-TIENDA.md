@@ -1,15 +1,46 @@
 # Pruebas en la tienda real
 
-Para MJ Dólar, MJ Medios de Pago, MJ Envíos y, de MJ ERP, la corrección de
-ventas, las devoluciones con su RMA y el saldo a favor: todo eso todavía no se
-probó con una tienda funcionando.
+Recorridos para validar en WordPress/WooCommerce los cambios que afectan
+precios, pagos, stock, checkout, reservas y administración. La presencia de un
+paso en este documento no significa que ya haya sido probado.
 
-Esto es lo que no se puede hacer desde el código: todos tocan plata, stock o el
-checkout, y ahí el único que sabe si está bien sos vos mirándolo.
+Estado: siguen pendientes los recorridos sin evidencia registrada. Una
+verificación de código o un build no los marca como aprobados. Los números de
+versión en los títulos indican cuándo se incorporó cada recorrido.
+
+## Consulta por tema
+
+Consultá la preparación y el recorrido del cambio; no repitas toda la guía
+para una modificación aislada. Las integraciones pueden requerir más de uno.
+
+- [Preparar una prueba y registrar evidencia](#preparacion)
+- [Dólar y precios](#dolar)
+- [Medios de pago y comprobantes](#pagos)
+- [Envíos y direcciones](#envios)
+- [ERP: corregir ventas](#erp-ventas)
+- [ERP: devoluciones y saldo](#erp-devoluciones)
+- [ERP: entregas parciales](#erp-entregas)
+- [ERP: caja](#erp-caja)
+- [ERP: reportes](#erp-reportes)
+- [Tema: frenos y límites](#appearance)
+- [Turnos: reserva completa y fidelidad](#turnos)
+- [Envíos: integración con correos](#correos)
+- [Envíos: restricciones por medio de pago](#envios-pagos)
+- [Cerrar y registrar las pruebas](#cierre)
 
 ---
 
+<a id="preparacion"></a>
+
 ## Antes de empezar
+
+Elegí los recorridos afectados por el cambio y usá un entorno de prueba si
+está disponible. En una tienda real, acordá antes el alcance: una reserva puede
+mandar correos y una compra puede mover stock o plata. Los agentes no ejecutan
+esas acciones por el solo hecho de leer esta guía.
+
+Registrá en la sección probada: fecha, tienda/entorno, versiones instaladas,
+caso, resultado esperado/obtenido y referencia a evidencia sin datos privados.
 
 **Poné los registros en "Todo".** MJ → Registros → *Todo*. Así, si
 algo falla en silencio, queda anotado y después se lee en WooCommerce → Estado
@@ -23,6 +54,8 @@ stock 10, que después borrás. No uses uno que estés vendiendo.
 hora es mucho más rápido que buscar por texto.
 
 ---
+
+<a id="dolar"></a>
 
 ## 1. MJ Dólar
 
@@ -90,6 +123,8 @@ código HTTP. Antes no quedaba nada. Que falle no rompe la tienda —el tipo de
 cambio lo ponés vos igual—, pero conviene saber si la fuente dejó de responder.
 
 ---
+
+<a id="pagos"></a>
 
 ## 2. MJ Medios de Pago
 
@@ -199,6 +234,8 @@ pedido y en el link para subir el comprobante.
 viejo después de cambiarlo (vaciá la caché de la página y volvé a mirar).
 
 ---
+
+<a id="envios"></a>
 
 ## 3. MJ Envíos
 
@@ -327,6 +364,8 @@ llevando puesta la tienda.
 
 ---
 
+<a id="erp-ventas"></a>
+
 ## 4. MJ ERP: corregir una venta
 
 Toca el stock y el pedido de WooCommerce, así que conviene verlo con ventas de
@@ -384,6 +423,8 @@ que el pedido y lo descontado quedaron desparejos: anotá la venta y el pedido.
   ventas»: no ve el botón ni el Historial.
 
 ---
+
+<a id="erp-devoluciones"></a>
 
 ## 5. MJ ERP: devoluciones, RMA y saldo a favor
 
@@ -501,6 +542,8 @@ prendido en WooCommerce).
 
 ---
 
+<a id="erp-entregas"></a>
+
 ## 6. MJ ERP: entregar una parte
 
 1. Cargá una venta con tres productos (uno con cantidad 2) y forma de entrega
@@ -527,6 +570,8 @@ pendiente, o la venta no sale de la lista de entregas pendientes después de
 entregar todo.
 
 ---
+
+<a id="erp-caja"></a>
 
 ## 7. MJ ERP: Caja
 
@@ -578,6 +623,8 @@ cobros de ese medio en Ventas del mismo período.
 
 ---
 
+<a id="erp-reportes"></a>
+
 ## 8. MJ ERP: Reportes
 
 Todo sale del costo congelado en cada venta, así que usá el producto de prueba
@@ -608,6 +655,8 @@ punto y coma y los importes con coma.
 
 ---
 
+<a id="appearance"></a>
+
 ## 9. MJ Appearance: los frenos
 
 1. Desde incógnito, en `/login`, probá una contraseña mal 11 veces seguidas
@@ -633,6 +682,8 @@ vacía sola).
 **Señal de que algo está mal:** el freno salta con menos intentos de los
 configurados. Si el hosting está detrás de Cloudflare o un proxy, todas las
 visitas comparten la IP: ver el filtro `mj_client_ip` en `CONFIGURACION.md`.
+
+<a id="turnos"></a>
 
 ## 10. MJ Turnos Online 1.3
 
@@ -710,6 +761,8 @@ aviso; en el panel aparece "Marcar devuelta") o saldo a favor.
 clienta ve un turno que no es suyo, o un mail sale dos veces.
 
 ---
+
+<a id="correos"></a>
 
 ## 11. MJ Envíos 1.4: el puente con los correos y la lista en dos niveles
 
@@ -793,6 +846,8 @@ que está ahí mismo y volvé a mirar.
 Andreani que sale $0 sin que hayas puesto envío gratis, un pedido que el panel
 de Andreani no reconoce, o el checkout que se queda pensando al elegir sucursal.
 
+<a id="envios-pagos"></a>
+
 ## 12. MJ Envíos 1.10: el envío que pide cierta forma de pago
 
 En **MJ Importaciones**. Necesitás un método con *Medios de pago → Solo con
@@ -839,24 +894,25 @@ estos* y un solo medio marcado (por ejemplo, transferencia).
 medio de pago que desapareció y no vuelve, o un pedido que WooCommerce rechaza
 por «medio de pago no disponible».
 
+<a id="cierre"></a>
+
 ## Cuando termines
 
 1. Volvé los registros a **Solo los errores**.
 2. Borrá el producto de prueba y los pedidos de prueba.
-3. Anotá lo que salió mal. Si algo falló, el registro tiene el motivo: copialo
-   entero, que es mucho más útil que "no anduvo".
+3. Anotá el resultado y el fragmento relevante del registro, con la hora.
+   Quitá tokens, datos personales y datos de pago antes de compartirlo.
+4. Actualizá el pendiente correspondiente de `AUDITORIA.md` solo si el
+   recorrido quedó realmente validado; registrá los fallos que continúan.
 
 ---
 
-## Lo que ya se verificó desde el código
+## Qué cubre la verificación automática
 
-Para que no lo pruebes de nuevo al pedo:
+`tools/verificar.ps1` revisa sintaxis, compatibilidad PHP, reglas estáticas,
+compilación (salvo `-Rapido`), copias compartidas y documentación. El resultado
+corresponde a los archivos y al entorno de esa ejecución.
 
-- Los 160 archivos PHP compilan, en PHP 7.4 y en 8.4.
-- No hay sintaxis que rompa en un servidor con PHP 7.4.
-- Las dos apps de React compilan, y lo compilado coincide con lo que está
-  subido en `dist/`.
-- No hay inyección de SQL en ninguna consulta.
-
-Lo que **no** se puede verificar sin una tienda: que los números den bien, que
-el checkout no se cuelgue, y que los correos respondan. Eso es esta lista.
+PHPCS no demuestra ausencia de vulnerabilidades. Un build no comprueba los
+importes, permisos, stock, entregas de correo ni respuestas de proveedores.
+Para esos comportamientos se usan los recorridos anteriores.

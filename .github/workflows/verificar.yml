@@ -1,31 +1,13 @@
 # Verificación automática de MJ Family.
 #
-# Corre en cada push y en cada pull request. Es la red de seguridad que antes
-# no existía: 128.000 líneas que corren en tiendas reales y ninguna forma de
-# saber si un cambio las rompía hasta que un cliente escribía.
-#
-# Tres trabajos, del más importante al menos:
-#
-#   sintaxis     php -l sobre todos los .php, y compatibilidad con PHP 7.4.
-#                Tolerancia cero: un error acá es una pantalla blanca.
-#
-#   reglas       Las reglas de WordPress (seguridad, base de datos) comparadas
-#                contra tools/phpcs-baseline.json. Corta solo si hay algo nuevo:
-#                los avisos viejos quedan anotados como deuda, no frenan.
-#
-#   compilar     Que las dos apps de React compilen. Si el build falla, mejor
-#                enterarse acá que cuando vas a publicar.
-#
-# Lo mismo se corre en la máquina con:  .\tools\verificar.ps1
+# PHP 7.4/8.3, reglas de WordPress, copias compartidas y builds de React.
+# La documentación tiene un workflow liviano propio.
+# Equivalente local: .\tools\verificar.ps1
 
 name: Verificar
 
-# Cuándo NO corre: al publicar (el commit de publicar.ps1 solo cambia los zip
-# de releases/ y el manifiesto) ni cuando solo cambia documentación. Y tampoco
-# por la etiqueta de la versión: el push de la rama ya lo verificó. Sin esto,
-# cada publicación disparaba dos corridas de cinco trabajos sobre código que
-# ya estaba verificado, y los minutos de Actions de una cuenta privada son
-# contados.
+# Evita repetir los controles pesados en cambios exclusivamente Markdown,
+# manifiestos generados o etiquetas. Un push mixto sí se verifica.
 on:
   push:
     branches: [main]
@@ -108,7 +90,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: vendor
-          key: composer-${{ hashFiles('composer.json') }}
+          key: composer-${{ hashFiles('composer.lock') }}
           restore-keys: composer-
 
       - name: Instalar PHPCS y los estándares
@@ -129,34 +111,10 @@ jobs:
           vendor/bin/phpcs --report=json --no-colors --report-file=phpcs.json -q || true
           php tools/phpcs-baseline.php comparar phpcs.json
 
-      # Los archivos de shared/ se copian adentro de cada plugin para que cada
-      # uno siga siendo autosuficiente. Si una copia se editó a mano, deja de
-      # coincidir con la maestra y los plugins empiezan a comportarse distinto
-      # entre sí. Esto lo caza acá y no en una tienda.
+      # El mismo script que en local: detecta también consumidores sin copia.
       - name: Copias de shared/ sincronizadas
-        shell: bash
-        run: |
-          if [ ! -d shared ]; then
-            echo "No hay archivos compartidos todavía."
-            exit 0
-          fi
-          faltan=0
-          for maestra in shared/*.php; do
-            [ -e "$maestra" ] || continue
-            nombre=$(basename "$maestra")
-            esperado=$(sha256sum "$maestra" | cut -d' ' -f1)
-            while IFS= read -r copia; do
-              real=$(sha256sum "$copia" | cut -d' ' -f1)
-              if [ "$real" != "$esperado" ]; then
-                echo "::error file=$copia::Quedó distinto de shared/$nombre. Corré tools/sincronizar-compartido.ps1"
-                faltan=$((faltan + 1))
-              fi
-            done < <(find plugins -path "*/compartido/$nombre")
-          done
-          if [ "$faltan" -ne 0 ]; then
-            exit 1
-          fi
-          echo "Todas las copias coinciden con shared/."
+        shell: pwsh
+        run: ./tools/sincronizar-compartido.ps1 -Verificar
 
       - name: Guardar el informe completo
         if: always()

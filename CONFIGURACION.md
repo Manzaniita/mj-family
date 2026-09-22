@@ -7,7 +7,32 @@ se valida una reserva, cómo se aclara un color para el modo noche.
 
 Este documento es el índice de dónde se toca cada cosa.
 
+## Consulta por tema
+
+Leé solo el tema afectado. Para modificar el código, ubicá primero el paquete
+con [AGENTS.md](AGENTS.md). Este documento describe ajustes de las tiendas;
+las herramientas de desarrollo se configuran en [PUBLICAR.md](PUBLICAR.md#herramientas).
+Actualizá la sección correspondiente cuando agregues o cambies un ajuste.
+
+- [Tema padre: panel, navegación, SEO, sesión y bloques](#appearance)
+- [Identidad y presets de cada tienda](#temas-hijo)
+- [Dónde se configura cada plugin](#paneles)
+- [ERP: medios de pago y cajas](#erp)
+- [ERP: clientes](#erp-clientes)
+- [ERP: precio sugerido](#erp-precios)
+- [ERP: ventas, entregas, pedidos y correcciones](#erp-ventas)
+- [ERP: saldo a favor](#erp-saldo)
+- [ERP: caja](#erp-caja)
+- [ERP: reportes](#erp-reportes)
+- [Consignaciones](#consignaciones)
+- [Envíos, correos, direcciones y cotizaciones](#envios)
+- [Turnos, señas, cuentas y avisos](#turnos)
+- [Constantes y filtros](#instalaciones-especiales)
+- [Decisiones que no son ajustes](#limites)
+
 ---
+
+<a id="appearance"></a>
 
 ## 1. MJ → MJ Appearance
 
@@ -263,6 +288,8 @@ paletas cálidas conviene no bajar de 75 y 55.
 El piso es 40 y 30: por debajo de eso la tienda no se lee, así que el panel no
 lo deja guardar.
 
+<a id="temas-hijo"></a>
+
 ## 2. Temas hijo (skins)
 
 Un tema hijo ya no repite en su código la paleta ni los textos del padre: se
@@ -309,6 +336,8 @@ si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 
 ---
 
+<a id="paneles"></a>
+
 ## 3. Otros paneles
 
 **Todo lo de la familia MJ cuelga del menú `MJ`** de la barra lateral de
@@ -342,6 +371,8 @@ ajustes de un tema.
 | MJ Core | MJ → Actualizaciones | De qué repositorio de GitHub salen las versiones, el token para leerlo y cada cuántas horas se consulta. Muestra qué versión de cada paquete tiene la tienda y cuál está publicada. Ver `PUBLICAR.md`, sección 3. |
 
 ---
+
+<a id="erp"></a>
 
 ## 3.1. La caja de cada medio de pago
 
@@ -378,6 +409,8 @@ anterior. Y una caja borrada nunca queda pegada: se cae al default sola.
 Un plugin puede cambiar la resolución con el filtro `mjerp_cashbox_for_method`.
 
 ---
+
+<a id="erp-clientes"></a>
 
 ## 3.1.1. La libreta de clientes
 
@@ -445,6 +478,8 @@ una venta, el historial sigue completo). Si no tiene ninguna, se borra de verdad
 
 ---
 
+<a id="erp-precios"></a>
+
 ## 3.1.2. El precio que sugiere una venta
 
 **Dónde:** MJ ERP → Configuración → Ventas → *Redondeo del precio sugerido*.
@@ -463,6 +498,8 @@ Solo afecta al precio que el ERP **sugiere**. Un precio escrito a mano en la
 línea de la venta se respeta tal cual, siempre.
 
 ---
+
+<a id="erp-ventas"></a>
 
 ## 3.1.3. La pantalla de venta: el mostrador
 
@@ -822,6 +859,8 @@ MJ → MJ Appearance → Barra de navegación.
 
 ---
 
+<a id="erp-saldo"></a>
+
 ## 3.1.4. Saldo a favor
 
 **Dónde se configura:** MJ ERP → Configuración → Clientes → *Saldo a favor*.
@@ -883,6 +922,8 @@ lo que falta. **Si el pedido se cancela, el saldo vuelve.**
 
 ---
 
+<a id="erp-caja"></a>
+
 ## 3.1.5. Caja
 
 **Dónde:** MJ ERP → Caja, y sus ajustes en MJ ERP → Configuración → **Caja y
@@ -930,6 +971,8 @@ todo el historial).
 
 ---
 
+<a id="erp-reportes"></a>
+
 ## 3.1.6. Reportes
 
 **Dónde:** MJ ERP → Reportes, y sus ajustes en MJ ERP → Configuración → **Caja y
@@ -958,6 +1001,8 @@ ganancia sobre costo.
 | Margen mínimo (%) | 0 | Los productos con un margen menor se marcan en rojo. 0 = solo los vendidos bajo costo. |
 
 ---
+
+<a id="consignaciones"></a>
 
 ## 3.2. Cómo funciona una consignación
 
@@ -1042,6 +1087,8 @@ de la fila del pago, con la imagen o el PDF y los botones de aprobar y rechazar.
 No hace falta entrar a wp-admin.
 
 ---
+
+<a id="envios"></a>
 
 ## 3.3. Los envíos, en detalle
 
@@ -1361,6 +1408,8 @@ cuesta.
 
 ---
 
+<a id="turnos"></a>
+
 ## 3.4. Turnos: cambios, cuentas, saldo, mantenimiento y opiniones
 
 Desde MJ Turnos Online 1.3. **Todo viene apagado**: con los ajustes de
@@ -1453,6 +1502,8 @@ la reserva.
 
 ---
 
+<a id="instalaciones-especiales"></a>
+
 ## 4. Para instalaciones especiales
 
 Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
@@ -1537,6 +1588,8 @@ define('MJ_SETTINGS_CAPABILITY', 'manage_woocommerce');
 ```
 
 ---
+
+<a id="limites"></a>
 
 ## 5. Lo que a propósito NO es configurable
 

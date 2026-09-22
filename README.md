@@ -1,217 +1,199 @@
 # MJ Family
 
-Temas y plugins propios de WordPress con los que funcionan mis tiendas. Todo
-hecho a medida: nada alquilado, nada con suscripción mensual, nada que dependa
-de que un desarrollador ajeno siga manteniendo su producto.
+Repositorio privado de temas y plugins WordPress/WooCommerce para las tiendas
+MJ Importaciones, GlossyHair, Yamana y el proyecto Jaz Beauty Art. Acá se
+mantiene el fuente y se preparan los paquetes que reciben las tiendas.
 
-Este repositorio es la fuente de verdad. Cada tienda corre una combinación de
-estas piezas, y lo que se sube a cada una sale siempre de acá.
+## Empezar por lo que necesitás
 
----
+| Necesidad | Documento |
+| --- | --- |
+| Trabajar con Codex | [AGENTS.md](AGENTS.md): reglas y mapa por tarea. |
+| Configurar una función | [CONFIGURACION.md](CONFIGURACION.md): índice por tema y plugin. |
+| Preparar un cambio o una versión | [PUBLICAR.md](PUBLICAR.md): versiones, verificación y publicación. |
+| Instalar o revisar una tienda | [TIENDAS.md](TIENDAS.md): composición y puesta en marcha. |
+| Probar un circuito | [PRUEBAS-EN-LA-TIENDA.md](PRUEBAS-EN-LA-TIENDA.md): recorridos manuales. |
+| Elegir o cerrar trabajo pendiente | [AUDITORIA.md](AUDITORIA.md): deuda, mejoras y backlog. |
 
 ## Qué hay adentro
 
 ### Temas
 
-Un tema padre con todo el motor, y un tema hijo por tienda que solo cambia la
-piel: paleta, tipografías y textos.
-
-| Tema | Versión | Qué es |
+| Tema | Versión del fuente | Función |
 | --- | --- | --- |
-| **MJ Appearance** | 3.31.0 | El motor. Tienda completa en React (una sola página) sobre la Store API de WooCommerce: catálogo, carrito, checkout con compra rápida, cuenta y turnos. Las páginas (y la portada, si se quiere) se arman con el editor de bloques de WordPress: bloques MJ para hero, productos en grilla o carrusel, categorías, banners, marcas, opiniones, Instagram, "Nosotros", contacto y preguntas frecuentes, con plantillas listas. Con MJ ERP, el cliente ve su saldo a favor en «Mi cuenta» y lo usa al pagar. Con MJ Medios de Pago, la confirmación y «Mi cuenta» muestran los datos para pagar (alias, CBU…) con botón de copiar. Con MJ Turnos Online, la reserva pide la cuenta de la clienta si se configura, muestra el comprobante de la seña, deja reprogramar, cancelar y opinar desde el turno, y suma «Mis turnos» a «Mi cuenta». Con MJ Fidelidad, la tarjeta de sellos en «Mi cuenta». Nivel de animación «Ninguna», botón fijo abajo (por ejemplo «Reservar turno»), bloque Galería de trabajos, y un Contacto que puede mostrar solo Instagram y la zona de atención. La ficha del producto deja la foto acompañando al panel de compra hasta la descripción. Modo día/noche con la fuerza del texto secundario configurable (para que una paleta delicada no camufle las palabras), niveles de animación, barra de navegación armada ítem por ítem, paso de envío con validación de código postal, SEO listo para Google y WhatsApp (título, descripción, Open Graph y datos estructurados por producto, con o sin plugin de SEO) y **todo** configurable desde MJ → MJ Appearance. |
-| **GlossyHair** | 1.1.1 | Salón de alisados que además vende productos. Blanco y fucsia, Urbanist + Manrope. Portada pensada para turnos. |
-| **Yamana** | 1.1.1 | Tejidos artesanales y cursos. Lino y terracota, Fraunces + Nunito. Incluye el proyecto colectivo "Entre Hilos". |
-| **MJ Atelier** | 1.2.0 | Tienda editorial de lujo. Marfil y bronce, Fraunces + Manrope, movimiento cinematográfico. |
-| **Jaz Beauty Art** | 1.1.0 | Pestañas y cejas. Crema, bordó y negro, Cormorant Garamond + Jost, sin animaciones. Propone las reglas de turnos de Jaz, la ficha de salud, la tarjeta de fidelidad y carga el contenido inicial como borrador. |
+| **MJ Appearance** | 3.31.0 | Tema padre: tienda React, catálogo, carrito, checkout, cuenta, bloques y configuración común. |
+| **GlossyHair** | 1.1.1 | Salón de alisados, reservas y productos; identidad blanco y fucsia. |
+| **Yamana** | 1.1.1 | Tejidos, cursos y Entre Hilos; identidad lino y terracota. |
+| **MJ Atelier** | 1.2.0 | Tienda editorial; identidad marfil y bronce. |
+| **Jaz Beauty Art** | 1.1.0 | Pestañas y cejas, reservas, fidelidad y contenido inicial en borrador. |
 
-Los temas hijo no repiten nada del padre: se **describen** con el filtro
-`mj_skins` (paleta, tipografías, textos, orden de la portada, paletas
-alternativas) y el padre se encarga del resto. Sus colores aparecen en el panel
-como paletas que se aplican con un botón y después se editan campo por campo.
+Los hijos describen su identidad mediante los filtros del padre; no duplican
+su motor. Los ajustes guardados en el panel prevalecen sobre los presets.
 
 ### Plugins
 
-| Plugin | Versión | Qué hace |
+| Plugin | Versión del fuente | Función |
 | --- | --- | --- |
-| **MJ Turnos Online** | 1.4.0 | Reserva de turnos con seña (con comprobante, si se pide), reserva provisoria que se libera sola, fichas técnicas por visita y panel de agenda con los horarios libres. Opcional: cuenta de la clienta con "Mis turnos", reprogramar y cancelar con reglas de seña, saldo a favor, aviso de mantenimiento por servicio, dos recordatorios y opiniones de las clientas atendidas. |
-| **MJ Fidelidad** | 1.1.0 | Tarjeta de sellos: cada turno atendido (y, si se quiere, cada compra) suma solo; al completarla se gana el premio que se elija, a canjear o como saldo a favor. |
-| **MJ Colegas** | 1.1.0 | Productos de terceros en la tienda: cada uno lleva quién lo hizo, y se liquida descontando la comisión. |
-| **MJ Dólar** | 1.2.0 | Precios cargados en dólares y convertidos con el tipo de cambio que decido yo. Campos USD en productos, variaciones, edición en lote y CSV. |
-| **MJ Medios de Pago** | 1.6.0 | Descuento o recargo según el medio de pago, con el precio reflejado en ficha, carrito y checkout. Cada medio se edita desde el mismo panel: título, instrucciones y sus datos para pagar (alias, CBU, titular…), que el cliente ve después de comprar. Al aprobar un comprobante se dice cuánto entró: con el total el pedido pasa a preparar, con una parte queda el saldo a la vista del cliente. Cada medio de la tienda se declara equivalente a uno del ERP, y con eso hereda su caja de ingreso. |
-| **MJ Envíos** | 1.11.0 | Los métodos de envío de la tienda, creados y editados por mí: a domicilio, a sucursal, retiro en el local, zona propia por código postal, gratis o a coordinar. Cada uno decide con qué condiciones aparece, con qué medios de pago se combina, qué datos pide y de dónde sale su precio: tabla propia, precio fijo, cotización en vivo con Vía Cargo, o **el plugin oficial del correo** (Andreani, Correo Argentino) con la cuenta que ya está conectada ahí: MJ Envíos no pide las credenciales de nuevo, se queda con la tarifa que ese plugin calcula y le aplica las reglas de la casa (gratis desde $X, excluidos, margen, redondeo, nombre y orden). El checkout se lee en tres niveles: cómo querés recibir la compra (retiro, a domicilio, y los grupos que armes, como «Envío a todo el país»); al elegir un grupo, una tarjeta por correo (Andreani, Correo Argentino); y adentro de cada una, los modos que ofrece ese correo con su plazo y su precio. Un correo que devuelve $0 no se ofrece: casi siempre significa que no pudo cotizar, y el motivo se muestra en vez de esconderlo. Un envío puede pedir cierta forma de pago: se ofrece igual, con el cartel de con qué se paga, y al elegirlo el checkout deja solo esos medios y dice por qué. Sucursal elegible y carteles de más barato y más rápido. Pantalla propia de envíos pendientes: qué falta despachar y el seguimiento sin abrir el pedido. Cotizador en la ficha del producto, donde el cliente puede dejar elegido cómo quiere recibirlo. Si el plugin de un correo le agrega un campo obligatorio a la dirección (el DNI de Andreani, por ejemplo), MJ Envíos lo adopta: lo pide en el paso de envío y lo manda con el pedido, así la compra se puede cerrar. Ningún correo caído o sin credenciales tumba el checkout: lo que falle queda en el log y la tienda sigue. |
-| **MJ ERP** | 1.23.0 | Ventas (propias y de la tienda), clientes, costeo, compras, proveedores, stock y consignación, con portal para consignatarios. La venta se carga como en un mostrador en la compu y en cinco pasos en el celular. Lleva la entrega —envío, punto de encuentro, en mano, y por producto cuando se lleva una parte y el resto se envía o lo retira— y el pedido en WooCommerce se emite solo, con su descuento de stock, cuando la venta se cobra o se entrega. Cada medio de pago tiene su caja de ingreso, y el precio sugerido se redondea como lo publica la tienda. Los productos de una venta se corrigen desde su detalle aunque ya tenga cobros —stock y pedido incluidos—, cada cobro se corrige aparte (medio, importe, caja, fecha) y cada venta lleva su historial. Una venta cobrada acepta devoluciones, cambios y garantías: la plata queda como saldo a favor del cliente (en la moneda en que pagó, y lo usa al pagar en la tienda) o se le devuelve; desde Clientes se le suma o resta a mano, con motivo y la venta a la que se refiere, o se usa para pagar lo que debe, y lo fallado espera en RMA hasta volver al stock o darse de baja como pérdida por garantías. El pedido de WooCommerce sigue a la venta: cobrada queda procesando y, entregada, completado. **Caja:** saldo y movimientos de cada caja (los cobros, cobranzas, gastos de compras y reintegros entran solos; lo demás se carga a mano, y la plata se pasa entre cajas), con cierre de caja diario. **Reportes:** rentabilidad real por producto, canal, mes y cliente, con el aviso de lo vendido por debajo del costo. |
-| **MJ Optimizador de Imágenes** | 1.2.0 | Achica y convierte las imágenes en mi propio servidor, sin límites ni créditos. |
-| **MJ Fotos Rápidas** | 1.4.0 | Cargar las fotos de un producto desde el celular en dos toques y publicarlo ahí mismo. |
-| **MJ Core** | 1.1.0 | Actualizaciones desde wp-admin: cuando publico una versión nueva, cada tienda que usa ese tema o plugin la ofrece con su botón de "Actualizar". |
+| **MJ Turnos Online** | 1.4.0 | Reservas, agenda, señas, fichas, cuentas de clientas y recordatorios. Funciona sin WooCommerce. |
+| **MJ Fidelidad** | 1.1.0 | Tarjeta de sellos y premios por turnos o compras. |
+| **MJ Colegas** | 1.1.0 | Productos de terceros, comisiones y liquidaciones. |
+| **MJ Dólar** | 1.2.0 | Precios USD, conversión a pesos y redondeo configurable. |
+| **MJ Medios de Pago** | 1.6.0 | Descuentos/recargos, datos para pagar y revisión de comprobantes. |
+| **MJ Envíos** | 1.11.0 | Métodos, reglas, cotizaciones, integración con correos y seguimiento. |
+| **MJ ERP** | 1.23.0 | Ventas, compras, stock, clientes, consignación, devoluciones, saldo, caja y reportes. |
+| **MJ Optimizador de Imágenes** | 1.2.0 | Redimensionado y conversión de imágenes en el servidor. |
+| **MJ Fotos Rápidas** | 1.4.0 | Carga de fotos y publicación de productos desde el celular. |
+| **MJ Core** | 1.1.0 | Ofrece actualizaciones de paquetes instalados desde Releases privadas de GitHub. |
 
-Cada plugin hace una cosa y se puede desactivar sin romper el resto.
-
----
-
-## Cómo se arma cada tienda
-
-| Tienda | Tema | Plugins |
-| --- | --- | --- |
-| GlossyHair | GlossyHair | Core, Turnos Online, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
-| Yamana | Yamana | Core, Colegas, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
-| MJ Importaciones | MJ Atelier | Core, Dólar, Medios de Pago, Envíos, ERP, Optimizador, Fotos Rápidas |
-| Jaz Beauty Art | Jaz Beauty Art | Core, Turnos Online, Fidelidad, Medios de Pago, Envíos, Optimizador, Fotos Rápidas |
-
-Esas combinaciones están declaradas en
-[`tools/releases.config.json`](tools/releases.config.json) y el script las
-imprime al final, para saber qué zip lleva cada tienda.
-
----
-
-## Sacar los zip para subir a una tienda
-
-```powershell
-.\tools\build-releases.ps1
-```
-
-Lee la versión de cada tema y plugin de su propia cabecera y **solo arma el zip
-de los que tienen una versión que todavía no está en `releases/`**. Si ninguno
-cambió, no compila ni escribe nada. Cuando aparece una versión nueva, el zip de
-la anterior se borra: en la carpeta queda un único zip por paquete.
-
-- `mj-glossyhair-1.1.0.zip` — el paquete, listo para subir a la tienda.
-- `MANIFEST.md` — versión, tamaño y SHA-256 de cada uno.
-
-Si tocaste código sin subir el número de versión, `-Force` lo rehace igual.
-
-Los zip de cada versión publicada también quedan en las
-[Releases](../../releases) de este repositorio, para bajarlos sin tener el
-proyecto en la máquina:
-
-```bash
-gh release download v2026.09.09 --repo Manzaniita/mj-family --dir zips
-```
-
-### Publicar una versión nueva
-
-```powershell
-.\tools\publicar.ps1 -Mensaje "GlossyHair 1.2.0: nueva paleta"
-```
-
-Compila, arma los zip, comitea, etiqueta, sube todo a GitHub y publica los
-paquetes como Release. Pide confirmación antes de subir y corta si algo no está
-en condiciones.
-
-> **Regla que no se saltea:** el tema padre **MJ Appearance** va primero. Un
-> tema hijo sin su padre aparece como "tema roto" en WordPress.
-
-El paso a paso completo está en [`PUBLICAR.md`](PUBLICAR.md).
-
----
-
-## Documentación
-
-| Archivo | Para qué |
-| --- | --- |
-| [`PUBLICAR.md`](PUBLICAR.md) | Cómo se saca una versión, cómo se numera y cómo se sube a una tienda. |
-| [`CONFIGURACION.md`](CONFIGURACION.md) | Qué se configura y desde dónde. El índice de todos los ajustes. |
-| [`TIENDAS.md`](TIENDAS.md) | Qué lleva cada tienda, qué cargar apenas se instala y la prueba corta de cada una. |
-| [`PRUEBAS-EN-LA-TIENDA.md`](PRUEBAS-EN-LA-TIENDA.md) | Qué probar a mano en una tienda real, plugin por plugin. |
-| [`AUDITORIA.md`](AUDITORIA.md) | El cierre de la versión 1: cómo está cada pieza, qué falta para cerrarla, qué mejorar y qué se puede sumar después. |
-
----
+Los plugins no dependen de MJ Core para funcionar. Las dependencias obligatorias
+particulares, como WooCommerce, se declaran en cada paquete; los cruces con
+otros plugins MJ son opcionales. Versiones de esta tabla: **fuente del repo**,
+no prueba de qué está instalado o publicado. Las cabeceras son la referencia.
 
 ## Cómo está organizado
 
+```text
+AGENTS.md                          entrada para Codex
+plugins/AGENTS.md                  mapa y reglas de plugins
+plugins/mj-*/                      un plugin por función
+  mj-erp/AGENTS.md                 circuitos de ventas, stock y caja
+  mj-turnos-online/AGENTS.md       reserva, panel y app React
+    app/                          fuente React de Turnos
+    dist/                         resultado compilado que va a la tienda
+themes/AGENTS.md                   tema padre y personalización por tienda
+themes/mj-appearance/AGENTS.md     mapa de PHP y tienda React
+  inc/                            ajustes, sesión, skins y REST
+  react-app/                      fuente React de la tienda
+  dist/                           resultado compilado que va a la tienda
+themes/mj-{atelier,glossyhair,yamana,jazbeauty}/
+shared/                           originales del código que se copia a plugins
+tools/                            verificar, sincronizar, empaquetar y publicar
+.github/                          Actions, instrucciones y plantilla de PR
+releases/                         manifiestos generados y ZIP locales ignorados
 ```
-themes/
-  mj-appearance/     tema padre — el motor
-    react-app/       código fuente de la tienda (React + Vite)
-    dist/            la tienda ya compilada (esto es lo que corre en el servidor)
-    inc/             ajustes, sesión, skins, REST y configuración del frontend
-  mj-glossyhair/     temas hijo: solo describen su piel
-  mj-yamana/
-  mj-atelier/
-plugins/             un plugin por función
-tools/               script de empaquetado y su configuración
-releases/            los zip generados (no se versionan; ver Releases)
-```
 
-`dist/` **sí** se versiona a propósito: es lo que se sube al servidor, donde no
-hay Node para compilar. Eso hace que bajar una etiqueta del repositorio alcance
-para desplegar.
+La composición de las cuatro tiendas se declara en `bundles` de
+[tools/releases.config.json](tools/releases.config.json). El detalle operativo
+está en [TIENDAS.md](TIENDAS.md#composicion), sin repetir otra lista acá.
 
----
+## Preparar el entorno
 
-## Verificar antes de publicar
+- Git y Windows PowerShell 5.1 o PowerShell 7 para los scripts locales.
+- PHP 8.4 y Composer para las herramientas locales; el código distribuido debe
+  seguir siendo compatible con PHP 7.4. CI comprueba sintaxis en 7.4 y 8.3.
+- Node 20 o superior y npm para las dos apps React; CI usa Node 20.
+- WordPress/WooCommerce de desarrollo para probar flujos reales. El repositorio
+  no incluye una instalación completa, una base de datos ni credenciales.
+- GitHub CLI autenticado solo si vas a publicar; no hace falta para editar.
+
+Desde la raíz:
 
 ```powershell
-.\tools\verificar.ps1
-```
-
-Cuatro pasos: que todos los `.php` compilen, que nada use sintaxis que reviente
-en PHP 7.4, que no aparezcan avisos nuevos de seguridad o de base de datos, y
-que las dos apps de React compilen. Tarda un par de minutos; con `-Rapido` se
-saltea los builds, que es lo que más tarda.
-
-Lo mismo corre solo en GitHub en cada push, con
-[`.github/workflows/verificar.yml`](.github/workflows/verificar.yml).
-
-La primera vez hay que instalar las herramientas:
-
-```powershell
-winget install --id PHP.PHP.8.4 --scope user
 composer install
 ```
 
-Sobre los avisos de PHPCS: hay 456 anotados en
-[`tools/phpcs-baseline.json`](tools/phpcs-baseline.json), casi todos falsos
-positivos de un linter que no entiende el contexto (marca "falta nonce" cada
-vez que se lee `$_GET`, aunque sea para mostrar un cartel). La verificación
-corta solo si aparece uno **nuevo**, así lo viejo queda a la vista sin frenar
-el trabajo. Si arreglaste deuda de verdad, `.\tools\verificar.ps1 -Foto`
-vuelve a sacar la foto.
-
----
-
-## Trabajar en el proyecto
-
-Requisitos: Node 20 o superior, PowerShell para el empaquetado, y PHP 8.4 más
-Composer para la verificación.
+Cada app instala sus dependencias desde su lockfile:
 
 ```powershell
-# Tienda del tema, con recarga en vivo
-cd themes\mj-appearance\react-app
-npm install
+# Tienda del tema
+Push-Location themes/mj-appearance/react-app
+npm ci --no-audit --no-fund
 npm run dev
+Pop-Location
 
-# App de reservas del plugin de turnos
-cd plugins\mj-turnos-online\app
-npm install
+# Reservas y panel de Turnos
+Push-Location plugins/mj-turnos-online/app
+npm ci --no-audit --no-fund
 npm run dev
+Pop-Location
 ```
 
-Regla de la casa: **nada que dependa del negocio vive en el código.** Colores,
-textos, rutas, plazos, permisos y proveedores externos salen de un ajuste del
-panel, de una constante de `wp-config.php` o de un filtro. En el código queda la
-lógica: cómo se calcula un precio, cómo se valida una reserva, cómo se aclara un
-color para el modo noche.
+Los puertos de desarrollo son 5199 (tema) y 5198 (Turnos). La conexión al
+backend depende de la configuración de cada app; abrir Vite no valida una
+compra o reserva. MJ ERP usa JavaScript propio y no tiene un build Vite.
 
-**Idioma: castellano fijo, sin traducciones.** Es código privado para tres
-tiendas argentinas. Ningún paquete lleva `languages/` ni carga un text domain;
-las llamadas `__()` que quedan en el ERP son inofensivas y no se mantienen. No
-agregar `.pot`, `Domain Path` ni `load_plugin_textdomain()` a nada nuevo.
+## Verificar antes de cerrar un cambio
 
-**Un manual por plugin.** La documentación de uso de cada plugin va en su
-`LEEME.md` (Turnos, Colegas y Envíos ya lo tienen); el `readme.txt`, donde
-existe, lleva solo la cabecera con el `Stable tag` igual a la versión y el
-changelog. Los cinco plugins sin `LEEME.md` (Dólar, Medios de Pago, Core, ERP
-y Optimizador) lo reciben cuando se toque cada uno.
+```powershell
+.\tools\verificar.ps1 -Rapido   # Sin cambios en React
+.\tools\verificar.ps1           # Incluye los dos builds
+```
 
----
+Seis controles: sintaxis PHP, compatibilidad 7.4, PHPCS contra su baseline,
+builds, copias de `shared/` y documentación. `-Rapido` omite solo los builds.
+Los scripts nuevos también entran al control de sintaxis PHP.
 
-## Versiones
+Para diagnosticar únicamente documentación o copias:
 
-Se usa `MAYOR.MENOR.PARCHE` y cada publicación lleva su etiqueta de git
-(`v2026.09.09`). Los `.zip` de esa fecha quedan colgados de la etiqueta, y el
-`MANIFEST.md` guarda el SHA-256 de cada uno: siempre se puede verificar qué
-build exacto se subió a una tienda.
+```powershell
+php tools/verificar-documentacion.php
+.\tools\sincronizar-compartido.ps1 -Verificar
+```
 
----
+El control documental revisa archivos obligatorios, enlaces locales Markdown
+inline sin títulos, anclas de encabezados y `<a id="...">`, tamaño de guías y
+exclusiones de empaquetado. No visita enlaces externos ni reemplaza la revisión
+semántica. Cada guía tiene un tope de 8 KiB; cada cadena del repo, 24 KiB para
+dejar margen a instrucciones globales. Son límites de mantenimiento en bytes,
+no una medición de tokens. Preferí mantenerte bastante por debajo.
 
-© MJ. Todos los derechos reservados. Código privado, no distribuir.
+[verificar.yml](.github/workflows/verificar.yml) ejecuta los controles de código
+en pushes a `main` y PR, salvo cambios exclusivamente Markdown o de releases.
+[documentacion.yml](.github/workflows/documentacion.yml) ejecuta el chequeo
+liviano cuando cambian Markdown, su validador o la configuración de paquetes.
+Ambos permiten ejecución manual. Las etiquetas no disparan otra compilación.
+El estado histórico de Actions en la auditoría debe confirmarse en GitHub.
+
+La baseline de [PHPCS](tools/phpcs-baseline.json) registra deuda previa;
+`-Foto` solo corresponde cuando se resolvió deuda comprobada. Nunca se usa para
+absorber avisos nuevos. Las pruebas manuales pendientes se informan como tales.
+
+<a id="documentacion"></a>
+
+## Qué documentación actualizar
+
+| Si el cambio… | Actualizá… |
+| --- | --- |
+| Agrega un paquete o cambia su versión | Tabla de este README y checklist de [PUBLICAR](PUBLICAR.md#paquete-nuevo). |
+| Agrega/cambia ajustes, constantes o filtros | Sección correspondiente de [CONFIGURACION](CONFIGURACION.md). |
+| Cambia el uso de un plugin | Su `LEEME.md`, si existe, y la configuración afectada. |
+| Cambia composición, instalación o estado confirmado de una tienda | [TIENDAS](TIENDAS.md). |
+| Cambia un recorrido observable | Sección correspondiente de [PRUEBAS](PRUEBAS-EN-LA-TIENDA.md). |
+| Resuelve deuda o descubre un pendiente concreto | [AUDITORIA](AUDITORIA.md): retirar lo resuelto, agregar evidencia del pendiente. |
+| Cambia arquitectura, rutas o comandos de desarrollo | `AGENTS.md` del área; raíz solo si cambia una regla común o entrada. |
+| Cambia herramientas o publicación | [PUBLICAR](PUBLICAR.md), guía de tools y este README si cambian comandos. |
+
+Los manuales actuales son [Turnos](plugins/mj-turnos-online/LEEME.md),
+[Colegas](plugins/mj-colegas/LEEME.md), [Envíos](plugins/mj-envios/LEEME.md) y
+[Fidelidad](plugins/mj-fidelidad/LEEME.md). Faltan seis: Dólar, Medios de Pago,
+Core, ERP, Optimizador y Fotos Rápidas; siguen registrados en la auditoría.
+`readme.txt`, donde existe, conserva cabecera, `Stable tag` y changelog.
+
+Los documentos son fuentes mantenidas por función, no informes por entrega.
+Las guías de Codex apuntan a ellos sin copiarlos. Al consultar uno largo, usá
+el índice y leé la sección de la tarea. `AGENTS.md` es la única convención
+compartida de instrucciones de este repo; las preferencias personales quedan
+fuera de Git. Detalle de lectura jerárquica: [documentación de Codex](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
+
+## Git y distribución
+
+- `.editorconfig` define formato; `.gitattributes` normaliza finales de línea.
+  Conservá el estilo local al editar: no reformatees todo el archivo.
+- `dist/`, `composer.lock` y los dos `package-lock.json` se versionan.
+  Dependencias instaladas, ZIP, credenciales y sesiones locales se ignoran.
+- Las instrucciones de agentes quedan excluidas de los ZIP; no cambian las
+  versiones de plugins o temas por sí solas.
+- Preparar cambios y subir código al repositorio son pasos distintos de crear
+  una Release. La publicación solo se hace por pedido explícito.
+
+Para empaquetar o publicar, seguí [PUBLICAR.md](PUBLICAR.md#alcance). Los
+paquetes publicados se descargan de las
+[Releases privadas](https://github.com/Manzaniita/mj-family/releases).
+La primera instalación de cada paquete en una tienda es manual.
+
+Visibilidad privada, acceso de colaboradores, reglas de rama y disponibilidad
+de Actions se administran en GitHub. Estos archivos no cambian esos ajustes.
+Al elegir checks obligatorios, considerá los filtros de rutas de cada workflow.
+
+Código y textos nuevos en castellano rioplatense. No se agrega infraestructura
+de traducción a los paquetes. © MJ. Repositorio privado; acceso restringido.

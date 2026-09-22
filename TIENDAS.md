@@ -1,12 +1,30 @@
 # Las tiendas: qué lleva cada una y cómo se pone en marcha
 
-Este documento reemplaza a las guías de entrega de GlossyHair y Yamana, que
-quedaron viejas (hablaban de MJ Appearance 3.6.0). Acá está lo que hoy corre en
-cada tienda, qué conviene cargar apenas se instala, y la prueba corta para
-confirmar que anda. Las versiones vigentes están en la tabla del `README.md`;
-cómo se instala y se actualiza, en `PUBLICAR.md`.
+Composición prevista, puesta en marcha y último estado registrado de cada
+tienda. Las versiones del fuente están en [README.md](README.md); los paquetes
+por tienda, en `bundles` de [releases.config.json](tools/releases.config.json).
+Instalación y actualizaciones: [PUBLICAR.md](PUBLICAR.md).
+
+Los estados de instalación y los pendientes provienen del registro previo a
+esta reorganización documental del 22/9/2026. No se consultaron las tiendas.
+Confirmalos en wp-admin antes de tratarlos como actuales; al verificarlos,
+anotá fecha y evidencia acá. Un manifiesto del repo no prueba qué se instaló.
+
+## Consulta por tema
+
+Abrí solo la tienda afectada. Cambios en la composición requieren actualizar
+primero `bundles`; no cambies estados de instalación sin confirmarlos.
+
+- [Composición y estado registrado](#composicion)
+- [MJ Importaciones](#mj-importaciones)
+- [GlossyHair](#glossyhair)
+- [Jaz Beauty Art](#jazbeauty)
+- [Yamana](#yamana)
+- [Pendientes operativos registrados](#pendientes)
 
 ---
+
+<a id="composicion"></a>
 
 ## 1. De un vistazo
 
@@ -17,7 +35,7 @@ cómo se instala y se actualiza, en `PUBLICAR.md`.
 | **Yamana** | Yamana | Core, Colegas, Medios de Pago, Envíos, Optimizador, Fotos Rápidas | **Falta instalar** |
 | **Jaz Beauty Art** | Jaz Beauty Art | Core, Turnos Online, Fidelidad, Medios de Pago, Envíos, Optimizador, Fotos Rápidas | **Tienda nueva: todo a mano la primera vez** |
 
-Las tres llevan el tema padre **MJ Appearance** (instalado, sin activar) y el
+Las cuatro combinaciones llevan el tema padre **MJ Appearance** (instalado, sin activar) y el
 tema hijo activo. La composición sale de `bundles` en
 `tools/releases.config.json`, que es lo que `build-releases.ps1` imprime al
 terminar.
@@ -28,7 +46,8 @@ terminar.
    el hijo. Activar el hijo.
 2. Plugins → Subir: primero `mj-core`, después el resto. Activar todos.
 3. MJ → Actualizaciones: repositorio y token (sección 3 de
-   `PUBLICAR.md`). Desde ahí, todo lo demás se actualiza solo.
+   `PUBLICAR.md`). Desde ahí ofrece actualizaciones; la instalación automática depende de
+   lo habilitado en WordPress.
 4. MJ → MJ Appearance: logo, nombre, portada y textos.
 
 Un tema hijo sin su padre aparece como "tema roto"; un plugin nuevo se sube a
@@ -36,9 +55,15 @@ mano la primera vez, MJ Core solo actualiza lo que ya está.
 
 ---
 
+<a id="mj-importaciones"></a>
+
 ## 2. MJ Importaciones (MJ Atelier)
 
 Tienda de importación con precios en dólares, mostrador propio y ERP.
+
+Último registro de acceso de MJ Core: token de lectura llamado
+`MJ Importaciones Actualizaciones`, sin vencimiento registrado. Confirmar
+vigencia en la cuenta; nunca guardar el valor del token en este documento.
 
 **Qué cargar apenas se instala**
 
@@ -77,6 +102,8 @@ El paso a paso completo, con lo que tiene que pasar en cada punto, está en
 `PRUEBAS-EN-LA-TIENDA.md`.
 
 ---
+
+<a id="glossyhair"></a>
 
 ## 3. GlossyHair (turnos)
 
@@ -131,6 +158,8 @@ hosting permite un cron real, mejor.
 
 ---
 
+<a id="jazbeauty"></a>
+
 ## 3.1. Jaz Beauty Art (pestañas y cejas)
 
 Pestañas y cejas con turnos, un Beauty Shop sin envíos y tarjeta de
@@ -142,8 +171,9 @@ Instagram). El logo lo sube Jaz en MJ → MJ Appearance.
 WooCommerce, después MJ Appearance (3.30.0 o más nuevo) y el tema hijo Jaz
 Beauty Art, después MJ Turnos Online (1.4.0+), MJ Fidelidad, MJ Medios de Pago
 (1.6.0+), MJ Envíos (1.10.1+), Optimizador, Fotos Rápidas y MJ Core. Un cron
-real del hosting (cada 5 minutos, llamando a `wp-cron.php`) hace exactos la
-reserva provisoria de 1 hora y el recordatorio de 1 hora antes. Un plugin SMTP
+real del hosting (cada 5 minutos, llamando a `wp-cron.php`) permite atender
+regularmente el vencimiento de la reserva y los recordatorios; no garantiza
+que cada tarea se ejecute en el segundo exacto. Un plugin SMTP
 para que los mails lleguen. En PHP, `max_input_vars` en 3000 o más (el panel
 del tema manda muchos campos; si el hosting lo corta, avisa y no guarda).
 
@@ -194,6 +224,8 @@ reprogramar, atendido, opinión y sello), y una compra con retiro.
 
 ---
 
+<a id="yamana"></a>
+
 ## 4. Yamana (Entre Hilos)
 
 Tejidos artesanales y cursos, con el proyecto colectivo Entre Hilos: piezas de
@@ -232,7 +264,9 @@ con "Marcar como liquidado" y CSV. Manual en `plugins/mj-colegas/LEEME.md`.
 
 ---
 
-## 5. Lo que hay que hacer en las tiendas, hoy
+<a id="pendientes"></a>
+
+## 5. Pendientes operativos registrados
 
 - **Instalar MJ Core en GlossyHair y Yamana** con su token (uno por tienda,
   solo lectura). Hasta que esté, esas dos se actualizan subiendo el zip a mano.
@@ -244,4 +278,5 @@ con "Marcar como liquidado" y CSV. Manual en `plugins/mj-colegas/LEEME.md`.
   Andreani por su plugin oficial; falta probarlo con una compra real
   (`PRUEBAS-EN-LA-TIENDA.md`, sección 11).
 - Cuando se instale MJ Core en una tienda o se cree o revoque un token,
-  actualizar la tabla de arriba y la de `PUBLICAR.md`, sección 3.
+  actualizar la tabla de arriba con fecha de comprobación. `PUBLICAR.md`
+  enlaza este registro para no mantener dos estados divergentes.

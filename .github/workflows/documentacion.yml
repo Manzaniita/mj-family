@@ -1,0 +1,39 @@
+# Control liviano para cambios de documentación, sin instalar Composer o Node.
+name: Documentación
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.md'
+      - 'tools/verificar-documentacion.php'
+      - 'tools/releases.config.json'
+      - '.github/workflows/documentacion.yml'
+  pull_request:
+    paths:
+      - '**/*.md'
+      - 'tools/verificar-documentacion.php'
+      - 'tools/releases.config.json'
+      - '.github/workflows/documentacion.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentacion-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  documentacion:
+    name: Enlaces e instrucciones
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+      - name: Verificar documentación
+        run: php tools/verificar-documentacion.php
