@@ -39,7 +39,7 @@ su motor. Los ajustes guardados en el panel prevalecen sobre los presets.
 | **MJ Colegas** | 1.1.0 | Productos de terceros, comisiones y liquidaciones. |
 | **MJ Dólar** | 1.2.0 | Precios USD, conversión a pesos y redondeo configurable. |
 | **MJ Medios de Pago** | 1.6.0 | Descuentos/recargos, datos para pagar y revisión de comprobantes. |
-| **MJ Envíos** | 1.11.1 | Métodos, reglas, cotizaciones, integración con correos y seguimiento. |
+| **MJ Envíos** | 1.11.2 | Métodos, reglas, cotizaciones, integración con correos y seguimiento. |
 | **MJ ERP** | 1.23.0 | Ventas, compras, stock, clientes, consignación, devoluciones, saldo, caja y reportes. |
 | **MJ Optimizador de Imágenes** | 1.2.0 | Redimensionado y conversión de imágenes en el servidor. |
 | **MJ Fotos Rápidas** | 1.4.0 | Carga de fotos y publicación de productos desde el celular. |

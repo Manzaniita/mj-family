@@ -6,11 +6,11 @@ defined('ABSPATH') || exit;
 class MJE_Native_Method extends WC_Shipping_Method {
 
 	private $original;
-	private $plugin_id;
+	private $mje_carrier_id;
 
 	public function __construct($original, $plugin_id) {
 		$this->original  = $original;
-		$this->plugin_id = $plugin_id;
+		$this->mje_carrier_id = $plugin_id;
 		foreach (['id', 'instance_id', 'enabled', 'title', 'method_title', 'method_description', 'supports'] as $property) {
 			$this->$property = $original->$property;
 		}
@@ -24,7 +24,7 @@ class MJE_Native_Method extends WC_Shipping_Method {
 		try {
 			return $this->original->get_rates_for_package($package);
 		} catch (\Throwable $error) {
-			MJE_Native::failed_calculation($this->plugin_id, $error);
+			MJE_Native::failed_calculation($this->mje_carrier_id, $error);
 			return [];
 		}
 	}

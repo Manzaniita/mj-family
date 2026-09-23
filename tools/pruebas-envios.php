@@ -29,7 +29,10 @@ class MJE_Rates {
 class MJE_Methods {
 	public static function get($slug) { return 'nuevo' === $slug ? ['slug' => $slug] : null; }
 }
-class WC_Shipping_Method {
+class WC_Settings_API {
+	public $plugin_id = 'woocommerce_';
+}
+class WC_Shipping_Method extends WC_Settings_API {
 	public $id = 'correo';
 	public $instance_id = 7;
 	public $enabled = 'yes';
@@ -78,6 +81,7 @@ comprobar(WC()->shipping->shipping_methods[0] === $bad, 'No modificar métodos s
 $package = ['destination' => ['postcode' => '1000']];
 MJE_Native::protect_methods($package);
 $methods = WC()->shipping->shipping_methods;
+comprobar('woocommerce_' === $methods[0]->plugin_id, 'Conservar la propiedad pública heredada de WooCommerce');
 comprobar($methods[2] === $other, 'No envolver métodos ajenos');
 comprobar(7 === $methods[0]->instance_id && $methods[0]->supports('shipping-zones'), 'Conservar identidad y capacidades');
 comprobar([] === $methods[0]->get_rates_for_package($package), 'La excepción no debe escapar');

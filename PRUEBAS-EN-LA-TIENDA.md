@@ -385,6 +385,9 @@ Regresiones locales: `php tools/pruebas-envios.php` y `npm test` desde
 atómica, CP tardío y respuestas fuera de orden; no reemplazan esta prueba con
 WordPress y las cuentas reales de los correos.
 
+La prueba PHP reproduce también la propiedad pública `WC_Settings_API::$plugin_id`:
+el adaptador debe cargar sin conflictos de herencia y conservar esa propiedad.
+
 ---
 
 <a id="erp-ventas"></a>
