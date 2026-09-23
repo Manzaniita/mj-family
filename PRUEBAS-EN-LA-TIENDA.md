@@ -319,11 +319,11 @@ tiempo de espera agotado o una respuesta rara.
 ### 3.8. El dato que exige el plugin de un correo
 
 Con el plugin de Andreani instalado, WooCommerce exige un **DNI** en la dirección
-del pedido. MJ Envíos lo adopta como un campo más.
+del pedido. MJ Envíos lo completa con el único campo `doc`.
 
-1. En **MJ → Envíos → Datos del cliente**, buscá el campo con el nombre que le
-   puso ese plugin (**DNI**). Tiene que estar en *Se pide, obligatorio* y avisar
-   abajo quién lo pide.
+1. En **MJ → Envíos → Datos del cliente**, configurá **DNI o CUIT de quien recibe**
+   (`doc`) como obligatorio. No debe aparecer la fila `x_andreani_dni`, ni un
+   segundo número de documento al configurar cada método.
 2. Comprá con una cuenta que nunca lo haya cargado.
 
 **Qué tiene que pasar:** el paso de envío lo pide, y el pedido se cierra. En el
@@ -342,6 +342,12 @@ formulario. Nunca tiene que dejar apretar «Comprar ahora» para después fallar
 **Señal de que algo está mal:** al confirmar, el checkout dice *«Parámetro(s) no
 válido(s): shipping_address, billing_address»*. Eso es un campo obligatorio de
 otro plugin que no está viajando con el pedido.
+
+Repetí con Correo Argentino y con varios correos activos: el documento se pide
+una sola vez y llega a las claves registradas por cada plugin. Cambiá el número
+precargado y comprobá que el pedido conserva el nuevo. Los campos ajenos que no
+son documentos deben seguir apareciendo. Regresión local:
+`php tools/pruebas-documento-envios.php`.
 
 ### 3.9. Qué pasa si el correo no responde
 

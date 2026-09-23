@@ -1535,6 +1535,7 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | Estados de pedido que el ERP mueve para seguir a la venta | — | `mjerp_order_sync_statuses` |
 | Si la cuenta del cliente completa los datos de envío que la tienda no mandó | — | `mje_fill_from_account` |
 | Qué datos de envío se completan con el pedido o la cuenta | — | `mje_known_fields` |
+| Campo de MJ Envíos que alimenta un dato adicional de un plugin; recibe clave de origen e id registrado, devuelve `doc` para un documento | — | `mje_extra_field_source` |
 | Qué campos de dirección deja de exigir WooCommerce cuando el método no los pide | — | `mje_relaxed_address_fields` |
 | Cuántas ventas revisa la puesta al día de estados de pedido (una vez, al actualizar) | — | `mjerp_order_status_resync_limit` |
 | Quién puede corregir ventas y ver su historial | — | `mjerp_can_manage_sales` |

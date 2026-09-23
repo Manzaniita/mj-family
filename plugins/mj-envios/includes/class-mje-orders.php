@@ -55,6 +55,16 @@ class MJE_Orders {
 		$data   = MJE_Cart::session_data();
 		$fields = isset($data['fields']) && is_array($data['fields']) ? $data['fields'] : [];
 
+		/* Los plugins reciben el documento común con sus claves registradas. Compatible con HPOS. */
+		foreach (MJE_Extras::values($fields) as $id => $value) {
+			if ('doc' !== MJE_Extras::source_key($id)) {
+				continue;
+			}
+			foreach (['_wc_shipping/', '_wc_billing/'] as $group) {
+				$order->update_meta_data($group . $id, $value);
+			}
+		}
+
 		$order->update_meta_data('_mje_method', (string) $def['slug']);
 		$order->update_meta_data('_mje_title', MJE_Methods::name($def));
 		$order->update_meta_data('_mje_type', (string) $def['type']);

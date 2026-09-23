@@ -104,6 +104,7 @@ class MJE_Cart {
 			'city'   => '',
 			'fields' => [],
 		]);
+		self::$cache['fields'] = MJE_Extras::canonical_values(self::$cache['fields']);
 		return self::$cache;
 	}
 
@@ -119,6 +120,7 @@ class MJE_Cart {
 			}
 		}
 		if (array_key_exists('fields', $in) && is_array($in['fields'])) {
+			$in['fields'] = MJE_Extras::canonical_values($in['fields']);
 			$def    = self::method_def(isset($data['method']) ? $data['method'] : '');
 			$result = $def ? MJE_Fields::validate($def, $in['fields']) : ['clean' => []];
 			/* Lo que no valida igual se guarda como texto: la validación final es al confirmar. */

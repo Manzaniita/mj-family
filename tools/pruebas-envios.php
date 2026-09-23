@@ -50,6 +50,7 @@ class WC_Shipping_Method extends WC_Settings_API {
 require __DIR__ . '/../plugins/mj-envios/includes/nativos/class-mje-native-plugin.php';
 require __DIR__ . '/../plugins/mj-envios/includes/nativos/class-mje-native.php';
 require __DIR__ . '/../plugins/mj-envios/includes/class-mje-cart.php';
+require __DIR__ . '/../plugins/mj-envios/includes/class-mje-extras.php';
 class Correo_Prueba extends MJE_Native_Plugin {
 	public function id() { return 'prueba'; }
 	public function label() { return 'Correo de prueba'; }
@@ -58,6 +59,7 @@ class Correo_Prueba extends MJE_Native_Plugin {
 }
 $GLOBALS['wc'] = new class {
 	public $session;
+	public $countries;
 	public $cart;
 	public $shipping;
 	public function shipping() { return $this->shipping; }

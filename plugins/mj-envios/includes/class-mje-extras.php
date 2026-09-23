@@ -54,7 +54,7 @@ class MJE_Extras {
 		 */
 		add_filter('rest_pre_dispatch', [__CLASS__, 'fill_request'], 10, 3);
 		/* Checkout clásico: los campos van al POST con el mismo nombre. */
-		add_action('woocommerce_checkout_process', [__CLASS__, 'fill_post'], 5);
+		add_action('woocommerce_checkout_process', [__CLASS__, 'fill_post'], 15);
 	}
 
 	/* ---------------------------- Qué exigen ----------------------------- */
@@ -136,6 +136,31 @@ class MJE_Extras {
 		return self::PREFIX . sanitize_key(str_replace('/', '_', (string) $id));
 	}
 
+	/** Un solo documento del destinatario, independientemente del plugin que lo registre. */
+	public static function source_key($id) {
+		$parts = explode('/', (string) $id);
+		$name  = sanitize_key(str_replace('-', '_', end($parts)));
+		$names = ['doc', 'dni', 'cuit', 'cuil', 'documento', 'document', 'document_number', 'numero_documento', 'dni_cuit', 'dni_o_cuit', 'tax_id'];
+		$source = in_array($name, $names, true) ? 'doc' : self::key_of($id);
+		return (string) apply_filters('mje_extra_field_source', $source, $id);
+	}
+
+	/** Compatibilidad con sesiones anteriores: doc explícito siempre gana, incluso vacío. */
+	public static function canonical_values($values) {
+		$values = is_array($values) ? $values : [];
+		foreach (self::fields() as $key => $field) {
+			$source = self::source_key($field['id']);
+			if ($source === $key) {
+				continue;
+			}
+			if (!array_key_exists($source, $values) && isset($values[$key]) && '' !== trim((string) $values[$key])) {
+				$values[$source] = $values[$key];
+			}
+			unset($values[$key]);
+		}
+		return $values;
+	}
+
 	/** Quién lo pide, para poder decirlo en el panel: 'andreani/dni' → 'andreani'. */
 	private static function plugin_of($id) {
 		$parts = explode('/', (string) $id);
@@ -163,9 +188,10 @@ class MJE_Extras {
 	 * @param array $values Los datos del envío guardados (MJE_Cart::session_data()['fields']).
 	 */
 	public static function values($values) {
-		$values = is_array($values) ? $values : [];
+		$values = self::canonical_values($values);
 		$out    = [];
 		foreach (self::fields() as $key => $field) {
+			$key   = self::source_key($field['id']);
 			$value = isset($values[$key]) ? trim((string) $values[$key]) : '';
 			if ('' === $value) {
 				continue;
@@ -223,13 +249,13 @@ class MJE_Extras {
 			}
 			$out[$key] = $value;
 		}
-		return $out;
+		return self::canonical_values($out);
 	}
 
 	/**
 	 * Completa los campos ajenos en la llamada del checkout de la Store API.
 	 *
-	 * Solo rellena lo que falta: si la tienda ya los mandó, manda la tienda.
+	 * Completa lo que falta; para documentos siempre manda el campo común doc.
 	 *
 	 * @param mixed           $result  Respuesta anticipada (se devuelve intacta).
 	 * @param mixed           $server  El servidor REST.
@@ -256,9 +282,7 @@ class MJE_Extras {
 		$data   = MJE_Cart::session_data();
 		$fields = isset($data['fields']) && is_array($data['fields']) ? $data['fields'] : [];
 		/* Lo que cargó ahora el cliente gana; lo guardado de antes completa el resto. */
-		$values = self::values(array_merge(self::known(), array_filter($fields, function ($value) {
-			return '' !== trim((string) $value);
-		})));
+		$values = self::values(array_merge(self::known(), self::canonical_values($fields)));
 		if (!$values) {
 			return $result;
 		}
@@ -270,7 +294,7 @@ class MJE_Extras {
 			}
 			$changed = false;
 			foreach ($values as $id => $value) {
-				if (isset($address[$id]) && '' !== trim((string) $address[$id])) {
+				if ('doc' !== self::source_key($id) && isset($address[$id]) && '' !== trim((string) $address[$id])) {
 					continue;
 				}
 				$address[$id] = $value;
@@ -291,16 +315,14 @@ class MJE_Extras {
 		}
 		$data   = MJE_Cart::session_data();
 		$fields = isset($data['fields']) && is_array($data['fields']) ? $data['fields'] : [];
-		$values = self::values(array_merge(self::known(), array_filter($fields, function ($value) {
-			return '' !== trim((string) $value);
-		})));
+		$values = self::values(array_merge(self::known(), self::canonical_values($fields)));
 		foreach ($values as $id => $value) {
 			/* Así los nombra WooCommerce en el formulario clásico. */
 			foreach (['_wc_billing/', '_wc_shipping/'] as $group) {
 				$name = $group . $id;
 				// phpcs:disable WordPress.Security.NonceVerification.Missing -- El nonce del checkout ya lo validó WooCommerce antes de este hook.
 				$cargado = isset($_POST[$name]) ? sanitize_text_field(wp_unslash($_POST[$name])) : '';
-				if ('' === trim($cargado)) {
+				if ('doc' === self::source_key($id) || '' === trim($cargado)) {
 					$_POST[$name] = $value;
 				}
 				// phpcs:enable WordPress.Security.NonceVerification.Missing

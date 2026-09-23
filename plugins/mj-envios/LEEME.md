@@ -118,14 +118,19 @@ el de Andreani, por ejemplo, agrega un **DNI obligatorio**. Son suyos, pero
 WooCommerce los exige al cerrar la compra, y sin ellos el pedido se cae con
 «Parámetro no válido: billing_address».
 
-MJ Envíos los adopta solos: aparecen en **Datos del cliente** como un campo más,
-con el nombre que les puso su plugin y en el modo que ese plugin pide, y se
-configuran como cualquier otro. Lo que carga el cliente viaja a la dirección del
-pedido con el nombre que ese plugin espera, y lo que ya tenga guardado de una
-compra anterior viene completado.
+Para el documento hay un solo campo: **DNI o CUIT de quien recibe** (`doc`).
+No se muestra una segunda fila `x_andreani_dni`: ese mismo valor completa los
+campos de DNI/CUIT registrados por Andreani, Correo Argentino u otro plugin,
+con las claves que cada uno espera. También se recuperan los documentos de
+cuentas y sesiones anteriores. El valor actual de `doc` tiene prioridad.
+
+Los otros datos del correo siguen apareciendo como campos separados. El tipo
+de documento, si un plugin lo pide, es distinto del número y se conserva.
+Una integración con un nombre de campo especial puede mapearlo a `doc` usando
+el filtro `mje_extra_field_source`.
 
 Si ponés uno de esos campos en **No se pide** y su plugin lo exige, ningún pedido
-se va a poder cerrar. El aviso está abajo del campo.
+se va a poder cerrar. Configurá `doc` como obligatorio cuando un correo lo exija.
 
 ---
 

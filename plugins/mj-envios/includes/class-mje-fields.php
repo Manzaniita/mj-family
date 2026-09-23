@@ -84,6 +84,13 @@ class MJE_Fields {
 		 * aunque la tienda no los conozca, y sin ellos la compra no se puede cerrar.
 		 */
 		foreach (MJE_Extras::fields() as $key => $extra) {
+			/* El DNI/CUIT ajeno recibe doc; no agrega una segunda fila ni un segundo input. */
+			if ('doc' === MJE_Extras::source_key($extra['id'])) {
+				if ($extra['required']) {
+					$fields['doc']['default'] = 'obligatorio';
+				}
+				continue;
+			}
 			if (isset($fields[$key])) {
 				continue;
 			}
