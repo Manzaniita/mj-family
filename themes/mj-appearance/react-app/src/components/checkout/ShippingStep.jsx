@@ -20,6 +20,7 @@ import {
   debounce,
   formFields,
   rememberedQuote,
+  rememberQuote,
 } from '@/lib/envios';
 
 /**
@@ -49,6 +50,7 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
   const syncAddress = useCart((s) => s.syncAddress);
   const selectRate = useCart((s) => s.selectRate);
   const syncShipping = useCart((s) => s.syncShipping);
+  const syncing = useCart((s) => s.syncing);
 
   const rates = cartShipping?.rates ?? [];
   const selected = rates.find((r) => r.selected) ?? null;
@@ -70,6 +72,11 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
 
   /* La dirección se manda una sola vez por destino: sin esto, cada tecla dispararía un cálculo. */
   const lastSent = useRef('');
+  const pendingAddress = useRef('');
+  const choosing = useRef(false);
+  const latest = useRef({ form, setForm });
+  latest.current = { form, setForm };
+  const lookupSequence = useRef(0);
 
   const addressKey = () => [form.postcode, form.state, form.city, form.address].join('|');
 
@@ -84,7 +91,10 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
   const pushAddress = async () => {
     if (!IS_WP) return;
     const key = addressKey();
-    if (!cpLooksValid(form.postcode) || key === lastSent.current) return;
+    if (!cpLooksValid(form.postcode) || cp.asked !== form.postcode
+      || !['ok', 'unknown'].includes(cp.status)
+      || key === lastSent.current || key === pendingAddress.current) return;
+    pendingAddress.current = key;
     setBusy(true);
     const cart = await syncAddress({
       postcode: form.postcode,
@@ -93,9 +103,12 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
       address_1: form.address || '',
       country: WP?.baseCountry || SHIPPING?.country || 'AR',
     });
-    lastSent.current = cart ? key : '';
-    setFailed(!cart);
-    setBusy(false);
+    if (pendingAddress.current === key) {
+      pendingAddress.current = '';
+      lastSent.current = cart ? key : '';
+      setFailed(!cart);
+      setBusy(false);
+    }
   };
 
   /**
@@ -108,6 +121,8 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
    */
   const lookup = async (value) => {
     if (!IS_WP) return;
+    const sequence = ++lookupSequence.current;
+    const current = () => sequence === lookupSequence.current && value === latest.current.form.postcode;
     if (!cpLooksValid(value)) {
       setCp((c) => ({ ...c, status: String(value || '').trim() === '' ? 'idle' : 'invalid', cities: [], asked: value }));
       return;
@@ -115,13 +130,14 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
     setCp((c) => ({ ...c, status: 'loading', asked: value }));
     try {
       const data = await wc.getPostcode(value);
+      if (!current()) return;
       if (!data?.valido) {
         setCp((c) => ({ ...c, status: 'invalid', cities: [], asked: value }));
         return;
       }
       const cities = data.localidades ?? [];
       if (data.encontrado && cities.length) {
-        setForm((f) => ({
+        latest.current.setForm((f) => ({
           ...f,
           state: data.provinciaId || cities[0].provinciaId || f.state,
           // Con una sola localidad se completa; con varias, que elija.
@@ -136,11 +152,12 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
          * puso un CP de Santa Cruz es peor que no decir nada, porque se compra
          * con un destino que nadie eligió.
          */
-        setForm((f) => ({ ...f, state: forget(f.state, value), city: forget(f.city, value) }));
+        latest.current.setForm((f) => ({ ...f, state: forget(f.state, value), city: forget(f.city, value) }));
         filledFor.current = '';
         setCp((c) => ({ ...c, status: 'unknown', cities: [], asked: value }));
       }
     } catch {
+      if (!current()) return;
       /* Sin el plugin (o sin internet) el paso sigue: se cargan provincia y localidad a mano. */
       setCp((c) => ({ ...c, status: 'unknown', cities: [], asked: value }));
     }
@@ -151,20 +168,20 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
     return filledFor.current && filledFor.current !== asked ? '' : value;
   }
 
-  const lookupDebounced = useRef(debounce(lookup, 400)).current;
-
-  /* Al entrar con datos guardados (compra rápida), se resuelve el destino solo. */
+  /* Una consulta por CP, también si llega después desde la cuenta del cliente. */
   useEffect(() => {
     if (!IS_WP) return;
-    if (cpLooksValid(form.postcode) && cp.status === 'idle') {
-      lookup(form.postcode).then(pushAddress);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const timer = setTimeout(() => lookup(form.postcode), 400);
+    return () => {
+      clearTimeout(timer);
+      lookupSequence.current += 1;
+    };
+  }, [form.postcode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Con provincia y localidad resueltas, se piden las tarifas. */
   useEffect(() => {
     if (cp.status === 'ok' || cp.status === 'unknown') pushAddress();
-  }, [cp.status, form.state, form.city]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cp.status, cp.asked, form.postcode, form.state, form.city]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Sucursales del método elegido, para el código postal cargado. */
   useEffect(() => {
@@ -187,6 +204,7 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
    * MJ Envíos valida todo junto, y cada envío reemplaza lo anterior.
    */
   const pushFields = useRef(debounce((fields) => syncShipping({ fields }), 600)).current;
+  useEffect(() => () => pushFields.cancel(), [pushFields]);
   const allFields = (extraValues = extra) => ({ ...formFields(form), ...extraValues });
 
   const setExtraValue = (key, value) => {
@@ -202,15 +220,24 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
 
   /* Escribir el nombre, el teléfono o la dirección también le avisa al servidor. */
   useEffect(() => {
-    if (!IS_WP) return;
+    if (!IS_WP || cp.asked !== form.postcode || !['ok', 'unknown'].includes(cp.status)) return;
     pushFields(allFields());
+    return () => pushFields.cancel();
   }, [form.firstName, form.lastName, form.email, form.phone, form.postcode, form.state, form.city, form.address, form.address2]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Elegir una forma de envío. */
   const chooseRate = async (rate) => {
+    if (choosing.current || busy || syncing || lastSent.current !== addressKey()) return;
+    choosing.current = true;
+    applied.current = true;
+    pushFields.cancel();
     setBusy(true);
-    await selectRate(rate.rate_id);
-    if (rate.slug) await syncShipping({ method: rate.slug, fields: allFields() });
+    const cart = rate.slug
+      ? await syncShipping({ method: rate.slug, fields: allFields() })
+      : await selectRate(rate.rate_id);
+    if (cart && rate.slug) rememberQuote({ cp: form.postcode, slug: rate.slug });
+    setFailed(!cart);
+    choosing.current = false;
     setBusy(false);
   };
 
@@ -225,12 +252,14 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
    */
   const applied = useRef(false);
   useEffect(() => {
-    if (applied.current || rates.length === 0) return;
+    if (applied.current || rates.length === 0 || busy || syncing
+      || lastSent.current !== addressKey() || cp.asked !== form.postcode) return;
     applied.current = true;
-    const slug = rememberedQuote()?.slug;
+    const remembered = rememberedQuote();
+    const slug = remembered?.cp === form.postcode ? remembered.slug : null;
     const wanted = slug ? rates.find((r) => r.slug === slug) : null;
     if (wanted && !wanted.selected) chooseRate(wanted);
-  }, [rates]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rates, busy, syncing, form.postcode, cp.asked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Autocompletado de localidad cuando el CP no está en la tabla. */
   const searchCities = useRef(
@@ -283,9 +312,8 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
             onChange={(e) => {
               const value = e.target.value;
               setForm((f) => ({ ...f, postcode: value }));
-              lookupDebounced(value);
             }}
-            onBlur={() => { onTouch?.('postcode'); lookup(form.postcode).then(pushAddress); }}
+            onBlur={() => onTouch?.('postcode')}
           />
           <p className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-faint">
             {cp.status === 'loading' && <Loader2 size={12} className="animate-spin" />}
@@ -400,7 +428,9 @@ export default function ShippingStep({ title, form, setForm, extra, setExtra, er
             <p>{texts.none}</p>
           </div>
         ) : (
-          <ShippingOptions rates={rates} groups={groups} texts={texts} onChoose={chooseRate} />
+          <fieldset disabled={busy || syncing || cp.asked !== form.postcode || cp.status === 'loading' || lastSent.current !== addressKey()} aria-busy={busy || syncing} className="min-w-0 border-0 p-0 disabled:opacity-60">
+            <ShippingOptions rates={rates} groups={groups} texts={texts} onChoose={chooseRate} />
+          </fieldset>
         )}
       </div>
 

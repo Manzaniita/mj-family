@@ -122,6 +122,7 @@ function mapServerExtras(cart) {
         fields: mje.fields || {},
         problems: Array.isArray(mje.problems) ? mje.problems : [],
         freeFrom: Number(mje.freeFrom) || 0,
+        notices: Array.isArray(mje.notices) ? mje.notices : [],
       }
     : null;
   const mjpm = cart?.extensions?.mjpm;
@@ -211,7 +212,7 @@ export const useCart = create(
           if (!IS_WP) return;
           set({ loadError: null });
           try {
-            const cart = await wc.getCart();
+            const cart = await enqueue(() => wc.getCart());
             set({ ...serverCartState(cart), hydrated: true, loadError: null });
             // El servidor debe usar el mismo medio de pago que el visitante eligió para ver precios.
             const wanted = selectedMethodId();

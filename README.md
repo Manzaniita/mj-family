@@ -21,7 +21,7 @@ mantiene el fuente y se preparan los paquetes que reciben las tiendas.
 
 | Tema | Versión del fuente | Función |
 | --- | --- | --- |
-| **MJ Appearance** | 3.31.0 | Tema padre: tienda React, catálogo, carrito, checkout, cuenta, bloques y configuración común. |
+| **MJ Appearance** | 3.31.1 | Tema padre: tienda React, catálogo, carrito, checkout, cuenta, bloques y configuración común. |
 | **GlossyHair** | 1.1.1 | Salón de alisados, reservas y productos; identidad blanco y fucsia. |
 | **Yamana** | 1.1.1 | Tejidos, cursos y Entre Hilos; identidad lino y terracota. |
 | **MJ Atelier** | 1.2.0 | Tienda editorial; identidad marfil y bronce. |
@@ -39,7 +39,7 @@ su motor. Los ajustes guardados en el panel prevalecen sobre los presets.
 | **MJ Colegas** | 1.1.0 | Productos de terceros, comisiones y liquidaciones. |
 | **MJ Dólar** | 1.2.0 | Precios USD, conversión a pesos y redondeo configurable. |
 | **MJ Medios de Pago** | 1.6.0 | Descuentos/recargos, datos para pagar y revisión de comprobantes. |
-| **MJ Envíos** | 1.11.0 | Métodos, reglas, cotizaciones, integración con correos y seguimiento. |
+| **MJ Envíos** | 1.11.1 | Métodos, reglas, cotizaciones, integración con correos y seguimiento. |
 | **MJ ERP** | 1.23.0 | Ventas, compras, stock, clientes, consignación, devoluciones, saldo, caja y reportes. |
 | **MJ Optimizador de Imágenes** | 1.2.0 | Redimensionado y conversión de imágenes en el servidor. |
 | **MJ Fotos Rápidas** | 1.4.0 | Carga de fotos y publicación de productos desde el celular. |

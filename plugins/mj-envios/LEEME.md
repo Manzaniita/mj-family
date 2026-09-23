@@ -7,6 +7,13 @@ ordenás, apagás o borrás desde el panel. Ninguno viene fijo en el código.
 
 Se configura en **MJ → Envíos**.
 
+Si el plugin de un correo falla al cotizar (por ejemplo, por un token vencido),
+el carrito sigue calculando los demás métodos y muestra un aviso. La conexión
+se corrige en el plugin del correo; el detalle del fallo queda en el registro.
+Elegir un envío en el checkout guarda el método y sus datos en una sola operación.
+La preferencia de la ficha se aplica después de resolver su código postal;
+las respuestas de un código postal anterior se descartan.
+
 > Activar el plugin no cambia nada en la tienda: viene con tres métodos de
 > ejemplo **apagados**, para que veas de qué se trata. Hasta que enciendas uno,
 > la tienda sigue cobrando el envío como lo hacía antes.

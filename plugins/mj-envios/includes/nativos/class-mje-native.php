@@ -46,6 +46,9 @@ class MJE_Native {
 	/** Por qué un correo no pudo cotizar esta vez: id del correo => motivo. */
 	private static $excuses = [];
 
+	/** Fallas del cálculo actual, antes de capturar sus tarifas. */
+	private static $failures = [];
+
 	/** ¿Corrió la captura en esta carga? Si no, no hay cálculo del que hablar. */
 	private static $captured = false;
 
@@ -62,6 +65,7 @@ class MJE_Native {
 	const SESSION_LAST = 'mje_native_last';
 
 	public static function init() {
+		add_action('woocommerce_load_shipping_methods', [__CLASS__, 'protect_methods'], 100, 1);
 		/* La sucursal elegida se anota en el plugin del correo antes de cotizar. */
 		add_filter('woocommerce_cart_shipping_packages', [__CLASS__, 'prime'], 5, 1);
 		/* Los correos conectados también saben resolver un código postal. */
@@ -69,6 +73,28 @@ class MJE_Native {
 	}
 
 	/* ----------------------------- Adaptadores --------------------------- */
+
+	/** Aísla cada cotizador: una cuenta desconectada no puede romper el carrito. */
+	public static function protect_methods($package) {
+		if (empty($package) || !MJE_Settings::get('enabled')) {
+			return;
+		}
+		self::$failures = [];
+		require_once __DIR__ . '/class-mje-native-method.php';
+		$shipping = WC()->shipping();
+		foreach ($shipping->shipping_methods as $key => $method) {
+			$plugin = self::by_method($method->id);
+			if ($plugin && !$method instanceof MJE_Native_Method) {
+				$shipping->shipping_methods[$key] = new MJE_Native_Method($method, $plugin->id());
+			}
+		}
+	}
+
+	/** El detalle técnico queda en el registro; al cliente le mostramos un aviso seguro. */
+	public static function failed_calculation($id, $error) {
+		self::$failures[$id] = 'El correo no pudo cotizar en este momento. Probá otro método de envío.';
+		MJE_Geo::log('nativo', $id . ' · cotización: ' . $error->getMessage());
+	}
 
 	/**
 	 * Le pregunta algo al plugin del correo sin que pueda tumbar la tienda.
@@ -190,7 +216,7 @@ class MJE_Native {
 	 */
 	public static function capture($rates) {
 		self::$rates    = [];
-		self::$excuses  = [];
+		self::$excuses  = self::$failures;
 		self::$captured = true;
 		if (!is_array($rates)) {
 			return;

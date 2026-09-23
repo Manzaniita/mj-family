@@ -372,6 +372,8 @@ export default function Checkout() {
         setForm((f) => {
           const merged = { ...f };
           Object.keys(filled).forEach((key) => {
+            if (hasShipping() && f.postcode && f.postcode !== filled.postcode
+              && ['address', 'address2', 'city', 'state', 'postcode'].includes(key)) return;
             if (!String(merged[key] || '').trim()) merged[key] = filled[key];
           });
           return merged;
@@ -379,6 +381,7 @@ export default function Checkout() {
         setEnvio((e) => {
           const merged = { ...e };
           Object.keys(destino).forEach((key) => {
+            if (hasShipping() && e.postcode && e.postcode !== destino.postcode) return;
             if (!String(merged[key] || '').trim()) merged[key] = destino[key];
           });
           return merged;
@@ -390,7 +393,7 @@ export default function Checkout() {
           setExpress(EXPRESS.auto);
           // El envío se calcula ya mismo: en modo rápido no hay un blur del CP que lo dispare, y
           // el total tiene que estar bien antes de que alguien apriete el botón.
-          prefetchShipping(completo);
+          if (!hasShipping()) prefetchShipping(completo);
         }
       })
       .catch(() => {});

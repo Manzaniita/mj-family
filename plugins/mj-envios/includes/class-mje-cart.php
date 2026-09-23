@@ -77,7 +77,14 @@ class MJE_Cart {
 
 		/* Elegir método acá es lo mismo que elegirlo en el resumen del carrito. */
 		if (!empty($in['method'])) {
-			self::choose($in['method']);
+			if (self::choose($in['method'])) {
+				$requested = MJE_Rates::rate_id($in['method']);
+				/* Si cambia la cantidad de tarifas, WooCommerce vuelve a elegir un default.
+				 * Respetamos la elección explícita solamente si sigue disponible. */
+				add_filter('woocommerce_shipping_chosen_method', function ($default, $rates) use ($requested) {
+					return isset($rates[$requested]) ? $requested : $default;
+				}, 100, 2);
+			}
 		}
 	}
 
@@ -106,7 +113,6 @@ class MJE_Cart {
 			return;
 		}
 		$data   = self::session_data();
-		$before = [$data['method'], $data['branch'], $data['city']];
 		foreach (['method', 'branch', 'city'] as $key) {
 			if (array_key_exists($key, $in)) {
 				$data[$key] = (string) $in[$key];
@@ -131,36 +137,12 @@ class MJE_Cart {
 		}
 		WC()->session->set(self::SESSION_KEY, $data);
 		self::$cache = $data;
-		/*
-		 * El precio depende del método, la sucursal y la localidad. Escribir el nombre o el teléfono
-		 * no lo cambia: recalcular ahí sería pedirle al correo una cotización por cada pausa al tipear.
-		 */
-		if ([$data['method'], $data['branch'], $data['city']] !== $before) {
-			self::invalidate_rates();
-		}
+		/* WooCommerce recalcula después del callback, con el método ya elegido.
+		 * sign_packages() invalida la caché cuando cambia el destino o la sucursal. */
 	}
 
 	public static function forget() {
 		self::$cache = null;
-	}
-
-	/** Las tarifas guardadas dejan de valer cuando cambia lo que las define. */
-	/**
-	 * Vuelve a calcular el envío cuando el cliente cambió algo que lo afecta.
-	 *
-	 * Alcanza con recalcular: MJE_Rates::sign_packages() estampa el método, la
-	 * sucursal, la localidad y el medio de pago dentro de cada paquete, y eso
-	 * entra en el hash con el que WooCommerce guarda las tarifas. Cambiar
-	 * cualquiera de esas cosas ya cambia el hash.
-	 *
-	 * Acá NO se toca la versión global de la caché de envíos: es un transient de
-	 * toda la tienda, y usarla acá hacía que un cliente eligiendo su sucursal le
-	 * tirara abajo las tarifas guardadas a todos los demás visitantes.
-	 */
-	private static function invalidate_rates() {
-		if (function_exists('WC') && WC()->cart) {
-			WC()->cart->calculate_shipping();
-		}
 	}
 
 	/* ------------------------------ Elección ----------------------------- */

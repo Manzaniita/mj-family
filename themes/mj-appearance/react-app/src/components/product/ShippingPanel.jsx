@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Loader2, Truck } from 'lucide-react';
 import * as wc from '@/lib/wc';
 import { formatPrice, cn } from '@/lib/format';
@@ -127,15 +127,19 @@ export function ShippingPanel({ product }) {
   const [state, setState] = useState({ status: 'idle', rates: [], groups: [], notices: [], error: '' });
   /* La opción que dejó elegida (el slug del método), acá y en el checkout. */
   const [picked, setPicked] = useState(() => rememberedQuote()?.slug || '');
+  const request = useRef(0);
+  const quotedCp = useRef('');
 
   /* Con un código postal ya guardado, la primera respuesta llega sin pedir nada. */
   useEffect(() => {
     if (IS_WP && config.enabled && cpLooksValid(cp)) ask(cp);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { request.current += 1; };
+  }, [product?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!IS_WP || !config.enabled || !product) return null;
 
   async function ask(value) {
+    const sequence = ++request.current;
     if (!cpLooksValid(value)) {
       setState({ status: 'error', rates: [], groups: [], notices: [], error: cpCfg.invalid || '' });
       return;
@@ -143,6 +147,8 @@ export function ShippingPanel({ product }) {
     setState((s) => ({ ...s, status: 'loading', error: '' }));
     try {
       const data = await wc.quoteShipping({ cp: value, producto: product.id, cantidad: 1 });
+      if (sequence !== request.current) return;
+      quotedCp.current = value;
       const rates = asRates(data?.opciones);
       rememberCp(value);
       /* Otro destino puede no tener el envío que había elegido: se suelta la marca. */
@@ -155,18 +161,20 @@ export function ShippingPanel({ product }) {
         error: rates.length ? '' : data?.mensaje || texts.none || '',
       });
     } catch {
+      if (sequence !== request.current) return;
       setState({ status: 'error', rates: [], groups: [], notices: [], error: texts.error || '' });
     }
   }
 
   /** Dejar una opción elegida para el checkout. */
   const choose = (rate) => {
+    if (state.status !== 'done' || cp !== quotedCp.current) return;
     setPicked(rate.rate_id);
     rememberQuote({ cp, slug: rate.rate_id });
   };
 
   const entries = buildEntries(state.rates, state.groups);
-  const pick = !!config.pick && state.rates.length > 0;
+  const pick = !!config.pick && state.rates.length > 0 && state.status === 'done' && cp === quotedCp.current;
   const opts = { texts, pick, onChoose: choose };
 
   return (

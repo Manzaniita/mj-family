@@ -362,6 +362,29 @@ métodos. Un **error 500** en `wp-json/mje/v1/geo/cp` o en
 `wp-json/wc/store/v1/cart/update-customer` es la señal de que un correo se está
 llevando puesta la tienda.
 
+Probá además agregar un producto desde su ficha, abrir el carrito y elegir un
+envío: `/cart/add-item`, `/cart` y `/cart/extensions` deben seguir respondiendo
+aunque un cotizador nativo lance el error de token. El método que falló no debe
+aparecer como gratuito; los otros deben conservar sus tarifas.
+
+### 3.10. Destino y selección estables
+
+1. En la ficha, cotizá un CP y dejá elegido un método. Entrá al checkout: la
+   preferencia debe aplicarse una sola vez, después de resolver ese destino.
+2. Elegí otro método y esperá. Debe conservarse; cada selección propia manda
+   una sola solicitud a `/cart/extensions`.
+3. Con la red lenta, cambiá el CP antes de que termine la primera consulta.
+   La respuesta vieja no debe reemplazar la provincia, localidad o tarifas nuevas.
+4. Entrá con una cuenta guardada para otro CP: sus datos no deben mezclarse
+   con el destino elegido en la ficha. Repetí con compra rápida activada.
+5. Mientras se calcula, las opciones deben estar deshabilitadas. Cambiar de
+   sucursal o destino sí debe actualizar las tarifas y el total.
+
+Regresiones locales: `php tools/pruebas-envios.php` y `npm test` desde
+`themes/mj-appearance/react-app`. Cubren excepciones del cotizador, selección
+atómica, CP tardío y respuestas fuera de orden; no reemplazan esta prueba con
+WordPress y las cuentas reales de los correos.
+
 ---
 
 <a id="erp-ventas"></a>
