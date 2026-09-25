@@ -1,6 +1,6 @@
 # Versiones publicadas
 
-Generado por `tools/build-releases.ps1` el 2026-09-22 22:10.
+Generado por `tools/build-releases.ps1` el 2026-09-25 02:13.
 En `releases/` queda un solo zip por paquete: el de la versión que está
 hoy en el código. Los de versiones anteriores se borran — las que ya se
 publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
@@ -9,43 +9,43 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 
 | Tema | Versión | Archivo | Tamaño | SHA-256 |
 | --- | --- | --- | ---: | --- |
-| MJ Appearance | 3.31.1 | `mj-appearance-3.31.1.zip` | 587 KB | `06747ab79c056d26…` |
-| MJ Atelier | 1.2.0 | `mj-atelier-1.2.0.zip` | 608 KB | `94cdef3be05cf2ab…` |
-| GlossyHair | 1.1.1 | `mj-glossyhair-1.1.1.zip` | 90 KB | `72be8cd8af9878d1…` |
-| Jaz Beauty Art | 1.1.0 | `mj-jazbeauty-1.1.0.zip` | 15 KB | `b13c1bef176d39a1…` |
-| Yamana | 1.1.1 | `mj-yamana-1.1.1.zip` | 328 KB | `397d2028c4bb4b9b…` |
+| MJ Appearance | 3.31.2 | `mj-appearance-3.31.2.zip` | 587 KB | `4bc08fe87b44dd3f…` |
+| MJ Atelier | 1.2.0 | `mj-atelier-1.2.0.zip` | 608 KB | `a246ea18edb955f0…` |
+| GlossyHair | 1.1.1 | `mj-glossyhair-1.1.1.zip` | 90 KB | `bfb3369af0d91a8c…` |
+| Jaz Beauty Art | 1.1.0 | `mj-jazbeauty-1.1.0.zip` | 15 KB | `41260b3168d4a6fe…` |
+| Yamana | 1.1.1 | `mj-yamana-1.1.1.zip` | 328 KB | `29f4c5ea809efd08…` |
 
 ## Plugins
 
 | Plugin | Versión | Archivo | Tamaño | SHA-256 |
 | --- | --- | --- | ---: | --- |
-| MJ Colegas | 1.1.0 | `mj-colegas-1.1.0.zip` | 28 KB | `431f2f9b1bc3a2e7…` |
-| MJ Core | 1.1.0 | `mj-core-1.1.0.zip` | 24 KB | `412c2e5b8ded3a4b…` |
-| MJ Dólar | 1.2.0 | `mj-dolar-1.2.0.zip` | 51 KB | `79e7a5b1f12e88e3…` |
-| MJ Envíos | 1.11.3 | `mj-envios-1.11.3.zip` | 161 KB | `f5018ae399144cb2…` |
-| MJ ERP | 1.23.0 | `mj-erp-1.23.0.zip` | 684 KB | `b0ec34c68d5eb960…` |
-| MJ Fidelidad | 1.1.0 | `mj-fidelidad-1.1.0.zip` | 27 KB | `03fd0a3de04ae74e…` |
-| MJ Fotos Rápidas | 1.4.0 | `mj-fotos-rapidas-1.4.0.zip` | 13 KB | `6a2f2aecb3848664…` |
-| MJ Medios de Pago | 1.6.0 | `mj-medios-pago-1.6.0.zip` | 117 KB | `4b3254cc2fa828fd…` |
-| MJ Optimizador de Imágenes | 1.2.0 | `mj-optimizador-imagenes-1.2.0.zip` | 46 KB | `76270b140b71c06c…` |
-| MJ Turnos Online | 1.4.0 | `mj-turnos-online-1.4.0.zip` | 297 KB | `f0b7ab924ce700b9…` |
+| MJ Colegas | 1.1.0 | `mj-colegas-1.1.0.zip` | 28 KB | `ab984d18256a8527…` |
+| MJ Core | 1.1.0 | `mj-core-1.1.0.zip` | 24 KB | `f26ed2f5e114e532…` |
+| MJ Dólar | 1.2.0 | `mj-dolar-1.2.0.zip` | 51 KB | `d4f5e2ec4022f847…` |
+| MJ Envíos | 1.11.3 | `mj-envios-1.11.3.zip` | 162 KB | `a43da336f244a922…` |
+| MJ ERP | 1.23.0 | `mj-erp-1.23.0.zip` | 684 KB | `4a8acfd26cd9229b…` |
+| MJ Fidelidad | 1.1.0 | `mj-fidelidad-1.1.0.zip` | 27 KB | `8c7289ce923448f3…` |
+| MJ Fotos Rápidas | 1.4.0 | `mj-fotos-rapidas-1.4.0.zip` | 14 KB | `6d2fd2b3f924cd92…` |
+| MJ Medios de Pago | 1.6.0 | `mj-medios-pago-1.6.0.zip` | 117 KB | `ae5fdd78294d8956…` |
+| MJ Optimizador de Imágenes | 1.2.0 | `mj-optimizador-imagenes-1.2.0.zip` | 46 KB | `05fe7599eabaeb50…` |
+| MJ Turnos Online | 1.4.0 | `mj-turnos-online-1.4.0.zip` | 297 KB | `17f70fe003fc1ff3…` |
 
 ## SHA-256 completos
 
 ```
-06747ab79c056d262583ea0cafe1dd6061bc4fc9cac5520cf357fbee7aa96018  mj-appearance-3.31.1.zip
-94cdef3be05cf2ab67ea0d0256dbb5754e4482f018ab0af28968200ae64f7d92  mj-atelier-1.2.0.zip
-431f2f9b1bc3a2e7c8982d1ccb8d23f3686683b8168ed6c4a7668816c8835907  mj-colegas-1.1.0.zip
-412c2e5b8ded3a4b688b6b72ee02c4e2d60458f471c2015a699d79f8a1f823e1  mj-core-1.1.0.zip
-79e7a5b1f12e88e3ed4748345ba60460561afce08140e14a215d2eaf27b8416e  mj-dolar-1.2.0.zip
-f5018ae399144cb277b5745e0df9320daa2f2f0a0f06ca0a5aa69a3c1dc87a0a  mj-envios-1.11.3.zip
-b0ec34c68d5eb960f89ea0343007e396ceea7047141eb7e4aa1c25df639bb067  mj-erp-1.23.0.zip
-03fd0a3de04ae74e00cdee230a040f880b9ad82e273e3f2641fc72f15013a25d  mj-fidelidad-1.1.0.zip
-6a2f2aecb38486647818946c1f082ca83026320a2b95021fa1d539e1df93c14c  mj-fotos-rapidas-1.4.0.zip
-72be8cd8af9878d17c2a0ae547b02ac25a379d12f273bfdc9e34ed1869534b27  mj-glossyhair-1.1.1.zip
-b13c1bef176d39a14bb39cd782a0c850fb3c342e99d887c176e81b5c761e986c  mj-jazbeauty-1.1.0.zip
-4b3254cc2fa828fdd37a95dc6b18e08b9cbf31c3665f0283536e4f38549f94c5  mj-medios-pago-1.6.0.zip
-76270b140b71c06cd141423bb1b7fe2f86528b481187ea3f67beff2ee5f89dbd  mj-optimizador-imagenes-1.2.0.zip
-f0b7ab924ce700b95d2688eb4f18df20d1fd2ed84edb8cc2123d779d930f5e17  mj-turnos-online-1.4.0.zip
-397d2028c4bb4b9b51de82f044e6a0062d130a78ad69381d8544db5ff9cd5b49  mj-yamana-1.1.1.zip
+4bc08fe87b44dd3fbc0007d0c7722f306f4ee541a5e3a7db5e6aaca9906b9a02  mj-appearance-3.31.2.zip
+a246ea18edb955f0eb5ca723e41fff8c4377cd99b33c2f5b552e04719bbdf598  mj-atelier-1.2.0.zip
+ab984d18256a85270a4e558e425398862ac445d8c776bacbddc009a2df707b8d  mj-colegas-1.1.0.zip
+f26ed2f5e114e53232dc18b1706ef52f24ceb2192b286a440b67e6f956a1e82a  mj-core-1.1.0.zip
+d4f5e2ec4022f84718d5335fcc87647f03d02c5028ccd63b10e85b50e583f38d  mj-dolar-1.2.0.zip
+a43da336f244a9227ccc755625e94546548c751f347e9d1114d658c61b891ee7  mj-envios-1.11.3.zip
+4a8acfd26cd9229b2f993f8cab92ec09d30e93483b9b2f6ba40de6e2df35c035  mj-erp-1.23.0.zip
+8c7289ce923448f35917070502b3e878beaef5fe6b8b5dfe9e5a8366ecb0de79  mj-fidelidad-1.1.0.zip
+6d2fd2b3f924cd9258f745de50f7e09badc760b1b67bbd90082c7b426cfc1ac0  mj-fotos-rapidas-1.4.0.zip
+bfb3369af0d91a8c3a38cb2bbdddbe62d2799dddd17dacc783090e5bc7829848  mj-glossyhair-1.1.1.zip
+41260b3168d4a6fe947d18affa181636cbd48cb8351d65f64e7cebb5e4a756aa  mj-jazbeauty-1.1.0.zip
+ae5fdd78294d895659efb4f11e9f7e7bda797e0a770ef303a401ad1062035075  mj-medios-pago-1.6.0.zip
+05fe7599eabaeb50e8aa64b17ab4b4ccf434f06398f2f6c5ec902cdee64b1b29  mj-optimizador-imagenes-1.2.0.zip
+17f70fe003fc1ff3394a9644b121a5692d9964339c7eb41b83cbce3eac03b77e  mj-turnos-online-1.4.0.zip
+29f4c5ea809efd08893fc722d385e14364459d510056b006d11029fe34864b2e  mj-yamana-1.1.1.zip
 ```
