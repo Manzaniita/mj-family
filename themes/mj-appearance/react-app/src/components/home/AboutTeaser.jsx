@@ -31,7 +31,12 @@ export function AboutTeaser({ override } = {}) {
       <div className={cn('grid items-center gap-10 lg:gap-16', image && 'lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]')}>
         {image && (
           <MaskReveal className="mj-about-teaser__photo overflow-hidden rounded-(--mj-radius-2xl) border border-line">
-            <img src={image} alt="" loading="lazy" className="aspect-4/5 h-full w-full object-cover" />
+            <img
+              src={typeof image === 'string' ? image : image.url}
+              alt="" loading="lazy"
+              style={typeof image === 'object' && image.focal ? { objectPosition: `${image.focal.x * 100}% ${image.focal.y * 100}%` } : {}}
+              className="aspect-4/5 h-full w-full object-cover"
+            />
           </MaskReveal>
         )}
         <Reveal className={cn('mj-about-teaser__body', image ? 'max-w-2xl' : 'mx-auto max-w-3xl text-center')} delay={image ? 0.1 : 0}>

@@ -50,15 +50,20 @@ export function BannerSlider({ images, autoplay = false, interval = 6, height = 
           className="flex transition-transform duration-700 ease-out"
           style={{ transform: `translateX(-${idx * 100}%)` }}
         >
-          {banners.map((src, i) => (
+          {banners.map((imgDef, i) => {
+            const src = typeof imgDef === 'string' ? imgDef : imgDef.url;
+            const style = typeof imgDef === 'object' && imgDef.focal ? { objectPosition: `${imgDef.focal.x * 100}% ${imgDef.focal.y * 100}%` } : {};
+            return (
             <img
               key={src}
               src={src}
               alt=""
+              style={style}
               loading={i === 0 ? 'eager' : 'lazy'}
               className={`w-full shrink-0 object-cover ${HEIGHTS[height] || HEIGHTS.md}`}
             />
-          ))}
+            );
+          })}
         </div>
       </MaskReveal>
 
