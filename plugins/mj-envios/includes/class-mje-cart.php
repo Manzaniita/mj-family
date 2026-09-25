@@ -42,6 +42,9 @@ class MJE_Cart {
 		add_filter('woocommerce_get_country_locale', [__CLASS__, 'relax_locale'], 50);
 		add_filter('woocommerce_get_country_locale_default', [__CLASS__, 'relax_locale_fields'], 50);
 		add_filter('woocommerce_get_country_locale_base', [__CLASS__, 'relax_locale_fields'], 50);
+
+		/* WooCommerce asume que el país siempre está, y si no, traba el checkout antes de mirar el locale. */
+		add_filter('woocommerce_checkout_posted_data', [__CLASS__, 'ensure_country_in_post'], 50);
 	}
 
 	public static function register_update_callback() {
@@ -375,6 +378,45 @@ class MJE_Cart {
 		 * @param array    $def  Método elegido.
 		 */
 		return array_values((array) apply_filters('mje_relaxed_address_fields', array_diff($address, $required), $def));
+	}
+
+	/**
+	 * Asegura que el país esté presente en los datos del checkout clásico.
+	 *
+	 * WooCommerce lanza "Please enter an address to continue" ("Por favor, introduce
+	 * una dirección para continuar") de forma estricta (en `class-wc-checkout.php`)
+	 * si `$data['shipping_country']` está vacío y el carrito necesita envío, ignorando
+	 * por completo que el método elegido (`relax_locale`) diga que es opcional.
+	 * Acá se inyecta el país por defecto si faltara.
+	 */
+	public static function ensure_country_in_post($data) {
+		if (!MJE_Settings::get('enabled') || !function_exists('WC') || !WC()->cart || !WC()->cart->needs_shipping()) {
+			return $data;
+		}
+
+		/* No inyectamos nada si el método elegido es de otro plugin */
+		if (!self::chosen_method()) {
+			return $data;
+		}
+
+		foreach (['shipping_country', 'billing_country'] as $key) {
+			if (!isset($data[$key]) || '' === trim((string) $data[$key])) {
+				/* Intenta obtenerlo del cliente si existe, si no usa el default de la tienda */
+				$country = '';
+				if (WC()->customer) {
+					$getter = 'shipping_country' === $key ? 'get_shipping_country' : 'get_billing_country';
+					if (is_callable([WC()->customer, $getter])) {
+						$country = trim((string) WC()->customer->$getter());
+					}
+				}
+				if ('' === $country) {
+					$country = MJE_Geo::country();
+				}
+				$data[$key] = $country;
+			}
+		}
+
+		return $data;
 	}
 
 	/** Checkout clásico: los campos viajan serializados en el review del pedido. */
