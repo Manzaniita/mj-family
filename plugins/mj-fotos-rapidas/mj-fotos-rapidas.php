@@ -54,7 +54,7 @@ class MJ_Fotos_Rapidas {
      * Salen de la opción del plugin; se pueden cambiar sin tocar el código
      * (o con el filtro `mj_fotos_rapidas_ajustes`).
      *
-     * @return array{max_px:int, calidad:float}
+     * @return array{max_px:int, calidad:float, recortar:bool}
      */
     public static function ajustes() {
         $guardado = get_option(self::OPCION, array());
@@ -63,11 +63,13 @@ class MJ_Fotos_Rapidas {
         }
         $max_px  = isset($guardado['max_px']) ? (int) $guardado['max_px'] : self::MAX_PX;
         $calidad = isset($guardado['calidad']) ? (float) $guardado['calidad'] : self::CALIDAD;
+        $recortar = !empty($guardado['recortar']);
 
         /* Rangos con sentido: nada de fotos de 2 px ni calidad 0. */
         $ajustes = array(
             'max_px'  => max(320, min(4096, $max_px)),
             'calidad' => max(0.3, min(1.0, $calidad)),
+            'recortar' => $recortar,
         );
         return (array) apply_filters('mj_fotos_rapidas_ajustes', $ajustes);
     }
@@ -90,6 +92,7 @@ class MJ_Fotos_Rapidas {
         update_option(self::OPCION, array(
             'max_px'  => isset($_POST['max_px']) ? absint($_POST['max_px']) : self::MAX_PX,
             'calidad' => isset($_POST['calidad']) ? (float) $_POST['calidad'] / 100 : self::CALIDAD,
+            'recortar' => !empty($_POST['recortar']),
         ));
 
         wp_safe_redirect(add_query_arg(
@@ -210,6 +213,11 @@ class MJ_Fotos_Rapidas {
         ?>
         <div class="wrap mjfr">
 
+            <?php if (!empty(self::ajustes()['recortar'])) : ?>
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+            <?php endif; ?>
+
             <h1 class="mjfr-titulo">Fotos rápidas</h1>
             <p class="mjfr-bajada">Elegí las fotos desde la galería del celular. Se achican y se suben solas: la primera queda como imagen principal y el resto va a la galería. Cuando el producto está listo, lo publicás desde acá.</p>
 
@@ -230,8 +238,12 @@ class MJ_Fotos_Rapidas {
                     <label>Calidad (%)<br>
                         <input type="number" name="calidad" value="<?php echo esc_attr((string) round($mjfr_ajustes['calidad'] * 100)); ?>" min="30" max="100" step="1">
                     </label>
+                    <label style="display:flex; align-items:center; gap:6px; height: 30px;">
+                        <input type="checkbox" name="recortar" value="1" <?php checked(!empty($mjfr_ajustes['recortar'])); ?>>
+                        Permitir recortar la imagen antes de subirla
+                    </label>
                     <button type="submit" class="button">Guardar</button>
-                    <span class="description">Más tamaño y más calidad = fotos más lindas pero más pesadas y más lentas de subir desde el celular.</span>
+                    <span class="description" style="width: 100%;">Más tamaño y más calidad = fotos más lindas pero más pesadas y más lentas de subir desde el celular.</span>
                 </form>
             </details>
             <?php endif; ?>
@@ -379,6 +391,11 @@ class MJ_Fotos_Rapidas {
 
         .mjfr-credito { margin-top:28px; color:#a7aaad; font-size:12px; }
 
+        .mjfr-modal { position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.8); display:flex; flex-direction:column; }
+        .mjfr-modal-body { flex:1; min-height:0; display:flex; justify-content:center; align-items:center; padding:20px; }
+        .mjfr-modal-img { max-width:100%; max-height:100%; display:block; }
+        .mjfr-modal-footer { flex:0 0 auto; background:#fff; padding:16px; display:flex; justify-content:flex-end; gap:12px; }
+
         @media (max-width:600px) {
             .mjfr-acciones { flex-direction:column; }
             .mjfr-boton { padding:18px; font-size:16px; }
@@ -396,6 +413,7 @@ class MJ_Fotos_Rapidas {
             const NONCE   = <?php echo wp_json_encode(wp_create_nonce(self::NONCE)); ?>;
             const MAX_PX  = <?php echo (int) self::ajustes()['max_px']; ?>;
             const CALIDAD = <?php echo (float) self::ajustes()['calidad']; ?>;
+            const RECORTAR = <?php echo !empty(self::ajustes()['recortar']) ? 'true' : 'false'; ?>;
 
             function pedir(datos) {
                 datos.append('nonce', NONCE);
@@ -440,6 +458,61 @@ class MJ_Fotos_Rapidas {
                 });
             }
 
+            function mostrarRecortador(archivo) {
+                return new Promise((resolve) => {
+                    const url = URL.createObjectURL(archivo);
+                    const modal = document.createElement('div');
+                    modal.className = 'mjfr-modal';
+                    modal.innerHTML = `
+                        <div class="mjfr-modal-body">
+                            <img src="${url}" class="mjfr-modal-img" alt="">
+                        </div>
+                        <div class="mjfr-modal-footer">
+                            <button type="button" class="button mjfr-cancelar">Saltar / Cancelar</button>
+                            <button type="button" class="button button-primary mjfr-listo">Recortar y subir</button>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+
+                    const img = modal.querySelector('.mjfr-modal-img');
+                    let cropper;
+                    img.onload = () => {
+                        cropper = new Cropper(img, {
+                            viewMode: 1,
+                            dragMode: 'crop',
+                            autoCropArea: 0.8,
+                            restore: false,
+                            guides: true,
+                            center: true,
+                            highlight: false,
+                            cropBoxMovable: true,
+                            cropBoxResizable: true,
+                            toggleDragModeOnDblclick: false,
+                        });
+                    };
+
+                    const cerrar = () => {
+                        if (cropper) cropper.destroy();
+                        document.body.removeChild(modal);
+                        URL.revokeObjectURL(url);
+                    };
+
+                    modal.querySelector('.mjfr-cancelar').addEventListener('click', () => {
+                        cerrar();
+                        resolve(archivo); // Sube original si cancela
+                    });
+
+                    modal.querySelector('.mjfr-listo').addEventListener('click', () => {
+                        if (!cropper) return;
+                        cropper.getCroppedCanvas().toBlob((blob) => {
+                            cerrar();
+                            if (!blob) resolve(archivo);
+                            else resolve(new File([blob], archivo.name, { type: archivo.type }));
+                        }, archivo.type, CALIDAD);
+                    });
+                });
+            }
+
             async function subir(item, archivos) {
                 const progreso = item.querySelector('.mjfr-progreso');
                 const barra    = item.querySelector('.mjfr-barra-int');
@@ -452,7 +525,11 @@ class MJ_Fotos_Rapidas {
                 let hechas = 0;
                 for (const original of archivos) {
                     try {
-                        const archivo = await achicar(original);
+                        let finalFile = original;
+                        if (RECORTAR && typeof Cropper !== 'undefined' && /^image\/(jpeg|png|webp)$/i.test(original.type)) {
+                            finalFile = await mostrarRecortador(original);
+                        }
+                        const archivo = await achicar(finalFile);
                         const datos = new FormData();
                         datos.append('action', 'mj_fotos_subir');
                         datos.append('producto', item.dataset.id);

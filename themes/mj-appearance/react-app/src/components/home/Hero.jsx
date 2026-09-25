@@ -67,16 +67,21 @@ export function Hero({ override } = {}) {
       {hasImages && (
         <div className="mj-hero__media absolute inset-0 overflow-hidden" aria-hidden="true">
           <Parallax speed={0.3} className="absolute inset-x-0 -inset-y-[12%]">
-            {images.map((src, i) => (
+            {images.map((imgDef, i) => {
+              const src = typeof imgDef === 'string' ? imgDef : imgDef.url;
+              const style = typeof imgDef === 'object' && imgDef.focal ? { objectPosition: `${imgDef.focal.x * 100}% ${imgDef.focal.y * 100}%` } : {};
+              return (
               <img
                 key={src}
                 src={src}
                 alt=""
+                style={style}
                 className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1600ms] ease-out ${
                   i === idx ? 'opacity-100' : 'opacity-0'
                 }`}
               />
-            ))}
+              );
+            })}
           </Parallax>
           {/* veladura para que el texto siempre sea legible */}
           <div className="mj-hero__veil absolute inset-0 bg-black/55" />

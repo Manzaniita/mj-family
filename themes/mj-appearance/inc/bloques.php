@@ -134,7 +134,7 @@ function mj_blocks() {
 				'ctaPrimaryUrl'     => ['label' => 'Destino del botón principal', 'type' => 'url', 'default' => '', 'placeholder' => '/tienda'],
 				'ctaSecondaryText'  => $text('Botón secundario'),
 				'ctaSecondaryUrl'   => ['label' => 'Destino del botón secundario', 'type' => 'url', 'default' => '', 'placeholder' => '/tienda'],
-				'images'            => ['label' => 'Fotos de fondo', 'type' => 'images', 'default' => [], 'help' => 'Rotan en fundido. Vacío = las del panel.'],
+				'images'            => ['label' => 'Fotos de fondo', 'type' => 'images', 'focal' => true, 'default' => [], 'help' => 'Rotan en fundido. Vacío = las del panel.'],
 				'showStats'         => $toggle('Mostrar las cifras (productos, envío gratis, valoración)', true),
 			],
 			'summary'     => ['title', 'titleHighlight'],
@@ -159,7 +159,7 @@ function mj_blocks() {
 			'icon'        => 'images-alt2',
 			'keywords'    => ['banner', 'slider', 'carrusel', 'promo'],
 			'fields'      => [
-				'images'   => ['label' => 'Imágenes', 'type' => 'images', 'default' => [], 'help' => 'Ideal 1600 × 600 px o más anchas.'],
+				'images'   => ['label' => 'Imágenes', 'type' => 'images', 'focal' => true, 'default' => [], 'help' => 'Ideal 1600 × 600 px o más anchas.'],
 				'autoplay' => $toggle('Pasar solo', true),
 				'interval' => array_merge($number('Segundos entre imágenes', 6, 2, 20), ['showIf' => ['autoplay' => true]]),
 				'height'   => $select('Alto', ['sm' => 'Bajo', 'md' => 'Medio', 'lg' => 'Alto'], 'md'),
@@ -301,7 +301,7 @@ function mj_blocks() {
 				'eyebrow'   => $text('Antetítulo', $ph('home_about_eyebrow')),
 				'title'     => $text('Título', $ph('home_about_title')),
 				'text'      => $textarea('Texto', '', 'Vacío = el texto de Contenido → Nosotros.'),
-				'image'     => ['label' => 'Foto', 'type' => 'image', 'default' => null, 'help' => 'Vacío = la foto de Contenido → Nosotros.'],
+				'image'     => ['label' => 'Foto', 'type' => 'image', 'focal' => true, 'default' => null, 'help' => 'Ideal vertical (1000 × 1200 px). Vacío = la de Contenido → Nosotros.'],
 				'linkLabel' => array_merge($text('Texto del enlace', $ph('home_about_link')), ['showIf' => ['layout' => 'teaser']]),
 			],
 			'summary'     => ['title'],
@@ -490,7 +490,13 @@ function mj_block_image_url($value) {
 		return '';
 	}
 	$url = wp_get_attachment_image_url($id, 'large');
-	return $url ? $url : '';
+	if (!$url) {
+		return '';
+	}
+	if (is_array($value) && isset($value['focal'])) {
+		return ['url' => $url, 'focal' => $value['focal']];
+	}
+	return $url;
 }
 
 /*
@@ -561,13 +567,13 @@ function mj_block_sanitize_value(array $field, $value) {
 		case 'toggle':
 			return (bool) $value;
 		case 'image':
-			return mj_block_image_url($value);
+			return is_array($value) && isset($value['focal']) ? ['url' => mj_block_image_url($value), 'focal' => $value['focal']] : mj_block_image_url($value);
 		case 'images':
 			$urls = [];
 			foreach ((array) $value as $item) {
 				$url = mj_block_image_url($item);
 				if ('' !== $url) {
-					$urls[] = $url;
+					$urls[] = is_array($item) && isset($item['focal']) ? ['url' => $url, 'focal' => $item['focal']] : $url;
 				}
 			}
 			return $urls;
