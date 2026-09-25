@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MJ Fotos Rápidas
  * Description: Cargá las fotos de tus productos desde el celular en dos toques y publicalos ahí mismo. Sin FTP, sin renombrar archivos, sin carpetas. Achica las imágenes solo antes de subirlas.
- * Version: 1.4.0
+ * Version: 1.4.1
  * Author: MJ Importaciones
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -21,7 +21,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJFR_VERSION', '1.4.0');
+define('MJFR_VERSION', '1.4.1');
 
 /*
  * El menú único de la familia MJ en wp-admin. La clase viaja adentro del

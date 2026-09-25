@@ -83,11 +83,11 @@
         "Slug":  "mj-fotos-rapidas",
         "Name":  "MJ Fotos Rápidas",
         "Type":  "plugin",
-        "Version":  "1.4.0",
+        "Version":  "1.4.1",
         "Parent":  null,
-        "Zip":  "mj-fotos-rapidas-1.4.0.zip",
+        "Zip":  "mj-fotos-rapidas-1.4.1.zip",
         "SizeKB":  14,
-        "Sha256":  "6d2fd2b3f924cd9258f745de50f7e09badc760b1b67bbd90082c7b426cfc1ac0"
+        "Sha256":  "fa9f8cf761fb452f0bb18b5ff58a02874940a81b977180d2ae3b79b5ce4c0ab0"
     },
     {
         "Slug":  "mj-glossyhair",
