@@ -143,9 +143,10 @@ function mj_session_payload() {
 	if (is_user_logged_in()) {
 		$current = wp_get_current_user();
 		$user    = [
-			'id'    => $current->ID,
-			'name'  => $current->display_name,
-			'email' => $current->user_email,
+			'id'                 => $current->ID,
+			'name'               => $current->display_name,
+			'email'              => $current->user_email,
+			'mustChangePassword' => (bool) get_user_meta($current->ID, 'mj_must_change_password', true),
 		];
 	}
 

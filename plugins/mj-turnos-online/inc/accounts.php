@@ -193,13 +193,17 @@ function mjto_booking_account_plan(array $input, array $parsed) {
 				wp_set_current_user($existing_user->ID);
 				wp_set_auth_cookie($existing_user->ID, true);
 				$plan['user_id'] = (int) $existing_user->ID;
+				mjto_account_existed_now($existing_user->ID);
 				return $plan;
 			}
 		}
 		return mjto_booking_error('account_exists', 409, ['login' => true, 'errors' => ['email' => mjto_booking_messages()['account_exists']]]);
 	}
+	$is_generated = false;
 	if ('auto' === $mode && '' === $password) {
-		$password = wp_generate_password(16, true, true);
+		/* Clave genérica de único uso: 8 caracteres alfanuméricos fáciles de tipear. */
+		$password     = wp_generate_password(8, false, false);
+		$is_generated = true;
 	} else {
 		$min = mjto_account_password_min();
 		if (mb_strlen($password) < $min) {
@@ -209,13 +213,14 @@ function mjto_booking_account_plan(array $input, array $parsed) {
 	}
 
 	return [
-		'user_id'    => 0,
-		'create'     => true,
-		'email'      => $email,
-		'password'   => $password,
-		'first_name' => (string) ($parsed['client']['first_name'] ?? ''),
-		'last_name'  => (string) ($parsed['client']['last_name'] ?? ''),
-		'phone'      => (string) ($parsed['client']['phone'] ?? ''),
+		'user_id'               => 0,
+		'create'                => true,
+		'email'                 => $email,
+		'password'              => $password,
+		'is_generated_password' => $is_generated,
+		'first_name'            => (string) ($parsed['client']['first_name'] ?? ''),
+		'last_name'             => (string) ($parsed['client']['last_name'] ?? ''),
+		'phone'                 => (string) ($parsed['client']['phone'] ?? ''),
 	];
 }
 
@@ -229,12 +234,15 @@ function mjto_booking_account_create(array $plan) {
 		if ($existing_user) {
 			wp_set_current_user($existing_user->ID);
 			wp_set_auth_cookie($existing_user->ID, true);
-			mjto_account_created_now($existing_user->ID);
+			mjto_account_existed_now($existing_user->ID);
 			return (int) $existing_user->ID;
 		}
 		return mjto_booking_error('account_exists', 409, ['login' => true, 'errors' => ['email' => mjto_booking_messages()['account_exists']]]);
 	}
 	$meta = ['first_name' => $plan['first_name'], 'last_name' => $plan['last_name']];
+
+	/* Silenciar el email estándar de WooCommerce para enviar nuestro propio email con la clave provisoria. */
+	add_filter('woocommerce_email_enabled_customer_new_account', '__return_false', 999);
 
 	if (function_exists('wc_create_new_customer')) {
 		$user_id = wc_create_new_customer($plan['email'], '', $plan['password'], $meta);
@@ -254,6 +262,9 @@ function mjto_booking_account_create(array $plan) {
 			'display_name' => trim($plan['first_name'] . ' ' . $plan['last_name']),
 		]));
 	}
+
+	remove_filter('woocommerce_email_enabled_customer_new_account', '__return_false', 999);
+
 	if (is_wp_error($user_id) || !$user_id) {
 		return mjto_booking_error('account_failed', 500);
 	}
@@ -266,6 +277,12 @@ function mjto_booking_account_create(array $plan) {
 	}
 	if ('' !== $plan['last_name']) {
 		update_user_meta($user_id, 'billing_last_name', $plan['last_name']);
+	}
+
+	/* Si la clave fue generada de forma provisoria, requerimos cambio de clave al entrar y enviamos credenciales por mail. */
+	if (!empty($plan['is_generated_password'])) {
+		update_user_meta($user_id, 'mj_must_change_password', 1);
+		mjto_send_account_credentials_email($user_id, $plan['email'], $plan['password'], $plan['first_name']);
 	}
 
 	/* La sesión queda iniciada: al volver a cargar la página ya es su cuenta. */
@@ -283,6 +300,41 @@ function mjto_account_created_now($set = null) {
 		$created = (int) $set;
 	}
 	return $created;
+}
+
+/** Id de la cuenta preexistente detectada en este mismo pedido (0 si no existía). Con $set, la anota. */
+function mjto_account_existed_now($set = null) {
+	static $existed = 0;
+	if (null !== $set) {
+		$existed = (int) $set;
+	}
+	return $existed;
+}
+
+/**
+ * Envía el email de credenciales cuando se crea automáticamente una cuenta al reservar.
+ */
+function mjto_send_account_credentials_email($user_id, $email, $password, $first_name = '') {
+	$login_url = function_exists('mjto_my_bookings_url') ? mjto_my_bookings_url() : home_url('/cuenta');
+	$business  = mjto_business_name();
+	$name      = trim((string) $first_name);
+
+	$subject  = sprintf('Tu cuenta en %s — Datos de acceso', $business);
+	$greeting = '' !== $name ? sprintf('¡Hola %s!', $name) : '¡Hola!';
+
+	$lines = [
+		$greeting,
+		sprintf('Creamos tu cuenta en %s para que puedas ver y gestionar tus turnos.', $business),
+		'Tus datos de acceso son:' . "\n" . '• Usuario / Correo: ' . $email . "\n" . '• Clave provisoria: ' . $password,
+		'Podés ingresar desde el siguiente enlace:' . "\n" . $login_url,
+		'Al ingresar, el sistema te solicitará establecer tu propia contraseña definitiva para mayor seguridad.',
+	];
+	$body = implode("\n\n", $lines);
+
+	return mjto_mail($email, $subject, $body, [
+		'reply_to'      => mjto_owner_email(),
+		'reply_to_name' => $business,
+	]);
 }
 
 /** Ficha de la clienta de la sesión (o null). */

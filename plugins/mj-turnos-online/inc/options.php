@@ -815,6 +815,7 @@ function mjto_placeholder_list() {
 		'{opinion}'            => 'Texto de la opinión',
 		'{estado_opinion}'     => 'Si la opinión quedó publicada o esperando revisión',
 		'{instagram_negocio}'  => 'Instagram del negocio',
+		'{info_cuenta}'        => 'Información de acceso a la cuenta (clave provisoria o aviso de cuenta existente)',
 	];
 }
 

@@ -651,9 +651,9 @@ function mjto_rest_create_booking(WP_REST_Request $request) {
 	}
 
 	mjto_rest_rate_count(); // Recién acá: el cupo lo gastan las reservas creadas, no los intentos.
-	$view = mjto_rest_booking_view($appointment);
-	/* Se acaba de crear la cuenta: la página tiene que recargarse para tomar la sesión nueva. */
+	/* Se acaba de crear la cuenta o ya existía: la página tiene que recargarse para tomar la sesión nueva. */
 	$view['accountCreated'] = mjto_account_created_now() > 0;
+	$view['accountExisted'] = mjto_account_existed_now() > 0;
 	$response               = rest_ensure_response($view);
 	$response->set_status(201);
 	return $response;

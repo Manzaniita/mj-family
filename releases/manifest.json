@@ -3,11 +3,11 @@
         "Slug":  "mj-appearance",
         "Name":  "MJ Appearance",
         "Type":  "theme",
-        "Version":  "3.31.3",
+        "Version":  "3.31.4",
         "Parent":  null,
-        "Zip":  "mj-appearance-3.31.3.zip",
-        "SizeKB":  587,
-        "Sha256":  "5db65f81a9d613f5af426df7e716e7d27b455bca2389ef2ca620afdea005655b"
+        "Zip":  "mj-appearance-3.31.4.zip",
+        "SizeKB":  588,
+        "Sha256":  "67421ac0cd626d3b24ad8f084598f464383e0c2ef9e2282d758ef5cb8baed88b"
     },
     {
         "Slug":  "mj-atelier",
@@ -133,11 +133,11 @@
         "Slug":  "mj-turnos-online",
         "Name":  "MJ Turnos Online",
         "Type":  "plugin",
-        "Version":  "1.4.2",
+        "Version":  "1.4.3",
         "Parent":  null,
-        "Zip":  "mj-turnos-online-1.4.2.zip",
-        "SizeKB":  303,
-        "Sha256":  "dfdb86030808730f790db23b3112e901ec0fb55d19fb0b22a3888e11fe414fbe"
+        "Zip":  "mj-turnos-online-1.4.3.zip",
+        "SizeKB":  304,
+        "Sha256":  "6f3265e92fa0ad3f318155658e9f9e808355b1566d02f33335ca399d7fd1da85"
     },
     {
         "Slug":  "mj-yamana",

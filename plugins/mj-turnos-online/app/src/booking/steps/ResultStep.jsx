@@ -8,7 +8,7 @@
  *   whatsapp:{number, url}, canCancel }
  */
 import { useState } from 'react';
-import { CalendarCheck, CalendarDays, Clock, Hourglass, PartyPopper, Plus } from 'lucide-react';
+import { CalendarCheck, CalendarDays, Clock, Hourglass, Info, KeyRound, PartyPopper, Plus } from 'lucide-react';
 import { Button, StatusBadge } from '@/ui';
 import { DepositCard, Summary, summaryItem, useBooking } from '../shared';
 
@@ -31,7 +31,7 @@ export default function ResultStep({ result, service, onViewStatus, onRestart })
   const Icon = ICONS[status] || CalendarCheck;
   const item = summaryItem({ service, appointment: result.appointment, deposit: depositRequired ? deposit.amount : 0, cfg });
   // Con cuenta (la tenía o se creó recién): enlace a "Mis turnos". Es un enlace: la página se recarga y toma la sesión.
-  const withAccount = cfg.account.mode !== 'off' && !cfg.canManage && (cfg.account.loggedIn || !!result.accountCreated);
+  const withAccount = cfg.account.mode !== 'off' && !cfg.canManage && (cfg.account.loggedIn || !!result.accountCreated || !!result.accountExisted);
   const myBookingsHref = withAccount ? result.myBookingsUrl || cfg.account.myBookingsUrl : '';
 
   return (
@@ -45,6 +45,30 @@ export default function ResultStep({ result, service, onViewStatus, onRestart })
         <div className="mt-3">
           <StatusBadge status={status} label={result.statusLabel || statusLabel(status)} size="lg" />
         </div>
+
+        {result.accountCreated && (
+          <div className="mt-4 flex max-w-md items-start gap-2.5 rounded-xl2 border border-accent/25 bg-accent-soft/40 p-3.5 text-left text-xs text-ink-soft">
+            <KeyRound size={17} className="mt-0.5 shrink-0 text-accent" />
+            <div>
+              <p className="font-semibold text-ink">¡Te creamos una cuenta para ver tus turnos!</p>
+              <p className="mt-1 leading-relaxed">
+                Te enviamos un correo electrónico con tu usuario y una clave provisoria para ingresar. Al entrar te pediremos definir tu contraseña permanente.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {result.accountExisted && (
+          <div className="mt-4 flex max-w-md items-start gap-2.5 rounded-xl2 border border-line bg-surface/70 p-3.5 text-left text-xs text-ink-soft">
+            <Info size={17} className="mt-0.5 shrink-0 text-ink-faint" />
+            <div>
+              <p className="font-semibold text-ink">Ya contás con una cuenta registrada</p>
+              <p className="mt-1 leading-relaxed">
+                Ingresando con tu correo y tu clave habitual podés ver y gestionar tu turno en cualquier momento desde Mis turnos.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 gap-4 md:grid-cols-2 md:items-start">

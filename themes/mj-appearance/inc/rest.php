@@ -106,10 +106,14 @@ add_action('rest_api_init', function () {
 
 /* Shape de usuario que consume la SPA. */
 function mj_rest_user($user) {
+	if (!$user) {
+		return null;
+	}
 	return [
-		'id'    => $user->ID,
-		'name'  => $user->display_name,
-		'email' => $user->user_email,
+		'id'                 => $user->ID,
+		'name'               => $user->display_name,
+		'email'              => $user->user_email,
+		'mustChangePassword' => (bool) get_user_meta($user->ID, 'mj_must_change_password', true),
 	];
 }
 
@@ -488,18 +492,24 @@ function mj_rest_profile(WP_REST_Request $request) {
 		return new WP_Error('mj_profile_failed', 'No se pudo guardar el perfil. Intentá de nuevo.', ['status' => 400]);
 	}
 
-	/* Cambio de contraseña: requiere la actual y mantiene la sesión. */
+	/* Cambio de contraseña: si tiene clave provisoria no requiere la actual; la mantiene en sesión y limpia el flag. */
+	$must_change  = (bool) get_user_meta($user_id, 'mj_must_change_password', true);
 	$new_password = (string) $request->get_param('new_password');
 	if ('' !== $new_password) {
 		if (strlen($new_password) < 6) {
 			return new WP_Error('mj_weak_password', 'La contraseña debe tener al menos 6 caracteres.', ['status' => 400]);
 		}
-		$current_password = (string) $request->get_param('current_password');
-		if (!wp_check_password($current_password, $user->user_pass, $user_id)) {
-			return new WP_Error('mj_wrong_password', 'La contraseña actual no coincide.', ['status' => 400]);
+		if (!$must_change) {
+			$current_password = (string) $request->get_param('current_password');
+			if (!wp_check_password($current_password, $user->user_pass, $user_id)) {
+				return new WP_Error('mj_wrong_password', 'La contraseña actual no coincide.', ['status' => 400]);
+			}
 		}
 		wp_set_password($new_password, $user_id);
 		wp_set_auth_cookie($user_id);
+		if ($must_change) {
+			delete_user_meta($user_id, 'mj_must_change_password');
+		}
 	}
 
 	return rest_ensure_response(['user' => mj_rest_user(get_userdata($user_id))]);

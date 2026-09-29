@@ -82,12 +82,85 @@ function FormMessage({ msg }) {
   );
 }
 
+function MustChangePasswordModal({ open, onSaved }) {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      setMsg({ ok: false, text: 'La contraseña debe tener al menos 6 caracteres.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMsg({ ok: false, text: 'Las contraseñas no coinciden.' });
+      return;
+    }
+    setSaving(true);
+    setMsg(null);
+    try {
+      const res = await wc.updateProfile({ new_password: newPassword });
+      if (res?.user) useAuth.setState({ user: res.user });
+      onSaved?.();
+    } catch (err) {
+      setMsg({ ok: false, text: err?.data?.message || err?.message || 'No se pudo guardar la contraseña.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="mj-modal fixed inset-0 z-95 grid place-items-center p-4">
+      <div className="mj-modal__overlay absolute inset-0 bg-(--mj-overlay) backdrop-blur-md" />
+      <div className="mj-modal__panel relative w-full max-w-md overflow-hidden rounded-xl3 border border-line bg-bg-soft/95 p-6 shadow-soft backdrop-blur-2xl">
+        <h3 className="font-display text-xl font-bold text-ink">Establecé tu contraseña</h3>
+        <p className="mt-2 text-sm text-ink-soft">
+          Ingresaste con una clave provisoria. Para mayor seguridad de tu cuenta, por favor elegí tu contraseña definitiva.
+        </p>
+        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+          <Input
+            label="Nueva contraseña"
+            type="password"
+            autoComplete="new-password"
+            placeholder="Mínimo 6 caracteres"
+            minLength={6}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+          />
+          <Input
+            label="Confirmar contraseña"
+            type="password"
+            autoComplete="new-password"
+            placeholder="Repetí la nueva contraseña"
+            minLength={6}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+          <FormMessage msg={msg} />
+          <Button type="submit" disabled={saving} className="w-full">
+            {saving && <Loader2 size={15} className="mr-2 animate-spin" />}
+            Guardar contraseña
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export function AccountLayout() {
   usePageMeta(tCopy('seo_title_account'));
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [account, setAccount] = useState(IS_WP ? null : EMPTY_ACCOUNT);
   const [fetching, setFetching] = useState(IS_WP);
+  const [dismissPasswordModal, setDismissPasswordModal] = useState(false);
+  const mustChange = Boolean(user?.mustChangePassword || account?.user?.mustChangePassword);
 
   const refresh = useCallback(async () => {
     if (!IS_WP) return;
@@ -174,6 +247,13 @@ export function AccountLayout() {
           )}
         </div>
       </div>
+      <MustChangePasswordModal
+        open={mustChange && !dismissPasswordModal}
+        onSaved={() => {
+          setDismissPasswordModal(true);
+          refresh();
+        }}
+      />
     </Section>
   );
 }

@@ -164,6 +164,34 @@ function mjto_placeholders($appointment, array $extra = []) {
 		'{instagram_negocio}'       => mjto_business_instagram(),
 	];
 
+	$info_cuenta = '';
+	if (isset($extra['info_cuenta'])) {
+		$info_cuenta = (string) $extra['info_cuenta'];
+	} elseif (function_exists('mjto_account_created_now') && mjto_account_created_now() > 0) {
+		$client_email = $row ? (string) ($row['client_email'] ?? '') : '';
+		$info_cuenta  = sprintf(
+			'Te creamos una cuenta con tu correo (%s). Te enviamos otro correo con tu clave provisoria para ingresar y ver tus turnos.',
+			'' !== $client_email ? $client_email : 'tu correo'
+		);
+	} elseif (function_exists('mjto_account_existed_now') && mjto_account_existed_now() > 0) {
+		$client_email    = $row ? (string) ($row['client_email'] ?? '') : '';
+		$my_bookings_url = function_exists('mjto_my_bookings_url') && 'off' !== mjto_account_mode() ? mjto_my_bookings_url() : home_url('/cuenta');
+		$info_cuenta     = sprintf(
+			'Ya tenés una cuenta registrada con tu correo (%s). Ingresando con tu correo y clave ya creada podés ver y gestionar tu turno en %s',
+			'' !== $client_email ? $client_email : 'tu correo',
+			$my_bookings_url
+		);
+	} elseif ($row && !empty($row['client_id'])) {
+		$my_bookings_url = function_exists('mjto_my_bookings_url') && 'off' !== mjto_account_mode() ? mjto_my_bookings_url() : '';
+		if ('' !== $my_bookings_url) {
+			$info_cuenta = sprintf(
+				'Podés ver tus turnos ingresando con tu correo y clave en %s',
+				$my_bookings_url
+			);
+		}
+	}
+	$map['{info_cuenta}'] = $info_cuenta;
+
 	foreach ($extra as $key => $value) {
 		$key = trim((string) $key);
 		if ('' === $key) {
@@ -379,6 +407,9 @@ function mjto_notify_client($appointment, $kind, array $extra = []) {
 	$placeholders = mjto_placeholders($row, $extra);
 	$subject      = mjto_render_template((string) mjto_opt($subject_key), $placeholders);
 	$body         = mjto_render_template((string) mjto_opt($body_key), $placeholders);
+	if (in_array($kind, ['received', 'deposit', 'confirmed'], true) && !empty($placeholders['{info_cuenta}']) && false === strpos((string) mjto_opt($body_key), '{info_cuenta}')) {
+		$body .= "\n\n" . $placeholders['{info_cuenta}'];
+	}
 	$sent         = mjto_mail($email, $subject, $body, [
 		'reply_to'      => mjto_owner_email(),
 		'reply_to_name' => mjto_business_name(),
