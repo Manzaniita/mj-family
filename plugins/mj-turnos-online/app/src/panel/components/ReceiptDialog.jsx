@@ -1,15 +1,30 @@
 /**
  * Modal para ver y aprobar/rechazar el comprobante de la seña desde el panel de Turnos,
- * sin necesidad de navegar a wp-admin > MJ > Comprobantes.
+ * con visualización completa del archivo e indicación editable del monto recibido.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Download, ExternalLink, FileText, Receipt, X, XCircle } from 'lucide-react';
 import { panelApi } from '@/lib/api';
 import { dateLabel, formatPrice, formatTime, fullName } from '@/lib/format';
-import { Badge, Button, Modal, Textarea, useToast } from '@/ui';
+import { Badge, Button, Modal, MoneyInput, Textarea, useToast } from '@/ui';
 import { usePanel } from '../store';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
+const parseMoney = (text) => {
+  if (!text) return 0;
+  const cleaned = String(text).replace(/[^\d.,]/g, '').trim();
+  if (cleaned.includes('.') && cleaned.includes(',')) {
+    return parseFloat(cleaned.replace(/\./g, '').replace(',', '.')) || 0;
+  }
+  if (cleaned.includes(',')) {
+    return parseFloat(cleaned.replace(',', '.')) || 0;
+  }
+  if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
+    return parseFloat(cleaned.replace(/\./g, '')) || 0;
+  }
+  return parseFloat(cleaned) || 0;
+};
 
 /**
  * @param {{ appointment: object, receipt?: object, open: boolean, onClose: () => void, onChanged?: (appointment, meta) => void }} props
@@ -17,33 +32,49 @@ const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 export function ReceiptDialog({ appointment, receipt: propReceipt, open, onClose, onChanged }) {
   const store = usePanel();
   const toast = useToast();
+  const [amount, setAmount] = useState('');
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [fullImage, setFullImage] = useState(null);
 
-  if (!appointment) return null;
-
-  const receipt = propReceipt || appointment.receipt || null;
+  const receipt = propReceipt || appointment?.receipt || null;
   const files = receipt?.files || [];
-  const name = fullName(appointment.client?.firstName, appointment.client?.lastName);
+  const name = fullName(appointment?.client?.firstName, appointment?.client?.lastName);
   const state = receipt?.state || 'pendiente';
   const isApproved = state === 'aprobado';
   const isRejected = state === 'rechazado';
+
+  useEffect(() => {
+    if (!open || !appointment) return;
+    const req = num(appointment.depositRequired);
+    const paid = num(appointment.depositPaid);
+    const parsed = parseMoney(files[0]?.amountText);
+    setAmount(paid > 0 ? paid : parsed > 0 ? parsed : req > 0 ? req : '');
+    setRejecting(false);
+    setReason('');
+    setError('');
+    setFullImage(null);
+  }, [open, appointment?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!appointment) return null;
 
   const handleDecision = async (decision) => {
     setBusy(true);
     setError('');
     try {
       const payload = { decision };
-      if (decision === 'rechazado' && reason.trim()) {
+      if (decision === 'aprobado') {
+        const val = num(amount);
+        if (val > 0) payload.amount = val;
+      } else if (decision === 'rechazado' && reason.trim()) {
         payload.reason = reason.trim();
       }
       const updated = await panelApi.reviewReceipt(appointment.id, payload);
       toast.success(
         decision === 'aprobado'
-          ? 'Comprobante aprobado y turno confirmado.'
+          ? 'Comprobante aprobado y seña registrada.'
           : 'Comprobante marcado como rechazado.'
       );
       setRejecting(false);
@@ -82,7 +113,7 @@ export function ReceiptDialog({ appointment, receipt: propReceipt, open, onClose
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs font-medium text-ink-soft">Seña requerida</p>
+            <p className="text-xs font-medium text-ink-soft">Seña pedida</p>
             <p className="mt-0.5 font-display text-base font-bold text-ink mjto-tabular">
               {store.formatPrice(num(appointment.depositRequired))}
             </p>
@@ -96,7 +127,8 @@ export function ReceiptDialog({ appointment, receipt: propReceipt, open, onClose
               Archivos adjuntos ({files.length})
             </p>
             {files.map((file) => {
-              const isImg = file.url && /\.(jpe?g|png|webp|gif|bmp)(\?.*)?$/i.test(file.url);
+              const isImg = file.isImage || (file.url && /\.(jpe?g|png|webp|gif|bmp)(\?.*)?$/i.test(file.url));
+              const fileAmount = parseMoney(file.amountText);
               return (
                 <div
                   key={file.id || file.url}
@@ -107,7 +139,7 @@ export function ReceiptDialog({ appointment, receipt: propReceipt, open, onClose
                       <button
                         type="button"
                         onClick={() => setFullImage(file.url)}
-                        className="group relative size-20 shrink-0 overflow-hidden rounded-lg border border-line bg-surface-2 focus:outline-hidden"
+                        className="group relative size-20 shrink-0 overflow-hidden rounded-lg border border-line bg-surface-2 focus:outline-hidden cursor-pointer"
                         title="Ver imagen completa"
                       >
                         <img
@@ -126,15 +158,24 @@ export function ReceiptDialog({ appointment, receipt: propReceipt, open, onClose
                       </div>
                     )}
                     <div className="min-w-0 flex-1 text-sm">
-                      <p className="font-semibold text-ink truncate">{file.filename || 'Comprobante'}</p>
+                      <p className="font-semibold text-ink truncate">{file.name || 'Comprobante'}</p>
                       {file.date && (
                         <p className="text-xs text-ink-soft">Subido: {dateLabel(file.date)}</p>
                       )}
                       {file.amountText && (
-                        <p className="mt-1 text-xs text-ink">
-                          <span className="text-ink-soft">Monto pagado:</span>{' '}
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink">
+                          <span className="text-ink-soft">Monto informado:</span>
                           <span className="font-semibold font-mono">{file.amountText}</span>
-                        </p>
+                          {fileAmount > 0 && num(amount) !== fileAmount && (
+                            <button
+                              type="button"
+                              onClick={() => setAmount(fileAmount)}
+                              className="font-medium text-accent underline hover:text-accent-soft ml-1 cursor-pointer"
+                            >
+                              Usar este monto
+                            </button>
+                          )}
+                        </div>
                       )}
                       {file.reference && (
                         <p className="text-xs text-ink">
@@ -151,7 +192,7 @@ export function ReceiptDialog({ appointment, receipt: propReceipt, open, onClose
                             className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
                           >
                             <ExternalLink size={12} />
-                            Ver original
+                            Ver original en pestaña nueva
                           </a>
                         </div>
                       )}
@@ -167,6 +208,23 @@ export function ReceiptDialog({ appointment, receipt: propReceipt, open, onClose
           </div>
         )}
 
+        {/* Ajuste del monto a acreditar (para que la dueña pueda decir cuánto es el importe) */}
+        {!isApproved && (
+          <div className="rounded-tile border border-line bg-surface p-3 space-y-2">
+            <MoneyInput
+              label="Monto a acreditar como seña"
+              value={amount}
+              onChange={setAmount}
+              help={
+                num(appointment.depositRequired) > 0
+                  ? `Seña requerida: ${store.formatPrice(num(appointment.depositRequired))}`
+                  : `Precio del turno: ${store.formatPrice(appointment.price)}`
+              }
+              min={0}
+            />
+          </div>
+        )}
+
         {/* Modal interno para ver imagen completa en grande */}
         {fullImage && (
           <div
@@ -175,7 +233,7 @@ export function ReceiptDialog({ appointment, receipt: propReceipt, open, onClose
           >
             <button
               type="button"
-              className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/30"
+              className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/30 cursor-pointer"
               onClick={() => setFullImage(null)}
               aria-label="Cerrar"
             >

@@ -133,11 +133,11 @@
         "Slug":  "mj-turnos-online",
         "Name":  "MJ Turnos Online",
         "Type":  "plugin",
-        "Version":  "1.4.1",
+        "Version":  "1.4.2",
         "Parent":  null,
-        "Zip":  "mj-turnos-online-1.4.1.zip",
-        "SizeKB":  301,
-        "Sha256":  "6a7e94a8e07392bae79eb0378cf8ca69b0d407012b53ae49b859429bbe38ea17"
+        "Zip":  "mj-turnos-online-1.4.2.zip",
+        "SizeKB":  303,
+        "Sha256":  "dfdb86030808730f790db23b3112e901ec0fb55d19fb0b22a3888e11fe414fbe"
     },
     {
         "Slug":  "mj-yamana",

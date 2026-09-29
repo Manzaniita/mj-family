@@ -1134,6 +1134,12 @@ function mjto_rest_update_appointment(WP_REST_Request $request) {
 			$method = isset($data['deposit_method']) ? $data['deposit_method'] : (string) $row['deposit_method'];
 			mjto_sync_visit_deposit($visit, max(0, $deposit_paid), $method, true);
 		}
+		if (class_exists('MJPM_Receipts') && defined('MJTO_RECEIPT_CONTEXT') && 'confirmed' === (string) $row['status']) {
+			$receipt_state = MJPM_Receipts::state(MJTO_RECEIPT_CONTEXT, $id);
+			if ('pendiente' === $receipt_state) {
+				MJPM_Receipts::review_object(MJTO_RECEIPT_CONTEXT, $id, 'aprobado', '', true, $deposit_paid);
+			}
+		}
 	}
 
 	/* 4) Devolución de la seña hecha (la había pedido la clienta al cancelar la dueña). */
@@ -1172,6 +1178,12 @@ function mjto_rest_update_appointment(WP_REST_Request $request) {
 		$result = mjto_set_status($id, $status, $ctx);
 		if (is_wp_error($result)) {
 			return mjto_rest_ensure_status($result, 400);
+		}
+		if (class_exists('MJPM_Receipts') && defined('MJTO_RECEIPT_CONTEXT') && 'confirmed' === $status) {
+			$receipt_state = MJPM_Receipts::state(MJTO_RECEIPT_CONTEXT, $id);
+			if ('pendiente' === $receipt_state) {
+				MJPM_Receipts::review_object(MJTO_RECEIPT_CONTEXT, $id, 'aprobado', '', true, $deposit_paid);
+			}
 		}
 	}
 

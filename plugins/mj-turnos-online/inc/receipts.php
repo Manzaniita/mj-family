@@ -212,7 +212,7 @@ function mjto_receipt_state($appointment_id) {
  * @param string $reason         Motivo.
  * @return void
  */
-function mjto_receipt_set_state($appointment_id, $decision, $reason = '') {
+function mjto_receipt_set_state($appointment_id, $decision, $reason = '', $amount = null) {
 	$row = mjto_get_appointment((int) $appointment_id);
 	if (!$row) {
 		return;
@@ -222,8 +222,11 @@ function mjto_receipt_set_state($appointment_id, $decision, $reason = '') {
 		if (!mjto_opt('deposit_receipt_confirm')) {
 			return;
 		}
-		/* Ya está confirmado y cobrado: no hay nada que hacer. */
-		if ('confirmed' === (string) $row['status'] && (float) ($row['deposit_paid'] ?? 0) + 0.004 >= (float) ($row['deposit_required'] ?? 0)) {
+		$paid = (null !== $amount && is_numeric($amount) && (float) $amount > 0)
+			? (float) $amount
+			: (float) ($row['deposit_required'] ?? 0);
+		/* Ya está confirmado y cobrado con ese monto: no hay nada que hacer. */
+		if ('confirmed' === (string) $row['status'] && (float) ($row['deposit_paid'] ?? 0) + 0.004 >= $paid) {
 			return;
 		}
 		mjto_set_status(
@@ -232,7 +235,7 @@ function mjto_receipt_set_state($appointment_id, $decision, $reason = '') {
 			[
 				'notify'       => true,
 				'by'           => 'owner',
-				'deposit_paid' => (float) ($row['deposit_required'] ?? 0),
+				'deposit_paid' => $paid,
 			]
 		);
 		return;
