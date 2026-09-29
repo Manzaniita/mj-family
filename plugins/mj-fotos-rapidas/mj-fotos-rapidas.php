@@ -214,7 +214,9 @@ class MJ_Fotos_Rapidas {
         <div class="wrap mjfr">
 
             <?php if (!empty(self::ajustes()['recortar'])) : ?>
+                <?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- Biblioteca externa cargada solo al activar recorte. ?>
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+                <?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- Biblioteca externa cargada solo al activar recorte. ?>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
             <?php endif; ?>
 

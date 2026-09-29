@@ -208,6 +208,9 @@ export const panelApi = {
   /** DELETE /panel/appointments/{id} → { ok } */
   deleteAppointment: (id, opts) => del(`panel/appointments/${id}`, opts),
 
+  /** POST /panel/appointments/{id}/receipt { decision, reason?, amount? } → turno */
+  reviewReceipt: (id, payload, opts) => post(`panel/appointments/${id}/receipt`, payload, opts),
+
   /** Atajo: cambio de estado (+ motivo / aviso / seña). */
   setAppointmentStatus: (id, status, extra = {}, opts) =>
     patch(`panel/appointments/${id}`, { status, ...extra }, opts),

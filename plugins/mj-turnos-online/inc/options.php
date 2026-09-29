@@ -303,14 +303,14 @@ function mjto_option_defaults() {
 		'reschedule_hours_before' => 48,      // Con esta anticipación o más, la seña se conserva.
 		'reschedule_late'         => 'block', // block (no se puede) | new_deposit (pierde la seña y abona otra)
 		'cancel_late_allowed'     => 0,       // Puede cancelar igual más cerca del turno (sin devolución).
-		'deposit_on_cancel'       => 'none',  // none | credit: la seña de una cancelación a tiempo queda como saldo a favor.
-		'credit_enabled'          => 0,       // Saldo a favor: se usa solo en la próxima seña.
+		'deposit_on_cancel'       => 'credit', // none | credit: la seña de una cancelación a tiempo queda como saldo a favor.
+		'credit_enabled'          => 1,        // Saldo a favor: se usa solo en la próxima seña.
 		'owner_cancel_offer'      => 0,       // Cuando cancela la dueña, la clienta elige qué hacer con la seña.
 		'owner_offer_reschedule'  => 1,
 		'owner_offer_refund'      => 1,
 		'owner_offer_credit'      => 1,
 		// Cuenta de la clienta
-		'account_mode'            => 'off',   // off | optional | required
+		'account_mode'            => 'off',   // off | optional | required | auto
 		'account_password_min'    => 8,
 		'account_prefill'         => 1,       // Con sesión, el formulario arranca con sus datos guardados.
 		'my_bookings_url'         => '',      // Vacío = la del tema (Mi cuenta → Mis turnos) o /{slug}?mis-turnos=1.
@@ -958,7 +958,7 @@ function mjto_normalize_form_fields($fields) {
 		 * obligatorio. Con cuenta opcional se pide solo si tilda "crear mi
 		 * cuenta" (lo valida mjto_booking_account_plan), y el campo queda activo.
 		 */
-		if ('email' === $key && 'required' === (string) mjto_opt('account_mode')) {
+		if ('email' === $key && in_array((string) mjto_opt('account_mode'), ['required', 'auto'], true)) {
 			$required = true;
 			$enabled  = true;
 		} elseif ('email' === $key && 'optional' === (string) mjto_opt('account_mode')) {
@@ -1119,7 +1119,7 @@ function mjto_option_schema() {
 		'credit_note_offer'       => ['cambios', 'text'],
 		'credit_note_reactivated' => ['cambios', 'text'],
 		// Cuentas
-		'account_mode'            => ['cuentas', 'enum', ['off', 'optional', 'required']],
+		'account_mode'            => ['cuentas', 'enum', ['off', 'optional', 'required', 'auto']],
 		'account_password_min'    => ['cuentas', 'int', [6, 64]],
 		'account_prefill'         => ['cuentas', 'bool'],
 		'my_bookings_url'         => ['cuentas', 'text'],
@@ -2006,7 +2006,8 @@ function mjto_settings_tab_cuentas() {
 		mjto_field_row('Cuenta al reservar', '', fn () => mjto_field_radios('account_mode', [
 			'off'      => 'No se pide (como siempre)',
 			'optional' => 'Opcional: puede crearla en el mismo paso de sus datos',
-			'required' => 'Obligatoria: la crea en el mismo paso (o ingresa si ya tiene)',
+			'required' => 'Obligatoria: la crea en el mismo paso con contraseña (o ingresa si ya tiene)',
+			'auto'     => 'Automática: crea la cuenta directamente con sus datos al reservar',
 		]), 'Con cuenta, el email pasa a ser obligatorio (es su usuario).');
 		mjto_field_row('Largo mínimo de la contraseña', 'account_password_min', fn () => mjto_field_number('account_password_min', 6, 64, 1, 'caracteres'), '');
 		mjto_field_row('Datos guardados', '', fn () => mjto_field_check('account_prefill', 'Con la sesión iniciada, el formulario arranca con los datos de su última reserva'), '');

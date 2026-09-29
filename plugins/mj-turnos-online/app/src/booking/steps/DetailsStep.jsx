@@ -112,11 +112,12 @@ export default function DetailsStep({
   const [createAccount, setCreateAccount] = useState(false);
   const formRef = useRef(null);
 
-  // Qué pide la cuenta en este paso (nada con el modo apagado, con sesión ni para la dueña).
+  // Qué pide la cuenta en este paso (nada con el modo apagado, modo auto, con sesión ni para la dueña).
   const showLoggedAs = account.loggedIn && account.mode !== 'off' && !cfg.canManage;
-  const askAccount = !account.loggedIn && account.mode !== 'off';
+  const isAuto = account.mode === 'auto';
+  const askAccount = !account.loggedIn && account.mode !== 'off' && !isAuto;
   const needsPassword = askAccount && (account.mode === 'required' || createAccount);
-  const loginHref = askAccount || accountExists ? accountLoginUrl(cfg) : '';
+  const loginHref = (!account.loggedIn && account.mode !== 'off') || accountExists ? accountLoginUrl(cfg) : '';
 
   // Errores por campo que devolvió el servidor (data.errors / data.params).
   useEffect(() => {
@@ -149,7 +150,8 @@ export default function DetailsStep({
       return;
     }
     let accountPayload = null;
-    if (askAccount && account.mode === 'required') accountPayload = { password };
+    if (isAuto) accountPayload = { createAccount: true };
+    else if (askAccount && account.mode === 'required') accountPayload = { password };
     else if (askAccount && createAccount) accountPayload = { password, createAccount: true };
     onSubmit(buildPayload({ service, date, time, fields, values, website, account: accountPayload }));
   };
@@ -260,6 +262,16 @@ export default function DetailsStep({
           )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{fields.map(renderField)}</div>
+
+          {isAuto && loginHref && (
+            <p className="mt-3 text-xs text-ink-soft">
+              ¿Ya tenés cuenta?{' '}
+              <a href={loginHref} className="inline-flex items-center gap-1 font-semibold text-accent hover:underline">
+                <LogIn size={13} aria-hidden="true" />
+                {t('booking_account_login')}
+              </a>
+            </p>
+          )}
 
           {askAccount && (
             <section className="mjto-booking__account mt-6 rounded-tile border border-line bg-surface-2 p-4" aria-label={t('booking_account_title')}>

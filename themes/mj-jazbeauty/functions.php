@@ -19,7 +19,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_JAZBEAUTY_VERSION', '1.1.0');
+define('MJ_JAZBEAUTY_VERSION', '1.1.1');
 
 /* Versión mínima del tema padre (sin animaciones, botón fijo, galería, fidelidad en Mi cuenta). */
 define('MJ_JAZBEAUTY_REQUIRES', '3.21.0');
@@ -205,8 +205,8 @@ add_filter('mjto_option_defaults', function ($defaults) {
 		'reschedule_late'         => 'new_deposit',
 		'credit_enabled'          => 1,
 		'owner_cancel_offer'      => 1,
-		// Cuenta obligatoria (con el link de invitado de cada turno como respaldo).
-		'account_mode'            => 'required',
+		// Cuenta automática al reservar (con el link de invitado de cada turno como respaldo).
+		'account_mode'            => 'auto',
 		// Avisos.
 		'reminder_enabled'        => 1,
 		'reminder_hours_before'   => 24,

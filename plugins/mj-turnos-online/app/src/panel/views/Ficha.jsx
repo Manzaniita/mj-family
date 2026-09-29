@@ -286,27 +286,9 @@ export default function Ficha() {
                     <span className="whitespace-pre-line">{client.notes}</span>
                   </p>
                 )}
-                {client.extra && typeof client.extra === 'object' && Object.keys(client.extra).some((k) => client.extra[k] !== '' && client.extra[k] !== null) && (
-                  <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
-                    {Object.entries(client.extra)
-                      .filter(([, v]) => v !== '' && v !== null && v !== undefined)
-                      .map(([k, v]) => {
-                        const def = store.formFields.find((f) => f.key === k);
-                        let shown = Array.isArray(v) ? v.join(', ') : String(v);
-                        // Tipos nuevos de 1.3: fecha legible y la etiqueta de la opción elegida.
-                        if (def?.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(shown)) shown = dateLabel(shown, { year: true });
-                        if (def?.type === 'radio' && Array.isArray(def.options)) shown = def.options.find((o) => String(o.value) === shown)?.label || shown;
-                        return (
-                          <div key={k} className="flex min-w-0 gap-2">
-                            <dt className="shrink-0 text-ink-faint">{def?.label || k}:</dt>
-                            <dd className="m-0 min-w-0 truncate text-ink">{shown}</dd>
-                          </div>
-                        );
-                      })}
-                  </dl>
-                )}
               </div>
             </div>
+
             <div className="mt-4 flex flex-wrap gap-2">
               <WhatsAppMenu appointment={refAppointment || undefined} client={client} links={refAppointment?.whatsapp?.links} trigger={waTrigger} />
 
@@ -317,6 +299,32 @@ export default function Ficha() {
                 Nueva visita
               </Button>
             </div>
+
+            {client.extra && typeof client.extra === 'object' && Object.keys(client.extra).some((k) => client.extra[k] !== '' && client.extra[k] !== null) && (
+              <div className="mt-5 border-t border-line/60 pt-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint mb-3">
+                  Ficha y respuestas de la clienta
+                </p>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  {Object.entries(client.extra)
+                    .filter(([, v]) => v !== '' && v !== null && v !== undefined)
+                    .map(([k, v]) => {
+                      const def = store.formFields.find((f) => f.key === k);
+                      let shown = Array.isArray(v) ? v.join(', ') : String(v);
+                      if (def?.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(shown)) shown = dateLabel(shown, { year: true });
+                      if (def?.type === 'radio' && Array.isArray(def.options)) shown = def.options.find((o) => String(o.value) === shown)?.label || shown;
+                      return (
+                        <div key={k} className="rounded-tile bg-surface-2/70 p-3 text-sm">
+                          <p className="text-xs font-medium text-ink-soft leading-snug">{def?.label || k}</p>
+                          <p className="mt-1 font-semibold text-ink break-words leading-relaxed whitespace-pre-wrap">
+                            {shown || '—'}
+                          </p>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
           </section>
         )
       )}

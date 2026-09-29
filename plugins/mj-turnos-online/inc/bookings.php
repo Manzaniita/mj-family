@@ -318,18 +318,21 @@ function mjto_resolve_booking_client(array $parsed, $user_id = 0) {
 	}
 
 	$existing = mjto_find_client_by_phone($c['phone']);
+	if (!$existing && !empty($c['email'])) {
+		$existing = mjto_find_client_by_email($c['email'], $user_id);
+	}
 	if ($existing && $user_id > 0) {
-		/*
-		 * Una ficha que ya existía NUNCA se vincula sola a una cuenta: WordPress
-		 * no verifica el email de quien se registra, y la ficha tiene datos de
-		 * salud y turnos. Esta reserva arma una ficha propia de la cuenta y, si
-		 * la vieja tiene ese mismo email, a ese email le llega un link para unir
-		 * las dos (solo quien lee ese correo puede hacerlo). Ver inc/accounts.php.
-		 */
-		if (empty($existing['user_id']) && function_exists('mjto_offer_client_link')) {
-			$pending_link = $existing;
+		$email_match = !empty($existing['email']) && !empty($c['email']) && strtolower(trim((string) $existing['email'])) === strtolower(trim((string) $c['email']));
+		if (empty($existing['user_id'])) {
+			if ($email_match || 'auto' === mjto_account_mode()) {
+				// Coinciden email y teléfono o cuenta automática: vincula directamente sin crear duplicado.
+				mjto_update_client((int) $existing['id'], ['user_id' => $user_id]);
+				$existing['user_id'] = $user_id;
+			} elseif (function_exists('mjto_offer_client_link')) {
+				$pending_link = $existing;
+				$existing     = null;
+			}
 		}
-		$existing = null;
 	}
 	if ($existing) {
 		$patch = [];

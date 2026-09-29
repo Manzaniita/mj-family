@@ -18,13 +18,14 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarClock, Check, CheckCheck, ClipboardList, Coins, HandCoins, MessageCircle, MoreHorizontal, Pencil, RotateCcw, Trash2, UserX, XCircle } from 'lucide-react';
+import { CalendarClock, Check, CheckCheck, ClipboardList, Coins, HandCoins, MessageCircle, MoreHorizontal, Pencil, Receipt, RotateCcw, Trash2, UserX, XCircle } from 'lucide-react';
 import { panelApi } from '@/lib/api';
 import { cn, dateLabel, formatTime, fullName, prettyPhone } from '@/lib/format';
 import { Button, Checkbox, ConfirmDialog, Modal, MoneyInput, Textarea, useToast } from '@/ui';
 import { usePanel } from '../store';
 import { PopMenu, WhatsAppMenu, useWhatsAppItems } from './WhatsAppMenu';
 import { DepositDialog } from './DepositDialog';
+import { ReceiptDialog } from './ReceiptDialog';
 import { CancelDialog } from './CancelDialog';
 import { Reprogramar } from './Reprogramar';
 
@@ -260,6 +261,13 @@ export function AppointmentActions({ appointment, onChange, onOpenFicha, compact
   const items = [
     can.confirm && { key: 'confirm', label: 'Confirmar', icon: Check, tone: 'accent', onSelect: () => setDialog('confirm') },
     can.deposit && { key: 'deposit', label: depositLabel, icon: Coins, onSelect: () => setDialog('deposit') },
+    appointment.receipt && {
+      key: 'receipt',
+      label: 'Revisar comprobante',
+      icon: Receipt,
+      tone: appointment.receipt.state === 'pendiente' ? 'warning' : undefined,
+      onSelect: () => setDialog('receipt'),
+    },
     can.ficha && { key: 'ficha', label: fichaLabel, icon: ClipboardList, onSelect: ficha },
     waItems.length > 0 && { key: 'wa', label: 'WhatsApp', icon: MessageCircle, onSelect: () => setWa(true) },
     can.reschedule && { key: 'reschedule', label: 'Reprogramar', icon: CalendarClock, onSelect: () => setDialog('reschedule') },
@@ -362,6 +370,7 @@ export function AppointmentActions({ appointment, onChange, onOpenFicha, compact
       />
 
       <DepositDialog appointment={appointment} open={dialog === 'deposit'} onClose={() => setDialog(null)} onChanged={(next) => emit(next, 'deposit')} />
+      <ReceiptDialog appointment={appointment} receipt={appointment.receipt} open={dialog === 'receipt'} onClose={() => setDialog(null)} onChanged={(next, meta) => emit(next, meta?.action || 'deposit')} />
       <CancelDialog appointment={appointment} open={dialog === 'cancel'} onClose={() => setDialog(null)} onChanged={(next) => emit(next, 'cancel')} />
       <Reprogramar appointment={appointment} open={dialog === 'reschedule'} onClose={() => setDialog(null)} onChanged={(next) => emit(next, 'reschedule')} />
       <EditDialog appointment={appointment} open={dialog === 'edit'} onClose={() => setDialog(null)} onChanged={(next) => emit(next, 'update')} />

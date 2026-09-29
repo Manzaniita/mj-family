@@ -65,7 +65,7 @@ faltan cosas chicas; **Falta** = hay una pieza grande pendiente.
 | MJ Medios de Pago | 1.6.0 | Casi | `uninstall.php` deja el historial de pagos; filtro "parcial" de la bandeja; purga topeada en 200; LEEME. |
 | MJ Dólar | 1.2.0 | Casi | Decidir si el TC se trae solo; endpoint de cotización como ajuste; LEEME. (`readme.txt`: hecho en 1.1.1.) |
 | MJ Envíos | 1.11.0 | Casi | Probar en la tienda el puente con Andreani (`PRUEBAS-EN-LA-TIENDA.md` §11) y el campo que ese plugin exige en la dirección (§3.8). Vía Cargo sigue siendo un andamio a la espera de su API; MJ Envíos no da de alta el envío ni imprime el rótulo (lo hace el plugin del correo desde su propia pantalla). (CSV validado, claves que no se reimprimen, `/cotizar` con freno y puente con los plugins de los correos: hechos en 1.3.0.) |
-| MJ Turnos Online | 1.4.0 | Casi | Probar en la tienda lo de 1.3 (cuentas, reglas de cambios, saldo, mantenimiento, opiniones: `PRUEBAS-EN-LA-TIENDA.md` §10); el panel no usa `receipt`. (Freno de lecturas, alias/CBU fuera de `/config` y LEEME al día: hechos en 1.3.0.) |
+| MJ Turnos Online | 1.4.1 | Casi | Probar en la tienda lo de 1.3/1.4 (cuentas, reglas de cambios, saldo, mantenimiento, opiniones, comprobantes: `PRUEBAS-EN-LA-TIENDA.md` §10). (Comprobantes en el panel, botón flotante arrastrable, ficha completa y copiar datos bancarios: hechos en 1.4.1.) |
 | MJ Fidelidad | 1.1.0 | Casi | Nuevo: probar en la tienda (turnos atendidos, premio como saldo, descontar al sacar el atendido). |
 | MJ Colegas | 1.1.0 | Casi | Sellar la base de la comisión. (`uninstall.php`, permiso del menú y CSV: hechos en 1.0.1.) |
 | MJ Core | 1.1.0 | Casi | Instalarlo en GlossyHair y Yamana. Sin reporte de versiones ni rollback (mejora, no bloqueante). |
@@ -143,8 +143,6 @@ Cosas que la pantalla ofrece y el código no hace. Peor que no tenerlas.
 - [ ] Medios de Pago: el filtro por estado de la bandeja no acepta `parcial`
       (`class-mjpm-receipts.php:683`) y la purga borra 200 archivos por día
       como mucho (`:971`).
-- [ ] Turnos: el panel recibe `receipt` en cada turno y ningún componente lo
-      usa (`inc/db.php`, `mjto_appointment_public`).
 - [ ] Tema: la ficha de producto **nunca muestra reseñas** en WordPress: la
       pestaña solo se arma en modo demo (`react-app/src/pages/Product.jsx:664`),
       aunque `fetchReviews()` y `reviewsEnabled` existen. Es la única pantalla

@@ -111,6 +111,13 @@ add_action('rest_api_init', function () {
 			'permission_callback' => $panel,
 		],
 	]);
+	register_rest_route($ns, '/panel/appointments/' . $id . '/receipt', [
+		[
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'mjto_rest_panel_review_receipt',
+			'permission_callback' => $panel,
+		],
+	]);
 
 	register_rest_route($ns, '/panel/clients', [
 		[
@@ -1181,6 +1188,46 @@ function mjto_rest_delete_appointment(WP_REST_Request $request) {
 		return mjto_rest_error('mjto_delete_failed', 'No se pudo eliminar el turno.', 500);
 	}
 	return rest_ensure_response(['ok' => true]);
+}
+
+/* POST /panel/appointments/{id}/receipt → turno actualizado */
+function mjto_rest_panel_review_receipt(WP_REST_Request $request) {
+	$id  = (int) $request->get_param('id');
+	$row = mjto_get_appointment($id);
+	if (!$row) {
+		return mjto_rest_error('mjto_not_found', 'No encontramos ese turno.', 404);
+	}
+	$decision = sanitize_key((string) $request->get_param('decision'));
+	if (!in_array($decision, ['aprobado', 'rechazado'], true)) {
+		return mjto_rest_error('mjto_invalid_decision', 'La decisión debe ser "aprobado" o "rechazado".', 400);
+	}
+	$reason = sanitize_text_field((string) $request->get_param('reason'));
+	$amount = $request->get_param('amount');
+	$amount = null !== $amount && is_numeric($amount) ? (float) $amount : null;
+
+	if (class_exists('MJPM_Receipts') && defined('MJTO_RECEIPT_CONTEXT')) {
+		$res = MJPM_Receipts::review_object(MJTO_RECEIPT_CONTEXT, $id, $decision, $reason, true, $amount);
+		if (is_wp_error($res)) {
+			return $res;
+		}
+	} elseif ('aprobado' === $decision) {
+		mjto_set_status(
+			$id,
+			'confirmed',
+			[
+				'notify'       => true,
+				'by'           => 'owner',
+				'deposit_paid' => (float) ($row['deposit_required'] ?? 0),
+			]
+		);
+	} elseif ('rechazado' === $decision) {
+		if ('' !== trim($reason)) {
+			mjto_receipt_add_note($id, sprintf('Comprobante rechazado: %s', $reason));
+		}
+	}
+
+	$fresh = mjto_get_appointment($id);
+	return rest_ensure_response(mjto_appointment_public($fresh));
 }
 
 /* -------------------------------------------------------------------------

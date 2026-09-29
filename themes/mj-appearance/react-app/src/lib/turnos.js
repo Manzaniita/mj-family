@@ -150,7 +150,7 @@ export const TURNOS_STATUSES = Object.keys(TURNOS_STATUS_DEFAULTS);
 
 const CONFIRM_MODES = ['deposit', 'manual', 'auto'];
 const FIELD_TYPES = ['text', 'tel', 'email', 'textarea', 'select', 'radio', 'number', 'date'];
-const ACCOUNT_MODES = ['off', 'optional', 'required'];
+const ACCOUNT_MODES = ['off', 'optional', 'required', 'auto'];
 const MAINTENANCE_UNITS = ['days', 'weeks', 'months'];
 
 /* ---------------------------------------------------------------------------

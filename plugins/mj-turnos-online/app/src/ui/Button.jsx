@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/format';
@@ -104,16 +104,129 @@ export const Button = forwardRef(function Button(
   );
 });
 
-/** Botón flotante (FAB) para "Nuevo turno": abajo a la derecha, sobre la nav mobile. */
-export function Fab({ icon: Icon, label, className, ...rest }) {
+/** Botón flotante (FAB) para "Nuevo turno": arrastrable en la pantalla y recuerda posición. */
+export function Fab({ icon: Icon, label, className, onClick, ...rest }) {
+  const [pos, setPos] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef({ isDragging: false, startX: 0, startY: 0, initialLeft: 0, initialTop: 0, hasMoved: false });
+  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('mjto_fab_pos');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Number.isFinite(parsed.x) && Number.isFinite(parsed.y)) {
+          const btnW = 160;
+          const btnH = 56;
+          const maxX = Math.max(10, window.innerWidth - btnW - 10);
+          const maxY = Math.max(10, window.innerHeight - btnH - 10);
+          setPos({
+            x: Math.min(Math.max(10, parsed.x), maxX),
+            y: Math.min(Math.max(10, parsed.y), maxY),
+          });
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handlePointerDown = (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    const el = buttonRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    dragRef.current = {
+      isDragging: true,
+      hasMoved: false,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialLeft: rect.left,
+      initialTop: rect.top,
+      btnW: rect.width || 160,
+      btnH: rect.height || 56,
+    };
+    try {
+      el.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handlePointerMove = (e) => {
+    if (!dragRef.current.isDragging) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    if (!dragRef.current.hasMoved && Math.hypot(dx, dy) > 5) {
+      dragRef.current.hasMoved = true;
+      setDragging(true);
+    }
+    if (dragRef.current.hasMoved) {
+      const maxX = Math.max(10, window.innerWidth - dragRef.current.btnW - 10);
+      const maxY = Math.max(10, window.innerHeight - dragRef.current.btnH - 10);
+      const nextX = Math.min(Math.max(10, dragRef.current.initialLeft + dx), maxX);
+      const nextY = Math.min(Math.max(10, dragRef.current.initialTop + dy), maxY);
+      setPos({ x: nextX, y: nextY });
+    }
+  };
+
+  const handlePointerUp = (e) => {
+    if (!dragRef.current.isDragging) return;
+    const moved = dragRef.current.hasMoved;
+    dragRef.current.isDragging = false;
+    setDragging(false);
+    if (moved && pos) {
+      try {
+        localStorage.setItem('mjto_fab_pos', JSON.stringify(pos));
+      } catch {
+        // ignore
+      }
+    }
+    try {
+      buttonRef.current?.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleClick = (e) => {
+    if (dragRef.current.hasMoved) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    onClick?.(e);
+  };
+
+  const dynamicStyle = pos
+    ? {
+        left: `${pos.x}px`,
+        top: `${pos.y}px`,
+        right: 'auto',
+        bottom: 'auto',
+        touchAction: 'none',
+      }
+    : {
+        touchAction: 'none',
+      };
+
   return (
     <Button
+      ref={buttonRef}
       variant="primary"
       size="lg"
       icon={Icon}
+      style={dynamicStyle}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onClick={handleClick}
       className={cn(
-        'mjto-fab fixed right-4 z-40 h-14 rounded-full pl-5 pr-6 shadow-float lg:right-8 lg:bottom-8',
-        'bottom-[calc(var(--mjto-nav-h)+env(safe-area-inset-bottom)+1rem)]',
+        'mjto-fab fixed z-40 h-14 rounded-full pl-5 pr-6 shadow-float transition-shadow select-none cursor-grab active:cursor-grabbing',
+        !pos && 'right-4 bottom-[calc(var(--mjto-nav-h)+env(safe-area-inset-bottom)+1rem)] lg:right-8 lg:bottom-8',
+        dragging && 'shadow-2xl scale-105 opacity-95',
         className
       )}
       {...rest}

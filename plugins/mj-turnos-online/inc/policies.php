@@ -164,7 +164,7 @@ function mjto_cancel_terms(array $row) {
 	$paid = max(0.0, (float) $row['deposit_paid'] - ('confirmed' === (string) $row['status'] ? 0.0 : (float) $row['credit_applied']));
 	if ($until >= $terms['hours']) {
 		$terms['allowed']      = true;
-		$terms['keepsDeposit'] = $paid > 0 && 'credit' === (string) mjto_opt('deposit_on_cancel') && mjto_credit_enabled();
+		$terms['keepsDeposit'] = $paid > 0 && ('credit' === (string) mjto_opt('deposit_on_cancel') || is_user_logged_in() || !empty($row['user_id'])) && mjto_credit_enabled();
 		$terms['text']         = $terms['keepsDeposit'] ? mjto_policy_text(mjto_opt('booking_cancel_keep'), $row, $terms['hours'], $paid) : '';
 	} else {
 		$terms['late']    = true;

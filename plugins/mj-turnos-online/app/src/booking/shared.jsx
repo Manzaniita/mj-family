@@ -9,7 +9,7 @@
  *  - Token en sessionStorage (para "Ver el estado de mi turno" en el shortcode).
  */
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, CheckCircle2, CreditCard, MessageCircle, AlertTriangle, Info, XCircle } from 'lucide-react';
+import { Check, CheckCircle2, CreditCard, MessageCircle, AlertTriangle, Info, XCircle, Copy } from 'lucide-react';
 import { BOOT, CUR, HOME_URL, REST_URL } from '@/lib/config';
 import { publicApi } from '@/lib/api';
 import { cn, fillTemplate, formatDateTime, formatPrice, longDateLabel, minutesToLabel, roundMoney, timeRange } from '@/lib/format';
@@ -591,6 +591,73 @@ export function ReceiptUploader({ receipt, className }) {
   );
 }
 
+export function DepositInstructions({ instructions }) {
+  const [copiedKey, setCopiedKey] = useState('');
+
+  const copyToClipboard = async (text, key) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const input = document.createElement('textarea');
+        input.value = text;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+      }
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(''), 2500);
+    } catch {
+      // ignore
+    }
+  };
+
+  const lines = useMemo(() => {
+    if (!instructions) return [];
+    return instructions.split('\n');
+  }, [instructions]);
+
+  if (!instructions) return null;
+
+  return (
+    <div className="mt-3 rounded-tile bg-surface px-4 py-3 text-sm leading-relaxed text-ink space-y-1.5">
+      {lines.map((line, idx) => {
+        const match = line.match(/^(\s*(?:Alias|CBU|CVU)\s*:\s*)(.+)$/i);
+        if (!match) {
+          return <p key={idx} className="whitespace-pre-wrap">{line}</p>;
+        }
+        const prefix = match[1];
+        const value = match[2].trim();
+        const key = `line-${idx}`;
+        const isCopied = copiedKey === key;
+        return (
+          <div key={idx} className="flex flex-wrap items-center justify-between gap-2 py-0.5">
+            <span className="min-w-0">
+              <span className="font-semibold text-ink-soft">{prefix}</span>
+              <span className="font-mono font-bold text-ink">{value}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => copyToClipboard(value, key)}
+              className={cn(
+                'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full transition-all',
+                isCopied
+                  ? 'bg-success-soft text-success scale-105'
+                  : 'bg-surface-2 text-ink-soft hover:bg-surface-3 hover:text-ink active:scale-95'
+              )}
+              title={`Copiar ${value}`}
+            >
+              {isCopied ? <Check size={13} className="stroke-[2.5]" /> : <Copy size={13} />}
+              <span>{isCopied ? '¡Copiado!' : 'Copiar'}</span>
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function DepositCard({ deposit, receipt, token, whatsapp, notified = false, onNotified, className }) {
   const { t, priceOf } = useBooking();
   const [busy, setBusy] = useState(false);
@@ -625,7 +692,7 @@ export function DepositCard({ deposit, receipt, token, whatsapp, notified = fals
       </div>
       {creditApplied > 0 && <p className="mt-2 text-sm text-success">{t('booking_credit_applied', { monto: priceOf(creditApplied) })}</p>}
       {deposit.instructions && (
-        <p className="mt-3 whitespace-pre-wrap rounded-tile bg-surface px-4 py-3 text-sm leading-relaxed text-ink">{deposit.instructions}</p>
+        <DepositInstructions instructions={deposit.instructions} />
       )}
       {deadlineLabel && <p className="mt-3 text-sm text-ink-soft">{t('booking_deposit_deadline', { fecha_limite: deadlineLabel })}</p>}
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">

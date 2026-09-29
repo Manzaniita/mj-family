@@ -9,12 +9,14 @@
  * @param {{ appointment: object, onChange?: (next, meta) => void, onOpenFicha?: (appointment) => void,
  *   showDate?: boolean (fecha además de la hora: listas de varios días), compact?: boolean, className? }} props
  */
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Ban, BellRing, ClipboardList, Coins, Globe, HandCoins, Hourglass, PiggyBank, Receipt, StickyNote } from 'lucide-react';
 import { cn, dateLabel, formatTime, fullName, prettyPhone, timeAgo } from '@/lib/format';
 import { Badge, StatusBadge } from '@/ui';
 import { usePanel } from '../store';
 import { AppointmentActions } from './AppointmentActions';
+import { ReceiptDialog } from './ReceiptDialog';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -29,6 +31,7 @@ export const OWNER_OFFER_BADGES = {
 
 export function AppointmentCard({ appointment, onChange, onOpenFicha, showDate = false, compact = false, className }) {
   const store = usePanel();
+  const [receiptOpen, setReceiptOpen] = useState(false);
   if (!appointment) return null;
 
   const a = appointment;
@@ -126,24 +129,22 @@ export function AppointmentCard({ appointment, onChange, onOpenFicha, showDate =
                 {offer.short}
               </Badge>
             )}
-            {/* Comprobante de la seña: lo guarda MJ Medios de Pago y se revisa en su bandeja. */}
-            {receipt && (() => {
-              const badge = (
+            {/* Comprobante de la seña: se revisa y aprueba directamente en el modal */}
+            {receipt && (
+              <button
+                type="button"
+                onClick={() => setReceiptOpen(true)}
+                className="cursor-pointer transition-transform hover:scale-105 active:scale-95 focus:outline-hidden"
+                title="Ver y aprobar o rechazar comprobante"
+              >
                 <Badge
                   tone={receipt.state === 'aprobado' ? 'success' : receipt.state === 'rechazado' ? 'danger' : 'warning'}
                   icon={Receipt}
                 >
                   {receipt.files?.length ? `${receipt.nounTitle}: ${receipt.stateLabel}` : `Sin ${receipt.noun}`}
                 </Badge>
-              );
-              return receipt.reviewUrl ? (
-                <a href={receipt.reviewUrl} target="_blank" rel="noopener noreferrer" title={`Revisar el ${receipt.noun}`}>
-                  {badge}
-                </a>
-              ) : (
-                badge
-              );
-            })()}
+              </button>
+            )}
             {a.source === 'web' && (
               <Badge tone="neutral" icon={Globe} title="Reservado desde la web">
                 Web
@@ -180,6 +181,16 @@ export function AppointmentCard({ appointment, onChange, onOpenFicha, showDate =
           <AppointmentActions appointment={a} onChange={onChange} onOpenFicha={onOpenFicha} compact={compact} />
         </div>
       </div>
+
+      {receipt && (
+        <ReceiptDialog
+          appointment={a}
+          receipt={receipt}
+          open={receiptOpen}
+          onClose={() => setReceiptOpen(false)}
+          onChanged={onChange}
+        />
+      )}
     </article>
   );
 }

@@ -127,9 +127,12 @@
 
 [data-skin='jazbeauty'] .mj-hero .text-gradient,
 [data-skin='jazbeauty'] .mj-hero__highlight {
-	background: none;
-	-webkit-text-fill-color: currentColor;
-	color: var(--mj-accent);
+	background: none !important;
+	background-image: none !important;
+	-webkit-background-clip: initial !important;
+	background-clip: initial !important;
+	-webkit-text-fill-color: var(--mj-accent) !important;
+	color: var(--mj-accent) !important;
 	font-style: italic;
 }
 

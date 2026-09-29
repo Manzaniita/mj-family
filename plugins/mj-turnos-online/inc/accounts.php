@@ -31,10 +31,10 @@
 
 defined('ABSPATH') || exit;
 
-/** off | optional | required */
+/** off | optional | required | auto */
 function mjto_account_mode() {
 	$mode = (string) mjto_opt('account_mode');
-	return in_array($mode, ['off', 'optional', 'required'], true) ? $mode : 'off';
+	return in_array($mode, ['off', 'optional', 'required', 'auto'], true) ? $mode : 'off';
 }
 
 /** Largo mínimo de la contraseña. */
@@ -176,7 +176,7 @@ function mjto_booking_account_plan(array $input, array $parsed) {
 		return $plan;
 	}
 
-	$wants = ('required' === $mode) || mjto_rest_bool($input['create_account'] ?? false);
+	$wants = ('auto' === $mode) || ('required' === $mode) || mjto_rest_bool($input['create_account'] ?? false);
 	if (!$wants) {
 		return $plan;
 	}
@@ -187,12 +187,25 @@ function mjto_booking_account_plan(array $input, array $parsed) {
 		return mjto_booking_error('invalid_email', 400, ['errors' => ['email' => mjto_booking_messages()['invalid_email']]]);
 	}
 	if (email_exists($email)) {
+		if ('auto' === $mode) {
+			$existing_user = get_user_by('email', $email);
+			if ($existing_user) {
+				wp_set_current_user($existing_user->ID);
+				wp_set_auth_cookie($existing_user->ID, true);
+				$plan['user_id'] = (int) $existing_user->ID;
+				return $plan;
+			}
+		}
 		return mjto_booking_error('account_exists', 409, ['login' => true, 'errors' => ['email' => mjto_booking_messages()['account_exists']]]);
 	}
-	$min = mjto_account_password_min();
-	if (mb_strlen($password) < $min) {
-		$message = mjto_message_format(mjto_booking_messages()['password_short'], [$min]);
-		return new WP_Error('mjto_password_short', $message, ['status' => 400, 'errors' => ['password' => $message], 'params' => ['password' => $message]]);
+	if ('auto' === $mode && '' === $password) {
+		$password = wp_generate_password(16, true, true);
+	} else {
+		$min = mjto_account_password_min();
+		if (mb_strlen($password) < $min) {
+			$message = mjto_message_format(mjto_booking_messages()['password_short'], [$min]);
+			return new WP_Error('mjto_password_short', $message, ['status' => 400, 'errors' => ['password' => $message], 'params' => ['password' => $message]]);
+		}
 	}
 
 	return [
@@ -212,6 +225,13 @@ function mjto_booking_account_plan(array $input, array $parsed) {
  */
 function mjto_booking_account_create(array $plan) {
 	if (email_exists($plan['email'])) {
+		$existing_user = get_user_by('email', $plan['email']);
+		if ($existing_user) {
+			wp_set_current_user($existing_user->ID);
+			wp_set_auth_cookie($existing_user->ID, true);
+			mjto_account_created_now($existing_user->ID);
+			return (int) $existing_user->ID;
+		}
 		return mjto_booking_error('account_exists', 409, ['login' => true, 'errors' => ['email' => mjto_booking_messages()['account_exists']]]);
 	}
 	$meta = ['first_name' => $plan['first_name'], 'last_name' => $plan['last_name']];
@@ -270,7 +290,19 @@ function mjto_current_client() {
 	if (!is_user_logged_in()) {
 		return null;
 	}
-	return mjto_find_client_by_user(get_current_user_id());
+	$user_id = (int) get_current_user_id();
+	$client  = mjto_find_client_by_user($user_id);
+	if (!$client) {
+		$user = get_userdata($user_id);
+		if ($user && !empty($user->user_email)) {
+			$by_email = mjto_find_client_by_email($user->user_email);
+			if ($by_email && empty($by_email['user_id'])) {
+				mjto_update_client((int) $by_email['id'], ['user_id' => $user_id]);
+				$client = mjto_get_client((int) $by_email['id']);
+			}
+		}
+	}
+	return $client;
 }
 
 /* -------------------------------------------------------------------------

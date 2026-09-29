@@ -126,10 +126,7 @@ export function Hero({ override } = {}) {
             {title}
             {title && titleHighlight && <br />}
             {titleHighlight && (
-              <span
-                className="mj-hero__highlight bg-clip-text text-transparent"
-                style={{ backgroundImage: 'var(--mj-hero-gradient)' }}
-              >
+              <span className="mj-hero__highlight">
                 {titleHighlight}
               </span>
             )}
