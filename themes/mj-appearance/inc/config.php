@@ -104,6 +104,52 @@ function mj_parse_whatsapp($text) {
 	return $out;
 }
 
+/* Parsea columnas del pie con títulos y enlaces "Texto | /ruta | _blank" a arrays. */
+function mj_parse_footer_columns($text) {
+	if (empty($text) || !is_string($text)) {
+		return null;
+	}
+	$lines       = preg_split('/\r\n|\r|\n/', trim($text));
+	$columns     = [];
+	$current_col = null;
+
+	foreach ($lines as $raw_line) {
+		$line = trim($raw_line);
+		if ('' === $line) {
+			continue;
+		}
+		if (0 === strpos($line, '#')) {
+			if ($current_col && (!empty($current_col['title']) || !empty($current_col['links']))) {
+				$columns[] = $current_col;
+			}
+			$current_col = [
+				'title' => trim(ltrim($line, '#')),
+				'links' => [],
+			];
+			continue;
+		}
+		if (!$current_col) {
+			$current_col = [
+				'title' => '',
+				'links' => [],
+			];
+		}
+		$parts = array_map('trim', explode('|', $line));
+		if (count($parts) >= 2 && '' !== $parts[0] && '' !== $parts[1]) {
+			$target = isset($parts[2]) && in_array(trim($parts[2]), ['_blank', 'blank'], true) ? '_blank' : '_self';
+			$url    = $parts[1];
+			$clean_url = 0 === strpos($url, '/') || preg_match('#^[a-z][a-z0-9+.-]*:#i', $url) ? esc_url_raw($url) : '/' . ltrim(sanitize_text_field($url), '/');
+			$current_col['links'][] = [$parts[0], $clean_url, $target];
+		} elseif (count($parts) === 1 && '' !== $parts[0]) {
+			$current_col['links'][] = [$parts[0], '#', '_self'];
+		}
+	}
+	if ($current_col && (!empty($current_col['title']) || !empty($current_col['links']))) {
+		$columns[] = $current_col;
+	}
+	return !empty($columns) ? $columns : null;
+}
+
 /* Lista de IDs de adjuntos "1,2,3" → URLs (tamaño large) de las que existan. */
 function mj_attachment_urls($ids_csv) {
 	$urls = [];
@@ -329,6 +375,49 @@ function mj_app_config() {
 			'highlights' => mj_parse_badges($options['about_highlights']),
 			'stats'      => mj_parse_stats($options['about_stats']),
 		],
+		/* Cabecera y pie configurables en todos los temas y Gutenberg. */
+		'header'                => apply_filters('mj_header_config', [
+			'sticky'              => !empty($options['header_sticky']) ? (string) $options['header_sticky'] : 'sticky',
+			'style'               => !empty($options['header_style']) ? (string) $options['header_style'] : 'glass',
+			'border'              => !empty($options['header_border']) ? (string) $options['header_border'] : 'line',
+			'logoPosition'        => !empty($options['header_logo_pos']) ? (string) $options['header_logo_pos'] : 'left',
+			'searchPosition'      => !empty($options['header_search_pos']) ? (string) $options['header_search_pos'] : 'center',
+			'menuPosition'        => !empty($options['header_menu_pos']) ? (string) $options['header_menu_pos'] : 'below',
+			'showTopBar'          => !isset($options['header_show_topbar']) || !empty($options['header_show_topbar']),
+			'showFreeShipping'    => !isset($options['header_show_shipping']) || !empty($options['header_show_shipping']),
+			'showCart'            => !isset($options['header_show_cart']) || !empty($options['header_show_cart']),
+			'showWishlist'        => !isset($options['header_show_wishlist']) || !empty($options['header_show_wishlist']),
+			'showCompare'         => !isset($options['header_show_compare']) || !empty($options['header_show_compare']),
+			'showAccount'         => !isset($options['header_show_account']) || !empty($options['header_show_account']),
+			'showThemeToggle'     => !isset($options['header_show_theme_toggle']) || !empty($options['header_show_theme_toggle']),
+			'showExchangeRate'    => !isset($options['header_show_exchange_rate']) || !empty($options['header_show_exchange_rate']),
+			'showPaymentSelector' => !isset($options['header_show_payment_selector']) || !empty($options['header_show_payment_selector']),
+			'showTurnosCta'       => !isset($options['header_show_turnos_cta']) || !empty($options['header_show_turnos_cta']),
+			'ctaText'             => isset($options['header_cta_text']) ? (string) $options['header_cta_text'] : '',
+			'ctaUrl'              => isset($options['header_cta_url']) ? (string) $options['header_cta_url'] : '',
+			'customButtonText'    => isset($options['header_custom_btn_text']) ? (string) $options['header_custom_btn_text'] : '',
+			'customButtonUrl'     => isset($options['header_custom_btn_url']) ? (string) $options['header_custom_btn_url'] : '',
+			'customButtonIcon'    => isset($options['header_custom_btn_icon']) ? (string) $options['header_custom_btn_icon'] : '',
+			'customButtonTarget'  => !empty($options['header_custom_btn_target']) ? (string) $options['header_custom_btn_target'] : '_self',
+			'bgColor'             => isset($options['header_bg_color']) ? (string) $options['header_bg_color'] : '',
+			'inkColor'            => isset($options['header_ink_color']) ? (string) $options['header_ink_color'] : '',
+			'accentColor'         => isset($options['header_accent_color']) ? (string) $options['header_accent_color'] : '',
+		], $options),
+		'footer'                => apply_filters('mj_footer_config', [
+			'showNewsletter'   => !isset($options['footer_show_newsletter']) || !empty($options['footer_show_newsletter']),
+			'columnsCount'     => !empty($options['footer_columns_count']) ? (int) $options['footer_columns_count'] : 4,
+			'showLogo'         => !isset($options['footer_show_logo']) || !empty($options['footer_show_logo']),
+			'showContact'      => !isset($options['footer_show_contact']) || !empty($options['footer_show_contact']),
+			'showSocials'      => !isset($options['footer_show_socials']) || !empty($options['footer_show_socials']),
+			'showPayments'     => !isset($options['footer_show_payments']) || !empty($options['footer_show_payments']),
+			'showLegalBar'     => !isset($options['footer_show_legal']) || !empty($options['footer_show_legal']),
+			'copyright'        => isset($options['footer_copyright']) ? (string) $options['footer_copyright'] : '',
+			'columns'          => mj_parse_footer_columns(isset($options['footer_custom_columns']) ? $options['footer_custom_columns'] : ''),
+			'border'           => !empty($options['footer_border']) ? (string) $options['footer_border'] : 'line',
+			'bgColor'          => isset($options['footer_bg_color']) ? (string) $options['footer_bg_color'] : '',
+			'inkColor'         => isset($options['footer_ink_color']) ? (string) $options['footer_ink_color'] : '',
+			'accentColor'      => isset($options['footer_accent_color']) ? (string) $options['footer_accent_color'] : '',
+		], $options),
 	];
 
 	/*

@@ -30,7 +30,7 @@ function isItemActive(item, pathname, search) {
  * Items type:'link' navegan directo; type:'category' (categorías de
  * WooCommerce) abren un panel con productos de esa categoría.
  */
-export function MegaMenu() {
+export function MegaMenu({ inline = false, className = '' } = {}) {
   const { categories, brands, products } = useCatalog();
   const { pathname, search } = useLocation();
   const menu = useMemo(() => buildMenu({ categories, brands }), [categories, brands]);
@@ -45,11 +45,11 @@ export function MegaMenu() {
 
   return (
     <nav
-      className="mj-nav relative hidden lg:block hairline-b bg-bg/70 backdrop-blur-xl"
+      className={inline ? `mj-nav mj-nav--inline relative hidden lg:flex items-center gap-1 ${className}` : `mj-nav relative hidden lg:block hairline-b bg-bg/70 backdrop-blur-xl ${className}`}
       onMouseLeave={() => setOpenSlug(null)}
       aria-label={t('nav_main_label')}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-center gap-1 px-8">
+      <div className={inline ? "flex items-center justify-center gap-1" : "mx-auto flex max-w-7xl items-center justify-center gap-1 px-8"}>
         {menu.map((item) => {
           /*
            * Una categoría que ya no está en el catálogo (se borró, o quedó sin

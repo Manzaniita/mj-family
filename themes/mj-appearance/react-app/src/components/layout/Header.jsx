@@ -16,6 +16,7 @@ import { t } from '@/lib/copy';
 import { TURNOS, bookingPath } from '@/lib/turnos';
 import { NAV_HEADER, isExternalHref } from '@/lib/nav';
 import { iconByName } from '@/components/ui/DynamicIcon';
+import { HEADER } from '@/lib/config';
 
 function IconAction({ to, onClick, icon: Icon, label, count }) {
   const content = (
@@ -133,7 +134,35 @@ function QuickLinks() {
   });
 }
 
-export function Header() {
+export function Header(props = {}) {
+  const override = props.override || (props.sticky !== undefined || props.headerStyle !== undefined ? props : null);
+  const isBlock = !!override;
+
+  const conf = {
+    sticky: override?.sticky || HEADER.sticky || 'sticky',
+    headerStyle: override?.headerStyle || HEADER.headerStyle || 'glass',
+    border: override?.border || HEADER.border || 'subtle',
+    logoPosition: override?.logoPosition || HEADER.logoPosition || 'left',
+    searchPosition: override?.searchPosition || HEADER.searchPosition || 'center',
+    menuPosition: override?.menuPosition || HEADER.menuPosition || 'below',
+    showWishlist: override?.showWishlist !== undefined ? !!override.showWishlist : HEADER.showWishlist,
+    showCompare: override?.showCompare !== undefined ? !!override.showCompare : HEADER.showCompare,
+    showCart: override?.showCart !== undefined ? !!override.showCart : HEADER.showCart,
+    showAccount: override?.showAccount !== undefined ? !!override.showAccount : HEADER.showAccount,
+    showThemeToggle: override?.showThemeToggle !== undefined ? !!override.showThemeToggle : HEADER.showThemeToggle,
+    showDollarRate: override?.showDollarRate !== undefined ? !!override.showDollarRate : HEADER.showDollarRate,
+    showPaymentSelect: override?.showPaymentSelect !== undefined ? !!override.showPaymentSelect : HEADER.showPaymentSelect,
+    showTurnosCta: override?.showTurnosCta !== undefined ? !!override.showTurnosCta : (HEADER.showTurnosCta || !!TURNOS?.menu.headerCtaEnabled),
+    turnosCtaText: override?.turnosCtaText || HEADER.turnosCtaText || TURNOS?.menu.headerCta || 'Reservar',
+    customButtonText: override?.customButtonText ?? HEADER.customButtonText,
+    customButtonUrl: override?.customButtonUrl ?? HEADER.customButtonUrl,
+    customButtonIcon: override?.customButtonIcon ?? HEADER.customButtonIcon,
+    customButtonTarget: override?.customButtonTarget ?? HEADER.customButtonTarget,
+    bgColor: override?.bgColor || HEADER.bgColor || '',
+    inkColor: override?.inkColor || HEADER.inkColor || '',
+    accentColor: override?.accentColor || HEADER.accentColor || '',
+  };
+
   const cartCount = useCart((s) => s.items.reduce((n, i) => n + i.qty, 0));
   const wishCount = useWishlist((s) => s.ids.length);
   const compareCount = useCompare((s) => s.ids.length);
@@ -141,93 +170,155 @@ export function Header() {
   const setCartOpen = useUI((s) => s.setCartOpen);
   const setMobileMenuOpen = useUI((s) => s.setMobileMenuOpen);
 
+  const stickyClass = {
+    sticky: 'sticky top-0 z-80',
+    static: 'relative z-80',
+    'sticky-desktop': 'relative lg:sticky lg:top-0 z-80',
+    'sticky-mobile': 'sticky top-0 lg:relative z-80',
+  }[conf.sticky] || 'sticky top-0 z-80';
+
+  const styleClass = {
+    glass: 'bg-bg/80 backdrop-blur-2xl',
+    solid: 'bg-bg',
+    transparent: 'bg-transparent',
+  }[conf.headerStyle] || 'bg-bg/80 backdrop-blur-2xl';
+
+  const borderClass = {
+    subtle: 'hairline-b',
+    strong: 'border-b border-line-strong',
+    none: 'border-b-0',
+  }[conf.border] || 'hairline-b';
+
+  const inlineStyles = {};
+  if (conf.bgColor) inlineStyles.backgroundColor = conf.bgColor;
+  if (conf.inkColor) inlineStyles.color = conf.inkColor;
+  if (conf.accentColor) inlineStyles['--mj-accent'] = conf.accentColor;
+
   return (
     <>
-      {/*
-        Qué queda pegado arriba y qué no.
-        ---------------------------------
-        En la compu se pega el header entero: hay pantalla de sobra. En el celular no — tres barras
-        fijas se comen un tercio de la vista mientras se recorre el catálogo. Así que en el celular
-        los anuncios y el envío gratis se ven al entrar y se van con el scroll, y queda pegada solo
-        la barra con el logo y los botones.
-
-        Por eso están acá afuera y no adentro del header: un elemento sticky no puede quedarse fijo
-        más allá de su contenedor, así que si vivieran dentro del header arrastrarían con ellos a la
-        barra principal al scrollear. Afuera, el header sigue siendo sticky de punta a punta.
-      */}
-      <div className="lg:hidden">
-        <TopBar />
-        <FreeShippingBar />
-      </div>
-
-      <header className="mj-header sticky top-0 z-80">
-        <div className="hidden lg:block">
+      {!isBlock && (
+        <div className="lg:hidden">
           <TopBar />
           <FreeShippingBar />
         </div>
-        <div className="mj-header__glass bg-bg/80 backdrop-blur-2xl">
-          <div className="mj-header__bar hairline-b">
-            {/*
-              La fila no puede crecer más que la pantalla: el logo cede ancho (min-w-0 + truncate) y
-              las acciones no se achican (shrink-0). Sin eso, en un celular angosto el contenido
-              empuja la fila, se sale del fondo del header y la página termina scrolleando de costado.
-            */}
+      )}
+
+      <header className={`mj-header ${stickyClass}`} style={inlineStyles}>
+        {!isBlock && (
+          <div className="hidden lg:block">
+            <TopBar />
+            <FreeShippingBar />
+          </div>
+        )}
+        <div className={`mj-header__glass ${styleClass}`}>
+          <div className={`mj-header__bar ${borderClass}`}>
             <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 md:gap-8 md:px-8">
-              {/* Menú del celular: es la única puerta al menú configurable y a los favoritos. */}
+              {/* Menú del celular / drawer */}
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label={t('nav_menu')}
                 title={t('nav_menu')}
-                className="mj-header__menu -ml-1 grid size-9 shrink-0 place-items-center rounded-(--mj-radius-pill) text-ink-soft transition-colors hover:bg-surface hover:text-ink lg:hidden"
+                className={`mj-header__menu -ml-1 grid size-9 shrink-0 place-items-center rounded-(--mj-radius-pill) text-ink-soft transition-colors hover:bg-surface hover:text-ink ${conf.menuPosition === 'drawer' ? '' : 'lg:hidden'}`}
               >
                 <Menu size={20} strokeWidth={1.8} />
               </button>
 
-              {/* Logo configurable (Apariencia → MJ Appearance → Logo). */}
-              <Logo className="min-w-0 flex-1 lg:flex-none" />
+              {/* Logo a la izquierda */}
+              {conf.logoPosition === 'left' && (
+                <Logo className="min-w-0 flex-1 lg:flex-none" />
+              )}
 
-              <div className="hidden flex-1 justify-center lg:flex">
-                <SearchBar />
-              </div>
+              {/* Centro: buscador, navegación inline o logo centrado */}
+              {conf.logoPosition === 'center' ? (
+                <>
+                  <div className="hidden flex-1 items-center justify-start lg:flex">
+                    {conf.menuPosition === 'inline' ? (
+                      <MegaMenu inline />
+                    ) : conf.searchPosition === 'center' ? (
+                      <SearchBar />
+                    ) : null}
+                  </div>
+                  <Logo className="min-w-0 flex-1 text-center lg:flex-none" />
+                </>
+              ) : (
+                <div className="hidden flex-1 justify-center lg:flex">
+                  {conf.menuPosition === 'inline' ? (
+                    <MegaMenu inline />
+                  ) : conf.searchPosition === 'center' ? (
+                    <SearchBar />
+                  ) : null}
+                </div>
+              )}
+
+              {/* Buscador a la derecha si está configurado */}
+              {conf.searchPosition === 'right' && (
+                <div className="hidden lg:flex shrink-0">
+                  <SearchBar />
+                </div>
+              )}
 
               <div className="mj-header__actions ml-auto flex shrink-0 items-center gap-0.5 lg:ml-0">
-                {/* Tipo de cambio (plugin MJ Dólar): no renderiza nada si el plugin no está. */}
-                <ExchangeRate className="mr-1.5" />
-                {/* Selector "Ver precios con" (plugin MJ Medios de Pago); en mobile vive en el menú. */}
-                <PaymentSelector className="mr-1.5 hidden sm:inline-flex" />
-                <ThemeToggle />
-                <span className="hidden lg:contents">
-                  <IconAction to={user ? '/cuenta' : '/login'} icon={User} label={t('nav_account')} />
-                </span>
-                {/* En el celular estos dos viven en el menú lateral: la barra no da para más. */}
-                <span className="hidden lg:contents">
-                  <IconAction to="/favoritos" icon={Heart} label={t('nav_favorites')} count={wishCount} />
-                  <IconAction to="/comparar" icon={Scale} label={t('nav_compare')} count={compareCount} />
-                </span>
-                <span className="hidden lg:contents">
-                  <IconAction
-                    onClick={() => setCartOpen(true)}
-                    icon={ShoppingBag}
-                    label={t('nav_cart')}
-                    count={cartCount}
-                  />
-                </span>
-                {/* Accesos rápidos configurables (ERP, paneles propios): también en el celular. */}
+                {/* Tipo de cambio (plugin MJ Dólar) */}
+                {conf.showDollarRate && <ExchangeRate className="mr-1.5" />}
+                {/* Selector de precios por medio de pago */}
+                {conf.showPaymentSelect && <PaymentSelector className="mr-1.5 hidden sm:inline-flex" />}
+                {conf.showThemeToggle && <ThemeToggle />}
+                {conf.showAccount && (
+                  <span className="hidden lg:contents">
+                    <IconAction to={user ? '/cuenta' : '/login'} icon={User} label={t('nav_account')} />
+                  </span>
+                )}
+                {conf.showWishlist && (
+                  <span className="hidden lg:contents">
+                    <IconAction to="/favoritos" icon={Heart} label={t('nav_favorites')} count={wishCount} />
+                  </span>
+                )}
+                {conf.showCompare && (
+                  <span className="hidden lg:contents">
+                    <IconAction to="/comparar" icon={Scale} label={t('nav_compare')} count={compareCount} />
+                  </span>
+                )}
+                {conf.showCart && (
+                  <span className="hidden lg:contents">
+                    <IconAction
+                      onClick={() => setCartOpen(true)}
+                      icon={ShoppingBag}
+                      label={t('nav_cart')}
+                      count={cartCount}
+                    />
+                  </span>
+                )}
                 <QuickLinks />
-                {/* CTA "Reservar" (plugin MJ Turnos Online): solo desktop; texto y visibilidad en Turnos → Ajustes. */}
-                {TURNOS?.menu.headerCtaEnabled && (
+                {/* Botón personalizado */}
+                {conf.customButtonText && (
+                  <span className="hidden lg:contents">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      href={conf.customButtonUrl || '#'}
+                      target={conf.customButtonTarget === '_blank' ? '_blank' : undefined}
+                      rel={conf.customButtonTarget === '_blank' ? 'noreferrer' : undefined}
+                      className="mj-header__custom-btn ml-2"
+                    >
+                      {conf.customButtonIcon && <span className="mr-1">{conf.customButtonIcon}</span>}
+                      {conf.customButtonText}
+                    </Button>
+                  </span>
+                )}
+                {/* CTA Turnos */}
+                {conf.showTurnosCta && (
                   <span className="hidden lg:contents">
                     <Button size="sm" to={bookingPath()} className="mj-header__cta ml-2">
                       <CalendarDays size={15} />
-                      {TURNOS.menu.headerCta}
+                      {conf.turnosCtaText}
                     </Button>
                   </span>
                 )}
               </div>
             </div>
           </div>
-          <MegaMenu />
+          {conf.menuPosition === 'below' && <MegaMenu />}
         </div>
       </header>
     </>

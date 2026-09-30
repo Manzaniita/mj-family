@@ -202,3 +202,51 @@ export const ABOUT = {
     .map((s) => ({ n: String(s?.n ?? '').trim(), label: String(s?.label ?? '').trim() }))
     .filter((s) => s.n !== '' && s.label !== ''),
 };
+
+/**
+ * Configuración global del Header (Apariencia → MJ Appearance → Cabecera / Header).
+ */
+export const HEADER = {
+  sticky: WP?.header?.sticky || 'sticky',
+  headerStyle: WP?.header?.headerStyle || 'glass',
+  border: WP?.header?.border || 'subtle',
+  logoPosition: WP?.header?.logoPosition || 'left',
+  searchPosition: WP?.header?.searchPosition || 'center',
+  menuPosition: WP?.header?.menuPosition || 'below',
+  showWishlist: WP?.header?.showWishlist !== false,
+  showCompare: WP?.header?.showCompare !== false,
+  showCart: WP?.header?.showCart !== false,
+  showAccount: WP?.header?.showAccount !== false,
+  showThemeToggle: WP?.header?.showThemeToggle !== false,
+  showDollarRate: WP?.header?.showDollarRate !== false,
+  showPaymentSelect: WP?.header?.showPaymentSelect !== false,
+  showTurnosCta: !!WP?.header?.showTurnosCta,
+  turnosCtaText: WP?.header?.turnosCtaText || '',
+  customButtonText: WP?.header?.customButtonText || '',
+  customButtonUrl: WP?.header?.customButtonUrl || '',
+  customButtonIcon: WP?.header?.customButtonIcon || '',
+  customButtonTarget: WP?.header?.customButtonTarget || '_self',
+  bgColor: WP?.header?.bgColor || '',
+  inkColor: WP?.header?.inkColor || '',
+  accentColor: WP?.header?.accentColor || '',
+};
+
+/**
+ * Configuración global del Footer (Apariencia → MJ Appearance → Pie de página / Footer).
+ */
+export const FOOTER = {
+  showNewsletter: WP?.footer?.showNewsletter !== false,
+  columnsCount: Number(WP?.footer?.columnsCount) || 4,
+  showLogo: WP?.footer?.showLogo !== false,
+  tagline: WP?.footer?.tagline || '',
+  showContact: WP?.footer?.showContact !== false,
+  showSocials: WP?.footer?.showSocials !== false,
+  columns: Array.isArray(WP?.footer?.columns) ? WP.footer.columns : [],
+  showLegalBar: WP?.footer?.showLegalBar !== false,
+  copyright: WP?.footer?.copyright || '',
+  showPayments: WP?.footer?.showPayments !== false,
+  border: WP?.footer?.border || 'subtle',
+  bgColor: WP?.footer?.bgColor || '',
+  inkColor: WP?.footer?.inkColor || '',
+  accentColor: WP?.footer?.accentColor || '',
+};

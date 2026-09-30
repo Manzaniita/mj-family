@@ -9,9 +9,10 @@ import { NotFound } from '@/pages/Misc';
 import { BLOCKS } from '@/components/bloques/registry';
 import { fetchPage, previewPageId } from '@/lib/pages';
 import { usePageMeta } from '@/lib/seo';
+import { useUI } from '@/store';
 
 /* Bloques que traen su propio título: la página no repite el suyo arriba. */
-const OWN_TITLE = ['mj/hero', 'mj/encabezado', 'mj/nosotros'];
+const OWN_TITLE = ['mj/hero', 'mj/encabezado', 'mj/nosotros', 'mj/header'];
 
 function parseProps(json) {
   try {
@@ -72,6 +73,18 @@ export default function PageView({ path = '', home = false }) {
 
   const page = state.page;
   usePageMeta(home ? '' : page?.title || '', page?.excerpt || '');
+
+  useEffect(() => {
+    if (page) {
+      useUI.getState().setPageLayout({
+        hideHeader: !!page.hideHeader,
+        hideFooter: !!page.hideFooter,
+      });
+    }
+    return () => {
+      useUI.getState().resetPageLayout();
+    };
+  }, [page]);
 
   /* El HTML se inyecta una vez por página; React solo administra los portales. */
   const ref = useRef(null);

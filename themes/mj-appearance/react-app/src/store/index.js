@@ -452,6 +452,9 @@ export const useUI = create((set, get) => ({
   // Tema inicial: ya está aplicado en <html data-theme> por el script
   // anti-flash de index.php (elección guardada > default del admin > sistema).
   theme: currentTheme(),
+  pageLayout: { hideHeader: false, hideFooter: false },
+  setPageLayout: (layout) => set((s) => ({ pageLayout: { ...s.pageLayout, ...layout } })),
+  resetPageLayout: () => set({ pageLayout: { hideHeader: false, hideFooter: false } }),
   setCartOpen: (v) => set({ cartOpen: v }),
   setMobileMenuOpen: (v) => set({ mobileMenuOpen: v }),
   setQuickView: (p) => set({ quickView: p }),

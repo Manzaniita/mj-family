@@ -70,12 +70,14 @@ export function Layout() {
     prevKey.current = key;
   }, [pathname, key]);
 
+  const pageLayout = useUI((s) => s.pageLayout);
+
   return (
     <>
       <a href="#main" className="mj-skip-link">{t('ui_skip_to_content')}</a>
       <Intro />
       <div className="mj-ambient" aria-hidden="true" />
-      <Header />
+      {!pageLayout?.hideHeader && <Header />}
       <main id="main" className="min-h-screen" tabIndex={-1}>
         {/* Si una página revienta, cae solo ella: header, carrito y menú siguen. Se reinicia al navegar. */}
         <ErrorBoundary scope="page" resetKey={pathname}>
@@ -90,11 +92,13 @@ export function Layout() {
           </Suspense>
         </ErrorBoundary>
       </main>
-      <Footer />
+      {!pageLayout?.hideFooter && <Footer />}
       {/* Botón fijo abajo (apagado por defecto): deja su propio espacio al final de la página. */}
       <StickyCta />
       {/* Espacio para que la barra inferior fija no tape el final del footer. */}
-      <div className="h-20 pb-[env(safe-area-inset-bottom)] lg:hidden" aria-hidden="true" />
+      {!pageLayout?.hideFooter && (
+        <div className="h-20 pb-[env(safe-area-inset-bottom)] lg:hidden" aria-hidden="true" />
+      )}
       <BottomNav />
       <CartDrawer />
       <MobileMenu />

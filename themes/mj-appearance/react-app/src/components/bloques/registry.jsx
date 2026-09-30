@@ -24,6 +24,8 @@ import { AboutTeaser } from '@/components/home/AboutTeaser';
 import { ColegasShowcase } from '@/components/home/Colegas';
 import { ServicesShowcase, BookingCTA } from '@/components/home/Turnos';
 import { Section } from '@/components/layout/Layout';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ProductsBlock } from '@/components/bloques/ProductsBlock';
@@ -124,6 +126,8 @@ function FAQBlock({ items, showContactCard }) {
 }
 
 export const BLOCKS = {
+  header: (props) => <Header override={props} />,
+  footer: (props) => <Footer override={props} />,
   hero: HeroBlock,
   encabezado: HeaderBlock,
   banners: BannersBlock,

@@ -123,6 +123,46 @@ function mj_option_defaults() {
 		'contact_area'            => '',               // Zona de atención ("Atiendo en zona Palermo"). Vacío = no se muestra.
 		'contact_show_instagram'  => 0,                // Sumar Instagram (Redes sociales) a los canales de la página de contacto.
 		'contact_show_form'       => 1,                // Mostrar el formulario en la página de contacto.
+		/* Cabecera (header) configurable */
+		'header_sticky'           => 'sticky', // sticky | static | sticky-desktop | sticky-mobile
+		'header_style'            => 'glass',  // glass | solid | transparent
+		'header_border'           => 'line',   // line | none | shadow
+		'header_logo_pos'         => 'left',   // left | center
+		'header_search_pos'       => 'center', // center | right | hidden
+		'header_menu_pos'         => 'below',  // below | inline | drawer | hidden
+		'header_show_topbar'      => 1,
+		'header_show_shipping'    => 1,
+		'header_show_cart'        => 1,
+		'header_show_wishlist'    => 1,
+		'header_show_compare'     => 1,
+		'header_show_account'     => 1,
+		'header_show_theme_toggle'=> 1,
+		'header_show_exchange_rate' => 1,
+		'header_show_payment_selector' => 1,
+		'header_show_turnos_cta'  => 1,
+		'header_cta_text'         => '',
+		'header_cta_url'          => '',
+		'header_custom_btn_text'  => '',
+		'header_custom_btn_url'   => '',
+		'header_custom_btn_icon'  => '',
+		'header_custom_btn_target'=> '_self',
+		'header_bg_color'         => '',
+		'header_ink_color'        => '',
+		'header_accent_color'     => '',
+		/* Pie de página (footer) configurable */
+		'footer_show_newsletter'  => 1,
+		'footer_columns_count'    => 4,
+		'footer_show_logo'        => 1,
+		'footer_show_contact'     => 1,
+		'footer_show_socials'     => 1,
+		'footer_show_payments'    => 1,
+		'footer_show_legal'       => 1,
+		'footer_copyright'        => '',
+		'footer_custom_columns'   => '',
+		'footer_border'           => 'line', // line | none
+		'footer_bg_color'         => '',
+		'footer_ink_color'        => '',
+		'footer_accent_color'     => '',
 	];
 }
 
@@ -167,6 +207,71 @@ function mj_theme_switch_choices() {
 		'instant' => 'Instantáneo — cambia al clic, sin animación',
 		'fade'    => 'Fundido — los colores se funden en un tercio de segundo',
 		'circle'  => 'Círculo — el tema nuevo se abre desde el botón (si el navegador lo soporta)',
+	]);
+}
+
+/* Modos de sticky de la cabecera. */
+function mj_header_sticky_choices() {
+	return (array) apply_filters('mj_header_sticky_choices', [
+		'sticky'         => 'Fijo siempre (arriba al scrollear)',
+		'static'         => 'Estático (se va con el scroll)',
+		'sticky-desktop' => 'Fijo solo en la computadora',
+		'sticky-mobile'  => 'Fijo solo en el celular',
+	]);
+}
+
+/* Estilos de fondo de la cabecera. */
+function mj_header_style_choices() {
+	return (array) apply_filters('mj_header_style_choices', [
+		'glass'       => 'Vidrio translúcido (con desenfoque de fondo)',
+		'solid'       => 'Sólido',
+		'transparent' => 'Transparente',
+	]);
+}
+
+/* Bordes de la cabecera. */
+function mj_header_border_choices() {
+	return (array) apply_filters('mj_header_border_choices', [
+		'line'   => 'Línea sutil',
+		'none'   => 'Sin borde',
+		'shadow' => 'Sombra suave',
+	]);
+}
+
+/* Posición del logo en la cabecera. */
+function mj_header_logo_choices() {
+	return (array) apply_filters('mj_header_logo_choices', [
+		'left'   => 'A la izquierda',
+		'center' => 'Al centro',
+	]);
+}
+
+/* Posición del buscador en la cabecera. */
+function mj_header_search_choices() {
+	return (array) apply_filters('mj_header_search_choices', [
+		'center' => 'Al centro (computadora)',
+		'right'  => 'A la derecha (junto a los botones)',
+		'hidden' => 'Ocultar buscador',
+	]);
+}
+
+/* Disposición del menú de navegación. */
+function mj_header_menu_choices() {
+	return (array) apply_filters('mj_header_menu_choices', [
+		'below'  => 'Debajo de la barra principal (Mega menú)',
+		'inline' => 'En la misma fila principal',
+		'drawer' => 'Solo menú lateral (botón ☰ en todos los dispositivos)',
+		'hidden' => 'Sin menú',
+	]);
+}
+
+/* Columnas del pie de página. */
+function mj_footer_columns_choices() {
+	return (array) apply_filters('mj_footer_columns_choices', [
+		2 => '2 columnas',
+		3 => '3 columnas',
+		4 => '4 columnas',
+		5 => '5 columnas',
 	]);
 }
 
@@ -1293,6 +1398,69 @@ function mj_sanitize_options($input) {
 		$out[$font_key] = in_array($font, mj_font_choices(), true) ? $font : '';
 	}
 
+	/* Cabecera (header) configurable */
+	$sticky               = isset($input['header_sticky']) ? (string) $input['header_sticky'] : 'sticky';
+	$out['header_sticky'] = isset(mj_header_sticky_choices()[$sticky]) ? $sticky : 'sticky';
+
+	$hstyle              = isset($input['header_style']) ? (string) $input['header_style'] : 'glass';
+	$out['header_style'] = isset(mj_header_style_choices()[$hstyle]) ? $hstyle : 'glass';
+
+	$hborder              = isset($input['header_border']) ? (string) $input['header_border'] : 'line';
+	$out['header_border'] = isset(mj_header_border_choices()[$hborder]) ? $hborder : 'line';
+
+	$logo_pos              = isset($input['header_logo_pos']) ? (string) $input['header_logo_pos'] : 'left';
+	$out['header_logo_pos'] = isset(mj_header_logo_choices()[$logo_pos]) ? $logo_pos : 'left';
+
+	$search_pos              = isset($input['header_search_pos']) ? (string) $input['header_search_pos'] : 'center';
+	$out['header_search_pos'] = isset(mj_header_search_choices()[$search_pos]) ? $search_pos : 'center';
+
+	$menu_pos              = isset($input['header_menu_pos']) ? (string) $input['header_menu_pos'] : 'below';
+	$out['header_menu_pos'] = isset(mj_header_menu_choices()[$menu_pos]) ? $menu_pos : 'below';
+
+	$out['header_show_topbar']           = !empty($input['header_show_topbar']) ? 1 : 0;
+	$out['header_show_shipping']         = !empty($input['header_show_shipping']) ? 1 : 0;
+	$out['header_show_cart']             = !empty($input['header_show_cart']) ? 1 : 0;
+	$out['header_show_wishlist']         = !empty($input['header_show_wishlist']) ? 1 : 0;
+	$out['header_show_compare']          = !empty($input['header_show_compare']) ? 1 : 0;
+	$out['header_show_account']          = !empty($input['header_show_account']) ? 1 : 0;
+	$out['header_show_theme_toggle']     = !empty($input['header_show_theme_toggle']) ? 1 : 0;
+	$out['header_show_exchange_rate']    = !empty($input['header_show_exchange_rate']) ? 1 : 0;
+	$out['header_show_payment_selector'] = !empty($input['header_show_payment_selector']) ? 1 : 0;
+	$out['header_show_turnos_cta']       = !empty($input['header_show_turnos_cta']) ? 1 : 0;
+
+	$out['header_cta_text']         = isset($input['header_cta_text']) ? sanitize_text_field((string) $input['header_cta_text']) : '';
+	$out['header_cta_url']          = isset($input['header_cta_url']) ? esc_url_raw(trim((string) $input['header_cta_url'])) : '';
+	$out['header_custom_btn_text']  = isset($input['header_custom_btn_text']) ? sanitize_text_field((string) $input['header_custom_btn_text']) : '';
+	$out['header_custom_btn_url']   = isset($input['header_custom_btn_url']) ? esc_url_raw(trim((string) $input['header_custom_btn_url'])) : '';
+	$out['header_custom_btn_icon']  = isset($input['header_custom_btn_icon']) ? sanitize_key((string) $input['header_custom_btn_icon']) : '';
+	$out['header_custom_btn_target']= isset($input['header_custom_btn_target']) && '_blank' === $input['header_custom_btn_target'] ? '_blank' : '_self';
+
+	$clean_h_bg                 = isset($input['header_bg_color']) ? sanitize_hex_color((string) $input['header_bg_color']) : '';
+	$out['header_bg_color']     = !empty($clean_h_bg) ? $clean_h_bg : '';
+	$clean_h_ink                = isset($input['header_ink_color']) ? sanitize_hex_color((string) $input['header_ink_color']) : '';
+	$out['header_ink_color']    = !empty($clean_h_ink) ? $clean_h_ink : '';
+	$clean_h_acc                = isset($input['header_accent_color']) ? sanitize_hex_color((string) $input['header_accent_color']) : '';
+	$out['header_accent_color'] = !empty($clean_h_acc) ? $clean_h_acc : '';
+
+	/* Pie de página (footer) configurable */
+	$out['footer_show_newsletter'] = !empty($input['footer_show_newsletter']) ? 1 : 0;
+	$cols_count                    = isset($input['footer_columns_count']) ? (int) $input['footer_columns_count'] : 4;
+	$out['footer_columns_count']   = in_array($cols_count, [2, 3, 4, 5], true) ? $cols_count : 4;
+	$out['footer_show_logo']       = !empty($input['footer_show_logo']) ? 1 : 0;
+	$out['footer_show_contact']    = !empty($input['footer_show_contact']) ? 1 : 0;
+	$out['footer_show_socials']    = !empty($input['footer_show_socials']) ? 1 : 0;
+	$out['footer_show_payments']   = !empty($input['footer_show_payments']) ? 1 : 0;
+	$out['footer_show_legal']      = !empty($input['footer_show_legal']) ? 1 : 0;
+	$out['footer_copyright']       = isset($input['footer_copyright']) ? sanitize_text_field((string) $input['footer_copyright']) : '';
+	$out['footer_custom_columns']  = isset($input['footer_custom_columns']) ? sanitize_textarea_field((string) $input['footer_custom_columns']) : '';
+	$out['footer_border']          = isset($input['footer_border']) && 'none' === $input['footer_border'] ? 'none' : 'line';
+	$clean_f_bg                    = isset($input['footer_bg_color']) ? sanitize_hex_color((string) $input['footer_bg_color']) : '';
+	$out['footer_bg_color']        = !empty($clean_f_bg) ? $clean_f_bg : '';
+	$clean_f_ink                   = isset($input['footer_ink_color']) ? sanitize_hex_color((string) $input['footer_ink_color']) : '';
+	$out['footer_ink_color']       = !empty($clean_f_ink) ? $clean_f_ink : '';
+	$clean_f_acc                   = isset($input['footer_accent_color']) ? sanitize_hex_color((string) $input['footer_accent_color']) : '';
+	$out['footer_accent_color']    = !empty($clean_f_acc) ? $clean_f_acc : '';
+
 	// Logo (adjunto único por campo) y nombre junto al logo.
 	$out['logo_id']        = isset($input['logo_id']) ? absint(strtok((string) $input['logo_id'], ',')) : 0;
 	$out['logo_dark_id']   = isset($input['logo_dark_id']) ? absint(strtok((string) $input['logo_dark_id'], ',')) : 0;
@@ -1550,6 +1718,251 @@ function mj_render_copy_field($key, $def, $saved, $default) {
 	<?php
 }
 
+/** Configuración de la cabecera (header) de la tienda. */
+function mj_render_header_settings($o) {
+	?>
+	<h2>Cabecera (header)</h2>
+	<table class="form-table" role="presentation">
+		<tr>
+			<th scope="row"><label for="mj_header_sticky">Comportamiento (sticky)</label></th>
+			<td>
+				<select id="mj_header_sticky" name="mj_options[header_sticky]">
+					<?php foreach (mj_header_sticky_choices() as $value => $label) : ?>
+						<option value="<?php echo esc_attr($value); ?>" <?php selected((string) $o['header_sticky'], $value); ?>><?php echo esc_html($label); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<p class="description">Si la cabecera se queda pegada arriba de la pantalla al scrollear o si fluye con el contenido de la página.</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="mj_header_style">Fondo y estilo</label></th>
+			<td>
+				<select id="mj_header_style" name="mj_options[header_style]">
+					<?php foreach (mj_header_style_choices() as $value => $label) : ?>
+						<option value="<?php echo esc_attr($value); ?>" <?php selected((string) $o['header_style'], $value); ?>><?php echo esc_html($label); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<select id="mj_header_border" name="mj_options[header_border]" style="margin-left:8px;">
+					<?php foreach (mj_header_border_choices() as $value => $label) : ?>
+						<option value="<?php echo esc_attr($value); ?>" <?php selected((string) $o['header_border'], $value); ?>><?php echo esc_html($label); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<p class="description">Estilo de fondo (vidrio con desenfoque, sólido o transparente) y tipo de borde inferior.</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="mj_header_logo_pos">Posición del logo y buscador</label></th>
+			<td>
+				<p style="margin:0 0 6px;">
+					<label for="mj_header_logo_pos">Logo:</label>
+					<select id="mj_header_logo_pos" name="mj_options[header_logo_pos]">
+						<?php foreach (mj_header_logo_choices() as $value => $label) : ?>
+							<option value="<?php echo esc_attr($value); ?>" <?php selected((string) $o['header_logo_pos'], $value); ?>><?php echo esc_html($label); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<label for="mj_header_search_pos" style="margin-left:14px;">Buscador:</label>
+					<select id="mj_header_search_pos" name="mj_options[header_search_pos]">
+						<?php foreach (mj_header_search_choices() as $value => $label) : ?>
+							<option value="<?php echo esc_attr($value); ?>" <?php selected((string) $o['header_search_pos'], $value); ?>><?php echo esc_html($label); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="mj_header_menu_pos">Disposición del menú</label></th>
+			<td>
+				<select id="mj_header_menu_pos" name="mj_options[header_menu_pos]">
+					<?php foreach (mj_header_menu_choices() as $value => $label) : ?>
+						<option value="<?php echo esc_attr($value); ?>" <?php selected((string) $o['header_menu_pos'], $value); ?>><?php echo esc_html($label); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<p class="description">Dónde se ubica la barra de navegación en la computadora (debajo como Mega menú, en la misma fila o solo con botón ☰).</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">Barras superiores</th>
+			<td>
+				<label style="display:inline-block; margin-right:16px;">
+					<input type="checkbox" name="mj_options[header_show_topbar]" value="1" <?php checked(!empty($o['header_show_topbar'])); ?> /> Mostrar barra de anuncios rotativa
+				</label>
+				<label style="display:inline-block;">
+					<input type="checkbox" name="mj_options[header_show_shipping]" value="1" <?php checked(!empty($o['header_show_shipping'])); ?> /> Mostrar barra de envío gratis
+				</label>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">Botones y accesos visibles</th>
+			<td>
+				<fieldset>
+					<label style="display:inline-block; margin-right:16px; margin-bottom:6px;">
+						<input type="checkbox" name="mj_options[header_show_cart]" value="1" <?php checked(!empty($o['header_show_cart'])); ?> /> Carrito
+					</label>
+					<label style="display:inline-block; margin-right:16px; margin-bottom:6px;">
+						<input type="checkbox" name="mj_options[header_show_wishlist]" value="1" <?php checked(!empty($o['header_show_wishlist'])); ?> /> Favoritos
+					</label>
+					<label style="display:inline-block; margin-right:16px; margin-bottom:6px;">
+						<input type="checkbox" name="mj_options[header_show_compare]" value="1" <?php checked(!empty($o['header_show_compare'])); ?> /> Comparar
+					</label>
+					<label style="display:inline-block; margin-right:16px; margin-bottom:6px;">
+						<input type="checkbox" name="mj_options[header_show_account]" value="1" <?php checked(!empty($o['header_show_account'])); ?> /> Mi cuenta / Acceso
+					</label>
+					<label style="display:inline-block; margin-right:16px; margin-bottom:6px;">
+						<input type="checkbox" name="mj_options[header_show_theme_toggle]" value="1" <?php checked(!empty($o['header_show_theme_toggle'])); ?> /> Switch día/noche (sol/luna)
+					</label>
+					<label style="display:inline-block; margin-right:16px; margin-bottom:6px;">
+						<input type="checkbox" name="mj_options[header_show_exchange_rate]" value="1" <?php checked(!empty($o['header_show_exchange_rate'])); ?> /> Dólar (MJ Dólar)
+					</label>
+					<label style="display:inline-block; margin-right:16px; margin-bottom:6px;">
+						<input type="checkbox" name="mj_options[header_show_payment_selector]" value="1" <?php checked(!empty($o['header_show_payment_selector'])); ?> /> Medios de pago (MJ Medios de Pago)
+					</label>
+					<label style="display:inline-block; margin-right:16px; margin-bottom:6px;">
+						<input type="checkbox" name="mj_options[header_show_turnos_cta]" value="1" <?php checked(!empty($o['header_show_turnos_cta'])); ?> /> Botón reserva (MJ Turnos Online)
+					</label>
+				</fieldset>
+				<p class="description">Elegí qué íconos y acciones aparecen en la barra de la cabecera.</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">Botón de reserva personalizado</th>
+			<td>
+				<input type="text" name="mj_options[header_cta_text]" value="<?php echo esc_attr((string) $o['header_cta_text']); ?>" class="regular-text" placeholder="Reservar turno" />
+				<input type="text" name="mj_options[header_cta_url]" value="<?php echo esc_attr((string) $o['header_cta_url']); ?>" class="regular-text" placeholder="/turnos" />
+				<p class="description">Texto y destino del botón CTA en la cabecera. Vacío = los de Turnos → Ajustes o la reserva online.</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">Botón adicional en la cabecera</th>
+			<td>
+				<p style="margin:0 0 6px;">
+					<input type="text" name="mj_options[header_custom_btn_text]" value="<?php echo esc_attr((string) $o['header_custom_btn_text']); ?>" class="regular-text" placeholder="Texto (ej. WhatsApp)" />
+					<input type="text" name="mj_options[header_custom_btn_url]" value="<?php echo esc_attr((string) $o['header_custom_btn_url']); ?>" class="regular-text" placeholder="Enlace (ej. https://wa.me/...)" />
+				</p>
+				<p style="margin:0 0 6px;">
+					<input type="text" name="mj_options[header_custom_btn_icon]" value="<?php echo esc_attr((string) $o['header_custom_btn_icon']); ?>" class="regular-text" placeholder="Ícono Lucide (ej. phone, arrow-up-right)" />
+					<select name="mj_options[header_custom_btn_target]">
+						<option value="_self" <?php selected((string) $o['header_custom_btn_target'], '_self'); ?>>Misma pestaña</option>
+						<option value="_blank" <?php selected((string) $o['header_custom_btn_target'], '_blank'); ?>>Nueva pestaña</option>
+					</select>
+				</p>
+				<p class="description">Suma un botón de acción directo en el header con su ícono y enlace.</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">Colores personalizados de cabecera</th>
+			<td>
+				<p style="display:flex; align-items:center; gap:10px; margin:4px 0;">
+					<input type="text" name="mj_options[header_bg_color]" value="<?php echo esc_attr((string) $o['header_bg_color']); ?>" class="regular-text" placeholder="Fondo (ej: #101014 o vacío)" />
+					<span>Color de fondo (vacío = color del tema)</span>
+				</p>
+				<p style="display:flex; align-items:center; gap:10px; margin:4px 0;">
+					<input type="text" name="mj_options[header_ink_color]" value="<?php echo esc_attr((string) $o['header_ink_color']); ?>" class="regular-text" placeholder="Texto e íconos (ej: #ffffff o vacío)" />
+					<span>Color de texto e íconos (vacío = color del tema)</span>
+				</p>
+				<p style="display:flex; align-items:center; gap:10px; margin:4px 0;">
+					<input type="text" name="mj_options[header_accent_color]" value="<?php echo esc_attr((string) $o['header_accent_color']); ?>" class="regular-text" placeholder="Acento (ej: #6e6bff o vacío)" />
+					<span>Color de acento (vacío = color del tema)</span>
+				</p>
+			</td>
+		</tr>
+	</table>
+	<?php
+}
+
+/** Configuración del pie de página (footer) de la tienda. */
+function mj_render_footer_settings($o) {
+	?>
+	<h2>Pie de página (footer)</h2>
+	<table class="form-table" role="presentation">
+		<tr>
+			<th scope="row">Newsletter</th>
+			<td>
+				<label for="mj_footer_show_newsletter">
+					<input type="checkbox" id="mj_footer_show_newsletter" name="mj_options[footer_show_newsletter]" value="1" <?php checked(!empty($o['footer_show_newsletter'])); ?> />
+					Mostrar el bloque de suscripción a newsletter (Nivel 1 del pie).
+				</label>
+				<p class="description">Los textos del newsletter se editan en Textos de la tienda → Pie de página.</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="mj_footer_columns_count">Columnas y presentación</label></th>
+			<td>
+				<p style="margin:0 0 6px;">
+					<label for="mj_footer_columns_count">Cantidad de columnas en computadora:</label>
+					<select id="mj_footer_columns_count" name="mj_options[footer_columns_count]">
+						<?php foreach ([2 => '2 columnas', 3 => '3 columnas', 4 => '4 columnas', 5 => '5 columnas'] as $val => $lbl) : ?>
+							<option value="<?php echo esc_attr($val); ?>" <?php selected((int) $o['footer_columns_count'], $val); ?>><?php echo esc_html($lbl); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</p>
+				<p style="margin:6px 0 0;">
+					<label style="display:inline-block; margin-right:16px;">
+						<input type="checkbox" name="mj_options[footer_show_logo]" value="1" <?php checked(!empty($o['footer_show_logo'])); ?> /> Mostrar logo y descripción
+					</label>
+					<label style="display:inline-block; margin-right:16px;">
+						<input type="checkbox" name="mj_options[footer_show_contact]" value="1" <?php checked(!empty($o['footer_show_contact'])); ?> /> Mostrar datos de contacto (dirección, teléfono, mail)
+					</label>
+					<label style="display:inline-block;">
+						<input type="checkbox" name="mj_options[footer_show_socials]" value="1" <?php checked(!empty($o['footer_show_socials'])); ?> /> Mostrar redes sociales
+					</label>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="mj_footer_custom_columns">Columnas de enlaces personalizadas</label></th>
+			<td>
+				<textarea id="mj_footer_custom_columns" name="mj_options[footer_custom_columns]" rows="8" class="large-text code" placeholder="# Productos&#10;Vestidos | /categoria/vestidos&#10;Accesorios | /categoria/accesorios&#10;&#10;# Ayuda&#10;Contacto | /contacto&#10;Preguntas frecuentes | /faq"><?php echo esc_textarea((string) $o['footer_custom_columns']); ?></textarea>
+				<p class="description">
+					Cada sección arranca con <code># Nombre de la columna</code> y luego una línea por enlace: <code>Texto del enlace | /ruta | _blank (opcional)</code>.<br>
+					<strong>Vacío</strong> = se usan las columnas automáticas de la tienda (Tienda con categorías de WooCommerce, Ayuda y Mi cuenta).
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">Barra legal inferior</th>
+			<td>
+				<p style="margin:0 0 6px;">
+					<label style="display:inline-block; margin-right:16px;">
+						<input type="checkbox" name="mj_options[footer_show_legal]" value="1" <?php checked(!empty($o['footer_show_legal'])); ?> /> Mostrar barra inferior
+					</label>
+					<label style="display:inline-block;">
+						<input type="checkbox" name="mj_options[footer_show_payments]" value="1" <?php checked(!empty($o['footer_show_payments'])); ?> /> Mostrar sellos de medios de pago
+					</label>
+				</p>
+				<p style="margin:6px 0 0;">
+					<input type="text" name="mj_options[footer_copyright]" value="<?php echo esc_attr((string) $o['footer_copyright']); ?>" class="large-text" placeholder="© <?php echo esc_attr(gmdate('Y')); ?> <?php bloginfo('name'); ?>. Todos los derechos reservados." />
+					<span class="description">Texto de copyright personalizado (vacío = automático con el año y nombre).</span>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">Colores personalizados de pie de página</th>
+			<td>
+				<p style="display:flex; align-items:center; gap:10px; margin:4px 0;">
+					<input type="text" name="mj_options[footer_bg_color]" value="<?php echo esc_attr((string) $o['footer_bg_color']); ?>" class="regular-text" placeholder="Fondo (ej: #0a0a0c o vacío)" />
+					<span>Color de fondo del pie (vacío = color del tema)</span>
+				</p>
+				<p style="display:flex; align-items:center; gap:10px; margin:4px 0;">
+					<input type="text" name="mj_options[footer_ink_color]" value="<?php echo esc_attr((string) $o['footer_ink_color']); ?>" class="regular-text" placeholder="Texto (ej: #f5f5f7 o vacío)" />
+					<span>Color de texto (vacío = color del tema)</span>
+				</p>
+				<p style="display:flex; align-items:center; gap:10px; margin:4px 0;">
+					<input type="text" name="mj_options[footer_accent_color]" value="<?php echo esc_attr((string) $o['footer_accent_color']); ?>" class="regular-text" placeholder="Títulos y acento (ej: #6e6bff o vacío)" />
+					<span>Color de títulos y destacados (vacío = color del tema)</span>
+				</p>
+				<p style="margin:6px 0 0;">
+					<label for="mj_footer_border">Borde superior:</label>
+					<select id="mj_footer_border" name="mj_options[footer_border]">
+						<option value="line" <?php selected((string) $o['footer_border'], 'line'); ?>>Línea sutil</option>
+						<option value="none" <?php selected((string) $o['footer_border'], 'none'); ?>>Sin borde</option>
+					</select>
+				</p>
+			</td>
+		</tr>
+	</table>
+	<?php
+}
+
 function mj_render_settings_page() {
 	if (!current_user_can(mj_settings_capability())) {
 		return;
@@ -1802,7 +2215,11 @@ function mj_render_settings_page() {
 
 			<?php mj_render_skin_section($o); ?>
 
+			<?php mj_render_header_settings($o); ?>
+
 			<?php mj_render_nav_settings(); ?>
+
+			<?php mj_render_footer_settings($o); ?>
 
 			<h2>Marcas</h2>
 			<table class="form-table" role="presentation">

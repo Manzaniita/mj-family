@@ -309,6 +309,8 @@ function mj_page_payload(WP_Post $source, WP_Post $page) {
 		'path'       => mj_pages_home_id() === $page->ID ? '' : mj_page_path($page),
 		'title'      => mj_page_title($source),
 		'hideTitle'  => (bool) get_post_meta($page->ID, 'mj_hide_title', true),
+		'hideHeader' => (bool) get_post_meta($page->ID, 'mj_hide_header', true),
+		'hideFooter' => (bool) get_post_meta($page->ID, 'mj_hide_footer', true),
 		'firstBlock' => mj_page_first_block($source),
 		'content'    => mj_page_render($source),
 		'excerpt'    => function_exists('mj_seo_excerpt') ? mj_seo_excerpt($excerpt) : wp_trim_words(wp_strip_all_tags($excerpt), 30),
@@ -384,20 +386,20 @@ function mj_rest_page(WP_REST_Request $request) {
 	return rest_ensure_response(mj_page_payload($source, $page));
 }
 
-/* -------------------------------------------------------------------------
- * Meta de la página: ocultar el título
- * ---------------------------------------------------------------------- */
+/* Meta de la página: ocultar título, cabecera o pie de página */
 add_action('init', function () {
-	register_post_meta('page', 'mj_hide_title', [
-		'type'              => 'boolean',
-		'single'            => true,
-		'default'           => false,
-		'show_in_rest'      => true,
-		'sanitize_callback' => 'rest_sanitize_boolean',
-		'auth_callback'     => function () {
-			return current_user_can('edit_pages');
-		},
-	]);
+	foreach (['mj_hide_title', 'mj_hide_header', 'mj_hide_footer'] as $meta_key) {
+		register_post_meta('page', $meta_key, [
+			'type'              => 'boolean',
+			'single'            => true,
+			'default'           => false,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'rest_sanitize_boolean',
+			'auth_callback'     => function () {
+				return current_user_can('edit_pages');
+			},
+		]);
+	}
 });
 
 /* -------------------------------------------------------------------------

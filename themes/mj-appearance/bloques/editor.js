@@ -363,6 +363,24 @@
 				return el(RepeaterField, { field: field, value: value, onChange: onChange });
 			case 'gallery':
 				return el(GalleryField, { field: field, value: value, onChange: onChange });
+			case 'color':
+				return el(c.BaseControl, common,
+					el('div', { className: 'mj-field-color', style: { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' } },
+						el('input', {
+							type: 'color',
+							value: value && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value) ? value : '#000000',
+							onChange: function (e) { onChange(e.target.value); },
+							style: { width: '36px', height: '36px', padding: '2px', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }
+						}),
+						el(c.TextControl, {
+							value: value || '',
+							placeholder: field.placeholder || '#hex o transparente',
+							onChange: onChange,
+							__nextHasNoMarginBottom: true,
+							__next40pxDefaultSize: true
+						})
+					)
+				);
 			default:
 				return el(c.TextControl, Object.assign({}, common, { value: value || '', placeholder: field.placeholder || '', onChange: onChange, __next40pxDefaultSize: true }));
 		}
@@ -559,6 +577,103 @@
 					header({ value: attrs.eyebrow, fallback: 'Colegas' }, { value: attrs.title, fallback: 'El proyecto de Colegas → Ajustes' }, { value: attrs.subtitle }),
 					cards(attrs.limit || 4, Math.min(4, attrs.limit || 4), true)
 				);
+			case 'header': {
+				var hBg = attrs.bgColor || '';
+				var hInk = attrs.inkColor || '';
+				var hStyle = {};
+				if (hBg) { hStyle.backgroundColor = hBg; }
+				if (hInk) { hStyle.color = hInk; }
+				return el('div', { className: 'mj-prev-header' + (attrs.border && attrs.border !== 'none' ? ' has-border' : ''), style: hStyle },
+					el('div', { className: 'mj-prev-header__bar' },
+						el('div', { className: 'mj-prev-header__logo' },
+							el('span', { className: 'dashicons dashicons-store' }),
+							el('strong', null, 'Logo')
+						),
+						attrs.searchPosition !== 'hidden' ? el('div', { className: 'mj-prev-header__search' },
+							el('span', { className: 'dashicons dashicons-search' }),
+							el('span', null, 'Buscar productos…')
+						) : null,
+						el('div', { className: 'mj-prev-header__actions' },
+							attrs.showTurnosCta ? el('span', { className: 'mj-prev-header__btn' }, '📅 ' + (attrs.turnosCtaText || 'Reservar')) : null,
+							attrs.customButtonText ? el('span', { className: 'mj-prev-header__btn mj-prev-header__btn--custom' }, (attrs.customButtonIcon ? attrs.customButtonIcon + ' ' : '') + attrs.customButtonText) : null,
+							attrs.showDollarRate ? el('span', { className: 'mj-prev-header__icon' }, '💵 USD') : null,
+							attrs.showWishlist ? el('span', { className: 'dashicons dashicons-heart' }) : null,
+							attrs.showAccount ? el('span', { className: 'dashicons dashicons-admin-users' }) : null,
+							attrs.showCart ? el('span', { className: 'dashicons dashicons-cart' }) : null
+						)
+					),
+					attrs.menuPosition === 'below' ? el('div', { className: 'mj-prev-header__nav' },
+						el('span', null, 'Inicio'),
+						el('span', null, 'Catálogo'),
+						el('span', null, 'Colecciones'),
+						el('span', null, 'Contacto')
+					) : null,
+					chips([
+						'Sticky: ' + (attrs.sticky || 'sticky'),
+						'Estilo: ' + (attrs.headerStyle || 'glass'),
+						'Logo: ' + (attrs.logoPosition || 'left'),
+						'Buscador: ' + (attrs.searchPosition || 'center'),
+						'Menú: ' + (attrs.menuPosition || 'below'),
+						attrs.showTurnosCta ? 'Turnos CTA' : '',
+						attrs.customButtonText ? 'Botón: ' + attrs.customButtonText : ''
+					])
+				);
+			}
+			case 'footer': {
+				var fBg = attrs.bgColor || '';
+				var fInk = attrs.inkColor || '';
+				var fStyle = {};
+				if (fBg) { fStyle.backgroundColor = fBg; }
+				if (fInk) { fStyle.color = fInk; }
+				var fCols = Number(attrs.columnsCount) || 4;
+				var customCols = Array.isArray(attrs.columns) && attrs.columns.length ? attrs.columns : null;
+				return el('div', { className: 'mj-prev-footer' + (attrs.border && attrs.border !== 'none' ? ' has-border' : ''), style: fStyle },
+					attrs.showNewsletter ? el('div', { className: 'mj-prev-footer__news' },
+						el('strong', null, 'Suscribite a novedades'),
+						el('div', { className: 'mj-prev-footer__news-form' },
+							el('span', { className: 'mj-prev-footer__input' }, 'Tu correo electrónico'),
+							el('span', { className: 'mj-prev-btn' }, 'Suscribirme')
+						)
+					) : null,
+					el('div', { className: 'mj-prev-footer__grid', style: { '--mj-footer-cols': String(fCols) } },
+						attrs.showLogo !== false ? el('div', { className: 'mj-prev-footer__col' },
+							el('strong', null, '✦ Tienda'),
+							el('p', { className: 'mj-prev-note' }, attrs.tagline || 'Eslogan o descripción.'),
+							attrs.showSocials !== false ? el('div', { className: 'mj-prev-footer__socials' },
+								el('span', { className: 'dashicons dashicons-instagram' }),
+								el('span', { className: 'dashicons dashicons-facebook' }),
+								el('span', { className: 'dashicons dashicons-whatsapp' })
+							) : null
+						) : null,
+						customCols ? customCols.map(function (col, i) {
+							return el('div', { key: i, className: 'mj-prev-footer__col' },
+								el('strong', null, col.title || ('Columna ' + (i + 1))),
+								el('div', { className: 'mj-prev-line mj-prev-line--short' }),
+								el('div', { className: 'mj-prev-line' })
+							);
+						}) : [1, 2].map(function (i) {
+							return el('div', { key: i, className: 'mj-prev-footer__col' },
+								el('strong', null, i === 1 ? 'Enlaces' : 'Atención'),
+								el('div', { className: 'mj-prev-line mj-prev-line--short' }),
+								el('div', { className: 'mj-prev-line' })
+							);
+						}),
+						attrs.showContact !== false ? el('div', { className: 'mj-prev-footer__col' },
+							el('strong', null, 'Contacto'),
+							el('p', { className: 'mj-prev-note' }, 'WhatsApp, email y local')
+						) : null
+					),
+					attrs.showLegalBar !== false ? el('div', { className: 'mj-prev-footer__legal' },
+						el('span', null, attrs.copyright || '© 2026 Todos los derechos reservados.'),
+						attrs.showPayments !== false ? el('span', null, '💳 Medios de pago') : null
+					) : null,
+					chips([
+						fCols + ' columnas',
+						attrs.showNewsletter ? 'Newsletter activo' : '',
+						attrs.showPayments ? 'Medios de pago' : ''
+					])
+				);
+			}
 			default:
 				return chips((def.summary || []).map(function (k) { return attrs[k] ? String(attrs[k]) : ''; }));
 		}
@@ -603,7 +718,7 @@
 	Object.keys(cfg.blocks).forEach(function (key) {
 		var def = cfg.blocks[key];
 		var attributes = {};
-		var types = { text: 'string', textarea: 'string', url: 'string', select: 'string', category: 'string', brand: 'string', number: 'number', toggle: 'boolean', image: 'object', images: 'array', products: 'array', categories: 'array', repeater: 'array', gallery: 'array' };
+		var types = { text: 'string', textarea: 'string', url: 'string', select: 'string', category: 'string', brand: 'string', color: 'string', number: 'number', toggle: 'boolean', image: 'object', images: 'array', products: 'array', categories: 'array', repeater: 'array', gallery: 'array' };
 		Object.keys(def.fields).forEach(function (fkey) {
 			var f = def.fields[fkey];
 			attributes[fkey] = { type: types[f.type] || 'string', default: f.default };
@@ -693,6 +808,20 @@
 				__nextHasNoMarginBottom: true,
 				help: 'Si la página arranca con un Hero o un Encabezado, el título se oculta solo.',
 				onChange: function (v) { setMeta(Object.assign({}, meta, { mj_hide_title: !!v })); }
+			}),
+			el(c.ToggleControl, {
+				label: 'Ocultar cabecera global (Header)',
+				checked: !!meta.mj_hide_header,
+				__nextHasNoMarginBottom: true,
+				help: 'Útil para landing pages o cuando colocás un bloque Cabecera personalizado en esta página.',
+				onChange: function (v) { setMeta(Object.assign({}, meta, { mj_hide_header: !!v })); }
+			}),
+			el(c.ToggleControl, {
+				label: 'Ocultar pie de página global (Footer)',
+				checked: !!meta.mj_hide_footer,
+				__nextHasNoMarginBottom: true,
+				help: 'Útil para páginas de captura, promociones o cuando colocás un bloque Pie de página personalizado.',
+				onChange: function (v) { setMeta(Object.assign({}, meta, { mj_hide_footer: !!v })); }
 			})
 		);
 	}

@@ -50,6 +50,8 @@ administración, arriba del nombre del sitio.
 | **Sesión y acceso** | Quién ve la barra de administración, si la tienda recarga al iniciar sesión, si "Recordarme" viene marcado, cuánto dura la sesión, ruta de "Mi cuenta". |
 | **Skin** | Qué propone el tema hijo activo, si se usan sus propuestas, y sus paletas alternativas (se aplican con un botón). |
 | **Barra de navegación** | Qué ítems tiene el menú, en qué orden, cómo se llaman, a dónde llevan, quién los ve y si van en el menú o como botón del header. |
+| **Cabecera (Header)** | Modo sticky (fijo siempre, estático, solo desktop o solo móvil), estilo visual (translúcido/glass, sólido o transparente), borde, ubicación del logo (izquierda o centrado), ubicación del buscador (centro, derecha u oculto), ubicación del menú (abajo, inline, en panel lateral/drawer u oculto), visibilidad de botones y acciones (favoritos, comparador, carrito, mi cuenta, día/noche, cotización dólar, selector de medio de pago, botón Turnos con texto a medida, botón de acción personalizado con texto, enlace, ícono y destino), y colores propios (fondo, tinta y acento). |
+| **Pie de página (Footer)** | Newsletter, cantidad de columnas (2 a 5), logo, eslogan/bajada, datos de contacto, redes sociales, columnas personalizadas de enlaces (`Texto \| /ruta \| _blank`), barra legal con copyright editable, medios de pago, borde y colores propios (fondo, tinta y acento). |
 | **Marcas** | Cómo llamar a las "marcas" (singular y plural). |
 | **Anuncios y avisos** | Barra superior y etiquetas de producto. |
 | **Portada (hero)** | Antetítulo, título, subtítulo, botones y fondos. |
@@ -194,6 +196,8 @@ pie y su diseño, en día y en noche. En el insertador hay una categoría
 | Preguntas frecuentes | Acordeón. | Las preguntas y respuestas (vacío = las de Contenido) y si muestra la tarjeta "¿No encontraste tu respuesta?". |
 | Servicios (Turnos) / Reservá tu turno | Con MJ Turnos Online activo. | Textos, cantidad, foto del banner. Vacío = Turnos → Ajustes. |
 | Colegas | Con MJ Colegas activo. | Textos y cantidad. Vacío = Colegas → Ajustes. |
+| Cabecera del sitio | Header para landing pages o armado libre. | Sticky (fijo, estático, compu o celu), estilo (translúcido, sólido, transparente), borde, ubicación de logo, buscador y menú, visibilidad de cada botón/ícono, botón Turnos, botón de acción personalizado con icono/url/target, y colores propios de fondo, tinta y acento. Vacío = los ajustes globales de Cabecera. |
+| Pie de página | Footer con columnas configurables. | Newsletter, cantidad de columnas (2 a 5), logo, eslogan, contacto, redes, columnas de enlaces a medida, legales, copyright, medios de pago, borde y colores propios de fondo, tinta y acento. Vacío = los ajustes globales de Pie de página. |
 
 Un campo vacío siempre usa lo del panel o lo de la skin, así que los bloques
 recién insertados ya salen con los textos de la tienda. Los bloques comunes de
@@ -230,9 +234,14 @@ editor". Los bloques MJ se ven como tarjetas con una vista previa aproximada
 productos); el render exacto es el de la tienda. "Vista previa" de Gutenberg
 abre la tienda con el último autoguardado.
 
-**Título de la página.** Se muestra arriba del contenido salvo que la página
-arranque con un Hero, un Encabezado o un Nosotros, o que se marque "Ocultar el
-título" en el panel *Tienda* de la barra lateral del editor.
+**Título, cabecera y pie de la página.** En el panel *Tienda* de la barra lateral
+del documento (solo páginas) se pueden configurar:
+- **Ocultar el título de la página:** no muestra el título arriba del contenido
+  (se oculta solo si arranca con un Hero, Encabezado, Nosotros o Cabecera).
+- **Ocultar cabecera global (Header):** retira la cabecera de la tienda en esta página;
+  ideal para landing pages, embudos o cuando se coloca un bloque *Cabecera del sitio* propio.
+- **Ocultar pie de página global (Footer):** retira el pie de página de la tienda;
+  ideal para páginas de captura o cuando se coloca un bloque *Pie de página* propio.
 
 **Apagar todo.** Desmarcando "Mostrar las páginas" la tienda vuelve a ser
 exactamente la de antes; las páginas quedan guardadas.

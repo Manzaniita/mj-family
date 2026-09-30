@@ -38,6 +38,7 @@ function mj_block_field_types() {
 		'text'       => 'string',
 		'textarea'   => 'string',
 		'url'        => 'string',
+		'color'      => 'string',
 		'select'     => 'string',
 		'category'   => 'string',
 		'brand'      => 'string',
@@ -115,6 +116,9 @@ function mj_blocks() {
 	};
 	$select = function ($label, $options, $default, $help = '') {
 		return ['label' => $label, 'type' => 'select', 'options' => $options, 'default' => $default, 'help' => $help];
+	};
+	$color = function ($label, $placeholder = '', $help = '') {
+		return ['label' => $label, 'type' => 'color', 'default' => '', 'placeholder' => $placeholder, 'help' => $help];
 	};
 
 	$cols = $select('Columnas', ['2' => '2', '3' => '3', '4' => '4'], '4');
@@ -339,6 +343,102 @@ function mj_blocks() {
 			],
 			'summary'     => [],
 		],
+
+		'header' => [
+			'title'       => 'Cabecera (Header)',
+			'description' => 'La barra de navegación principal. Podés configurar si queda fija (sticky), colores, posiciones del logo y buscador, y qué botones y accesos se muestran.',
+			'icon'        => 'editor-table',
+			'keywords'    => ['cabecera', 'header', 'menu', 'navegacion', 'sticky', 'logo', 'botones'],
+			'fields'      => [
+				'sticky'              => $select('Comportamiento (sticky)', [
+					'sticky'         => 'Fijo siempre (arriba al scrollear)',
+					'static'         => 'Estático (se va con el scroll)',
+					'sticky-desktop' => 'Fijo solo en la compu',
+					'sticky-mobile'  => 'Fijo solo en el celular',
+				], 'sticky'),
+				'headerStyle'         => $select('Fondo de la barra', [
+					'glass'       => 'Vidrio translúcido (con desenfoque)',
+					'solid'       => 'Sólido',
+					'transparent' => 'Transparente',
+				], 'glass'),
+				'border'              => $select('Borde inferior', [
+					'line'   => 'Línea sutil',
+					'none'   => 'Sin borde',
+					'shadow' => 'Sombra suave',
+				], 'line'),
+				'logoPosition'        => $select('Posición del logo', [
+					'left'   => 'A la izquierda',
+					'center' => 'Al centro',
+				], 'left'),
+				'searchPosition'      => $select('Buscador', [
+					'center' => 'Al centro (computadora)',
+					'right'  => 'A la derecha (junto a los botones)',
+					'hidden' => 'Oculto',
+				], 'center'),
+				'menuPosition'        => $select('Menú de navegación', [
+					'below'  => 'Debajo de la barra (Mega menú)',
+					'inline' => 'En la misma fila (al lado del logo)',
+					'drawer' => 'Solo menú lateral (botón ☰ siempre)',
+					'hidden' => 'Sin menú',
+				], 'below'),
+				'showTopBar'          => $toggle('Mostrar barra de anuncios', true),
+				'showFreeShipping'    => $toggle('Mostrar barra de envío gratis', true),
+				'showCart'            => $toggle('Mostrar botón de carrito', true),
+				'showWishlist'        => $toggle('Mostrar botón de favoritos', true),
+				'showCompare'         => $toggle('Mostrar botón de comparar', true),
+				'showAccount'         => $toggle('Mostrar botón de mi cuenta / acceso', true),
+				'showThemeToggle'     => $toggle('Mostrar selector día/noche (sol/luna)', true),
+				'showExchangeRate'    => $toggle('Mostrar cotización del dólar (MJ Dólar)', true),
+				'showPaymentSelector' => $toggle('Mostrar selector de medios de pago (MJ Medios de Pago)', true),
+				'showTurnosCta'       => $toggle('Mostrar botón de reserva (MJ Turnos Online)', true),
+				'ctaText'             => $text('Texto del botón de reserva', 'Reservar turno'),
+				'ctaUrl'              => ['label' => 'Destino del botón de reserva', 'type' => 'url', 'default' => '', 'placeholder' => '/turnos'],
+				'customButtonText'    => $text('Botón adicional: texto', 'Ej: Contacto o WhatsApp'),
+				'customButtonUrl'     => ['label' => 'Botón adicional: destino', 'type' => 'url', 'default' => '', 'placeholder' => 'https://...'],
+				'customButtonIcon'    => $text('Botón adicional: ícono de Lucide', 'phone, arrow-up-right, message-circle...'),
+				'customButtonTarget'  => $select('Botón adicional: abrir en', ['_self' => 'Misma pestaña', '_blank' => 'Nueva pestaña'], '_self'),
+				'bgColor'             => $color('Color de fondo personalizado', '#101014 o vacío'),
+				'inkColor'            => $color('Color de texto e íconos', '#ffffff o vacío'),
+				'accentColor'         => $color('Color de acento', '#6e6bff o vacío'),
+			],
+			'summary'     => ['sticky', 'logoPosition', 'headerStyle'],
+		],
+
+		'footer' => [
+			'title'       => 'Pie de página (Footer)',
+			'description' => 'El pie de página con newsletter, columnas de enlaces configurables, logo, datos de contacto, redes sociales, copyright y sellos de medios de pago.',
+			'icon'        => 'editor-insertmore',
+			'keywords'    => ['pie', 'footer', 'columnas', 'newsletter', 'redes', 'legal', 'contacto', 'links'],
+			'fields'      => [
+				'showNewsletter'   => $toggle('Mostrar sección de newsletter', true),
+				'newsletterTitle'  => $text('Newsletter: título', 'Lo nuevo, antes que nadie.'),
+				'newsletterText'   => $textarea('Newsletter: texto', 'Lanzamientos, ofertas exclusivas y novedades. Sin spam, prometido.'),
+				'newsletterButton' => $text('Newsletter: texto del botón', 'Suscribirme'),
+				'columnsCount'     => $select('Cantidad de columnas (computadora)', ['2' => '2 columnas', '3' => '3 columnas', '4' => '4 columnas', '5' => '5 columnas'], '4'),
+				'showLogo'         => $toggle('Mostrar columna de logo y presentación', true),
+				'tagline'          => $textarea('Frase o descripción bajo el logo', 'Vacío = la descripción corta del sitio.'),
+				'showContact'      => $toggle('Mostrar datos de contacto (dirección, teléfono, email)', true),
+				'showSocials'      => $toggle('Mostrar botones de redes sociales', true),
+				'columns'          => [
+					'label'   => 'Columnas de enlaces personalizadas',
+					'type'    => 'repeater',
+					'default' => [],
+					'help'    => 'Vacío = usa las columnas automáticas de la tienda (tienda, ayuda, cuenta). Cada fila es una columna.',
+					'fields'  => [
+						'title' => ['label' => 'Título de columna', 'type' => 'text', 'default' => ''],
+						'links' => ['label' => 'Enlaces ("Texto | /ruta | _blank" por línea)', 'type' => 'textarea', 'default' => ''],
+					],
+				],
+				'showLegalBar'     => $toggle('Mostrar barra inferior legal', true),
+				'copyright'        => $text('Texto de copyright', 'Vacío = automático con año y nombre del sitio.'),
+				'showPayments'     => $toggle('Mostrar sellos de medios de pago', true),
+				'border'           => $select('Borde superior', ['line' => 'Línea sutil', 'none' => 'Sin borde'], 'line'),
+				'bgColor'          => $color('Color de fondo personalizado', '#0a0a0c o vacío'),
+				'inkColor'         => $color('Color de texto', '#f5f5f7 o vacío'),
+				'accentColor'      => $color('Color de títulos y destacados', '#6e6bff o vacío'),
+			],
+			'summary'     => ['columnsCount', 'showNewsletter', 'showLogo'],
+		],
 	];
 
 	/* Plugin MJ Turnos Online. */
@@ -538,6 +638,7 @@ function mj_block_gallery_items($value) {
 function mj_block_sanitize_value(array $field, $value) {
 	switch ($field['type']) {
 		case 'text':
+		case 'color':
 		case 'select':
 		case 'category':
 		case 'brand':
@@ -635,6 +736,38 @@ function mj_block_props($key, array $attributes) {
 	 */
 	return (array) apply_filters('mj_block_props', $props, $key, $attributes);
 }
+
+/* En el bloque footer, parsea las líneas de enlaces de cada columna a arrays [texto, url, target]. */
+add_filter('mj_block_props', function ($props, $key) {
+	if ('footer' === $key && !empty($props['columns']) && is_array($props['columns'])) {
+		foreach ($props['columns'] as &$col) {
+			if (isset($col['links']) && is_string($col['links'])) {
+				$lines = preg_split('/\r\n|\r|\n/', trim($col['links']));
+				$parsed = [];
+				foreach ($lines as $line) {
+					$line = trim($line);
+					if ('' === $line) {
+						continue;
+					}
+					$parts = array_map('trim', explode('|', $line));
+					if (count($parts) >= 2 && '' !== $parts[0] && '' !== $parts[1]) {
+						$target = isset($parts[2]) && in_array(trim($parts[2]), ['_blank', 'blank'], true) ? '_blank' : '_self';
+						$url = $parts[1];
+						$parsed[] = [
+							$parts[0],
+							0 === strpos($url, '/') || preg_match('#^[a-z][a-z0-9+.-]*:#i', $url) ? esc_url_raw($url) : '/' . ltrim(sanitize_text_field($url), '/'),
+							$target,
+						];
+					} elseif (count($parts) === 1 && '' !== $parts[0]) {
+						$parsed[] = [$parts[0], '#', '_self'];
+					}
+				}
+				$col['links'] = $parsed;
+			}
+		}
+	}
+	return $props;
+}, 10, 2);
 
 /* Marcador que la SPA reemplaza por el componente de React. */
 function mj_block_render($attributes, $content = '', $block = null) {
