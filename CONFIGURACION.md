@@ -44,26 +44,40 @@ Además del menú, se llega desde dos lugares más: el enlace **MJ Appearance** 
 la tarjeta del tema activo (Apariencia → Temas) y la entrada en la barra de
 administración, arriba del nombre del sitio.
 
+### Personalización visual: Apariencia → Personalizar → MJ
+
+A partir de MJ Appearance 3.33.0, toda la configuración visual y de diseño se gestiona con previsualización en tiempo real desde el **Personalizador nativo de WordPress** (`Apariencia → Personalizar → MJ`) o a través de los bloques Gutenberg de WordPress:
+
+| Sección en Personalizador | Qué se configura |
+| --- | --- |
+| **Cabecera (Header)** | Modo sticky (fijo siempre, estático, solo desktop o solo móvil), estilo visual (translúcido/glass, sólido o transparente), borde, ubicación del logo (izquierda o centrado), buscador (centro, derecha u oculto), menú (abajo, inline, drawer u oculto), visibilidad de botones (favoritos, comparador, carrito, mi cuenta, día/noche, dólar, selector de medio de pago, botón Turnos), botón adicional configurable y colores propios (fondo, tinta y acento). |
+| **Pie de página (Footer)** | Newsletter, columnas (2 a 5), logo, datos de contacto, redes sociales, columnas personalizadas de enlaces, barra legal con copyright, medios de pago, borde y colores propios (fondo, tinta y acento). |
+| **Colores y paleta** | Color de acento, fondo día/noche, texto día/noche y fuerza del texto secundario (descripciones y etiquetas). |
+| **Logo y marca** | Logo principal (PNG/SVG transparente), logo para modo noche y si se muestra el nombre del sitio junto al logo. |
+| **Diseño de botones** | Redondeo de botones (píldora/9999px, redondeado moderno/12px, suave/6px o recto/0px) y activación de resplandor suave (glow). |
+| **Tipografías** | Tipografía de títulos (display) y tipografía de texto (sans) desde Google Fonts. |
+| **Portada (hero) y Banners** | Título, título destacado con degradado, subtítulo, sello/badge, botones de acción, foto HD de fondo, cifras del catálogo y slider de banners promocionales (autoplay e intervalo). |
+
+### Ajustes funcionales y de contenido: MJ → MJ Appearance
+
+El menú **MJ → MJ Appearance** (`admin.php?page=mj-settings`) concentra los aspectos de contenido, estructura y lógica de negocio:
+
 | Sección | Qué se configura |
 | --- | --- |
-| **Diseño y marca** | Logo (y variante para modo noche), tema de arranque, efecto al cambiar de tema (instantáneo, fundido o círculo), nivel de animación, intro, paleta completa, fuerza del texto secundario, tipografías. |
 | **Sesión y acceso** | Quién ve la barra de administración, si la tienda recarga al iniciar sesión, si "Recordarme" viene marcado, cuánto dura la sesión, ruta de "Mi cuenta". |
-| **Skin** | Qué propone el tema hijo activo, si se usan sus propuestas, y sus paletas alternativas (se aplican con un botón). |
+| **Skin** | Qué propone el tema hijo activo, si se usan sus propuestas, y sus paletas alternativas. |
 | **Barra de navegación** | Qué ítems tiene el menú, en qué orden, cómo se llaman, a dónde llevan, quién los ve y si van en el menú o como botón del header. |
-| **Cabecera (Header)** | Modo sticky (fijo siempre, estático, solo desktop o solo móvil), estilo visual (translúcido/glass, sólido o transparente), borde, ubicación del logo (izquierda o centrado), ubicación del buscador (centro, derecha u oculto), ubicación del menú (abajo, inline, en panel lateral/drawer u oculto), visibilidad de botones y acciones (favoritos, comparador, carrito, mi cuenta, día/noche, cotización dólar, selector de medio de pago, botón Turnos con texto a medida, botón de acción personalizado con texto, enlace, ícono y destino), y colores propios (fondo, tinta y acento). |
-| **Pie de página (Footer)** | Newsletter, cantidad de columnas (2 a 5), logo, eslogan/bajada, datos de contacto, redes sociales, columnas personalizadas de enlaces (`Texto \| /ruta \| _blank`), barra legal con copyright editable, medios de pago, borde y colores propios (fondo, tinta y acento). |
 | **Marcas** | Cómo llamar a las "marcas" (singular y plural). |
-| **Anuncios y avisos** | Barra superior y etiquetas de producto. |
-| **Portada (hero)** | Antetítulo, título, subtítulo, botones y fondos. |
-| **Banners promocionales** | Imágenes del carrusel. |
-| **Secciones de la portada** | Orden (arrastrando) y cuáles se muestran. No se usa si la portada es una página de bloques. |
-| **Páginas (editor de bloques)** | Si las páginas de WordPress se muestran en la tienda, si una página reemplaza a Contacto/Nosotros/FAQ/legales, con qué tema se pinta el editor, qué páginas se están mostrando y cuáles no (y por qué). |
-| **Textos de la tienda** | Cada texto de cada pantalla. Vacío = el del tema o el de la skin. |
-| **WhatsApp y presupuestos** | Vendedores y condiciones del presupuesto. |
-| **Contacto / Redes sociales** | Mail, teléfono, WhatsApp, dirección, mapa, redes. |
-| **Contenido** | "Nosotros" con foto, puntos destacados, cifras y preguntas frecuentes. |
-| **Legales** | Términos y privacidad. |
-| **SEO** | Descripción del sitio para Google y foto por defecto al compartir. Los títulos y descripciones de cada pantalla van en Textos de la tienda → SEO. |
+| **Anuncios y avisos** | Barra superior rotativa y etiquetas de producto con íconos Lucide. |
+| **Botón fijo abajo (CTA móvil)** | Botón de llamado a la acción fijado al pie en celulares y tablets. |
+| **Secciones de la portada** | Orden (arrastrando) y visibilidad de secciones predeterminadas (cuando no se usa una página de bloques). |
+| **Páginas (editor de bloques)** | Si las páginas de WordPress se muestran en la tienda, si una página reemplaza a Contacto/Nosotros/FAQ/legales, con qué tema se pinta el editor. |
+| **Textos de la tienda** | Títulos, botones y etiquetas de todas las pantallas de la tienda. Vacío = el del tema o la skin. |
+| **WhatsApp y presupuestos** | Vendedores con número internacional y texto de condiciones del presupuesto. |
+| **Contacto / Redes sociales** | Canales de atención (email, teléfono, WhatsApp, dirección, mapa de Google, zona de atención) y redes sociales. |
+| **Contenido** | "Nosotros" con foto, puntos destacados, cifras y preguntas frecuentes (FAQ). |
+| **Legales** | Términos y política de privacidad. |
+| **SEO** | Descripción del sitio para buscadores y foto para compartir en redes. |
 | **Envíos** | Umbral de envío gratis. |
 | **Avanzado** | Servicio de mapas e íconos del panel. |
 

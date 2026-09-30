@@ -14,7 +14,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_VERSION', '3.32.0');
+define('MJ_VERSION', '3.33.0');
 
 /*
  * Versión de la librería de íconos que usa el panel de ajustes. Se puede fijar
@@ -27,8 +27,9 @@ if (!defined('MJ_ICONS_VERSION')) {
 /* -------------------------------------------------------------------------
  * Módulos del tema
  * ---------------------------------------------------------------------- */
-require_once get_template_directory() . '/inc/settings.php'; // Opciones + página de ajustes (wp-admin).
-require_once get_template_directory() . '/inc/nav.php';      // Barra de navegación configurable.
+require_once get_template_directory() . '/inc/settings.php';   // Opciones + página de ajustes (wp-admin).
+require_once get_template_directory() . '/inc/customizer.php'; // Personalizador de WordPress (Apariencia → Personalizar → MJ).
+require_once get_template_directory() . '/inc/nav.php';        // Barra de navegación configurable.
 require_once get_template_directory() . '/inc/session.php';  // Sesión, nonces y barra de administración.
 require_once get_template_directory() . '/inc/skins.php';    // API de temas hijo (skins) y sus presets.
 require_once get_template_directory() . '/inc/bloques.php';  // Bloques MJ para el editor (Gutenberg).
@@ -301,28 +302,43 @@ function mj_design_var_sets() {
 	$dark  = isset($vars['dark']) ? (array) $vars['dark'] : [];
 	$light = isset($vars['light']) ? (array) $vars['light'] : [];
 
-	$fonts = [];
+	$root = [];
 	if ('' !== $o['font_display']) {
-		$fonts[] = '--font-display: ' . mj_font_stack($o['font_display']);
+		$root[] = '--font-display: ' . mj_font_stack($o['font_display']);
 	}
 	if ('' !== $o['font_sans']) {
-		$fonts[] = '--font-sans: ' . mj_font_stack($o['font_sans']);
+		$root[] = '--font-sans: ' . mj_font_stack($o['font_sans']);
+	}
+	if (!empty($o['button_radius'])) {
+		$radius_map = [
+			'pill'    => '9999px',
+			'rounded' => '12px',
+			'soft'    => '6px',
+			'square'  => '0px',
+		];
+		$rad    = isset($radius_map[$o['button_radius']]) ? $radius_map[$o['button_radius']] : $o['button_radius'];
+		$root[] = '--mj-radius-btn: ' . $rad;
+	}
+	if (isset($o['button_glow']) && empty($o['button_glow'])) {
+		$root[] = '--shadow-glow: none';
+		$root[] = '--mj-shadow-glow: none';
+		$root[] = '--mj-accent-glow: transparent';
 	}
 
-	return ['fonts' => $fonts, 'dark' => $dark, 'light' => $light];
+	return ['root' => $root, 'fonts' => $root, 'dark' => $dark, 'light' => $light];
 }
 
 /* CSS con los overrides de variables según los ajustes guardados. */
 function mj_design_css() {
 	$sets  = mj_design_var_sets();
-	$fonts = $sets['fonts'];
+	$root  = isset($sets['root']) ? $sets['root'] : (isset($sets['fonts']) ? $sets['fonts'] : []);
 	$dark  = $sets['dark'];
 	$light = $sets['light'];
 
 	// index.php siempre setea data-theme, así que alcanza con los selectores por atributo.
 	$css = '';
-	if ($fonts) {
-		$css .= ':root{' . implode(';', $fonts) . ';}';
+	if ($root) {
+		$css .= ':root{' . implode(';', $root) . ';}';
 	}
 	if ($dark) {
 		$css .= "[data-theme='dark']{" . implode(';', $dark) . ';}';

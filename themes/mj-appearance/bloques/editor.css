@@ -101,7 +101,7 @@ code, kbd, .wp-block-code {
 .wp-block-button__link {
 	background: var(--mj-accent);
 	color: #fff;
-	border-radius: 9999px;
+	border-radius: var(--mj-radius-btn, 9999px);
 	padding: 0.8em 1.6em;
 	font-weight: 500;
 	font-size: 0.9375rem;
@@ -216,7 +216,7 @@ code, kbd, .wp-block-code {
 .mj-prev-btn {
 	display: inline-block;
 	padding: 0.75rem 1.5rem;
-	border-radius: 9999px;
+	border-radius: var(--mj-radius-btn, 9999px);
 	background: var(--mj-accent);
 	color: #fff;
 	font-weight: 500;
@@ -248,7 +248,7 @@ code, kbd, .wp-block-code {
 .mj-prev-card__name { font-size: 0.8rem; font-weight: 500; margin: 0 0 0.25rem; color: var(--mj-ink); }
 .mj-prev-line { height: 0.5rem; border-radius: 4px; background: var(--mj-surface-2); margin: 0.4rem 0; }
 .mj-prev-line--short { width: 40%; }
-.mj-prev-line--btn { height: 2rem; border-radius: 9999px; margin-top: 0.75rem; background: var(--mj-accent-soft); }
+.mj-prev-line--btn { height: 2rem; border-radius: var(--mj-radius-btn, 9999px); margin-top: 0.75rem; background: var(--mj-accent-soft); }
 
 .mj-prev-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
 .mj-prev-chip {
@@ -387,7 +387,7 @@ code, kbd, .wp-block-code {
 }
 .mj-prev-header__btn {
 	padding: 0.35rem 0.75rem;
-	border-radius: 9999px;
+	border-radius: var(--mj-radius-btn, 9999px);
 	background: var(--mj-accent);
 	color: #fff;
 	font-size: 0.75rem;

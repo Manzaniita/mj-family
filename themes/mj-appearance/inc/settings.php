@@ -163,6 +163,9 @@ function mj_option_defaults() {
 		'footer_bg_color'         => '',
 		'footer_ink_color'        => '',
 		'footer_accent_color'     => '',
+		/* Botones */
+		'button_radius'           => 'pill', // pill | rounded | soft | square
+		'button_glow'             => 1,      // 1 = con resplandor suave, 0 = sin resplandor
 	];
 }
 
@@ -272,6 +275,16 @@ function mj_footer_columns_choices() {
 		3 => '3 columnas',
 		4 => '4 columnas',
 		5 => '5 columnas',
+	]);
+}
+
+/* Opciones de redondeo para botones. */
+function mj_button_radius_choices() {
+	return (array) apply_filters('mj_button_radius_choices', [
+		'pill'    => 'Píldora (redondeado completo)',
+		'rounded' => 'Redondeado moderno (12px)',
+		'soft'    => 'Suave (6px)',
+		'square'  => 'Recto (0px)',
 	]);
 }
 
@@ -1266,30 +1279,55 @@ function mj_sanitize_options($input) {
 		return is_array($saved) ? $saved : [];
 	}
 	unset($input['_mj_form_complete']);
-	$out = [];
+	$saved = get_option('mj_options', []);
+	$saved = is_array($saved) ? $saved : [];
+	$out   = [];
 
-	$out['announcements'] = isset($input['announcements']) ? sanitize_textarea_field($input['announcements']) : '';
-	$out['product_badges'] = isset($input['product_badges']) ? sanitize_textarea_field($input['product_badges']) : '';
+	$out['announcements']    = isset($input['announcements']) ? sanitize_textarea_field($input['announcements']) : '';
+	$out['product_badges']   = isset($input['product_badges']) ? sanitize_textarea_field($input['product_badges']) : '';
 	$out['whatsapp_numbers'] = isset($input['whatsapp_numbers']) ? sanitize_textarea_field($input['whatsapp_numbers']) : '';
-	$out['quote_info'] = isset($input['quote_info']) ? sanitize_textarea_field($input['quote_info']) : '';
+	$out['quote_info']       = isset($input['quote_info']) ? sanitize_textarea_field($input['quote_info']) : '';
 
-	$out['hero_badge']              = isset($input['hero_badge']) ? sanitize_text_field($input['hero_badge']) : '';
-	$out['hero_title']              = isset($input['hero_title']) ? sanitize_text_field($input['hero_title']) : '';
-	$out['hero_title_highlight']    = isset($input['hero_title_highlight']) ? sanitize_text_field($input['hero_title_highlight']) : '';
-	$out['hero_subtitle']           = isset($input['hero_subtitle']) ? sanitize_text_field($input['hero_subtitle']) : '';
-	$out['hero_cta_primary_text']   = isset($input['hero_cta_primary_text']) ? sanitize_text_field($input['hero_cta_primary_text']) : '';
-	$out['hero_cta_primary_url']    = isset($input['hero_cta_primary_url']) ? esc_url_raw($input['hero_cta_primary_url']) : '';
-	$out['hero_cta_secondary_text'] = isset($input['hero_cta_secondary_text']) ? sanitize_text_field($input['hero_cta_secondary_text']) : '';
-	$out['hero_cta_secondary_url']  = isset($input['hero_cta_secondary_url']) ? esc_url_raw($input['hero_cta_secondary_url']) : '';
+	/* Hero y portada (personalizables en Apariencia → Personalizar → MJ o bloques). */
+	$out['hero_badge']              = isset($input['hero_badge']) ? sanitize_text_field($input['hero_badge']) : (isset($saved['hero_badge']) ? (string) $saved['hero_badge'] : '');
+	$out['hero_title']              = isset($input['hero_title']) ? sanitize_text_field($input['hero_title']) : (isset($saved['hero_title']) ? (string) $saved['hero_title'] : '');
+	$out['hero_title_highlight']    = isset($input['hero_title_highlight']) ? sanitize_text_field($input['hero_title_highlight']) : (isset($saved['hero_title_highlight']) ? (string) $saved['hero_title_highlight'] : '');
+	$out['hero_subtitle']           = isset($input['hero_subtitle']) ? sanitize_text_field($input['hero_subtitle']) : (isset($saved['hero_subtitle']) ? (string) $saved['hero_subtitle'] : '');
+	$out['hero_cta_primary_text']   = isset($input['hero_cta_primary_text']) ? sanitize_text_field($input['hero_cta_primary_text']) : (isset($saved['hero_cta_primary_text']) ? (string) $saved['hero_cta_primary_text'] : '');
+	$out['hero_cta_primary_url']    = isset($input['hero_cta_primary_url']) ? esc_url_raw($input['hero_cta_primary_url']) : (isset($saved['hero_cta_primary_url']) ? (string) $saved['hero_cta_primary_url'] : '');
+	$out['hero_cta_secondary_text'] = isset($input['hero_cta_secondary_text']) ? sanitize_text_field($input['hero_cta_secondary_text']) : (isset($saved['hero_cta_secondary_text']) ? (string) $saved['hero_cta_secondary_text'] : '');
+	$out['hero_cta_secondary_url']  = isset($input['hero_cta_secondary_url']) ? esc_url_raw($input['hero_cta_secondary_url']) : (isset($saved['hero_cta_secondary_url']) ? (string) $saved['hero_cta_secondary_url'] : '');
 
 	// IDs de adjuntos separados por coma (selector de medios).
-	$ids_csv = function ($key) use ($input) {
-		return isset($input[$key])
-			? implode(',', array_filter(array_map('absint', explode(',', (string) $input[$key]))))
-			: '';
+	$ids_csv = function ($key) use ($input, $saved) {
+		if (isset($input[$key])) {
+			return implode(',', array_filter(array_map('absint', explode(',', (string) $input[$key]))));
+		}
+		return isset($saved[$key]) ? (string) $saved[$key] : '';
 	};
 	$out['hero_bg_images'] = $ids_csv('hero_bg_images');
 	$out['promo_banners']  = $ids_csv('promo_banners');
+
+	if (isset($input['hero_image_id'])) {
+		$out['hero_image_id'] = absint($input['hero_image_id']);
+	} else {
+		$out['hero_image_id'] = isset($saved['hero_image_id']) ? absint($saved['hero_image_id']) : 0;
+	}
+	if (isset($input['hero_show_stats'])) {
+		$out['hero_show_stats'] = !empty($input['hero_show_stats']) ? 1 : 0;
+	} else {
+		$out['hero_show_stats'] = isset($saved['hero_show_stats']) ? (!empty($saved['hero_show_stats']) ? 1 : 0) : 1;
+	}
+	if (isset($input['banners_autoplay'])) {
+		$out['banners_autoplay'] = !empty($input['banners_autoplay']) ? 1 : 0;
+	} else {
+		$out['banners_autoplay'] = isset($saved['banners_autoplay']) ? (!empty($saved['banners_autoplay']) ? 1 : 0) : 1;
+	}
+	if (isset($input['banners_interval'])) {
+		$out['banners_interval'] = absint($input['banners_interval']);
+	} else {
+		$out['banners_interval'] = isset($saved['banners_interval']) ? absint($saved['banners_interval']) : 5;
+	}
 
 	$out['contact_email']    = isset($input['contact_email']) ? sanitize_email($input['contact_email']) : '';
 	$out['contact_phone']    = isset($input['contact_phone']) ? sanitize_text_field($input['contact_phone']) : '';
@@ -1331,16 +1369,33 @@ function mj_sanitize_options($input) {
 	// Barra de navegación: orden, visibilidad, nombres y destinos (inc/nav.php).
 	$out['nav_items'] = mj_nav_sanitize($input);
 
-	// Diseño: tema por defecto, paleta y tipografías.
-	$theme               = isset($input['design_theme']) ? (string) $input['design_theme'] : 'dark';
-	$out['design_theme'] = isset(mj_theme_choices()[$theme]) ? $theme : 'dark';
+	// Diseño: tema por defecto, paleta y tipografías (personalizables en Apariencia → Personalizar → MJ).
+	if (isset($input['design_theme'])) {
+		$theme               = (string) $input['design_theme'];
+		$out['design_theme'] = isset(mj_theme_choices()[$theme]) ? $theme : 'dark';
+	} else {
+		$out['design_theme'] = isset($saved['design_theme']) ? (string) $saved['design_theme'] : 'dark';
+	}
 
-	$motion               = isset($input['motion_level']) ? (string) $input['motion_level'] : 'medium';
-	$out['motion_level']  = isset(mj_motion_choices()[$motion]) ? $motion : 'medium';
+	if (isset($input['motion_level'])) {
+		$motion              = (string) $input['motion_level'];
+		$out['motion_level'] = isset(mj_motion_choices()[$motion]) ? $motion : 'medium';
+	} else {
+		$out['motion_level'] = isset($saved['motion_level']) ? (string) $saved['motion_level'] : 'medium';
+	}
 
-	$switch               = isset($input['theme_switch']) ? (string) $input['theme_switch'] : 'instant';
-	$out['theme_switch']  = isset(mj_theme_switch_choices()[$switch]) ? $switch : 'instant';
-	$out['intro_enabled'] = !empty($input['intro_enabled']) ? 1 : 0;
+	if (isset($input['theme_switch'])) {
+		$switch              = (string) $input['theme_switch'];
+		$out['theme_switch'] = isset(mj_theme_switch_choices()[$switch]) ? $switch : 'instant';
+	} else {
+		$out['theme_switch'] = isset($saved['theme_switch']) ? (string) $saved['theme_switch'] : 'instant';
+	}
+
+	if (isset($input['intro_enabled'])) {
+		$out['intro_enabled'] = !empty($input['intro_enabled']) ? 1 : 0;
+	} else {
+		$out['intro_enabled'] = isset($saved['intro_enabled']) ? (!empty($saved['intro_enabled']) ? 1 : 0) : 0;
+	}
 
 	/* Sesión y acceso. */
 	$bar               = isset($input['admin_bar']) ? (string) $input['admin_bar'] : 'profile';
@@ -1385,86 +1440,232 @@ function mj_sanitize_options($input) {
 	$out['maps_embed_base'] = isset($input['maps_embed_base']) ? esc_url_raw(trim((string) $input['maps_embed_base'])) : '';
 
 	foreach (array_keys(mj_color_defaults()) as $color_key) {
-		$hex = isset($input[$color_key]) ? sanitize_hex_color((string) $input[$color_key]) : '';
-		$out[$color_key] = $hex ? $hex : '';
+		if (isset($input[$color_key])) {
+			$hex             = sanitize_hex_color((string) $input[$color_key]);
+			$out[$color_key] = $hex ? $hex : '';
+		} else {
+			$out[$color_key] = isset($saved[$color_key]) ? (string) $saved[$color_key] : '';
+		}
 	}
 
 	/* Fuerza del texto secundario: sin piso, un 10 % deja la tienda ilegible. */
-	$out['ink_soft']  = min(100, max(40, isset($input['ink_soft']) ? absint($input['ink_soft']) : 78));
-	$out['ink_faint'] = min($out['ink_soft'], max(30, isset($input['ink_faint']) ? absint($input['ink_faint']) : 58));
+	if (isset($input['ink_soft'])) {
+		$out['ink_soft'] = min(100, max(40, absint($input['ink_soft'])));
+	} else {
+		$out['ink_soft'] = isset($saved['ink_soft']) ? absint($saved['ink_soft']) : 78;
+	}
+
+	if (isset($input['ink_faint'])) {
+		$out['ink_faint'] = min($out['ink_soft'], max(30, absint($input['ink_faint'])));
+	} else {
+		$out['ink_faint'] = isset($saved['ink_faint']) ? absint($saved['ink_faint']) : 58;
+	}
 
 	foreach (['font_display', 'font_sans'] as $font_key) {
-		$font = isset($input[$font_key]) ? sanitize_text_field((string) $input[$font_key]) : '';
-		$out[$font_key] = in_array($font, mj_font_choices(), true) ? $font : '';
+		if (isset($input[$font_key])) {
+			$font           = sanitize_text_field((string) $input[$font_key]);
+			$out[$font_key] = in_array($font, mj_font_choices(), true) ? $font : '';
+		} else {
+			$out[$font_key] = isset($saved[$font_key]) ? (string) $saved[$font_key] : '';
+		}
+	}
+
+	/* Botones (radio y resplandor). */
+	if (isset($input['button_radius'])) {
+		$btn_rad              = (string) $input['button_radius'];
+		$out['button_radius'] = isset(mj_button_radius_choices()[$btn_rad]) ? $btn_rad : 'pill';
+	} else {
+		$out['button_radius'] = isset($saved['button_radius']) ? (string) $saved['button_radius'] : 'pill';
+	}
+
+	if (isset($input['button_glow'])) {
+		$out['button_glow'] = !empty($input['button_glow']) ? 1 : 0;
+	} else {
+		$out['button_glow'] = isset($saved['button_glow']) ? (!empty($saved['button_glow']) ? 1 : 0) : 1;
 	}
 
 	/* Cabecera (header) configurable */
-	$sticky               = isset($input['header_sticky']) ? (string) $input['header_sticky'] : 'sticky';
-	$out['header_sticky'] = isset(mj_header_sticky_choices()[$sticky]) ? $sticky : 'sticky';
+	if (isset($input['header_sticky'])) {
+		$sticky               = (string) $input['header_sticky'];
+		$out['header_sticky'] = isset(mj_header_sticky_choices()[$sticky]) ? $sticky : 'sticky';
+	} else {
+		$out['header_sticky'] = isset($saved['header_sticky']) ? (string) $saved['header_sticky'] : 'sticky';
+	}
 
-	$hstyle              = isset($input['header_style']) ? (string) $input['header_style'] : 'glass';
-	$out['header_style'] = isset(mj_header_style_choices()[$hstyle]) ? $hstyle : 'glass';
+	if (isset($input['header_style'])) {
+		$hstyle              = (string) $input['header_style'];
+		$out['header_style'] = isset(mj_header_style_choices()[$hstyle]) ? $hstyle : 'glass';
+	} else {
+		$out['header_style'] = isset($saved['header_style']) ? (string) $saved['header_style'] : 'glass';
+	}
 
-	$hborder              = isset($input['header_border']) ? (string) $input['header_border'] : 'line';
-	$out['header_border'] = isset(mj_header_border_choices()[$hborder]) ? $hborder : 'line';
+	if (isset($input['header_border'])) {
+		$hborder              = (string) $input['header_border'];
+		$out['header_border'] = isset(mj_header_border_choices()[$hborder]) ? $hborder : 'line';
+	} else {
+		$out['header_border'] = isset($saved['header_border']) ? (string) $saved['header_border'] : 'line';
+	}
 
-	$logo_pos              = isset($input['header_logo_pos']) ? (string) $input['header_logo_pos'] : 'left';
-	$out['header_logo_pos'] = isset(mj_header_logo_choices()[$logo_pos]) ? $logo_pos : 'left';
+	if (isset($input['header_logo_pos'])) {
+		$logo_pos              = (string) $input['header_logo_pos'];
+		$out['header_logo_pos'] = isset(mj_header_logo_choices()[$logo_pos]) ? $logo_pos : 'left';
+	} else {
+		$out['header_logo_pos'] = isset($saved['header_logo_pos']) ? (string) $saved['header_logo_pos'] : 'left';
+	}
 
-	$search_pos              = isset($input['header_search_pos']) ? (string) $input['header_search_pos'] : 'center';
-	$out['header_search_pos'] = isset(mj_header_search_choices()[$search_pos]) ? $search_pos : 'center';
+	if (isset($input['header_search_pos'])) {
+		$search_pos              = (string) $input['header_search_pos'];
+		$out['header_search_pos'] = isset(mj_header_search_choices()[$search_pos]) ? $search_pos : 'center';
+	} else {
+		$out['header_search_pos'] = isset($saved['header_search_pos']) ? (string) $saved['header_search_pos'] : 'center';
+	}
 
-	$menu_pos              = isset($input['header_menu_pos']) ? (string) $input['header_menu_pos'] : 'below';
-	$out['header_menu_pos'] = isset(mj_header_menu_choices()[$menu_pos]) ? $menu_pos : 'below';
+	if (isset($input['header_menu_pos'])) {
+		$menu_pos              = (string) $input['header_menu_pos'];
+		$out['header_menu_pos'] = isset(mj_header_menu_choices()[$menu_pos]) ? $menu_pos : 'below';
+	} else {
+		$out['header_menu_pos'] = isset($saved['header_menu_pos']) ? (string) $saved['header_menu_pos'] : 'below';
+	}
 
-	$out['header_show_topbar']           = !empty($input['header_show_topbar']) ? 1 : 0;
-	$out['header_show_shipping']         = !empty($input['header_show_shipping']) ? 1 : 0;
-	$out['header_show_cart']             = !empty($input['header_show_cart']) ? 1 : 0;
-	$out['header_show_wishlist']         = !empty($input['header_show_wishlist']) ? 1 : 0;
-	$out['header_show_compare']          = !empty($input['header_show_compare']) ? 1 : 0;
-	$out['header_show_account']          = !empty($input['header_show_account']) ? 1 : 0;
-	$out['header_show_theme_toggle']     = !empty($input['header_show_theme_toggle']) ? 1 : 0;
-	$out['header_show_exchange_rate']    = !empty($input['header_show_exchange_rate']) ? 1 : 0;
-	$out['header_show_payment_selector'] = !empty($input['header_show_payment_selector']) ? 1 : 0;
-	$out['header_show_turnos_cta']       = !empty($input['header_show_turnos_cta']) ? 1 : 0;
+	$header_bools = [
+		'header_show_topbar',
+		'header_show_shipping',
+		'header_show_cart',
+		'header_show_wishlist',
+		'header_show_compare',
+		'header_show_account',
+		'header_show_theme_toggle',
+		'header_show_exchange_rate',
+		'header_show_payment_selector',
+		'header_show_turnos_cta',
+	];
+	foreach ($header_bools as $h_bool) {
+		if (isset($input[$h_bool])) {
+			$out[$h_bool] = !empty($input[$h_bool]) ? 1 : 0;
+		} else {
+			$out[$h_bool] = isset($saved[$h_bool]) ? (!empty($saved[$h_bool]) ? 1 : 0) : 1;
+		}
+	}
 
-	$out['header_cta_text']         = isset($input['header_cta_text']) ? sanitize_text_field((string) $input['header_cta_text']) : '';
-	$out['header_cta_url']          = isset($input['header_cta_url']) ? esc_url_raw(trim((string) $input['header_cta_url'])) : '';
-	$out['header_custom_btn_text']  = isset($input['header_custom_btn_text']) ? sanitize_text_field((string) $input['header_custom_btn_text']) : '';
-	$out['header_custom_btn_url']   = isset($input['header_custom_btn_url']) ? esc_url_raw(trim((string) $input['header_custom_btn_url'])) : '';
-	$out['header_custom_btn_icon']  = isset($input['header_custom_btn_icon']) ? sanitize_key((string) $input['header_custom_btn_icon']) : '';
-	$out['header_custom_btn_target']= isset($input['header_custom_btn_target']) && '_blank' === $input['header_custom_btn_target'] ? '_blank' : '_self';
+	if (isset($input['header_cta_text'])) {
+		$out['header_cta_text'] = sanitize_text_field((string) $input['header_cta_text']);
+	} else {
+		$out['header_cta_text'] = isset($saved['header_cta_text']) ? (string) $saved['header_cta_text'] : '';
+	}
 
-	$clean_h_bg                 = isset($input['header_bg_color']) ? sanitize_hex_color((string) $input['header_bg_color']) : '';
-	$out['header_bg_color']     = !empty($clean_h_bg) ? $clean_h_bg : '';
-	$clean_h_ink                = isset($input['header_ink_color']) ? sanitize_hex_color((string) $input['header_ink_color']) : '';
-	$out['header_ink_color']    = !empty($clean_h_ink) ? $clean_h_ink : '';
-	$clean_h_acc                = isset($input['header_accent_color']) ? sanitize_hex_color((string) $input['header_accent_color']) : '';
-	$out['header_accent_color'] = !empty($clean_h_acc) ? $clean_h_acc : '';
+	if (isset($input['header_cta_url'])) {
+		$out['header_cta_url'] = esc_url_raw(trim((string) $input['header_cta_url']));
+	} else {
+		$out['header_cta_url'] = isset($saved['header_cta_url']) ? (string) $saved['header_cta_url'] : '';
+	}
+
+	if (isset($input['header_custom_btn_text'])) {
+		$out['header_custom_btn_text'] = sanitize_text_field((string) $input['header_custom_btn_text']);
+	} else {
+		$out['header_custom_btn_text'] = isset($saved['header_custom_btn_text']) ? (string) $saved['header_custom_btn_text'] : '';
+	}
+
+	if (isset($input['header_custom_btn_url'])) {
+		$out['header_custom_btn_url'] = esc_url_raw(trim((string) $input['header_custom_btn_url']));
+	} else {
+		$out['header_custom_btn_url'] = isset($saved['header_custom_btn_url']) ? (string) $saved['header_custom_btn_url'] : '';
+	}
+
+	if (isset($input['header_custom_btn_icon'])) {
+		$out['header_custom_btn_icon'] = sanitize_key((string) $input['header_custom_btn_icon']);
+	} else {
+		$out['header_custom_btn_icon'] = isset($saved['header_custom_btn_icon']) ? (string) $saved['header_custom_btn_icon'] : '';
+	}
+
+	if (isset($input['header_custom_btn_target'])) {
+		$out['header_custom_btn_target'] = '_blank' === $input['header_custom_btn_target'] ? '_blank' : '_self';
+	} else {
+		$out['header_custom_btn_target'] = isset($saved['header_custom_btn_target']) ? (string) $saved['header_custom_btn_target'] : '_self';
+	}
+
+	foreach (['header_bg_color', 'header_ink_color', 'header_accent_color'] as $h_color) {
+		if (isset($input[$h_color])) {
+			$clean         = sanitize_hex_color((string) $input[$h_color]);
+			$out[$h_color] = !empty($clean) ? $clean : '';
+		} else {
+			$out[$h_color] = isset($saved[$h_color]) ? (string) $saved[$h_color] : '';
+		}
+	}
 
 	/* Pie de página (footer) configurable */
-	$out['footer_show_newsletter'] = !empty($input['footer_show_newsletter']) ? 1 : 0;
-	$cols_count                    = isset($input['footer_columns_count']) ? (int) $input['footer_columns_count'] : 4;
-	$out['footer_columns_count']   = in_array($cols_count, [2, 3, 4, 5], true) ? $cols_count : 4;
-	$out['footer_show_logo']       = !empty($input['footer_show_logo']) ? 1 : 0;
-	$out['footer_show_contact']    = !empty($input['footer_show_contact']) ? 1 : 0;
-	$out['footer_show_socials']    = !empty($input['footer_show_socials']) ? 1 : 0;
-	$out['footer_show_payments']   = !empty($input['footer_show_payments']) ? 1 : 0;
-	$out['footer_show_legal']      = !empty($input['footer_show_legal']) ? 1 : 0;
-	$out['footer_copyright']       = isset($input['footer_copyright']) ? sanitize_text_field((string) $input['footer_copyright']) : '';
-	$out['footer_custom_columns']  = isset($input['footer_custom_columns']) ? sanitize_textarea_field((string) $input['footer_custom_columns']) : '';
-	$out['footer_border']          = isset($input['footer_border']) && 'none' === $input['footer_border'] ? 'none' : 'line';
-	$clean_f_bg                    = isset($input['footer_bg_color']) ? sanitize_hex_color((string) $input['footer_bg_color']) : '';
-	$out['footer_bg_color']        = !empty($clean_f_bg) ? $clean_f_bg : '';
-	$clean_f_ink                   = isset($input['footer_ink_color']) ? sanitize_hex_color((string) $input['footer_ink_color']) : '';
-	$out['footer_ink_color']       = !empty($clean_f_ink) ? $clean_f_ink : '';
-	$clean_f_acc                   = isset($input['footer_accent_color']) ? sanitize_hex_color((string) $input['footer_accent_color']) : '';
-	$out['footer_accent_color']    = !empty($clean_f_acc) ? $clean_f_acc : '';
+	if (isset($input['footer_show_newsletter'])) {
+		$out['footer_show_newsletter'] = !empty($input['footer_show_newsletter']) ? 1 : 0;
+	} else {
+		$out['footer_show_newsletter'] = isset($saved['footer_show_newsletter']) ? (!empty($saved['footer_show_newsletter']) ? 1 : 0) : 1;
+	}
+
+	if (isset($input['footer_columns_count'])) {
+		$cols_count                  = (int) $input['footer_columns_count'];
+		$out['footer_columns_count'] = in_array($cols_count, [2, 3, 4, 5], true) ? $cols_count : 4;
+	} else {
+		$out['footer_columns_count'] = isset($saved['footer_columns_count']) ? (int) $saved['footer_columns_count'] : 4;
+	}
+
+	$footer_bools = [
+		'footer_show_logo',
+		'footer_show_contact',
+		'footer_show_socials',
+		'footer_show_payments',
+		'footer_show_legal',
+	];
+	foreach ($footer_bools as $f_bool) {
+		if (isset($input[$f_bool])) {
+			$out[$f_bool] = !empty($input[$f_bool]) ? 1 : 0;
+		} else {
+			$out[$f_bool] = isset($saved[$f_bool]) ? (!empty($saved[$f_bool]) ? 1 : 0) : 1;
+		}
+	}
+
+	if (isset($input['footer_copyright'])) {
+		$out['footer_copyright'] = sanitize_text_field((string) $input['footer_copyright']);
+	} else {
+		$out['footer_copyright'] = isset($saved['footer_copyright']) ? (string) $saved['footer_copyright'] : '';
+	}
+
+	if (isset($input['footer_custom_columns'])) {
+		$out['footer_custom_columns'] = sanitize_textarea_field((string) $input['footer_custom_columns']);
+	} else {
+		$out['footer_custom_columns'] = isset($saved['footer_custom_columns']) ? (string) $saved['footer_custom_columns'] : '';
+	}
+
+	if (isset($input['footer_border'])) {
+		$out['footer_border'] = 'none' === $input['footer_border'] ? 'none' : 'line';
+	} else {
+		$out['footer_border'] = isset($saved['footer_border']) ? (string) $saved['footer_border'] : 'line';
+	}
+
+	foreach (['footer_bg_color', 'footer_ink_color', 'footer_accent_color'] as $f_color) {
+		if (isset($input[$f_color])) {
+			$clean         = sanitize_hex_color((string) $input[$f_color]);
+			$out[$f_color] = !empty($clean) ? $clean : '';
+		} else {
+			$out[$f_color] = isset($saved[$f_color]) ? (string) $saved[$f_color] : '';
+		}
+	}
 
 	// Logo (adjunto único por campo) y nombre junto al logo.
-	$out['logo_id']        = isset($input['logo_id']) ? absint(strtok((string) $input['logo_id'], ',')) : 0;
-	$out['logo_dark_id']   = isset($input['logo_dark_id']) ? absint(strtok((string) $input['logo_dark_id'], ',')) : 0;
-	$out['logo_show_name'] = !empty($input['logo_show_name']) ? 1 : 0;
+	if (isset($input['logo_id'])) {
+		$out['logo_id'] = absint(strtok((string) $input['logo_id'], ','));
+	} else {
+		$out['logo_id'] = isset($saved['logo_id']) ? absint($saved['logo_id']) : 0;
+	}
+
+	if (isset($input['logo_dark_id'])) {
+		$out['logo_dark_id'] = absint(strtok((string) $input['logo_dark_id'], ','));
+	} else {
+		$out['logo_dark_id'] = isset($saved['logo_dark_id']) ? absint($saved['logo_dark_id']) : 0;
+	}
+
+	if (isset($input['logo_show_name'])) {
+		$out['logo_show_name'] = !empty($input['logo_show_name']) ? 1 : 0;
+	} else {
+		$out['logo_show_name'] = isset($saved['logo_show_name']) ? (!empty($saved['logo_show_name']) ? 1 : 0) : 1;
+	}
 
 	// Etiquetas de marca.
 	$out['brand_label']        = isset($input['brand_label']) ? sanitize_text_field($input['brand_label']) : '';
@@ -1976,134 +2177,18 @@ function mj_render_settings_page() {
 		<form method="post" action="options.php">
 			<?php settings_fields(mj_settings_option_group()); ?>
 
-			<h2>Diseño y marca</h2>
-			<table class="form-table" role="presentation">
-				<tr>
-					<th scope="row">Logo</th>
-					<td>
-						<?php mj_render_media_picker('logo_id', $o['logo_id'], 'Elegir logo…', 'Se muestra en el header, el pie de página y la intro. Ideal: PNG o SVG con fondo transparente, al menos 200 px de alto. Vacío = usa el logo del Personalizador si existe; si no, la inicial y el nombre del sitio.', false); ?>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">Logo para modo noche</th>
-					<td>
-						<?php mj_render_media_picker('logo_dark_id', $o['logo_dark_id'], 'Elegir variante…', 'Opcional: versión clara del logo para fondos oscuros. Vacío = se usa el mismo logo.', false); ?>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">Nombre junto al logo</th>
-					<td>
-						<label for="mj_logo_show_name">
-							<input type="checkbox" id="mj_logo_show_name" name="mj_options[logo_show_name]" value="1" <?php checked((int) $o['logo_show_name'], 1); ?> />
-							Mostrar el nombre del sitio (Ajustes → Generales) al lado del logo.
-						</label>
-						<p class="description">Desmarcalo si tu logo ya incluye el nombre.</p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="mj_design_theme">Tema por defecto</label></th>
-					<td>
-						<select id="mj_design_theme" name="mj_options[design_theme]">
-							<?php foreach (mj_theme_choices() as $mj_value => $mj_label) : ?>
-								<option value="<?php echo esc_attr($mj_value); ?>" <?php selected($o['design_theme'], $mj_value); ?>><?php echo esc_html($mj_label); ?></option>
-							<?php endforeach; ?>
-						</select>
-						<p class="description">Con qué tema se abre la tienda la primera vez. El visitante puede alternarlo con el botón sol/luna del header y su elección queda guardada en su navegador.</p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="mj_theme_switch">Efecto al cambiar de tema</label></th>
-					<td>
-						<select id="mj_theme_switch" name="mj_options[theme_switch]">
-							<?php foreach (mj_theme_switch_choices() as $mj_value => $mj_label) : ?>
-								<option value="<?php echo esc_attr($mj_value); ?>" <?php selected($o['theme_switch'], $mj_value); ?>><?php echo esc_html($mj_label); ?></option>
-							<?php endforeach; ?>
-						</select>
-						<p class="description">Qué pasa al tocar el botón sol/luna. "Instantáneo" es lo más rápido y lo que se recomienda; con "reducir movimiento" activado en el sistema del visitante siempre es instantáneo.</p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="mj_motion_level">Nivel de animación</label></th>
-					<td>
-						<select id="mj_motion_level" name="mj_options[motion_level]">
-							<?php foreach (mj_motion_choices() as $mj_value => $mj_label) : ?>
-								<option value="<?php echo esc_attr($mj_value); ?>" <?php selected($o['motion_level'], $mj_value); ?>><?php echo esc_html($mj_label); ?></option>
-							<?php endforeach; ?>
-						</select>
-						<p class="description">Si el visitante tiene activado "reducir movimiento" en su sistema, la tienda respeta esa preferencia sea cual sea este nivel.</p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">Intro animada</th>
-					<td>
-						<label for="mj_intro_enabled">
-							<input type="checkbox" id="mj_intro_enabled" name="mj_options[intro_enabled]" value="1" <?php checked((int) $o['intro_enabled'], 1); ?> />
-							Mostrar una cortina con el logo al entrar al sitio (una vez por sesión, menos de un segundo).
-						</label>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">Paleta de colores</th>
-					<td>
-						<?php
-						$color_labels = [
-							'color_accent'    => 'Color de acento (botones, links, glow)',
-							'color_bg_dark'   => 'Fondo — tema oscuro',
-							'color_ink_dark'  => 'Texto — tema oscuro',
-							'color_bg_light'  => 'Fondo — tema claro',
-							'color_ink_light' => 'Texto — tema claro',
-						];
-						$color_defaults = mj_color_defaults();
-						foreach ($color_labels as $key => $label) :
-							$value = '' !== $o[$key] ? $o[$key] : $color_defaults[$key];
-							?>
-							<p style="display:flex; align-items:center; gap:10px; margin:6px 0;">
-								<input type="color" id="mj_<?php echo esc_attr($key); ?>" name="mj_options[<?php echo esc_attr($key); ?>]" value="<?php echo esc_attr($value); ?>" data-default="<?php echo esc_attr($color_defaults[$key]); ?>" style="width:56px; height:32px; padding:2px; cursor:pointer;" />
-								<label for="mj_<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></label>
-							</p>
-						<?php endforeach; ?>
-						<button type="button" class="button mj-color-reset" style="margin-top:6px;">Restaurar colores por defecto</button>
-						<p class="description">Los tonos secundarios (fondos suaves, bordes, glow) se derivan automáticamente de estos colores. Con un tema hijo activo, "por defecto" es la paleta de ese tema hijo.</p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">Fuerza del texto secundario</th>
-					<td>
-						<p style="display:flex; align-items:center; gap:10px; margin:6px 0;">
-							<input type="number" id="mj_ink_soft" name="mj_options[ink_soft]" value="<?php echo esc_attr((int) $o['ink_soft']); ?>" min="40" max="100" step="1" style="width:80px;" />
-							<label for="mj_ink_soft">Descripciones y bajadas (%)</label>
-						</p>
-						<p style="display:flex; align-items:center; gap:10px; margin:6px 0;">
-							<input type="number" id="mj_ink_faint" name="mj_options[ink_faint]" value="<?php echo esc_attr((int) $o['ink_faint']); ?>" min="30" max="100" step="1" style="width:80px;" />
-							<label for="mj_ink_faint">Etiquetas, plazos y ayudas (%)</label>
-						</p>
-						<p class="description">Cuánto del color de texto se usa para lo que no es el texto principal. Más bajo, más delicado; demasiado bajo, las palabras se camuflan con el fondo. Con paletas de poco contraste (marfil sobre papel, marfil sobre carbón) conviene no bajar de 75 y 55.</p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="mj_font_display">Tipografía de títulos</label></th>
-					<td>
-						<select id="mj_font_display" name="mj_options[font_display]">
-							<option value="">Por defecto del tema</option>
-							<?php foreach (mj_font_choices() as $font) : ?>
-								<option value="<?php echo esc_attr($font); ?>" <?php selected($o['font_display'], $font); ?>><?php echo esc_html($font); ?></option>
-							<?php endforeach; ?>
-						</select>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="mj_font_sans">Tipografía de texto</label></th>
-					<td>
-						<select id="mj_font_sans" name="mj_options[font_sans]">
-							<option value="">Por defecto del tema</option>
-							<?php foreach (mj_font_choices() as $font) : ?>
-								<option value="<?php echo esc_attr($font); ?>" <?php selected($o['font_sans'], $font); ?>><?php echo esc_html($font); ?></option>
-							<?php endforeach; ?>
-						</select>
-						<p class="description">Ambas se cargan desde Google Fonts (pesos 400–700).</p>
-					</td>
-				</tr>
-			</table>
+			<div class="notice notice-info" style="padding:16px 20px; border-left:4px solid #6e6bff; background:#f9f9ff; margin:20px 0 25px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+				<h3 style="margin:0 0 8px; color:#1e1e24; display:flex; align-items:center; gap:8px;">
+					<span class="dashicons dashicons-art" style="color:#6e6bff; font-size:24px; width:24px; height:24px;"></span>
+					Personalización visual y de diseño trasladada
+				</h3>
+				<p style="font-size:14px; line-height:1.6; margin:0 0 12px; color:#444;">
+					Toda la configuración visual y de diseño (<strong>Cabecera</strong>, <strong>Pie de página</strong>, <strong>Paleta de colores</strong>, <strong>Logo y marca</strong>, <strong>Diseño de botones</strong>, <strong>Tipografías</strong> y <strong>Hero / Banners de portada</strong>) ahora se edita en tiempo real con previsualización interactiva desde el Personalizador de WordPress o a través de los bloques Gutenberg nativos.
+				</p>
+				<a href="<?php echo esc_url(admin_url('customize.php?autofocus[panel]=mj_customizer')); ?>" class="button button-primary" style="background:#6e6bff; border-color:#5956e6; padding:4px 16px; height:auto; font-weight:600;">
+					Personalizar diseño en tiempo real (Apariencia &rarr; Personalizar &rarr; MJ) &rarr;
+				</a>
+			</div>
 
 			<h2>Sesión y acceso</h2>
 			<table class="form-table" role="presentation">
@@ -2215,11 +2300,7 @@ function mj_render_settings_page() {
 
 			<?php mj_render_skin_section($o); ?>
 
-			<?php mj_render_header_settings($o); ?>
-
 			<?php mj_render_nav_settings(); ?>
-
-			<?php mj_render_footer_settings($o); ?>
 
 			<h2>Marcas</h2>
 			<table class="form-table" role="presentation">
@@ -2281,65 +2362,6 @@ function mj_render_settings_page() {
 						<p style="margin:10px 0 4px;"><label for="mj_sticky_cta_hide">Rutas donde no aparece</label></p>
 						<textarea id="mj_sticky_cta_hide" name="mj_options[sticky_cta_hide]" rows="3" class="large-text code" placeholder="/nosotros&#10;/blog/*"><?php echo esc_textarea((string) $o['sticky_cta_hide']); ?></textarea>
 						<p class="description">Una por línea. Con <code>*</code> al final vale para esa ruta y todo lo que cuelga de ella (<code>/blog/*</code>). Además nunca aparece en la página a la que lleva, en el carrito, el checkout, Mi cuenta ni en la ficha de un producto (que ya tiene su propia barra de compra abajo).</p>
-					</td>
-				</tr>
-			</table>
-
-			<h2>Portada (hero)</h2>
-			<table class="form-table" role="presentation">
-				<tr>
-					<th scope="row"><label for="mj_hero_badge">Texto del sello</label></th>
-					<td>
-						<input type="text" id="mj_hero_badge" name="mj_options[hero_badge]" value="<?php echo esc_attr($o['hero_badge']); ?>" class="regular-text" />
-						<p class="description">Pastilla pequeña sobre el título. Vacío = no se muestra.</p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="mj_hero_title">Título</label></th>
-					<td><input type="text" id="mj_hero_title" name="mj_options[hero_title]" value="<?php echo esc_attr($o['hero_title']); ?>" class="regular-text" /></td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="mj_hero_title_highlight">Título destacado</label></th>
-					<td>
-						<input type="text" id="mj_hero_title_highlight" name="mj_options[hero_title_highlight]" value="<?php echo esc_attr($o['hero_title_highlight']); ?>" class="regular-text" />
-						<p class="description">Segunda línea del título, con degradado de color. Vacío = no se muestra.</p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="mj_hero_subtitle">Subtítulo</label></th>
-					<td>
-						<input type="text" id="mj_hero_subtitle" name="mj_options[hero_subtitle]" value="<?php echo esc_attr($o['hero_subtitle']); ?>" class="large-text" />
-						<p class="description">Vacío = usa la descripción corta del sitio (Ajustes → Generales).</p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">Botón principal</th>
-					<td>
-						<input type="text" name="mj_options[hero_cta_primary_text]" value="<?php echo esc_attr($o['hero_cta_primary_text']); ?>" class="regular-text" placeholder="Texto (vacío = oculto)" />
-						<input type="text" name="mj_options[hero_cta_primary_url]" value="<?php echo esc_attr($o['hero_cta_primary_url']); ?>" class="regular-text" placeholder="/tienda" />
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">Botón secundario</th>
-					<td>
-						<input type="text" name="mj_options[hero_cta_secondary_text]" value="<?php echo esc_attr($o['hero_cta_secondary_text']); ?>" class="regular-text" placeholder="Texto (vacío = oculto)" />
-						<input type="text" name="mj_options[hero_cta_secondary_url]" value="<?php echo esc_attr($o['hero_cta_secondary_url']); ?>" class="regular-text" placeholder="/ofertas" />
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">Fotos de fondo</th>
-					<td>
-						<?php mj_render_media_picker('hero_bg_images', $o['hero_bg_images'], 'Elegir fotos…', 'Se muestran rotando como fondo del banner de la portada. Vacío = sin fotos (fondo liso con el glow de marca).'); ?>
-					</td>
-				</tr>
-			</table>
-
-			<h2>Banners promocionales</h2>
-			<table class="form-table" role="presentation">
-				<tr>
-					<th scope="row">Slider de banners</th>
-					<td>
-						<?php mj_render_media_picker('promo_banners', $o['promo_banners'], 'Elegir banners…', 'Se muestran como un slider con flechas debajo del hero, en el orden elegido. Vacío = no se muestra.'); ?>
 					</td>
 				</tr>
 			</table>
