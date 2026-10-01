@@ -60,6 +60,10 @@ completos, resúmenes repetidos ni archivos de entrega por cada conversación.
 - Ejecutá `.\tools\verificar.ps1 -Rapido` si no cambió React, o la verificación
   completa si cambió. Revisá `git diff --check` y el diff final. Si algo falla
   o no se puede ejecutar, informalo: no declares «TODO EN ORDEN» sin evidencia.
-- Informá qué cambió, qué se verificó y qué queda pendiente. Commits chicos
-  por unidad de cambio cuando correspondan; publicar, crear Releases o ejecutar
-  `tools/publicar.ps1` requiere un pedido explícito del usuario.
+- **Regla de publicación**: Siempre al finalizar un cambio en código distribuido,
+  ajustar la nueva versión del paquete (cabecera y constante) y publicar
+  inmediatamente con `.\tools\publicar.ps1` (usando `-Version vAAAA.MM.DD[sufijo]`
+  y `-SinConfirmar` según corresponda) para que MJ Core y las tiendas puedan
+  detectar y aplicar la actualización.
+- Informá qué cambió, qué versión se asignó, la URL de la Release publicada y
+  qué pruebas quedaron verificadas.
