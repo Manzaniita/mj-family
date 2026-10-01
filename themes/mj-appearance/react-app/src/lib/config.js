@@ -250,9 +250,3 @@ export const FOOTER = {
   inkColor: WP?.footer?.inkColor || '',
   accentColor: WP?.footer?.accentColor || '',
 };
-
-/**
- * Esquemas modulares del Constructor de Cabecera y Pie (Header & Footer Builder).
- */
-export const HEADER_LAYOUT = WP?.headerLayout || null;
-export const FOOTER_LAYOUT = WP?.footerLayout || null;

@@ -125,6 +125,8 @@ function FAQBlock({ items, showContactCard }) {
   );
 }
 
+import { HEADER_FOOTER_BLOCKS } from '@/components/bloques/HeaderFooterBlocks';
+
 export const BLOCKS = {
   header: (props) => <Header override={props} />,
   footer: (props) => <Footer override={props} />,
@@ -143,4 +145,5 @@ export const BLOCKS = {
   servicios: (props) => <ServicesShowcase override={props} />,
   reserva: (props) => <BookingCTA override={props} />,
   colegas: (props) => <ColegasShowcase override={props} />,
+  ...HEADER_FOOTER_BLOCKS,
 };

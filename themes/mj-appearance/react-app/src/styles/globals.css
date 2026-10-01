@@ -219,6 +219,102 @@ html.mj-theme-fade .mj-header__glass {
   flex-shrink: 0;
 }
 
+/* ---------------------------------------------------------------------------
+   Partes de plantilla FSE (Cabecera y Pie de página nativos de Gutenberg)
+--------------------------------------------------------------------------- */
+.mj-template-part-header,
+.mj-template-part-footer {
+  width: 100%;
+}
+
+.mj-header-template-part,
+.mj-footer-template-part {
+  width: 100%;
+}
+
+.mj-header-bar-group {
+  width: 100%;
+  background: var(--mj-bg);
+  background-color: color-mix(in srgb, var(--mj-bg) 80%, transparent);
+  backdrop-filter: blur(var(--mj-glass-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--mj-glass-blur, 20px));
+  border-bottom: 1px solid var(--mj-line);
+}
+
+.mj-header-flex-row {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 80rem;
+  height: 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+@media (min-width: 768px) {
+  .mj-header-flex-row {
+    padding-left: 2rem;
+    padding-right: 2rem;
+    gap: 2rem;
+  }
+}
+
+.mj-header-box-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.mj-header-box-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.mj-header-box-right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.mj-footer-main-group {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 80rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+@media (min-width: 768px) {
+  .mj-footer-main-group {
+    padding-left: 2rem;
+    padding-right: 2rem;
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+}
+
+.mj-footer-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+@media (min-width: 768px) {
+  .mj-footer-columns {
+    flex-direction: row;
+    gap: 3rem;
+  }
+}
+
 /* Ambient background gradients — very subtle, brand feel */
 .mj-ambient {
   position: fixed;

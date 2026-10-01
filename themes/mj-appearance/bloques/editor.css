@@ -481,3 +481,124 @@ code, kbd, .wp-block-code {
 	font-size: 0.75rem;
 	color: var(--mj-ink-faint);
 }
+
+/* ---------------------------------------------------------------------------
+   Bloques modulares de Cabecera y Pie de página en el editor
+--------------------------------------------------------------------------- */
+.mj-block-inline {
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+	background: transparent !important;
+	display: inline-flex;
+	align-items: center;
+}
+
+.mj-prev-inline-logo {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-weight: 700;
+	font-size: 1.15rem;
+	color: var(--mj-ink);
+}
+
+.mj-prev-inline-nav {
+	display: inline-flex;
+	align-items: center;
+	gap: 1.25rem;
+	font-size: 0.9rem;
+	font-weight: 500;
+	color: var(--mj-ink-soft);
+}
+
+.mj-prev-inline-search {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.4rem 0.85rem;
+	background: var(--mj-surface-2);
+	border: 1px solid var(--mj-line);
+	border-radius: 9999px;
+	font-size: 0.825rem;
+	color: var(--mj-ink-faint);
+	min-width: 14rem;
+}
+
+.mj-prev-inline-action {
+	position: relative;
+	display: inline-grid;
+	place-items: center;
+	width: 2.25rem;
+	height: 2.25rem;
+	border-radius: 9999px;
+	background: var(--mj-surface);
+	color: var(--mj-ink-soft);
+	border: 1px solid var(--mj-line);
+}
+.mj-prev-inline-action .dashicons {
+	font-size: 1.1rem;
+	width: 1.1rem;
+	height: 1.1rem;
+}
+.mj-prev-badge {
+	position: absolute;
+	top: -0.25rem;
+	right: -0.25rem;
+	min-width: 1.1rem;
+	height: 1.1rem;
+	padding: 0 0.25rem;
+	border-radius: 9999px;
+	background: var(--mj-accent);
+	color: #fff;
+	font-size: 0.65rem;
+	font-weight: 700;
+	display: grid;
+	place-items: center;
+}
+
+.mj-prev-dolar-pill,
+.mj-prev-pay-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.3rem 0.65rem;
+	border-radius: 9999px;
+	background: var(--mj-surface-2);
+	border: 1px solid var(--mj-line);
+	font-size: 0.775rem;
+	font-weight: 600;
+	color: var(--mj-ink);
+}
+
+.mj-prev-topbar {
+	width: 100%;
+	padding: 0.35rem 1rem;
+	background: var(--mj-surface-2);
+	color: var(--mj-ink-soft);
+	font-size: 0.8rem;
+	text-align: center;
+	font-weight: 500;
+}
+
+.mj-prev-shipping {
+	width: 100%;
+	padding: 0.35rem 1rem;
+	background: var(--mj-surface);
+	border-bottom: 1px solid var(--mj-line);
+	color: var(--mj-accent);
+	font-size: 0.775rem;
+	text-align: center;
+	font-weight: 600;
+}
+
+.mj-prev-cta-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.4rem 0.9rem;
+	border-radius: var(--mj-radius-btn, 9999px);
+	background: var(--mj-accent);
+	color: #fff;
+	font-size: 0.825rem;
+	font-weight: 600;
+}

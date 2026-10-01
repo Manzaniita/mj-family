@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { STILL } from '@/lib/motion';
 import {
@@ -9,13 +10,71 @@ import {
 import { Reveal } from '@/components/motion/Reveal';
 import { Logo } from '@/components/ui/Logo';
 import { useCatalog } from '@/store/catalog';
-import { WP, IS_WP, CONTACT, SOCIAL, SITE, FOOTER, FOOTER_LAYOUT } from '@/lib/config';
-import { DynamicFooter } from './DynamicFooter';
+import { WP, IS_WP, CONTACT, SOCIAL, SITE, FOOTER } from '@/lib/config';
 import { t } from '@/lib/copy';
 import { COLEGAS, projectPath } from '@/lib/colegas';
 import { TURNOS, bookingPath, servicesPath } from '@/lib/turnos';
 import { sendContact } from '@/lib/wc';
 import { isExternalHref } from '@/lib/nav';
+import { HEADER_FOOTER_BLOCKS } from '@/components/bloques/HeaderFooterBlocks';
+
+function parseProps(json) {
+  try {
+    const parsed = JSON.parse(json || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function TemplatePartFooter({ html }) {
+  const ref = useRef(null);
+  const [portals, setPortals] = useState([]);
+  const navigate = useNavigate();
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.innerHTML = html;
+    const nodes = Array.from(el.querySelectorAll('[data-mj-block]'));
+    setPortals(nodes.map((node, i) => ({
+      node,
+      name: node.dataset.mjBlock,
+      props: parseProps(node.dataset.mjProps),
+      key: `${node.dataset.mjBlock}-${i}`,
+    })));
+  }, [html]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onClick = (e) => {
+      const a = e.target.closest('a');
+      if (!a || !a.href) return;
+      try {
+        const url = new URL(a.href, window.location.origin);
+        if (url.origin === window.location.origin && !a.target && !a.hasAttribute('download')) {
+          e.preventDefault();
+          navigate(url.pathname + url.search + url.hash);
+        }
+      } catch {
+        // Ignorar URLs inválidas
+      }
+    };
+    el.addEventListener('click', onClick);
+    return () => el.removeEventListener('click', onClick);
+  }, [navigate]);
+
+  return (
+    <footer className="mj-footer w-full bg-bg text-ink">
+      <div ref={ref} className="mj-template-part-footer w-full" />
+      {portals.map(({ node, name, props, key }) => {
+        const Component = HEADER_FOOTER_BLOCKS[name];
+        return Component ? createPortal(<Component {...props} />, node) : null;
+      })}
+    </footer>
+  );
+}
 
 function normalizeLink(l) {
   if (Array.isArray(l)) {
@@ -36,9 +95,11 @@ function normalizeLink(l) {
  */
 export function Footer(props = {}) {
   const override = props.override || (props.showNewsletter !== undefined || props.columnsCount !== undefined || props.columns !== undefined ? props : null);
+  const isBlock = !!override;
 
-  if (!override && FOOTER_LAYOUT) {
-    return <DynamicFooter layout={FOOTER_LAYOUT} />;
+  const templatePartHtml = !isBlock ? window.MJ?.templateParts?.footer : null;
+  if (templatePartHtml) {
+    return <TemplatePartFooter html={templatePartHtml} />;
   }
 
   const conf = {

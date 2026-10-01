@@ -674,6 +674,111 @@
 					])
 				);
 			}
+			case 'logo':
+				return el('div', { className: 'mj-prev-inline-logo' },
+					el('span', { className: 'dashicons dashicons-store' }),
+					el('strong', null, '✦ ' + (cfg.siteName || 'Logo'))
+				);
+			case 'nav':
+				return el('div', { className: 'mj-prev-inline-nav' },
+					el('span', null, 'Inicio'),
+					el('span', null, 'Tienda'),
+					el('span', null, 'Categorías'),
+					el('span', null, 'Contacto')
+				);
+			case 'search':
+				return el('div', { className: 'mj-prev-inline-search' },
+					el('span', { className: 'dashicons dashicons-search' }),
+					el('span', null, 'Buscar productos…')
+				);
+			case 'carrito':
+				return el('div', { className: 'mj-prev-inline-action' },
+					el('span', { className: 'dashicons dashicons-cart' }),
+					attrs.showCount !== false ? el('span', { className: 'mj-prev-badge' }, '0') : null
+				);
+			case 'favoritos':
+				return el('div', { className: 'mj-prev-inline-action' },
+					el('span', { className: 'dashicons dashicons-heart' }),
+					attrs.showCount !== false ? el('span', { className: 'mj-prev-badge' }, '0') : null
+				);
+			case 'comparador':
+				return el('div', { className: 'mj-prev-inline-action' },
+					el('span', { className: 'dashicons dashicons-randomize' })
+				);
+			case 'cuenta':
+				return el('div', { className: 'mj-prev-inline-action' },
+					el('span', { className: 'dashicons dashicons-admin-users' })
+				);
+			case 'tema-toggle':
+				return el('div', { className: 'mj-prev-inline-action' },
+					el('span', { className: 'dashicons dashicons-lightbulb' })
+				);
+			case 'dolar':
+				return el('div', { className: 'mj-prev-dolar-pill' },
+					el('span', null, '💵 USD $1.200')
+				);
+			case 'medios-pago':
+				return el('div', { className: 'mj-prev-pay-pill' },
+					el('span', null, attrs.variant === 'badges' ? '💳 Visa · Master · MP' : '💳 Medios de pago')
+				);
+			case 'anuncios':
+				return el('div', { className: 'mj-prev-topbar' },
+					el('span', null, '⚡ Envíos a todo el país · 3 y 6 cuotas sin interés')
+				);
+			case 'envio-gratis':
+				return el('div', { className: 'mj-prev-shipping' },
+					el('span', null, '🚚 Envío gratis superando el mínimo')
+				);
+			case 'acciones-header':
+				return el('div', { className: 'mj-prev-header__actions' },
+					attrs.showDollarRate !== false ? el('span', { className: 'mj-prev-header__icon' }, '💵 USD') : null,
+					attrs.showPaymentSelect !== false ? el('span', { className: 'mj-prev-header__icon' }, '💳') : null,
+					attrs.showThemeToggle !== false ? el('span', { className: 'dashicons dashicons-lightbulb' }) : null,
+					attrs.showAccount !== false ? el('span', { className: 'dashicons dashicons-admin-users' }) : null,
+					attrs.showWishlist !== false ? el('span', { className: 'dashicons dashicons-heart' }) : null,
+					attrs.showCompare !== false ? el('span', { className: 'dashicons dashicons-randomize' }) : null,
+					attrs.showCart !== false ? el('span', { className: 'dashicons dashicons-cart' }) : null
+				);
+			case 'cta-button':
+				return el('div', { className: 'mj-prev-cta-btn' },
+					attrs.label || 'Ver más',
+					el('span', null, ' →')
+				);
+			case 'newsletter':
+				return el('div', { className: 'mj-prev-footer__news' },
+					el('strong', null, attrs.title || 'Suscribite a novedades'),
+					el('div', { className: 'mj-prev-footer__news-form' },
+						el('span', { className: 'mj-prev-footer__input' }, 'Tu correo electrónico'),
+						el('span', { className: 'mj-prev-btn' }, attrs.buttonText || 'Suscribirme')
+					)
+				);
+			case 'footer-brand':
+				return el('div', { className: 'mj-prev-footer__col' },
+					el('strong', null, '✦ ' + (cfg.siteName || 'Tienda')),
+					el('p', { className: 'mj-prev-note' }, attrs.tagline || 'Eslogan o presentación de la tienda.'),
+					attrs.showSocials !== false ? el('div', { className: 'mj-prev-footer__socials' },
+						el('span', { className: 'dashicons dashicons-instagram' }),
+						el('span', { className: 'dashicons dashicons-facebook' }),
+						el('span', { className: 'dashicons dashicons-whatsapp' })
+					) : null
+				);
+			case 'footer-links':
+				return el('div', { className: 'mj-prev-footer__col' },
+					el('strong', null, attrs.title || 'Enlaces'),
+					el('div', { className: 'mj-prev-line mj-prev-line--short' }),
+					el('div', { className: 'mj-prev-line' })
+				);
+			case 'redes':
+				return el('div', { className: 'mj-prev-footer__socials' },
+					el('span', { className: 'dashicons dashicons-instagram' }),
+					el('span', { className: 'dashicons dashicons-facebook' }),
+					el('span', { className: 'dashicons dashicons-whatsapp' })
+				);
+			case 'footer-legal':
+				return el('div', { className: 'mj-prev-footer__legal' },
+					el('span', null, attrs.copyright || '© 2026 Todos los derechos reservados.'),
+					attrs.showPayments !== false ? el('span', null, '💳 Medios de pago') : null
+				);
 			default:
 				return chips((def.summary || []).map(function (k) { return attrs[k] ? String(attrs[k]) : ''; }));
 		}
@@ -682,11 +787,21 @@
 	/* ---------------------------------------------------------------------
 	 * Registro de los bloques
 	 * ------------------------------------------------------------------ */
+	var INLINE_BLOCKS = [
+		'logo', 'nav', 'search', 'carrito', 'favoritos', 'comparador', 'cuenta',
+		'tema-toggle', 'dolar', 'medios-pago', 'anuncios', 'envio-gratis',
+		'acciones-header', 'cta-button', 'redes', 'footer-links', 'footer-legal'
+	];
+	function isInline(key) {
+		return INLINE_BLOCKS.indexOf(key) !== -1;
+	}
+
 	function makeEdit(key, def) {
 		return function Edit(props) {
 			var attrs = props.attributes;
 			var setAttributes = props.setAttributes;
-			var blockProps = useBlockProps({ className: 'mj-block-card mj-block-card--' + key + (props.isSelected ? ' is-selected' : '') });
+			var inline = isInline(key);
+			var blockProps = useBlockProps({ className: (inline ? 'mj-block-inline' : 'mj-block-card') + ' mj-block-card--' + key + (props.isSelected ? ' is-selected' : '') });
 			var controls = Object.keys(def.fields).map(function (fkey) {
 				var field = def.fields[fkey];
 				if (!visible(field, attrs)) {
@@ -704,7 +819,7 @@
 						controls)
 				),
 				el('div', blockProps,
-					el('div', { className: 'mj-block-card__head' },
+					inline ? null : el('div', { className: 'mj-block-card__head' },
 						el('span', { className: 'dashicons dashicons-' + (def.icon || 'block-default') }),
 						el('span', null, def.title),
 						el('span', null, 'Bloque MJ · se dibuja con el diseño de la tienda')
@@ -744,7 +859,11 @@
 			category: 'mj',
 			keywords: def.keywords || [],
 			attributes: attributes,
-			supports: { html: false, align: false, customClassName: false },
+			supports: {
+				html: false,
+				align: ['left', 'center', 'right', 'wide', 'full'],
+				customClassName: true
+			},
 			variations: variations,
 			example: { attributes: {} },
 			edit: makeEdit(key, def),

@@ -2184,14 +2184,10 @@ function mj_render_settings_page() {
 				</h3>
 				<p style="font-size:14px; line-height:1.6; margin:0 0 12px; color:#444;">
 					Toda la configuración visual y de diseño (<strong>Cabecera</strong>, <strong>Pie de página</strong>, <strong>Paleta de colores</strong>, <strong>Logo y marca</strong>, <strong>Diseño de botones</strong>, <strong>Tipografías</strong> y <strong>Hero / Banners de portada</strong>) ahora se edita en tiempo real con previsualización interactiva desde el Personalizador de WordPress o a través de los bloques Gutenberg nativos.
-				<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
-					<a href="<?php echo esc_url(admin_url(class_exists('MJ_Menu') ? 'admin.php?page=mj-header-footer-builder' : 'themes.php?page=mj-header-footer-builder')); ?>" class="button button-primary" style="background:#6e6bff; border-color:#5956e6; padding:4px 16px; height:auto; font-weight:600;">
-						Constructor Modular de Cabecera y Pie &rarr;
-					</a>
-					<a href="<?php echo esc_url(admin_url('customize.php?autofocus[panel]=mj_customizer')); ?>" class="button button-secondary" style="padding:4px 16px; height:auto; font-weight:600;">
-						Personalizador de diseño &rarr;
-					</a>
-				</div>
+				</p>
+				<a href="<?php echo esc_url(admin_url('customize.php?autofocus[panel]=mj_customizer')); ?>" class="button button-primary" style="background:#6e6bff; border-color:#5956e6; padding:4px 16px; height:auto; font-weight:600;">
+					Personalizar diseño en tiempo real (Apariencia &rarr; Personalizar &rarr; MJ) &rarr;
+				</a>
 			</div>
 
 			<h2>Sesión y acceso</h2>

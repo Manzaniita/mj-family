@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useRef, useState, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { STILL } from '@/lib/motion';
 import { Heart, Scale, ShoppingBag, User, SunMedium, MoonStar, CalendarDays, ArrowUpRight, Menu } from 'lucide-react';
@@ -16,10 +18,10 @@ import { t } from '@/lib/copy';
 import { TURNOS, bookingPath } from '@/lib/turnos';
 import { NAV_HEADER, isExternalHref } from '@/lib/nav';
 import { iconByName } from '@/components/ui/DynamicIcon';
-import { HEADER, HEADER_LAYOUT } from '@/lib/config';
-import { DynamicHeader } from './DynamicHeader';
+import { HEADER } from '@/lib/config';
+import { HEADER_FOOTER_BLOCKS } from '@/components/bloques/HeaderFooterBlocks';
 
-function IconAction({ to, onClick, icon: Icon, label, count }) {
+export function IconAction({ to, onClick, icon: Icon, label, count }) {
   const content = (
     <motion.span
       whileHover={STILL ? undefined : { scale: 1.08 }}
@@ -52,7 +54,7 @@ function IconAction({ to, onClick, icon: Icon, label, count }) {
  * oscuro activo); el ícono rota y se intercambia, y el click dispara la
  * transición circular desde el punto exacto donde se tocó.
  */
-function ThemeToggle() {
+export function ThemeToggle() {
   const theme = useUI((s) => s.theme);
   const toggleTheme = useUI((s) => s.toggleTheme);
   const dark = theme === 'dark';
@@ -95,7 +97,7 @@ function ThemeToggle() {
  * cualquier pantalla de la tienda, y quien no, ni siquiera recibe el enlace —
  * PHP filtra los ítems por audiencia antes de mandarlos al navegador.
  */
-function QuickLinks() {
+export function QuickLinks() {
   if (!NAV_HEADER.length) return null;
 
   return NAV_HEADER.map((item) => {
@@ -135,12 +137,71 @@ function QuickLinks() {
   });
 }
 
+function parseProps(json) {
+  try {
+    const parsed = JSON.parse(json || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function TemplatePartHeader({ html }) {
+  const ref = useRef(null);
+  const [portals, setPortals] = useState([]);
+  const navigate = useNavigate();
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.innerHTML = html;
+    const nodes = Array.from(el.querySelectorAll('[data-mj-block]'));
+    setPortals(nodes.map((node, i) => ({
+      node,
+      name: node.dataset.mjBlock,
+      props: parseProps(node.dataset.mjProps),
+      key: `${node.dataset.mjBlock}-${i}`,
+    })));
+  }, [html]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onClick = (e) => {
+      const a = e.target.closest('a');
+      if (!a || !a.href) return;
+      try {
+        const url = new URL(a.href, window.location.origin);
+        if (url.origin === window.location.origin && !a.target && !a.hasAttribute('download')) {
+          e.preventDefault();
+          navigate(url.pathname + url.search + url.hash);
+        }
+      } catch {
+        // Ignorar URLs inválidas
+      }
+    };
+    el.addEventListener('click', onClick);
+    return () => el.removeEventListener('click', onClick);
+  }, [navigate]);
+
+  return (
+    <header className="mj-header sticky top-0 z-80 w-full">
+      <div ref={ref} className="mj-template-part-header w-full" />
+      {portals.map(({ node, name, props, key }) => {
+        const Component = HEADER_FOOTER_BLOCKS[name];
+        return Component ? createPortal(<Component {...props} />, node) : null;
+      })}
+    </header>
+  );
+}
+
 export function Header(props = {}) {
   const override = props.override || (props.sticky !== undefined || props.headerStyle !== undefined ? props : null);
   const isBlock = !!override;
 
-  if (!isBlock && HEADER_LAYOUT) {
-    return <DynamicHeader layout={HEADER_LAYOUT} />;
+  const templatePartHtml = !isBlock ? window.MJ?.templateParts?.header : null;
+  if (templatePartHtml) {
+    return <TemplatePartHeader html={templatePartHtml} />;
   }
 
   const conf = {

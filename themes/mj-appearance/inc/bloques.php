@@ -345,7 +345,7 @@ function mj_blocks() {
 		],
 
 		'header' => [
-			'title'       => 'Cabecera (Header)',
+			'title'       => 'Cabecera clásica (Header)',
 			'description' => 'La barra de navegación principal. Podés configurar si queda fija (sticky), colores, posiciones del logo y buscador, y qué botones y accesos se muestran.',
 			'icon'        => 'editor-table',
 			'keywords'    => ['cabecera', 'header', 'menu', 'navegacion', 'sticky', 'logo', 'botones'],
@@ -405,7 +405,7 @@ function mj_blocks() {
 		],
 
 		'footer' => [
-			'title'       => 'Pie de página (Footer)',
+			'title'       => 'Pie de página clásico (Footer)',
 			'description' => 'El pie de página con newsletter, columnas de enlaces configurables, logo, datos de contacto, redes sociales, copyright y sellos de medios de pago.',
 			'icon'        => 'editor-insertmore',
 			'keywords'    => ['pie', 'footer', 'columnas', 'newsletter', 'redes', 'legal', 'contacto', 'links'],
@@ -438,6 +438,227 @@ function mj_blocks() {
 				'accentColor'      => $color('Color de títulos y destacados', '#6e6bff o vacío'),
 			],
 			'summary'     => ['columnsCount', 'showNewsletter', 'showLogo'],
+		],
+
+		/* -----------------------------------------------------------------
+		 * Bloques modulares nativos para Partes de Plantilla (Header y Footer FSE)
+		 * --------------------------------------------------------------- */
+		'logo' => [
+			'title'       => 'Logo de la tienda',
+			'description' => 'El logo de la tienda o sitio con enlace a la portada.',
+			'icon'        => 'store',
+			'keywords'    => ['logo', 'marca', 'cabecera', 'tienda'],
+			'fields'      => [
+				'showSiteName' => $toggle('Mostrar nombre de la tienda si no hay logo', true),
+			],
+			'summary'     => ['showSiteName'],
+		],
+
+		'nav' => [
+			'title'       => 'Menú de navegación',
+			'description' => 'El menú de categorías y páginas de la tienda (en línea o mega menú).',
+			'icon'        => 'menu',
+			'keywords'    => ['menu', 'navegacion', 'categorias', 'paginas'],
+			'fields'      => [
+				'style' => $select('Disposición', ['inline' => 'En línea', 'megamenu' => 'Mega menú desplegable'], 'inline'),
+			],
+			'summary'     => ['style'],
+		],
+
+		'search' => [
+			'title'       => 'Buscador de productos',
+			'description' => 'Barra de búsqueda en tiempo real con atajos y resultados inmediatos.',
+			'icon'        => 'search',
+			'keywords'    => ['buscador', 'buscar', 'productos', 'search'],
+			'fields'      => [
+				'maxWidth' => $text('Ancho máximo', '360px'),
+			],
+			'summary'     => ['maxWidth'],
+		],
+
+		'carrito' => [
+			'title'       => 'Botón de carrito',
+			'description' => 'Acceso al carrito de WooCommerce con badge de cantidad y apertura de panel lateral.',
+			'icon'        => 'cart',
+			'keywords'    => ['carrito', 'cart', 'compras', 'bolsa'],
+			'fields'      => [
+				'showCount' => $toggle('Mostrar contador de productos', true),
+			],
+			'summary'     => ['showCount'],
+		],
+
+		'favoritos' => [
+			'title'       => 'Botón de favoritos',
+			'description' => 'Acceso a la lista de deseos (wishlist) con contador.',
+			'icon'        => 'heart',
+			'keywords'    => ['favoritos', 'wishlist', 'deseos', 'corazon'],
+			'fields'      => [
+				'showCount' => $toggle('Mostrar contador', true),
+			],
+			'summary'     => ['showCount'],
+		],
+
+		'comparador' => [
+			'title'       => 'Botón de comparador',
+			'description' => 'Acceso al comparador de productos con contador.',
+			'icon'        => 'randomize',
+			'keywords'    => ['comparar', 'comparador', 'productos'],
+			'fields'      => [
+				'showCount' => $toggle('Mostrar contador', true),
+			],
+			'summary'     => ['showCount'],
+		],
+
+		'cuenta' => [
+			'title'       => 'Botón de mi cuenta',
+			'description' => 'Acceso a Mi Cuenta / Iniciar sesión del cliente.',
+			'icon'        => 'admin-users',
+			'keywords'    => ['cuenta', 'login', 'usuario', 'perfil'],
+			'fields'      => [],
+			'summary'     => [],
+		],
+
+		'tema-toggle' => [
+			'title'       => 'Selector día / noche',
+			'description' => 'Botón para alternar entre modo claro y modo oscuro.',
+			'icon'        => 'lightbulb',
+			'keywords'    => ['tema', 'modo', 'oscuro', 'claro', 'sol', 'luna'],
+			'fields'      => [],
+			'summary'     => [],
+		],
+
+		'dolar' => [
+			'title'       => 'Cotización del dólar',
+			'description' => 'Píldora con la cotización en vivo de la tienda (plugin MJ Dólar).',
+			'icon'        => 'money-alt',
+			'keywords'    => ['dolar', 'cotizacion', 'divisa', 'usd'],
+			'fields'      => [
+				'compact' => $toggle('Formato compacto', true),
+			],
+			'summary'     => ['compact'],
+		],
+
+		'medios-pago' => [
+			'title'       => 'Medios de pago',
+			'description' => 'Selector de medios de pago o sellos de tarjetas aceptadas.',
+			'icon'        => 'money',
+			'keywords'    => ['pagos', 'medios', 'tarjetas', 'cuotas'],
+			'fields'      => [
+				'variant' => $select('Variante', ['selector' => 'Selector de medios de pago', 'badges' => 'Sellos de tarjetas y medios'], 'selector'),
+			],
+			'summary'     => ['variant'],
+		],
+
+		'anuncios' => [
+			'title'       => 'Barra de anuncios (TopBar)',
+			'description' => 'Cinta superior con frases y promociones rotativas configuradas en el tema.',
+			'icon'        => 'megaphone',
+			'keywords'    => ['anuncios', 'topbar', 'promo', 'frases', 'cinta'],
+			'fields'      => [
+				'autoplay' => $toggle('Rotación automática', true),
+			],
+			'summary'     => ['autoplay'],
+		],
+
+		'envio-gratis' => [
+			'title'       => 'Barra de envío gratis',
+			'description' => 'Barra que calcula dinámicamente cuánto falta para obtener envío sin cargo.',
+			'icon'        => 'car',
+			'keywords'    => ['envio', 'gratis', 'shipping', 'progreso'],
+			'fields'      => [
+				'showProgress' => $toggle('Mostrar barra de progreso', true),
+			],
+			'summary'     => ['showProgress'],
+		],
+
+		'acciones-header' => [
+			'title'       => 'Acciones de cabecera',
+			'description' => 'Grupo de accesos rápidos: carrito, favoritos, comparador, cuenta, día/noche y cotización.',
+			'icon'        => 'align-right',
+			'keywords'    => ['acciones', 'header', 'botones', 'accesos'],
+			'fields'      => [
+				'showCart'          => $toggle('Mostrar carrito', true),
+				'showWishlist'      => $toggle('Mostrar favoritos', true),
+				'showCompare'       => $toggle('Mostrar comparador', true),
+				'showAccount'       => $toggle('Mostrar mi cuenta', true),
+				'showThemeToggle'   => $toggle('Mostrar selector día/noche', true),
+				'showDollarRate'    => $toggle('Mostrar cotización dólar', true),
+				'showPaymentSelect' => $toggle('Mostrar selector de pagos', true),
+			],
+			'summary'     => ['showCart', 'showAccount'],
+		],
+
+		'cta-button' => [
+			'title'       => 'Botón de llamada a la acción (CTA)',
+			'description' => 'Botón personalizado con enlace, texto, variante e ícono.',
+			'icon'        => 'button',
+			'keywords'    => ['boton', 'cta', 'enlace', 'accion'],
+			'fields'      => [
+				'label'   => $text('Texto del botón', 'Ver más'),
+				'url'     => ['label' => 'Destino del enlace', 'type' => 'url', 'default' => '/tienda', 'placeholder' => '/tienda'],
+				'variant' => $select('Estilo', ['primary' => 'Principal', 'secondary' => 'Secundario', 'outline' => 'Borde'], 'secondary'),
+				'icon'    => $text('Ícono Lucide (opcional)', 'arrow-up-right'),
+				'target'  => $select('Abrir en', ['_self' => 'Misma pestaña', '_blank' => 'Nueva pestaña'], '_self'),
+			],
+			'summary'     => ['label', 'url'],
+		],
+
+		'newsletter' => [
+			'title'       => 'Suscripción a novedades (Newsletter)',
+			'description' => 'Formulario de captura de email para novedades y ofertas.',
+			'icon'        => 'email-alt',
+			'keywords'    => ['newsletter', 'suscripcion', 'email', 'novedades'],
+			'fields'      => [
+				'title'      => $text('Título', 'Lo nuevo, antes que nadie.'),
+				'subtitle'   => $textarea('Bajada', 'Lanzamientos, ofertas exclusivas y novedades.'),
+				'buttonText' => $text('Texto del botón', 'Suscribirme'),
+			],
+			'summary'     => ['title'],
+		],
+
+		'footer-brand' => [
+			'title'       => 'Marca del pie de página',
+			'description' => 'Logo de la tienda, eslogan o descripción breve y redes sociales.',
+			'icon'        => 'id',
+			'keywords'    => ['marca', 'footer', 'logo', 'eslogan', 'pie'],
+			'fields'      => [
+				'tagline'     => $textarea('Frase o descripción', 'Vacío = la descripción corta del sitio.'),
+				'showSocials' => $toggle('Mostrar botones de redes sociales', true),
+			],
+			'summary'     => ['showSocials'],
+		],
+
+		'footer-links' => [
+			'title'       => 'Columna de enlaces (Footer)',
+			'description' => 'Columna con título y lista de enlaces personalizados.',
+			'icon'        => 'admin-links',
+			'keywords'    => ['enlaces', 'links', 'columna', 'footer'],
+			'fields'      => [
+				'title' => $text('Título de columna', 'Enlaces'),
+				'links' => $textarea('Enlaces ("Texto | /ruta | _blank" por línea)'),
+			],
+			'summary'     => ['title'],
+		],
+
+		'redes' => [
+			'title'       => 'Redes sociales',
+			'description' => 'Botones con enlaces a los perfiles de redes configurados en Contacto y redes.',
+			'icon'        => 'share',
+			'keywords'    => ['redes', 'social', 'instagram', 'facebook', 'whatsapp'],
+			'fields'      => [],
+			'summary'     => [],
+		],
+
+		'footer-legal' => [
+			'title'       => 'Barra legal y copyright',
+			'description' => 'Texto de copyright con año y sellos de medios de pago.',
+			'icon'        => 'shield',
+			'keywords'    => ['legal', 'copyright', 'derechos', 'pagos'],
+			'fields'      => [
+				'copyright'    => $text('Texto de copyright', 'Vacío = automático con año y nombre.'),
+				'showPayments' => $toggle('Mostrar sellos de medios de pago', true),
+			],
+			'summary'     => ['showPayments'],
 		],
 	];
 
@@ -563,7 +784,11 @@ add_action('init', function () {
 			'icon'            => (string) $def['icon'],
 			'keywords'        => (array) $def['keywords'],
 			'attributes'      => mj_block_attributes($def),
-			'supports'        => ['html' => false, 'align' => false, 'customClassName' => false],
+			'supports'        => [
+				'html'            => false,
+				'align'           => ['left', 'center', 'right', 'wide', 'full'],
+				'customClassName' => true,
+			],
 			'render_callback' => 'mj_block_render',
 		]);
 	}
@@ -782,6 +1007,65 @@ function mj_block_render($attributes, $content = '', $block = null) {
 		esc_attr($key),
 		esc_attr(wp_json_encode($props, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
 	);
+}
+
+/**
+ * Obtiene el HTML renderizado de una parte de plantilla de bloques (Full Site Editing).
+ *
+ * Consulta primero si WordPress tiene una versión personalizada en base de datos
+ * (post type wp_template_part) o vía block_template_part(). Si no hay personalización,
+ * recurre al archivo parts/{slug}.html del tema y ejecuta do_blocks().
+ *
+ * @param string $slug 'header' | 'footer'
+ * @return string HTML de la parte de plantilla
+ */
+function mj_get_block_template_part_html($slug) {
+	$slug = sanitize_file_name((string) $slug);
+	if ('' === $slug) {
+		return '';
+	}
+
+	// 1. Si existe la función nativa de WordPress y estamos en un contexto con soporte:
+	if (function_exists('block_template_part')) {
+		ob_start();
+		block_template_part($slug);
+		$html = trim((string) ob_get_clean());
+		if ('' !== $html) {
+			return $html;
+		}
+	}
+
+	// 2. Si el usuario guardó una versión personalizada en el Editor de Sitios (wp_template_part):
+	if (post_type_exists('wp_template_part')) {
+		$theme_slug = get_stylesheet();
+		$custom = get_posts([
+			'post_type'      => 'wp_template_part',
+			'post_status'    => ['publish', 'auto-draft'],
+			'name'           => $slug,
+			'tax_query'      => [
+				[
+					'taxonomy' => 'wp_theme',
+					'field'    => 'name',
+					'terms'    => $theme_slug,
+				],
+			],
+			'posts_per_page' => 1,
+		]);
+		if (!empty($custom) && !empty($custom[0]->post_content)) {
+			return function_exists('do_blocks') ? do_blocks($custom[0]->post_content) : $custom[0]->post_content;
+		}
+	}
+
+	// 3. Fallback al archivo parts/{slug}.html del tema:
+	$file = get_template_directory() . '/parts/' . $slug . '.html';
+	if (file_exists($file)) {
+		$content = file_get_contents($file);
+		if (false !== $content && '' !== trim($content)) {
+			return function_exists('do_blocks') ? do_blocks($content) : $content;
+		}
+	}
+
+	return '';
 }
 
 /* -------------------------------------------------------------------------

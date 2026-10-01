@@ -33,11 +33,11 @@ require_once get_template_directory() . '/inc/nav.php';        // Barra de naveg
 require_once get_template_directory() . '/inc/session.php';  // Sesión, nonces y barra de administración.
 require_once get_template_directory() . '/inc/skins.php';    // API de temas hijo (skins) y sus presets.
 require_once get_template_directory() . '/inc/bloques.php';  // Bloques MJ para el editor (Gutenberg).
+require_once get_template_directory() . '/inc/patterns.php'; // Patrones de bloques nativos (Header/Footer FSE).
 require_once get_template_directory() . '/inc/paginas.php';  // Páginas de WordPress dentro de la tienda.
 require_once get_template_directory() . '/inc/config.php';   // window.MJ (mj_app_config).
 require_once get_template_directory() . '/inc/rest.php';     // Endpoints REST mj/v1.
 require_once get_template_directory() . '/inc/seo.php';      // Título, meta, Open Graph, JSON-LD, sitemap y errores del navegador.
-require_once get_template_directory() . '/inc/builder.php';  // Constructor modular de cabecera y pie de página.
 
 /* -------------------------------------------------------------------------
  * Migración por el renombre (Yamana Theme → MJ Appearance).
@@ -60,6 +60,8 @@ add_action('after_setup_theme', function () {
 	add_theme_support('title-tag');
 	add_theme_support('woocommerce');
 	add_theme_support('post-thumbnails');
+	/* Partes de plantilla de bloques (Full Site Editing nativo: Cabecera y Pie de página). */
+	add_theme_support('block-template-parts');
 	/* Logo del Personalizador: fallback del logo elegido en Apariencia → MJ Appearance. */
 	add_theme_support('custom-logo', ['flex-width' => true, 'flex-height' => true, 'unlink-homepage-logo' => true]);
 });

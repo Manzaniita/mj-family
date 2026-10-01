@@ -418,8 +418,10 @@ function mj_app_config() {
 			'inkColor'         => isset($options['footer_ink_color']) ? (string) $options['footer_ink_color'] : '',
 			'accentColor'      => isset($options['footer_accent_color']) ? (string) $options['footer_accent_color'] : '',
 		], $options),
-		'headerLayout'          => function_exists('mj_get_header_layout') ? mj_get_header_layout() : null,
-		'footerLayout'          => function_exists('mj_get_footer_layout') ? mj_get_footer_layout() : null,
+		'templateParts'         => [
+			'header' => function_exists('mj_get_block_template_part_html') ? mj_get_block_template_part_html('header') : '',
+			'footer' => function_exists('mj_get_block_template_part_html') ? mj_get_block_template_part_html('footer') : '',
+		],
 	];
 
 	/*

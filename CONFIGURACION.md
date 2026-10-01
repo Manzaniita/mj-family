@@ -50,7 +50,6 @@ A partir de MJ Appearance 3.33.0, toda la configuración visual y de diseño se 
 
 | Sección en Personalizador | Qué se configura |
 | --- | --- |
-| **Constructor Header & Footer** | Sistema 100% dinámico y modular basado en bloques y componentes (`admin.php?page=mj-header-footer-builder` o `themes.php?page=mj-header-footer-builder`). Permite crear, ordenar y dimensionar filas y zonas (izquierda, centro, derecha) con bloques independientes para Computadora y Celular. Cero DOM residual si una zona o fila está vacía. |
 | **Cabecera (Header)** | Modo sticky (fijo siempre, estático, solo desktop o solo móvil), estilo visual (translúcido/glass, sólido o transparente), borde, ubicación del logo (izquierda o centrado), buscador (centro, derecha u oculto), menú (abajo, inline, drawer u oculto), visibilidad de botones (favoritos, comparador, carrito, mi cuenta, día/noche, dólar, selector de medio de pago, botón Turnos), botón adicional configurable y colores propios (fondo, tinta y acento). |
 | **Pie de página (Footer)** | Newsletter, columnas (2 a 5), logo, datos de contacto, redes sociales, columnas personalizadas de enlaces, barra legal con copyright, medios de pago, borde y colores propios (fondo, tinta y acento). |
 | **Colores y paleta** | Color de acento, fondo día/noche, texto día/noche y fuerza del texto secundario (descripciones y etiquetas). |
@@ -222,11 +221,9 @@ editor ofrece **Acento, Tinta, Fondo, Superficie** y el degradado de la marca,
 que siguen al modo día/noche. Los bloques MJ conviene ponerlos sueltos, no
 adentro de grupos ni columnas, para que ocupen todo el ancho.
 
-**Plantillas.** En el insertador → Patrones → MJ Appearance: *Portada de la
-tienda (como está hoy)* (el hero y las secciones en el orden configurado en el
-panel), *Página de contacto*, *Página "Nosotros"*, *Preguntas frecuentes* y
-*Página legal*. Una skin suma las suyas con la clave `patterns` de su
-descripción; un plugin, con el filtro `mj_block_patterns`.
+**Plantillas y partes de plantilla FSE.**
+- **Partes de plantilla (Cabecera y Pie de página en el Editor de Sitios / FSE):** En **Apariencia → Partes de plantilla** (`site-editor.php`), la cabecera y el pie de página se editan visualmente como partes de plantilla nativas (`header` y `footer`). Se organizan en cajas nativas (Grupos, Filas flexbox y Columnas) con ancho completo (`alignfull`) y contienen los bloques modulares del ecosistema MJ (`mj/logo`, `mj/nav`, `mj/search`, `mj/carrito`, `mj/favoritos`, `mj/comparador`, `mj/cuenta`, `mj/tema-toggle`, `mj/dolar`, `mj/medios-pago`, `mj/anuncios`, `mj/envio-gratis`, `mj/acciones-header`, `mj/cta-button`, `mj/newsletter`, `mj/footer-brand`, `mj/footer-links`, `mj/redes`, `mj/contacto`, `mj/footer-legal`), arrastrables y reordenables en vivo.
+- **Patrones de bloques:** En el insertador → Patrones → Cabeceras MJ y Pies de página MJ se encuentran patrones listos (*Cabecera completa*, *Cabecera minimalista*, *Pie de página completo*, *Pie minimalista*). Además, en MJ Appearance se ofrecen: *Portada de la tienda (como está hoy)*, *Página de contacto*, *Página "Nosotros"*, *Preguntas frecuentes* y *Página legal*. Una skin suma las suyas con la clave `patterns` de su descripción; un plugin, con el filtro `mj_block_patterns`.
 
 **La portada.** Se sigue armando con "Secciones de la portada" hasta que en
 **Ajustes → Lectura → Una página estática** se elige una página: desde ahí la
