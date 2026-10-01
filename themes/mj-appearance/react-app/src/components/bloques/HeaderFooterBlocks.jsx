@@ -102,20 +102,23 @@ export function CompareBlock({ showCount = true }) {
 }
 
 /* 7. Cuenta / Login */
-export function AccountBlock() {
+export function AccountBlock({ showLabel = false, label = '' }) {
   const user = useAuth((s) => s.user);
+  const text = label || t('nav_account');
   return (
-    <div className="mj-block-account hidden sm:flex items-center">
-      <IconAction to={user ? '/cuenta' : '/login'} icon={User} label={t('nav_account')} />
+    <div className="mj-block-account hidden sm:flex items-center gap-1.5">
+      <IconAction to={user ? '/cuenta' : '/login'} icon={User} label={text} />
+      {showLabel ? <span className="text-sm font-medium">{text}</span> : null}
     </div>
   );
 }
 
 /* 8. Selector de tema (sol / luna) */
-export function ThemeToggleBlock() {
+export function ThemeToggleBlock({ showLabel = false }) {
   return (
-    <div className="mj-block-theme flex items-center">
+    <div className="mj-block-theme flex items-center gap-1.5">
       <ThemeToggle />
+      {showLabel ? <span className="text-sm font-medium">Modo</span> : null}
     </div>
   );
 }

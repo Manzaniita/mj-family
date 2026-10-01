@@ -3,11 +3,11 @@
         "Slug":  "mj-appearance",
         "Name":  "MJ Appearance",
         "Type":  "theme",
-        "Version":  "3.34.1",
+        "Version":  "3.34.2",
         "Parent":  null,
-        "Zip":  "mj-appearance-3.34.1.zip",
-        "SizeKB":  612,
-        "Sha256":  "0d03001026744d52cdd5a6e9f51fc792f1db1a1ab6cecefda6dbaa172cba2a7b"
+        "Zip":  "mj-appearance-3.34.2.zip",
+        "SizeKB":  613,
+        "Sha256":  "2ef1c9085df7113800feae083ec7534552f6916b43f5ba51ddc0e6a4010579e5"
     },
     {
         "Slug":  "mj-atelier",

@@ -514,8 +514,11 @@ function mj_blocks() {
 			'description' => 'Acceso a Mi Cuenta / Iniciar sesión del cliente.',
 			'icon'        => 'admin-users',
 			'keywords'    => ['cuenta', 'login', 'usuario', 'perfil'],
-			'fields'      => [],
-			'summary'     => [],
+			'fields'      => [
+				'showLabel' => $toggle('Mostrar texto al lado del ícono', false),
+				'label'     => $text('Texto del botón', 'Mi cuenta'),
+			],
+			'summary'     => ['showLabel'],
 		],
 
 		'tema-toggle' => [
@@ -523,7 +526,9 @@ function mj_blocks() {
 			'description' => 'Botón para alternar entre modo claro y modo oscuro.',
 			'icon'        => 'lightbulb',
 			'keywords'    => ['tema', 'modo', 'oscuro', 'claro', 'sol', 'luna'],
-			'fields'      => [],
+			'fields'      => [
+				'showLabel' => $toggle('Mostrar texto al lado del ícono', false),
+			],
 			'summary'     => [],
 		],
 
@@ -645,7 +650,11 @@ function mj_blocks() {
 			'description' => 'Botones con enlaces a los perfiles de redes configurados en Contacto y redes.',
 			'icon'        => 'share',
 			'keywords'    => ['redes', 'social', 'instagram', 'facebook', 'whatsapp'],
-			'fields'      => [],
+			'fields'      => [
+				'showInstagram' => $toggle('Mostrar Instagram', true),
+				'showFacebook'  => $toggle('Mostrar Facebook', true),
+				'showWhatsapp'  => $toggle('Mostrar WhatsApp', true),
+			],
 			'summary'     => [],
 		],
 
@@ -722,7 +731,7 @@ function mj_blocks() {
 	$types    = mj_block_field_types();
 	foreach ((array) $filtered as $key => $def) {
 		$key = sanitize_key((string) $key);
-		if ('' === $key || !is_array($def) || empty($def['fields']) || !is_array($def['fields'])) {
+		if ('' === $key || !is_array($def) || !isset($def['fields']) || !is_array($def['fields'])) {
 			continue;
 		}
 		$def = wp_parse_args($def, [

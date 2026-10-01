@@ -707,11 +707,13 @@
 				);
 			case 'cuenta':
 				return el('div', { className: 'mj-prev-inline-action' },
-					el('span', { className: 'dashicons dashicons-admin-users' })
+					el('span', { className: 'dashicons dashicons-admin-users' }),
+					attrs.showLabel ? el('span', { style: { marginLeft: '4px', fontSize: '13px' } }, attrs.label || 'Mi cuenta') : null
 				);
 			case 'tema-toggle':
 				return el('div', { className: 'mj-prev-inline-action' },
-					el('span', { className: 'dashicons dashicons-lightbulb' })
+					el('span', { className: 'dashicons dashicons-lightbulb' }),
+					attrs.showLabel ? el('span', { style: { marginLeft: '4px', fontSize: '13px' } }, 'Modo') : null
 				);
 			case 'dolar':
 				return el('div', { className: 'mj-prev-dolar-pill' },
