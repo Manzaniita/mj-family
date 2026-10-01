@@ -675,61 +675,218 @@
 				);
 			}
 			case 'logo':
-				return el('div', { className: 'mj-prev-inline-logo' },
+				return el('div', { className: 'mj-prev-inline-logo', style: { display: 'inline-flex', alignItems: 'center', gap: '8px' } },
 					el('span', { className: 'dashicons dashicons-store' }),
-					el('strong', null, '✦ ' + (cfg.siteName || 'Logo'))
+					el('strong', {
+						style: {
+							fontSize: attrs.siteNameSize || '18px',
+							color: attrs.siteNameColor || 'inherit',
+							maxWidth: attrs.logoWidth && attrs.logoWidth !== 'auto' ? attrs.logoWidth : undefined
+						}
+					}, '✦ ' + (cfg.siteName || 'Logo'))
 				);
-			case 'nav':
-				return el('div', { className: 'mj-prev-inline-nav' },
-					el('span', null, 'Inicio'),
-					el('span', null, 'Tienda'),
-					el('span', null, 'Categorías'),
-					el('span', null, 'Contacto')
+			case 'nav': {
+				var links = [];
+				if (attrs.source === 'custom' && attrs.customLinks) {
+					links = attrs.customLinks.split('\n').map(function (l) { return l.split('|')[0].trim(); }).filter(Boolean);
+				}
+				if (!links.length) {
+					links = ['Inicio', 'Tienda', 'Categorías', 'Contacto'];
+				}
+				var navStyles = {
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: attrs.justify || 'center',
+					gap: attrs.itemGap || '8px',
+					flexWrap: 'wrap',
+					width: '100%'
+				};
+				var linkStyles = {
+					color: attrs.textColor || 'inherit',
+					fontSize: attrs.fontSize || '13px',
+					fontWeight: attrs.fontWeight || '500',
+					textTransform: attrs.textTransform || 'none',
+					letterSpacing: attrs.letterSpacing || 'normal',
+					padding: attrs.itemPadding || '6px 12px',
+					borderRadius: attrs.borderRadius || '9999px',
+					display: 'inline-block',
+					transition: 'all 0.2s ease',
+					background: 'transparent'
+				};
+				return el('div', { className: 'mj-prev-inline-nav', style: navStyles },
+					links.map(function (title, idx) {
+						return el('span', { key: idx, style: linkStyles }, title);
+					}),
+					attrs.style === 'megamenu' ? el('span', { style: { fontSize: '11px', opacity: 0.6, marginLeft: '6px' } }, '▾ Mega Menú') : null
 				);
+			}
 			case 'search':
-				return el('div', { className: 'mj-prev-inline-search' },
-					el('span', { className: 'dashicons dashicons-search' }),
-					el('span', null, 'Buscar productos…')
+				return el('div', {
+					className: 'mj-prev-inline-search',
+					style: {
+						maxWidth: attrs.maxWidth || '360px',
+						height: attrs.height || '40px',
+						backgroundColor: attrs.bgColor || undefined,
+						borderColor: attrs.borderColor || undefined,
+						borderRadius: attrs.style === 'pill' ? '9999px' : attrs.style === 'rounded' ? '8px' : '0px',
+						color: attrs.textColor || undefined,
+						fontSize: attrs.fontSize || '14px',
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: '8px',
+						padding: '0 12px',
+						border: '1px solid var(--mj-line)'
+					}
+				},
+					el('span', { className: 'dashicons dashicons-search', style: { color: attrs.iconColor || undefined } }),
+					el('span', { style: { color: attrs.placeholderColor || 'inherit', opacity: attrs.placeholderColor ? 1 : 0.6 } }, attrs.placeholder || 'Buscar productos…')
 				);
 			case 'carrito':
-				return el('div', { className: 'mj-prev-inline-action' },
-					el('span', { className: 'dashicons dashicons-cart' }),
-					attrs.showCount !== false ? el('span', { className: 'mj-prev-badge' }, '0') : null
+				return el('div', {
+					className: 'mj-prev-inline-action',
+					style: {
+						backgroundColor: attrs.bgColor || undefined,
+						color: attrs.iconColor || undefined,
+						borderRadius: attrs.style === 'pill' ? '9999px' : attrs.style === 'button' ? '6px' : '9999px',
+						padding: attrs.showLabel ? '0 12px' : undefined,
+						width: attrs.showLabel ? 'auto' : undefined,
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: '6px'
+					}
+				},
+					el('span', { className: 'dashicons dashicons-cart', style: { fontSize: attrs.iconSize || '20px', width: attrs.iconSize || '20px', height: attrs.iconSize || '20px' } }),
+					attrs.showLabel ? el('span', { style: { fontSize: '13px', fontWeight: 500 } }, attrs.label || 'Carrito') : null,
+					attrs.showCount !== false ? el('span', {
+						className: 'mj-prev-badge',
+						style: {
+							backgroundColor: attrs.badgeBg || undefined,
+							color: attrs.badgeColor || undefined
+						}
+					}, '0') : null
 				);
 			case 'favoritos':
-				return el('div', { className: 'mj-prev-inline-action' },
-					el('span', { className: 'dashicons dashicons-heart' }),
-					attrs.showCount !== false ? el('span', { className: 'mj-prev-badge' }, '0') : null
+				return el('div', {
+					className: 'mj-prev-inline-action',
+					style: {
+						color: attrs.iconColor || undefined,
+						padding: attrs.showLabel ? '0 12px' : undefined,
+						width: attrs.showLabel ? 'auto' : undefined,
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: '6px'
+					}
+				},
+					el('span', { className: 'dashicons dashicons-heart', style: { fontSize: attrs.iconSize || '20px', width: attrs.iconSize || '20px', height: attrs.iconSize || '20px' } }),
+					attrs.showLabel ? el('span', { style: { fontSize: '13px', fontWeight: 500 } }, attrs.label || 'Favoritos') : null,
+					attrs.showCount !== false ? el('span', {
+						className: 'mj-prev-badge',
+						style: {
+							backgroundColor: attrs.badgeBg || undefined,
+							color: attrs.badgeColor || undefined
+						}
+					}, '0') : null
 				);
 			case 'comparador':
-				return el('div', { className: 'mj-prev-inline-action' },
-					el('span', { className: 'dashicons dashicons-randomize' })
+				return el('div', {
+					className: 'mj-prev-inline-action',
+					style: {
+						color: attrs.iconColor || undefined,
+						padding: attrs.showLabel ? '0 12px' : undefined,
+						width: attrs.showLabel ? 'auto' : undefined,
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: '6px'
+					}
+				},
+					el('span', { className: 'dashicons dashicons-randomize', style: { fontSize: attrs.iconSize || '20px', width: attrs.iconSize || '20px', height: attrs.iconSize || '20px' } }),
+					attrs.showLabel ? el('span', { style: { fontSize: '13px', fontWeight: 500 } }, attrs.label || 'Comparar') : null,
+					attrs.showCount !== false ? el('span', {
+						className: 'mj-prev-badge',
+						style: {
+							backgroundColor: attrs.badgeBg || undefined,
+							color: attrs.badgeColor || undefined
+						}
+					}, '0') : null
 				);
 			case 'cuenta':
-				return el('div', { className: 'mj-prev-inline-action' },
-					el('span', { className: 'dashicons dashicons-admin-users' }),
-					attrs.showLabel ? el('span', { style: { marginLeft: '4px', fontSize: '13px' } }, attrs.label || 'Mi cuenta') : null
+				return el('div', {
+					className: 'mj-prev-inline-action',
+					style: {
+						color: attrs.iconColor || attrs.textColor || undefined,
+						padding: attrs.showLabel ? '0 12px' : undefined,
+						width: attrs.showLabel ? 'auto' : undefined,
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: '6px'
+					}
+				},
+					attrs.showIcon !== false ? el('span', { className: 'dashicons dashicons-admin-users', style: { fontSize: attrs.iconSize || '20px', width: attrs.iconSize || '20px', height: attrs.iconSize || '20px' } }) : null,
+					attrs.showLabel ? el('span', { style: { fontSize: '13px', fontWeight: 500, color: attrs.textColor || undefined } }, attrs.label || 'Mi cuenta') : null
 				);
 			case 'tema-toggle':
-				return el('div', { className: 'mj-prev-inline-action' },
-					el('span', { className: 'dashicons dashicons-lightbulb' }),
-					attrs.showLabel ? el('span', { style: { marginLeft: '4px', fontSize: '13px' } }, 'Modo') : null
+				return el('div', {
+					className: 'mj-prev-inline-action',
+					style: {
+						color: attrs.iconColor || undefined,
+						padding: attrs.showLabel ? '0 12px' : undefined,
+						width: attrs.showLabel ? 'auto' : undefined,
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: '6px'
+					}
+				},
+					attrs.showIcon !== false ? el('span', { className: 'dashicons dashicons-lightbulb', style: { fontSize: attrs.iconSize || '20px', width: attrs.iconSize || '20px', height: attrs.iconSize || '20px' } }) : null,
+					attrs.showLabel ? el('span', { style: { fontSize: '13px', fontWeight: 500 } }, attrs.label || 'Modo') : null
 				);
 			case 'dolar':
-				return el('div', { className: 'mj-prev-dolar-pill' },
-					el('span', null, '💵 USD $1.200')
+				return el('div', {
+					className: 'mj-prev-dolar-pill',
+					style: {
+						backgroundColor: attrs.bgColor || undefined,
+						color: attrs.textColor || undefined,
+						borderColor: attrs.borderColor || undefined,
+						fontSize: attrs.fontSize || undefined
+					}
+				},
+					el('span', null, attrs.compact !== false ? '💵 USD $1.200' : '💵 Dólar: $1.200')
 				);
 			case 'medios-pago':
-				return el('div', { className: 'mj-prev-pay-pill' },
+				return el('div', {
+					className: 'mj-prev-pay-pill',
+					style: {
+						backgroundColor: attrs.bgColor || undefined,
+						color: attrs.textColor || undefined,
+						borderColor: attrs.borderColor || undefined,
+						fontSize: attrs.fontSize || undefined
+					}
+				},
 					el('span', null, attrs.variant === 'badges' ? '💳 Visa · Master · MP' : '💳 Medios de pago')
 				);
-			case 'anuncios':
-				return el('div', { className: 'mj-prev-topbar' },
-					el('span', null, '⚡ Envíos a todo el país · 3 y 6 cuotas sin interés')
+			case 'anuncios': {
+				var msg = attrs.customMessages ? attrs.customMessages.split('\n')[0] : '⚡ Envíos a todo el país · 3 y 6 cuotas sin interés';
+				return el('div', {
+					className: 'mj-prev-topbar',
+					style: {
+						backgroundColor: attrs.bgColor || undefined,
+						color: attrs.textColor || undefined,
+						fontSize: attrs.fontSize || undefined,
+						textAlign: attrs.textAlign || 'center'
+					}
+				},
+					el('span', null, msg)
 				);
+			}
 			case 'envio-gratis':
-				return el('div', { className: 'mj-prev-shipping' },
-					el('span', null, '🚚 Envío gratis superando el mínimo')
+				return el('div', {
+					className: 'mj-prev-shipping',
+					style: {
+						backgroundColor: attrs.bgColor || undefined,
+						color: attrs.textColor || undefined,
+						fontSize: attrs.fontSize || undefined
+					}
+				},
+					el('span', null, attrs.message || '🚚 Envío gratis superando el mínimo')
 				);
 			case 'acciones-header':
 				return el('div', { className: 'mj-prev-header__actions' },
@@ -742,22 +899,46 @@
 					attrs.showCart !== false ? el('span', { className: 'dashicons dashicons-cart' }) : null
 				);
 			case 'cta-button':
-				return el('div', { className: 'mj-prev-cta-btn' },
+				return el('div', {
+					className: 'mj-prev-cta-btn',
+					style: {
+						backgroundColor: attrs.variant === 'custom' && attrs.bgColor ? attrs.bgColor : undefined,
+						color: attrs.variant === 'custom' && attrs.textColor ? attrs.textColor : undefined,
+						fontSize: attrs.fontSize || undefined,
+						borderRadius: attrs.borderRadius || undefined
+					}
+				},
 					attrs.label || 'Ver más',
 					el('span', null, ' →')
 				);
 			case 'newsletter':
-				return el('div', { className: 'mj-prev-footer__news' },
+				return el('div', {
+					className: 'mj-prev-footer__news',
+					style: {
+						backgroundColor: attrs.bgColor || undefined,
+						color: attrs.textColor || undefined
+					}
+				},
 					el('strong', null, attrs.title || 'Suscribite a novedades'),
+					attrs.subtitle ? el('p', { className: 'mj-prev-note' }, attrs.subtitle) : null,
 					el('div', { className: 'mj-prev-footer__news-form' },
 						el('span', { className: 'mj-prev-footer__input' }, 'Tu correo electrónico'),
-						el('span', { className: 'mj-prev-btn' }, attrs.buttonText || 'Suscribirme')
+						el('span', {
+							className: 'mj-prev-btn',
+							style: {
+								backgroundColor: attrs.buttonBg || undefined,
+								color: attrs.buttonTextColor || undefined
+							}
+						}, attrs.buttonText || 'Suscribirme')
 					)
 				);
 			case 'footer-brand':
-				return el('div', { className: 'mj-prev-footer__col' },
+				return el('div', {
+					className: 'mj-prev-footer__col',
+					style: { color: attrs.textColor || undefined }
+				},
 					el('strong', null, '✦ ' + (cfg.siteName || 'Tienda')),
-					el('p', { className: 'mj-prev-note' }, attrs.tagline || 'Eslogan o presentación de la tienda.'),
+					el('p', { className: 'mj-prev-note', style: { color: attrs.taglineColor || undefined } }, attrs.tagline || 'Eslogan o presentación de la tienda.'),
 					attrs.showSocials !== false ? el('div', { className: 'mj-prev-footer__socials' },
 						el('span', { className: 'dashicons dashicons-instagram' }),
 						el('span', { className: 'dashicons dashicons-facebook' }),
@@ -766,18 +947,44 @@
 				);
 			case 'footer-links':
 				return el('div', { className: 'mj-prev-footer__col' },
-					el('strong', null, attrs.title || 'Enlaces'),
-					el('div', { className: 'mj-prev-line mj-prev-line--short' }),
-					el('div', { className: 'mj-prev-line' })
+					el('strong', { style: { color: attrs.titleColor || undefined } }, attrs.title || 'Enlaces'),
+					el('div', {
+						style: {
+							color: attrs.linksColor || undefined,
+							fontSize: attrs.fontSize || undefined,
+							marginTop: '8px',
+							display: 'flex',
+							flexDirection: 'column',
+							gap: '4px'
+						}
+					},
+						(attrs.links ? attrs.links.split('\n').map(function (l) { return l.split('|')[0].trim(); }).filter(Boolean) : ['Enlace 1', 'Enlace 2', 'Enlace 3']).map(function (t, i) {
+							return el('span', { key: i, style: { opacity: 0.85 } }, t);
+						})
+					)
 				);
 			case 'redes':
-				return el('div', { className: 'mj-prev-footer__socials' },
-					el('span', { className: 'dashicons dashicons-instagram' }),
-					el('span', { className: 'dashicons dashicons-facebook' }),
-					el('span', { className: 'dashicons dashicons-whatsapp' })
+				return el('div', {
+					className: 'mj-prev-footer__socials',
+					style: {
+						gap: attrs.gap || '12px',
+						display: 'inline-flex',
+						alignItems: 'center'
+					}
+				},
+					attrs.showInstagram !== false ? el('span', { className: 'dashicons dashicons-instagram', style: { fontSize: attrs.iconSize || '20px', color: attrs.iconColor || undefined } }) : null,
+					attrs.showFacebook !== false ? el('span', { className: 'dashicons dashicons-facebook', style: { fontSize: attrs.iconSize || '20px', color: attrs.iconColor || undefined } }) : null,
+					attrs.showWhatsapp !== false ? el('span', { className: 'dashicons dashicons-whatsapp', style: { fontSize: attrs.iconSize || '20px', color: attrs.iconColor || undefined } }) : null,
+					attrs.showTiktok ? el('span', { className: 'dashicons dashicons-video-alt3', style: { fontSize: attrs.iconSize || '20px', color: attrs.iconColor || undefined } }) : null
 				);
 			case 'footer-legal':
-				return el('div', { className: 'mj-prev-footer__legal' },
+				return el('div', {
+					className: 'mj-prev-footer__legal',
+					style: {
+						color: attrs.textColor || undefined,
+						fontSize: attrs.fontSize || undefined
+					}
+				},
 					el('span', null, attrs.copyright || '© 2026 Todos los derechos reservados.'),
 					attrs.showPayments !== false ? el('span', null, '💳 Medios de pago') : null
 				);
@@ -864,7 +1071,20 @@
 			supports: {
 				html: false,
 				align: ['left', 'center', 'right', 'wide', 'full'],
-				customClassName: true
+				customClassName: true,
+				color: {
+					text: true,
+					background: true,
+					link: true
+				},
+				typography: {
+					fontSize: true,
+					lineHeight: true
+				},
+				spacing: {
+					margin: true,
+					padding: true
+				}
 			},
 			variations: variations,
 			example: { attributes: {} },

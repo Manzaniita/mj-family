@@ -21,14 +21,35 @@ import { iconByName } from '@/components/ui/DynamicIcon';
 import { HEADER } from '@/lib/config';
 import { HEADER_FOOTER_BLOCKS } from '@/components/bloques/HeaderFooterBlocks';
 
-export function IconAction({ to, onClick, icon: Icon, label, count }) {
+export function IconAction({
+  to,
+  onClick,
+  icon: Icon,
+  label,
+  count,
+  className = '',
+  customIconSize,
+  customColor,
+  customHoverColor,
+  customBadgeBg,
+  customBadgeColor,
+  showLabel = false
+}) {
+  const [hovered, setHovered] = useState(false);
+  const iconPixelSize = customIconSize ? parseInt(customIconSize, 10) || 19 : 19;
   const content = (
     <motion.span
-      whileHover={STILL ? undefined : { scale: 1.08 }}
-      whileTap={STILL ? undefined : { scale: 0.92 }}
-      className="mj-icon-action relative grid size-9 place-items-center rounded-(--mj-radius-pill) text-ink-soft transition-colors hover:text-ink hover:bg-surface lg:size-10"
+      whileHover={STILL ? undefined : { scale: 1.05 }}
+      whileTap={STILL ? undefined : { scale: 0.95 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`mj-icon-action relative flex items-center justify-center gap-1.5 rounded-(--mj-radius-pill) text-ink-soft transition-colors hover:text-ink hover:bg-surface ${showLabel ? 'px-3 py-1.5 h-9 lg:h-10' : 'size-9 lg:size-10'} ${className}`}
+      style={{
+        color: hovered && customHoverColor ? customHoverColor : (customColor || undefined)
+      }}
     >
-      <Icon size={19} strokeWidth={1.8} />
+      {Icon && <Icon size={iconPixelSize} strokeWidth={1.8} style={{ color: hovered && customHoverColor ? customHoverColor : (customColor || undefined) }} />}
+      {showLabel && <span className="text-sm font-medium">{label}</span>}
       {count > 0 && (
         <motion.span
           key={count}
@@ -36,6 +57,10 @@ export function IconAction({ to, onClick, icon: Icon, label, count }) {
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 500, damping: 20 }}
           className="mj-icon-action__count absolute -right-0.5 -top-0.5 grid min-w-4.5 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-white h-4.5"
+          style={{
+            backgroundColor: customBadgeBg || undefined,
+            color: customBadgeColor || undefined
+          }}
         >
           {count}
         </motion.span>

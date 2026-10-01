@@ -25,16 +25,73 @@ function isItemActive(item, pathname, search) {
   return (pathname === path || pathname.startsWith(`${path}/`)) && !current;
 }
 
+function parseNavLinks(text) {
+  if (!text || typeof text !== 'string') return [];
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  return lines.map((line, idx) => {
+    const parts = line.split('|').map((s) => s.trim());
+    const label = parts[0] || '';
+    const href = parts[1] || '#';
+    const target = parts[2] === '_blank' || parts[2] === 'blank' ? '_blank' : undefined;
+    return {
+      key: `custom-${idx}-${label}`,
+      label,
+      href,
+      target,
+      type: 'link'
+    };
+  });
+}
+
 /**
- * Nivel 3 — Mega menú declarativo derivado del catálogo real.
+ * Nivel 3 — Mega menú declarativo derivado del catálogo real o personalizado.
  * Items type:'link' navegan directo; type:'category' (categorías de
  * WooCommerce) abren un panel con productos de esa categoría.
  */
-export function MegaMenu({ inline = false, className = '' } = {}) {
+export function MegaMenu({
+  inline = false,
+  className = '',
+  source = 'auto',
+  customLinks = '',
+  showCategories = true,
+  showBrands = false,
+  fontSize = '',
+  fontWeight = '',
+  textTransform = '',
+  letterSpacing = '',
+  textColor = '',
+  hoverColor = '',
+  bgHoverColor = '',
+  activeColor = '',
+  dropdownBg = '',
+  dropdownTextColor = '',
+  dropdownHoverColor = '',
+  itemGap = '',
+  itemPadding = '',
+  justify = '',
+  borderRadius = ''
+} = {}) {
   const { categories, brands, products } = useCatalog();
   const { pathname, search } = useLocation();
-  const menu = useMemo(() => buildMenu({ categories, brands }), [categories, brands]);
   const [openSlug, setOpenSlug] = useState(null);
+  const [hoveredKey, setHoveredKey] = useState(null);
+
+  const customItems = useMemo(() => {
+    if (source === 'custom' && customLinks && customLinks.trim()) {
+      return parseNavLinks(customLinks);
+    }
+    return null;
+  }, [source, customLinks]);
+
+  const menu = useMemo(() => {
+    if (customItems && customItems.length > 0) {
+      return customItems;
+    }
+    return buildMenu({
+      categories: showCategories !== false ? categories : [],
+      brands: showBrands ? brands : []
+    });
+  }, [customItems, categories, brands, showCategories, showBrands]);
 
   const openCategory = categories.find((c) => c.slug === openSlug);
   const panelProducts = openSlug
@@ -43,42 +100,80 @@ export function MegaMenu({ inline = false, className = '' } = {}) {
         .slice(0, 3)
     : [];
 
+  const getLinkStyle = (active, isHovered, isHighlight) => {
+    const s = {};
+    if (fontSize) s.fontSize = fontSize;
+    if (fontWeight) s.fontWeight = fontWeight;
+    if (textTransform && textTransform !== 'none') s.textTransform = textTransform;
+    if (letterSpacing && letterSpacing !== 'normal') s.letterSpacing = letterSpacing;
+    if (itemPadding) s.padding = itemPadding;
+    if (borderRadius) s.borderRadius = borderRadius;
+
+    if (isHovered) {
+      if (hoverColor) s.color = hoverColor;
+      if (bgHoverColor) s.backgroundColor = bgHoverColor;
+    } else if (active) {
+      if (activeColor) s.color = activeColor;
+    } else if (isHighlight) {
+      // Highlight default accent
+    } else if (textColor) {
+      s.color = textColor;
+    }
+    return s;
+  };
+
+  const containerStyle = {
+    justifyContent: justify || 'center',
+    gap: itemGap || '0.25rem',
+  };
+
+  const panelStyle = {
+    backgroundColor: dropdownBg || undefined,
+    color: dropdownTextColor || undefined,
+  };
+
   return (
     <nav
       className={inline ? `mj-nav mj-nav--inline relative hidden lg:flex items-center gap-1 ${className}` : `mj-nav relative hidden lg:block hairline-b bg-bg/70 backdrop-blur-xl ${className}`}
-      onMouseLeave={() => setOpenSlug(null)}
+      onMouseLeave={() => { setOpenSlug(null); setHoveredKey(null); }}
       aria-label={t('nav_main_label')}
     >
-      <div className={inline ? "flex items-center justify-center gap-1" : "mx-auto flex max-w-7xl items-center justify-center gap-1 px-8"}>
+      <div
+        className={inline ? "flex items-center flex-wrap" : "mx-auto flex max-w-7xl items-center px-8 flex-wrap"}
+        style={containerStyle}
+      >
         {menu.map((item) => {
-          /*
-           * Una categoría que ya no está en el catálogo (se borró, o quedó sin
-           * productos publicados) no tiene panel que abrir: se dibuja como un
-           * enlace común a su página en vez de un botón que no hace nada.
-           */
+          const itemKey = item.key || item.label;
+          const isHovered = hoveredKey === itemKey;
           const hasPanel = item.type === 'category' && categories.some((c) => c.slug === item.slug);
 
           if (!hasPanel) {
             const href = item.href || `/categoria/${item.slug}`;
             const active = isItemActive({ ...item, href }, pathname, search);
+            const isHighlight = !!item.highlight;
+            const style = getLinkStyle(active, isHovered, isHighlight);
+
             const className = `${linkBase} ${
-              item.highlight
+              isHighlight && !hoverColor && !textColor
                 ? 'mj-nav__link--highlight text-accent hover:bg-accent-soft'
-                : active
+                : active && !activeColor && !textColor
                   ? 'mj-nav__link--active text-ink'
-                  : 'text-ink-soft hover:text-ink'
+                  : !textColor
+                    ? 'text-ink-soft hover:text-ink'
+                    : ''
             }`;
 
-            /* Un destino fuera de la tienda no puede ir por el router. */
             if (isExternalHref(href)) {
               return (
                 <a
-                  key={item.key || item.label}
+                  key={itemKey}
                   href={href}
                   target={item.target === '_blank' ? '_blank' : undefined}
                   rel={item.target === '_blank' ? 'noreferrer' : undefined}
-                  onMouseEnter={() => setOpenSlug(null)}
+                  onMouseEnter={() => { setOpenSlug(null); setHoveredKey(itemKey); }}
+                  onMouseLeave={() => setHoveredKey(null)}
                   className={className}
+                  style={style}
                 >
                   {item.label}
                 </a>
@@ -87,12 +182,14 @@ export function MegaMenu({ inline = false, className = '' } = {}) {
 
             return (
               <Link
-                key={item.key || item.label}
+                key={itemKey}
                 to={href}
                 target={item.target === '_blank' ? '_blank' : undefined}
-                onMouseEnter={() => setOpenSlug(null)}
+                onMouseEnter={() => { setOpenSlug(null); setHoveredKey(itemKey); }}
+                onMouseLeave={() => setHoveredKey(null)}
                 aria-current={active ? 'page' : undefined}
                 className={className}
+                style={style}
               >
                 {item.label}
               </Link>
@@ -100,15 +197,20 @@ export function MegaMenu({ inline = false, className = '' } = {}) {
           }
 
           const categoryActive = pathname === `/categoria/${item.slug}`;
+          const isPanelActive = openSlug === item.slug || categoryActive;
+          const style = getLinkStyle(isPanelActive, isHovered, false);
+
           return (
             <button
-              key={item.key || item.label}
-              onMouseEnter={() => setOpenSlug(item.slug)}
+              key={itemKey}
+              onMouseEnter={() => { setOpenSlug(item.slug); setHoveredKey(itemKey); }}
+              onMouseLeave={() => setHoveredKey(null)}
               onClick={() => setOpenSlug(openSlug === item.slug ? null : item.slug)}
               aria-expanded={openSlug === item.slug}
               className={`${linkBase} ${
-                openSlug === item.slug || categoryActive ? 'mj-nav__link--active text-ink' : 'text-ink-soft hover:text-ink'
+                isPanelActive && !activeColor && !textColor ? 'mj-nav__link--active text-ink' : !textColor ? 'text-ink-soft hover:text-ink' : ''
               }`}
+              style={style}
             >
               {item.label}
             </button>
@@ -124,18 +226,20 @@ export function MegaMenu({ inline = false, className = '' } = {}) {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.3, ease: EASE }}
             className="mj-nav__panel absolute left-0 right-0 top-full z-40 hairline-b border-t border-line bg-bg/95 shadow-soft backdrop-blur-2xl"
+            style={panelStyle}
           >
             <div className="mx-auto grid max-w-7xl grid-cols-4 gap-8 px-8 py-10">
               <div className="flex flex-col justify-between">
                 <div>
-                  <p className="mj-eyebrow text-xs font-semibold uppercase tracking-[0.2em] text-accent">{t('nav_mega_eyebrow')}</p>
-                  <h3 className="display mt-3 text-4xl">{openCategory.name}</h3>
-                  <p className="mt-3 text-sm text-ink-soft">{openCategory.description}</p>
+                  <p className="mj-eyebrow text-xs font-semibold uppercase tracking-[0.2em] text-accent" style={{ color: dropdownHoverColor || undefined }}>{t('nav_mega_eyebrow')}</p>
+                  <h3 className="display mt-3 text-4xl" style={{ color: dropdownTextColor || undefined }}>{openCategory.name}</h3>
+                  <p className="mt-3 text-sm text-ink-soft" style={{ color: dropdownTextColor ? dropdownTextColor : undefined, opacity: dropdownTextColor ? 0.8 : undefined }}>{openCategory.description}</p>
                 </div>
                 <Link
                   to={`/categoria/${openCategory.slug}`}
                   onClick={() => setOpenSlug(null)}
                   className="mj-link-arrow group mt-6 inline-flex items-center gap-2 text-sm font-medium text-accent"
+                  style={{ color: dropdownHoverColor || undefined }}
                 >
                   {t('nav_mega_link')}
                   <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1" />
@@ -153,7 +257,7 @@ export function MegaMenu({ inline = false, className = '' } = {}) {
                     className="aspect-4/3 rounded-xl2 transition-transform duration-500 group-hover:scale-[1.02]"
                     imgClassName="transition-transform duration-700 group-hover:scale-105"
                   />
-                  <p className="mt-3 text-sm font-medium">{p.name}</p>
+                  <p className="mt-3 text-sm font-medium" style={{ color: dropdownTextColor || undefined }}>{p.name}</p>
                   <Price product={p} size="sm" className="mt-1 text-ink-soft" />
                 </Link>
               ))}
