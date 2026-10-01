@@ -9,7 +9,8 @@ import {
 import { Reveal } from '@/components/motion/Reveal';
 import { Logo } from '@/components/ui/Logo';
 import { useCatalog } from '@/store/catalog';
-import { WP, IS_WP, CONTACT, SOCIAL, SITE, FOOTER } from '@/lib/config';
+import { WP, IS_WP, CONTACT, SOCIAL, SITE, FOOTER, FOOTER_LAYOUT } from '@/lib/config';
+import { DynamicFooter } from './DynamicFooter';
 import { t } from '@/lib/copy';
 import { COLEGAS, projectPath } from '@/lib/colegas';
 import { TURNOS, bookingPath, servicesPath } from '@/lib/turnos';
@@ -35,6 +36,10 @@ function normalizeLink(l) {
  */
 export function Footer(props = {}) {
   const override = props.override || (props.showNewsletter !== undefined || props.columnsCount !== undefined || props.columns !== undefined ? props : null);
+
+  if (!override && FOOTER_LAYOUT) {
+    return <DynamicFooter layout={FOOTER_LAYOUT} />;
+  }
 
   const conf = {
     showNewsletter: override?.showNewsletter !== undefined ? !!override.showNewsletter : FOOTER.showNewsletter,

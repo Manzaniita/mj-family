@@ -50,6 +50,7 @@ A partir de MJ Appearance 3.33.0, toda la configuración visual y de diseño se 
 
 | Sección en Personalizador | Qué se configura |
 | --- | --- |
+| **Constructor Header & Footer** | Sistema 100% dinámico y modular basado en bloques y componentes (`admin.php?page=mj-header-footer-builder` o `themes.php?page=mj-header-footer-builder`). Permite crear, ordenar y dimensionar filas y zonas (izquierda, centro, derecha) con bloques independientes para Computadora y Celular. Cero DOM residual si una zona o fila está vacía. |
 | **Cabecera (Header)** | Modo sticky (fijo siempre, estático, solo desktop o solo móvil), estilo visual (translúcido/glass, sólido o transparente), borde, ubicación del logo (izquierda o centrado), buscador (centro, derecha u oculto), menú (abajo, inline, drawer u oculto), visibilidad de botones (favoritos, comparador, carrito, mi cuenta, día/noche, dólar, selector de medio de pago, botón Turnos), botón adicional configurable y colores propios (fondo, tinta y acento). |
 | **Pie de página (Footer)** | Newsletter, columnas (2 a 5), logo, datos de contacto, redes sociales, columnas personalizadas de enlaces, barra legal con copyright, medios de pago, borde y colores propios (fondo, tinta y acento). |
 | **Colores y paleta** | Color de acento, fondo día/noche, texto día/noche y fuerza del texto secundario (descripciones y etiquetas). |

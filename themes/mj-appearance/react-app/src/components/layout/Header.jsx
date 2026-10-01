@@ -16,7 +16,8 @@ import { t } from '@/lib/copy';
 import { TURNOS, bookingPath } from '@/lib/turnos';
 import { NAV_HEADER, isExternalHref } from '@/lib/nav';
 import { iconByName } from '@/components/ui/DynamicIcon';
-import { HEADER } from '@/lib/config';
+import { HEADER, HEADER_LAYOUT } from '@/lib/config';
+import { DynamicHeader } from './DynamicHeader';
 
 function IconAction({ to, onClick, icon: Icon, label, count }) {
   const content = (
@@ -137,6 +138,10 @@ function QuickLinks() {
 export function Header(props = {}) {
   const override = props.override || (props.sticky !== undefined || props.headerStyle !== undefined ? props : null);
   const isBlock = !!override;
+
+  if (!isBlock && HEADER_LAYOUT) {
+    return <DynamicHeader layout={HEADER_LAYOUT} />;
+  }
 
   const conf = {
     sticky: override?.sticky || HEADER.sticky || 'sticky',
