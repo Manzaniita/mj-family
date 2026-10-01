@@ -18,21 +18,23 @@ import { IconAction, ThemeToggle, QuickLinks } from '@/components/layout/Header'
 import { useCart, useWishlist, useCompare, useUI, useAuth } from '@/store';
 import { t } from '@/lib/copy';
 import { isExternalHref } from '@/lib/nav';
-import { CONTACT, SOCIAL, SITE } from '@/lib/config';
+import { CONTACT, SOCIAL, SITE, LOGO } from '@/lib/config';
 import { sendContact } from '@/lib/wc';
 
 /* 1. Logo */
 export function LogoBlock({
+  customLogo,
   showSiteName = true,
-  logoWidth,
-  logoHeight,
+  logoWidth = '130px',
+  logoHeight = '40px',
   siteNameSize,
   siteNameColor
 }) {
   const setMobileMenuOpen = useUI((s) => s.setMobileMenuOpen);
-  const site = useUI((s) => s.site);
-  const logo = site?.logo;
-  const siteName = site?.name || 'Tienda';
+  const theme = useUI((s) => s.theme);
+  const siteLogo = LOGO?.url ? (theme === 'dark' && LOGO.dark ? LOGO.dark : LOGO.url) : '';
+  const logo = customLogo?.url || (typeof customLogo === 'string' && customLogo ? customLogo : '') || siteLogo;
+  const siteName = SITE?.name || 'Tienda';
   const logoStyle = {};
   if (logoWidth && logoWidth !== 'auto') logoStyle.maxWidth = logoWidth;
   if (logoHeight && logoHeight !== 'none') logoStyle.maxHeight = logoHeight;
@@ -48,13 +50,18 @@ export function LogoBlock({
       >
         <Menu size={20} strokeWidth={1.8} />
       </button>
-      <Link to="/" className="flex items-center gap-2 group min-w-0">
+      <Link to="/" className="flex items-center gap-2.5 group min-w-0">
         {logo ? (
-          <img src={logo} alt={siteName} style={logoStyle} className="h-auto object-contain transition-transform group-hover:scale-105" />
+          <img
+            src={logo}
+            alt={siteName}
+            style={logoStyle}
+            className="h-auto w-auto object-contain transition-transform group-hover:scale-105"
+          />
         ) : null}
         {(!logo || showSiteName) ? (
           <span
-            className="font-bold tracking-tight text-ink group-hover:text-accent transition-colors"
+            className="font-bold tracking-tight text-ink group-hover:text-accent transition-colors truncate"
             style={{ fontSize: siteNameSize || undefined, color: siteNameColor || undefined }}
           >
             {siteName}
@@ -95,11 +102,16 @@ export function SearchBlock({
   iconColor,
   fontSize
 }) {
+  const isFull = maxWidth === '100%' || maxWidth === 'full';
+  const widthVal = maxWidth ? (String(maxWidth).match(/^\d+$/) ? `${maxWidth}px` : maxWidth) : '360px';
+
   return (
     <div
-      className="mj-block-search hidden sm:flex items-center w-full"
+      className="mj-block-search hidden sm:flex items-center min-w-0"
       style={{
-        maxWidth: maxWidth || '360px',
+        width: isFull ? '100%' : widthVal,
+        maxWidth: isFull ? '100%' : widthVal,
+        flex: isFull ? '1 1 auto' : undefined,
         '--search-bg': bgColor || undefined,
         '--search-text': textColor || undefined,
         '--search-border': borderColor || undefined,
@@ -110,7 +122,7 @@ export function SearchBlock({
         '--search-font-size': fontSize || undefined,
       }}
     >
-      <SearchBar />
+      <SearchBar className="w-full max-w-none" />
     </div>
   );
 }

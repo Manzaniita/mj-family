@@ -334,6 +334,44 @@
 					onChange: function (v) { onChange(Number(v) || 0); },
 					__next40pxDefaultSize: true
 				}));
+			case 'width_slider': {
+				var valStr = String(value || field.default || '360px').trim();
+				var isFull = valStr === '100%' || valStr === 'full';
+				var numVal = parseInt(valStr, 10);
+				if (isNaN(numVal) || numVal < (field.min || 180)) {
+					numVal = 360;
+				}
+
+				return el('div', { className: 'mj-field-width-slider', style: { marginBottom: '16px' } },
+					el(c.RangeControl, {
+						label: field.label || 'Ancho del buscador',
+						value: numVal,
+						min: field.min || 180,
+						max: field.max || 1200,
+						step: field.step || 10,
+						disabled: isFull,
+						help: isFull ? 'El buscador ocupa todo el ancho disponible en la fila.' : (field.help || undefined),
+						onChange: function (v) {
+							var n = Number(v) || (field.min || 180);
+							onChange(n + 'px');
+						},
+						__next40pxDefaultSize: true,
+						__nextHasNoMarginBottom: true
+					}),
+					el(c.ToggleControl, {
+						label: 'Ocupar todo el ancho disponible (100%)',
+						checked: isFull,
+						onChange: function (checked) {
+							if (checked) {
+								onChange('100%');
+							} else {
+								onChange(numVal + 'px');
+							}
+						},
+						__nextHasNoMarginBottom: true
+					})
+				);
+			}
 			case 'toggle':
 				return el(c.ToggleControl, Object.assign({}, common, { checked: !!value, onChange: function (v) { onChange(!!v); } }));
 			case 'select':
@@ -674,17 +712,43 @@
 					])
 				);
 			}
-			case 'logo':
-				return el('div', { className: 'mj-prev-inline-logo', style: { display: 'inline-flex', alignItems: 'center', gap: '8px' } },
-					el('span', { className: 'dashicons dashicons-store' }),
-					el('strong', {
+			case 'logo': {
+				var logoSrc = (attrs.customLogo && attrs.customLogo.url) || (cfg.logo && cfg.logo.url) || '';
+				var logoW = attrs.logoWidth && attrs.logoWidth !== 'auto' ? attrs.logoWidth : undefined;
+				var logoH = attrs.logoHeight && attrs.logoHeight !== 'none' ? attrs.logoHeight : '40px';
+				var showText = !logoSrc || attrs.showSiteName !== false;
+
+				return el('div', {
+					className: 'mj-prev-inline-logo',
+					style: {
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: '10px'
+					}
+				},
+					logoSrc ? el('img', {
+						src: logoSrc,
+						alt: cfg.siteName || 'Logo',
+						style: {
+							maxWidth: logoW,
+							maxHeight: logoH,
+							height: 'auto',
+							width: 'auto',
+							objectFit: 'contain',
+							display: 'block'
+						}
+					}) : el('span', { className: 'dashicons dashicons-store', style: { fontSize: '20px', width: '20px', height: '20px' } }),
+					showText ? el('span', {
 						style: {
 							fontSize: attrs.siteNameSize || '18px',
 							color: attrs.siteNameColor || 'inherit',
-							maxWidth: attrs.logoWidth && attrs.logoWidth !== 'auto' ? attrs.logoWidth : undefined
+							fontWeight: '700',
+							lineHeight: '1.2',
+							whiteSpace: 'nowrap'
 						}
-					}, '✦ ' + (cfg.siteName || 'Logo'))
+					}, cfg.siteName || 'Tienda') : null
 				);
+			}
 			case 'nav': {
 				var links = [];
 				if (attrs.source === 'custom' && attrs.customLinks) {
@@ -720,11 +784,18 @@
 					attrs.style === 'megamenu' ? el('span', { style: { fontSize: '11px', opacity: 0.6, marginLeft: '6px' } }, '▾ Mega Menú') : null
 				);
 			}
-			case 'search':
+			case 'search': {
+				var searchW = attrs.maxWidth ? String(attrs.maxWidth).trim() : '360px';
+				if (searchW.match(/^\d+$/)) {
+					searchW = searchW + 'px';
+				}
+				var isFull = searchW === '100%' || searchW === 'full';
+
 				return el('div', {
 					className: 'mj-prev-inline-search',
 					style: {
-						maxWidth: attrs.maxWidth || '360px',
+						width: isFull ? '100%' : searchW,
+						maxWidth: isFull ? '100%' : searchW,
 						height: attrs.height || '40px',
 						backgroundColor: attrs.bgColor || undefined,
 						borderColor: attrs.borderColor || undefined,
@@ -734,13 +805,17 @@
 						display: 'inline-flex',
 						alignItems: 'center',
 						gap: '8px',
-						padding: '0 12px',
-						border: '1px solid var(--mj-line)'
+						padding: '0 14px',
+						border: '1px solid var(--mj-line)',
+						boxSizing: 'border-box',
+						flex: isFull ? '1 1 auto' : undefined,
+						transition: 'width 0.1s ease'
 					}
 				},
-					el('span', { className: 'dashicons dashicons-search', style: { color: attrs.iconColor || undefined } }),
-					el('span', { style: { color: attrs.placeholderColor || 'inherit', opacity: attrs.placeholderColor ? 1 : 0.6 } }, attrs.placeholder || 'Buscar productos…')
+					el('span', { className: 'dashicons dashicons-search', style: { color: attrs.iconColor || undefined, flexShrink: 0 } }),
+					el('span', { style: { color: attrs.placeholderColor || 'inherit', opacity: attrs.placeholderColor ? 1 : 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, attrs.placeholder || 'Buscar productos…')
 				);
+			}
 			case 'carrito':
 				return el('div', {
 					className: 'mj-prev-inline-action',
@@ -1010,7 +1085,23 @@
 			var attrs = props.attributes;
 			var setAttributes = props.setAttributes;
 			var inline = isInline(key);
-			var blockProps = useBlockProps({ className: (inline ? 'mj-block-inline' : 'mj-block-card') + ' mj-block-card--' + key + (props.isSelected ? ' is-selected' : '') });
+			var extraStyle = {};
+			if (key === 'search') {
+				var searchW = attrs.maxWidth ? String(attrs.maxWidth).trim() : '360px';
+				if (searchW.match(/^\d+$/)) searchW = searchW + 'px';
+				var isFull = searchW === '100%' || searchW === 'full';
+				if (isFull) {
+					extraStyle.width = '100%';
+					extraStyle.flex = '1 1 auto';
+				} else {
+					extraStyle.width = searchW;
+					extraStyle.maxWidth = '100%';
+				}
+			}
+			var blockProps = useBlockProps({
+				className: (inline ? 'mj-block-inline' : 'mj-block-card') + ' mj-block-card--' + key + (props.isSelected ? ' is-selected' : ''),
+				style: extraStyle
+			});
 			var controls = Object.keys(def.fields).map(function (fkey) {
 				var field = def.fields[fkey];
 				if (!visible(field, attrs)) {
@@ -1042,7 +1133,7 @@
 	Object.keys(cfg.blocks).forEach(function (key) {
 		var def = cfg.blocks[key];
 		var attributes = {};
-		var types = { text: 'string', textarea: 'string', url: 'string', select: 'string', category: 'string', brand: 'string', color: 'string', number: 'number', toggle: 'boolean', image: 'object', images: 'array', products: 'array', categories: 'array', repeater: 'array', gallery: 'array' };
+		var types = { text: 'string', width_slider: 'string', textarea: 'string', url: 'string', select: 'string', category: 'string', brand: 'string', color: 'string', number: 'number', toggle: 'boolean', image: 'object', images: 'array', products: 'array', categories: 'array', repeater: 'array', gallery: 'array' };
 		Object.keys(def.fields).forEach(function (fkey) {
 			var f = def.fields[fkey];
 			attributes[fkey] = { type: types[f.type] || 'string', default: f.default };

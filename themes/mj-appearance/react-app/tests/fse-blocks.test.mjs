@@ -15,7 +15,7 @@ const mocks = {
     export const useAuth = fn => fn({ user: null });
   `,
   '@/lib/copy': 'export const t = key => key;',
-  '@/lib/config': 'export const CONTACT = {}; export const SOCIAL = {}; export const SITE = { name: "MJ" };',
+  '@/lib/config': 'export const CONTACT = {}; export const SOCIAL = {}; export const SITE = { name: "MJ" }; export const LOGO = { url: "", dark: "", showName: true };',
   '@/lib/nav': 'export const isExternalHref = url => url.startsWith("http");',
   '@/lib/wc': 'export const sendContact = async () => ({ ok: true });',
   '@/components/ui/Logo': 'export function Logo() { return React.createElement("div", { className: "logo" }, "Logo"); }',

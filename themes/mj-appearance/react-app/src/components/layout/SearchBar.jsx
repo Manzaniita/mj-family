@@ -36,7 +36,7 @@ const inCategory = (p, slug) => p.category === slug || (p.categories || []).incl
  * Toda la navegación es SPA (sin recargas). Mientras busca, la lupa se
  * reemplaza por un spinner.
  */
-export function SearchBar() {
+export function SearchBar({ className } = {}) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [selectedCat, setSelectedCat] = useState(null);
@@ -122,7 +122,7 @@ export function SearchBar() {
   const showPanel = open && active;
 
   return (
-    <div ref={ref} className="mj-search relative w-full max-w-xl">
+    <div ref={ref} className={`mj-search relative w-full ${className || 'max-w-xl'}`}>
       <form onSubmit={submit}>
         <div className="mj-search__field group flex h-11 items-center gap-3 rounded-(--mj-radius-pill) glass px-4 transition-all duration-300 focus-within:border-accent/50 focus-within:shadow-glow">
           {loading ? (

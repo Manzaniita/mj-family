@@ -41,8 +41,9 @@ function mj_block_field_types() {
 		'color'      => 'string',
 		'select'     => 'string',
 		'category'   => 'string',
-		'brand'      => 'string',
-		'number'     => 'number',
+		'brand'        => 'string',
+		'width_slider' => 'string',
+		'number'       => 'number',
 		'toggle'     => 'boolean',
 		'image'      => 'object',
 		'images'     => 'array',
@@ -449,7 +450,8 @@ function mj_blocks() {
 			'icon'        => 'store',
 			'keywords'    => ['logo', 'marca', 'cabecera', 'tienda'],
 			'fields'      => [
-				'showSiteName'   => $toggle('Mostrar nombre de la tienda si no hay logo', true),
+				'customLogo'     => ['label' => 'Logo personalizado (opcional)', 'type' => 'image', 'default' => null, 'help' => 'Dejá vacío para usar el logo configurado en Apariencia → MJ Appearance o en el Personalizador.'],
+				'showSiteName'   => $toggle('Mostrar nombre de la tienda junto al logo', true, 'Si no hay imagen de logo, el nombre se muestra siempre.'),
 				'logoWidth'      => $select('Ancho del logo', [
 					'100px' => 'Chico (100px)',
 					'130px' => 'Estándar (130px)',
@@ -563,7 +565,15 @@ function mj_blocks() {
 			'icon'        => 'search',
 			'keywords'    => ['buscador', 'buscar', 'productos', 'search'],
 			'fields'      => [
-				'maxWidth'         => $text('Ancho máximo', '360px'),
+				'maxWidth'         => [
+					'label'   => 'Ancho del buscador',
+					'type'    => 'width_slider',
+					'default' => '360px',
+					'min'     => 180,
+					'max'     => 1200,
+					'step'    => 10,
+					'help'    => 'Movelo libremente con el deslizador o tildá el 100% para ocupar todo el ancho disponible.',
+				],
 				'height'           => $select('Altura del buscador', [
 					'36px' => 'Compacto (36px)',
 					'40px' => 'Estándar (40px)',
@@ -1440,6 +1450,7 @@ function mj_blocks_editor_config() {
 			'aboutText'  => wp_trim_words(wp_strip_all_tags((string) $options['about_text']), 40),
 		],
 		'siteName'    => (string) get_bloginfo('name'),
+		'logo'        => function_exists('mj_logo_config') ? mj_logo_config() : null,
 		'theme'       => mj_editor_theme(),
 		'reserved'    => function_exists('mj_pages_reserved_paths') ? mj_pages_reserved_paths() : [],
 		'overridable' => function_exists('mj_pages_overridable') ? mj_pages_overridable() : [],
