@@ -1,0 +1,239 @@
+/**
+ * MJ Popup — Estilos del frontend.
+ *
+ * Diseño centrado, responsive, no invasor y accesible.
+ */
+
+/* Bloqueo sutil de scroll mientras el popup esté visible */
+body.mj-popup-open {
+	overflow: hidden !important;
+}
+
+/* Contenedor overlay a pantalla completa */
+.mj-popup-overlay {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	background: rgba(15, 23, 42, 0.72);
+	-webkit-backdrop-filter: blur(4px);
+	backdrop-filter: blur(4px);
+	z-index: 9999999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 18px;
+	box-sizing: border-box;
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Estado visible */
+.mj-popup-overlay.mj-popup-visible {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+}
+
+/* Caja de diálogo modal */
+.mj-popup-dialog {
+	position: relative;
+	width: 100%;
+	max-width: min(92vw, 560px);
+	max-height: 90vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	transform: scale(0.94) translateY(8px);
+	transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+	box-sizing: border-box;
+}
+
+.mj-popup-overlay.mj-popup-visible .mj-popup-dialog {
+	transform: scale(1) translateY(0);
+}
+
+/* Tarjeta contenedora de la imagen y acciones */
+.mj-popup-card {
+	position: relative;
+	width: 100%;
+	background: #ffffff;
+	border-radius: 14px;
+	box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.15);
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	max-height: 86vh;
+	box-sizing: border-box;
+}
+
+/* Botón flotante de cierre (esquina superior derecha) */
+.mj-popup-close-btn {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	z-index: 20;
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background: rgba(15, 23, 42, 0.75);
+	color: #ffffff;
+	border: 2px solid rgba(255, 255, 255, 0.85);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	padding: 0;
+	margin: 0;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	font-size: 22px;
+	line-height: 1;
+	font-weight: 300;
+	box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+	transition: background-color 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+	outline: none;
+}
+
+.mj-popup-close-btn:hover,
+.mj-popup-close-btn:focus-visible {
+	background: rgba(15, 23, 42, 0.95);
+	border-color: #ffffff;
+	transform: scale(1.08);
+}
+
+.mj-popup-close-btn:active {
+	transform: scale(0.96);
+}
+
+/* Contenedor de la imagen */
+.mj-popup-media {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #0b1120;
+	overflow: hidden;
+}
+
+.mj-popup-media a {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.mj-popup-img {
+	display: block;
+	width: 100%;
+	height: auto;
+	max-height: 72vh;
+	object-fit: contain;
+	margin: 0 auto;
+	user-select: none;
+	-webkit-user-drag: none;
+}
+
+/* Barra inferior con botón de continuar */
+.mj-popup-footer {
+	width: 100%;
+	background: #ffffff;
+	padding: 12px 16px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-top: 1px solid #e2e8f0;
+}
+
+.mj-popup-action-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: #0f172a;
+	color: #ffffff;
+	border: none;
+	border-radius: 8px;
+	padding: 10px 24px;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.4;
+	cursor: pointer;
+	transition: background-color 0.2s ease, transform 0.15s ease;
+	font-family: inherit;
+	text-decoration: none;
+	box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+	width: auto;
+	min-width: 140px;
+}
+
+.mj-popup-action-btn:hover,
+.mj-popup-action-btn:focus-visible {
+	background: #1e293b;
+	transform: translateY(-1px);
+}
+
+.mj-popup-action-btn:active {
+	transform: translateY(1px);
+}
+
+/* Adaptación para pantallas de celular */
+@media (max-width: 540px) {
+	.mj-popup-overlay {
+		padding: 12px;
+	}
+
+	.mj-popup-card {
+		border-radius: 12px;
+		max-height: 88vh;
+	}
+
+	.mj-popup-close-btn {
+		width: 38px;
+		height: 38px;
+		font-size: 24px;
+		top: 8px;
+		right: 8px;
+	}
+
+	.mj-popup-img {
+		max-height: 65vh;
+	}
+
+	.mj-popup-footer {
+		padding: 10px 14px;
+	}
+
+	.mj-popup-action-btn {
+		width: 100%;
+		padding: 11px 18px;
+		font-size: 15px;
+	}
+}
+
+/* Pantallas en horizontal con poca altura (Landscape móvil) */
+@media (max-height: 520px) {
+	.mj-popup-overlay {
+		padding: 8px;
+	}
+
+	.mj-popup-card {
+		max-height: 94vh;
+	}
+
+	.mj-popup-img {
+		max-height: 58vh;
+	}
+
+	.mj-popup-footer {
+		padding: 8px 12px;
+	}
+
+	.mj-popup-action-btn {
+		padding: 7px 16px;
+		font-size: 13px;
+	}
+}

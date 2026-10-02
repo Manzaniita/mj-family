@@ -130,6 +130,16 @@
         "Sha256":  "114ad46c5cb00744a35e0df6efc320e5f31e5570a7a4b6b5cb5879b7a6124efc"
     },
     {
+        "Slug":  "mj-popup",
+        "Name":  "MJ Popup",
+        "Type":  "plugin",
+        "Version":  "1.0.0",
+        "Parent":  null,
+        "Zip":  "mj-popup-1.0.0.zip",
+        "SizeKB":  16,
+        "Sha256":  "31fd717a3ef189492ad2208b0b87bcc40c2e496b306763452f554a06448c72d4"
+    },
+    {
         "Slug":  "mj-turnos-online",
         "Name":  "MJ Turnos Online",
         "Type":  "plugin",

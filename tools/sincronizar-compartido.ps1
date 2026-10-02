@@ -72,6 +72,7 @@ $compartidos = @(
             "mj-fotos-rapidas",
             "mj-medios-pago",
             "mj-optimizador-imagenes",
+            "mj-popup",
             "mj-turnos-online"
         )
     }

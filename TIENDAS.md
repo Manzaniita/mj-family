@@ -30,10 +30,10 @@ primero `bundles`; no cambies estados de instalación sin confirmarlos.
 
 | Tienda | Tema hijo | Plugins | MJ Core |
 | --- | --- | --- | --- |
-| **MJ Importaciones** | MJ Atelier | Core, Dólar, Medios de Pago, Envíos, ERP, Optimizador, Fotos Rápidas | Instalado, con token |
-| **GlossyHair** | GlossyHair | Core, Turnos Online, Medios de Pago, Envíos, Optimizador, Fotos Rápidas | **Falta instalar** |
-| **Yamana** | Yamana | Core, Colegas, Medios de Pago, Envíos, Optimizador, Fotos Rápidas | **Falta instalar** |
-| **Jaz Beauty Art** | Jaz Beauty Art | Core, Turnos Online, Fidelidad, Medios de Pago, Envíos, Optimizador, Fotos Rápidas | **Tienda nueva: todo a mano la primera vez** |
+| **MJ Importaciones** | MJ Atelier | Core, Dólar, Medios de Pago, Envíos, ERP, Optimizador, Fotos Rápidas, Popup | Instalado, con token |
+| **GlossyHair** | GlossyHair | Core, Turnos Online, Medios de Pago, Envíos, Optimizador, Fotos Rápidas, Popup | **Falta instalar** |
+| **Yamana** | Yamana | Core, Colegas, Medios de Pago, Envíos, Optimizador, Fotos Rápidas, Popup | **Falta instalar** |
+| **Jaz Beauty Art** | Jaz Beauty Art | Core, Turnos Online, Fidelidad, Medios de Pago, Envíos, Optimizador, Fotos Rápidas, Popup | **Tienda nueva: todo a mano la primera vez** |
 
 Las cuatro combinaciones llevan el tema padre **MJ Appearance** (instalado, sin activar) y el
 tema hijo activo. La composición sale de `bundles` en

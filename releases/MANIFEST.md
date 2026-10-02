@@ -1,6 +1,6 @@
 # Versiones publicadas
 
-Generado por `tools/build-releases.ps1` el 2026-10-01 17:29.
+Generado por `tools/build-releases.ps1` el 2026-10-02 16:08.
 En `releases/` queda un solo zip por paquete: el de la versión que está
 hoy en el código. Los de versiones anteriores se borran — las que ya se
 publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
@@ -28,6 +28,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 | MJ Fotos Rápidas | 1.4.1 | `mj-fotos-rapidas-1.4.1.zip` | 14 KB | `14fa27b120514ac2…` |
 | MJ Medios de Pago | 1.6.0 | `mj-medios-pago-1.6.0.zip` | 117 KB | `eb360377482fb0d9…` |
 | MJ Optimizador de Imágenes | 1.2.0 | `mj-optimizador-imagenes-1.2.0.zip` | 46 KB | `114ad46c5cb00744…` |
+| MJ Popup | 1.0.0 | `mj-popup-1.0.0.zip` | 16 KB | `31fd717a3ef18949…` |
 | MJ Turnos Online | 1.4.3 | `mj-turnos-online-1.4.3.zip` | 304 KB | `6f3265e92fa0ad3f…` |
 
 ## SHA-256 completos
@@ -46,6 +47,7 @@ e0b57311df8031858684b290c37b7f6b378290a97a63e6132142a21d80b3d4fd  mj-glossyhair-
 ebcdf87ba67333e79f59e1f27ae7f3811c9b07270e73fc2eeb35d1a8b257bb24  mj-jazbeauty-1.1.1.zip
 eb360377482fb0d9ebf9259d59c4736fd830ea7e103a95cb5dafcadc3835c974  mj-medios-pago-1.6.0.zip
 114ad46c5cb00744a35e0df6efc320e5f31e5570a7a4b6b5cb5879b7a6124efc  mj-optimizador-imagenes-1.2.0.zip
+31fd717a3ef189492ad2208b0b87bcc40c2e496b306763452f554a06448c72d4  mj-popup-1.0.0.zip
 6f3265e92fa0ad3f318155658e9f9e808355b1566d02f33335ca399d7fd1da85  mj-turnos-online-1.4.3.zip
 a34af0e55e2328f184a84a9754a825ab2a41b30da4aba18ced28b35a9c860cf2  mj-yamana-1.1.1.zip
 ```

@@ -17,6 +17,7 @@ leé su archivo principal para ubicar los módulos y luego solo los relevantes.
 | Productos de colegas y liquidaciones | [mj-colegas](mj-colegas/) | `mj-colegas.php`, [manual](mj-colegas/LEEME.md). |
 | Conversión y optimización de imágenes | [mj-optimizador-imagenes](mj-optimizador-imagenes/) | `mj-optimizador-imagenes.php`, `includes/`. |
 | Carga de fotos desde el celular | [mj-fotos-rapidas](mj-fotos-rapidas/) | `mj-fotos-rapidas.php`; plugin concentrado en ese archivo. |
+| Avisos emergentes e imagen popup | [mj-popup](mj-popup/) | `mj-popup.php`, [manual](mj-popup/LEEME.md); avisos no invasores y responsive. |
 
 ## Al modificar
 

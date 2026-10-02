@@ -388,6 +388,7 @@ ajustes de un tema.
 | MJ Envíos | MJ → Envíos | Los métodos de envío (crear, editar, ordenar, apagar, borrar), sus condiciones, qué datos pide cada uno, la tabla propia de códigos postales, los correos —los conectados por su propio plugin y los que se configuran acá—, las sucursales, el origen del despacho, pesos, margen, redondeo, envío gratis, carteles del checkout, el cotizador de la ficha del producto, la pantalla de envíos pendientes, los avisos de seguimiento y el estado **Listo para retirar** (apagado por defecto: nombre, mail y WhatsApp). |
 | MJ Optimizador de Imágenes | MJ → Imágenes | Formato, calidad, tamaños. |
 | MJ Fotos Rápidas | Productos → Fotos rápidas → "Ajustes de las fotos" | Lado más largo y calidad con que el celular achica cada foto antes de subirla. Los ve y cambia quien administra la tienda (`manage_woocommerce`); subir fotos lo hace cualquiera que edite productos. Solo se aceptan imágenes (JPG, PNG, WebP, GIF, AVIF), mirando el contenido del archivo. |
+| MJ Popup | MJ → Popup de Aviso | Estado (activo/inactivo), imagen del aviso (biblioteca de medios), texto descriptivo (alt), enlace opcional (URL y si abre en nueva pestaña), botón de texto inferior para continuar (activación y texto), frecuencia de visualización (por sesión, 24 horas, 3 días, 7 días, 30 días, una sola vez permanente, o siempre para pruebas), retardo de aparición en milisegundos, y reinicio de visualizaciones para volver a mostrar a todos los visitantes. |
 | MJ ERP | MJ → ERP | Ventas, clientes, costeo, proveedores, consignación, la caja de ingreso de cada medio de pago, permisos del revendedor (por rol y por usuario), y en **Caja y reportes** los dos módulos: si se muestran, los conceptos de los movimientos a mano, el cierre de caja, el aviso de bajo costo y el margen mínimo. |
 | MJ Core | MJ → Actualizaciones | De qué repositorio de GitHub salen las versiones, el token para leerlo y cada cuántas horas se consulta. Muestra qué versión de cada paquete tiene la tienda y cuál está publicada. Ver `PUBLICAR.md`, sección 3. |
 
@@ -1574,6 +1575,7 @@ Cosas que casi nunca se tocan, pero que no están clavadas en el código. Van en
 | IP real del visitante detrás de un proxy (frenos del tema) | — | `mj_client_ip` |
 | Topes del freno por IP del tema, por puerta | — | `mj_rest_rate_limit` |
 | Quién ve y guarda los ajustes de MJ Colegas | — | `mjc_settings_capability` |
+| Quién ve y guarda los ajustes de MJ Popup | — | `mj_popup_capacidad_ajustes` |
 | Quién cambia los ajustes de MJ Fotos Rápidas, cuántos productos lista y qué imágenes acepta | — | `mj_fotos_rapidas_capacidad_ajustes`, `mj_fotos_rapidas_por_pagina`, `mj_fotos_rapidas_mimes` |
 | A qué proveedor se reclama un producto fallado | — | `mjerp_rma_supplier` |
 | Proveedor de la cotización del dólar | `MJD_SUGGEST_ENDPOINT` | `mjd_suggest_endpoint`, `mjd_suggest_sources` |
