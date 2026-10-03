@@ -150,13 +150,14 @@ function mj_parse_footer_columns($text) {
 	return !empty($columns) ? $columns : null;
 }
 
-/* Lista de IDs de adjuntos "1,2,3" → URLs (tamaño large) de las que existan. */
+/* Lista de IDs de adjuntos "1,2,3" → URLs (tamaño large) de las que existan, con focal si está configurado. */
 function mj_attachment_urls($ids_csv) {
 	$urls = [];
 	foreach (array_filter(array_map('absint', explode(',', (string) $ids_csv))) as $id) {
 		$url = wp_get_attachment_image_url($id, 'large');
 		if ($url) {
-			$urls[] = $url;
+			$focal = function_exists('mj_get_image_focal_point') ? mj_get_image_focal_point($id) : null;
+			$urls[] = $focal ? ['url' => (string) $url, 'focal' => $focal] : (string) $url;
 		}
 	}
 	return $urls;

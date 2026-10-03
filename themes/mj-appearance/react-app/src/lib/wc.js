@@ -88,11 +88,13 @@ const toAmount = (value, minorUnit) => Number(value || 0) / 10 ** (minorUnit ?? 
  * elija el tamaño justo: la grilla del celular no tiene por qué bajar la foto
  * de 2000 px. `srcset` y `sizes` los arma WooCommerce con sus tamaños.
  */
-const mapImage = (i) => ({
+const mapImage = (i, focal) => ({
+  id: i?.id,
   src: i?.src ?? null,
   srcset: i?.srcset || '',
   sizes: i?.sizes || '',
   alt: i?.alt || '',
+  focal: focal ?? i?.focal ?? null,
 });
 
 function findBrand(p) {
@@ -109,6 +111,15 @@ export function mapProduct(p) {
   const brand = findBrand(p);
   const catSlugs = (p.categories || []).map((c) => c.slug);
   const tags = (p.tags || []).map((t) => t.slug);
+
+  const mainFocal = p.extensions?.mj?.focal || p.images?.[0]?.focal || null;
+  const galleryFocalMap = p.extensions?.mj?.gallery_focal || {};
+  const resolveFocal = (img, index) => {
+    if (img?.id && galleryFocalMap[img.id]) return galleryFocalMap[img.id];
+    if (index === 0 && mainFocal) return mainFocal;
+    if (img?.focal) return img.focal;
+    return null;
+  };
 
   return {
     id: p.id,
@@ -150,10 +161,11 @@ export function mapProduct(p) {
     colega: p.extensions?.mjc?.slug || null,
     colegaName: p.extensions?.mjc?.name || null,
     hue: hueFromSlug(p.slug),
+    focal: mainFocal,
     image: p.images?.[0]?.src ?? null,
-    imageSet: mapImage(p.images?.[0]),
+    imageSet: mapImage(p.images?.[0], mainFocal),
     gallery: (p.images || []).map((i) => i.src),
-    galleryImages: (p.images || []).map(mapImage),
+    galleryImages: (p.images || []).map((img, idx) => mapImage(img, resolveFocal(img, idx))),
     permalink: p.permalink,
     type: p.type,
     // Variaciones (productos variables): opciones + combinaciones válidas
@@ -175,6 +187,7 @@ export function mapCartItemProduct(it) {
   const u = it.prices?.currency_minor_unit ?? 2;
   const regular = toAmount(it.prices?.regular_price, u);
   const current = toAmount(it.prices?.price, u);
+  const itFocal = it.extensions?.mj?.focal || it.images?.[0]?.focal || null;
   return {
     id: it.id,
     name: stripHtml(it.name),
@@ -184,10 +197,11 @@ export function mapCartItemProduct(it) {
     sale_price: current < regular ? current : null,
     stock_status: 'instock',
     hue: hueFromSlug(it.name),
+    focal: itFocal,
     image: it.images?.[0]?.src ?? null,
-    imageSet: mapImage(it.images?.[0]),
+    imageSet: mapImage(it.images?.[0], itFocal),
     gallery: (it.images || []).map((i) => i.src),
-    galleryImages: (it.images || []).map(mapImage),
+    galleryImages: (it.images || []).map((img, idx) => mapImage(img, idx === 0 ? itFocal : (img?.focal ?? null))),
     rating: 0,
     rating_count: 0,
     specs: [],

@@ -197,15 +197,15 @@ pie y su diseño, en día y en noche. En el insertador hay una categoría
 
 | Bloque | Qué hace | Qué se configura |
 | --- | --- | --- |
-| Hero de la portada | La cabecera grande. | Etiqueta, título, título destacado, subtítulo, dos botones con destino, fotos de fondo, si muestra las cifras. Vacío = lo de Portada (hero). |
+| Hero de la portada | La cabecera grande. | Etiqueta, título, título destacado, subtítulo, dos botones con destino, fotos de fondo con selector interactivo de encuadre (punto de enfoque), si muestra las cifras. Vacío = lo de Portada (hero). |
 | Encabezado de página | Antetítulo, título y bajada. | Los tres textos. Título vacío = el de la página. |
-| Slider de banners | Carrusel de imágenes anchas. | Imágenes, si pasa solo y cada cuántos segundos, alto. Vacío = los banners del panel. |
+| Slider de banners | Carrusel de imágenes anchas. | Imágenes con selector interactivo de encuadre (punto de enfoque), si pasa solo y cada cuántos segundos, alto. Vacío = los banners del panel. |
 | Productos | Grilla o carrusel de productos. | Qué productos (destacados, últimos ingresos, mejor valorados, en oferta, de una categoría, de una marca, elegidos a mano, todo), orden, cuántos, solo con stock, grilla o carrusel, columnas, enlace "Ver todo" y sus textos. Viene con variantes listas: Destacados, Últimos ingresos, Recomendados, Ofertas, De una categoría, Elegidos a mano. |
 | Categorías | Tarjetas grandes por categoría. | Cuáles (o automático por cantidad de productos), cuántas, grilla o carrusel, enlace y textos. |
 | Cinta de marcas | Las marcas en loop. | La frase de arriba. |
 | Opiniones | Valoraciones aprobadas de WooCommerce. | Cuántas y los textos. |
 | Instagram | Mosaico con enlace a la cuenta. | Cuántas fotos, título y enlace. |
-| Nosotros | Foto y texto de "Nosotros". | Adelanto (portada) o página completa (con puntos destacados, cifras y botón), textos, foto. |
+| Nosotros | Foto y texto de "Nosotros". | Adelanto (portada) o página completa (con puntos destacados, cifras y botón), textos, foto con punto de enfoque. |
 | Contacto | Formulario y canales de contacto. | Si muestra el formulario, los canales y el mapa. Los datos salen de Contacto. |
 | Preguntas frecuentes | Acordeón. | Las preguntas y respuestas (vacío = las de Contenido) y si muestra la tarjeta "¿No encontraste tu respuesta?". |
 | Servicios (Turnos) / Reservá tu turno | Con MJ Turnos Online activo. | Textos, cantidad, foto del banner. Vacío = Turnos → Ajustes. |
@@ -220,6 +220,9 @@ vídeos) se muestran con la tipografía y los colores del tema; la paleta del
 editor ofrece **Acento, Tinta, Fondo, Superficie** y el degradado de la marca,
 que siguen al modo día/noche. Los bloques MJ conviene ponerlos sueltos, no
 adentro de grupos ni columnas, para que ocupen todo el ancho.
+
+**Encuadre y punto de enfoque de fotos (banners y productos).**
+Tanto en los bloques de portada (Hero, Slider de banners, Nosotros) como en la ficha de cada producto de WooCommerce (nuevo metabox en la barra lateral: "Encuadre de foto (Punto de enfoque)"), es posible elegir qué parte de la imagen se muestra siempre centrada en las tarjetas del catálogo y banners. Se ajusta arrastrando un punto visual o con botones rápidos (arriba, centro, abajo, izquierda, derecha) con previsualización en vivo en tarjeta cuadrada (1:1) y banner apaisado (16:9). No recorta el archivo original: aplica `object-position` / `background-position` para mantener la proporción sin alterar el tamaño de las tarjetas ni banners.
 
 **Plantillas y partes de plantilla FSE.**
 - **Partes de plantilla (Cabecera y Pie de página en el Editor de Sitios / FSE):** En **Apariencia → Partes de plantilla** (`site-editor.php`), la cabecera y el pie de página se editan visualmente como partes de plantilla nativas (`header` y `footer`). Se organizan en cajas nativas (Grupos, Filas flexbox y Columnas) con ancho completo (`alignfull`) y contienen los bloques modulares del ecosistema MJ (`mj/logo`, `mj/nav`, `mj/search`, `mj/carrito`, `mj/favoritos`, `mj/comparador`, `mj/cuenta`, `mj/tema-toggle`, `mj/dolar`, `mj/medios-pago`, `mj/anuncios`, `mj/envio-gratis`, `mj/acciones-header`, `mj/cta-button`, `mj/newsletter`, `mj/footer-brand`, `mj/footer-links`, `mj/redes`, `mj/contacto`, `mj/footer-legal`), arrastrables y reordenables en vivo.

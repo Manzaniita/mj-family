@@ -27,6 +27,10 @@ export function ProductImage({ product, src, image, sizes = CARD_SIZES, priority
   // no imponer `relative`: en la cascada de Tailwind `.relative` pisa a
   // `.absolute` y colapsa el contenedor a alto 0 (imagen invisible).
   const hasPosition = /\b(?:static|fixed|absolute|relative|sticky)\b/.test(className ?? '');
+  const focal = image?.focal ?? set?.focal ?? product?.focal;
+  const focalStyle = focal && typeof focal === 'object' && typeof focal.x === 'number' && typeof focal.y === 'number'
+    ? { objectPosition: `${Math.round(focal.x * 100)}% ${Math.round(focal.y * 100)}%` }
+    : undefined;
 
   return (
     <div
@@ -43,6 +47,7 @@ export function ProductImage({ product, src, image, sizes = CARD_SIZES, priority
           fetchPriority={priority ? 'high' : undefined}
           decoding="async"
           onError={() => setFailed(true)}
+          style={focalStyle}
           className={cn('absolute inset-0 h-full w-full object-cover', imgClassName)}
         />
       )}

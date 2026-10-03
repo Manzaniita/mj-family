@@ -1,9 +1,17 @@
 /* Controles de los bloques MJ en la barra lateral del editor (fuera del lienzo). */
-.mj-field-media { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
-.mj-field-media__item { position: relative; }
-.mj-field-media__item img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; display: block; background: #f0f0f1; }
-.mj-field-media__item .components-button { position: absolute; top: -8px; right: -8px; min-width: 0; width: 22px; height: 22px; padding: 0; border-radius: 50%; background: #d63638; color: #fff; }
-.mj-field-media__item .components-button:hover { color: #fff; background: #b32d2e; }
+.mj-field-media { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+.mj-field-media__item { position: relative; cursor: pointer; }
+.mj-field-media__item img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; display: block; background: #f0f0f1; transition: outline 0.15s ease; }
+.mj-field-media__item.is-active img { outline: 2px solid #6e6bff; outline-offset: 2px; }
+.mj-field-media__item .components-button.mj-field-media__remove-btn { position: absolute; top: -6px; right: -6px; min-width: 0; width: 20px; height: 20px; padding: 0; border-radius: 50%; background: #d63638; color: #fff; z-index: 2; }
+.mj-field-media__item .components-button.mj-field-media__remove-btn:hover { color: #fff; background: #b32d2e; }
+.mj-field-media__item .components-button.mj-field-media__focus-btn { position: absolute; bottom: -6px; right: -6px; min-width: 0; width: 22px; height: 22px; padding: 0; border-radius: 50%; background: #1e1e1e; color: #fff; z-index: 2; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.mj-field-media__item .components-button.mj-field-media__focus-btn:hover,
+.mj-field-media__item .components-button.mj-field-media__focus-btn.is-pressed { background: #6e6bff; color: #fff; }
+.mj-field-media__focal-box { border: 1px solid #dcdcde; border-radius: 8px; padding: 10px; margin-top: 8px; margin-bottom: 12px; background: #f6f7f7; }
+.mj-field-media__focal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 12px; }
+.mj-field-media__focal-header strong { font-weight: 600; color: #1e1e1e; }
+.mj-field-media__focal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
 .mj-field-list { margin: 0 0 8px; padding: 0; list-style: none; }
 .mj-field-list li { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border: 1px solid #dcdcde; border-radius: 6px; margin-bottom: 4px; background: #fff; font-size: 12px; }
 .mj-field-list li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

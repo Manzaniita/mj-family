@@ -1044,16 +1044,10 @@ add_filter('block_categories_all', function ($categories) {
 function mj_block_image_url($value) {
 	$id = is_array($value) && isset($value['id']) ? absint($value['id']) : absint($value);
 	if (!$id) {
-		return '';
+		return is_array($value) && !empty($value['url']) ? esc_url_raw($value['url']) : (is_string($value) ? esc_url_raw($value) : '');
 	}
 	$url = wp_get_attachment_image_url($id, 'large');
-	if (!$url) {
-		return '';
-	}
-	if (is_array($value) && isset($value['focal'])) {
-		return ['url' => $url, 'focal' => $value['focal']];
-	}
-	return $url;
+	return $url ? (string) $url : '';
 }
 
 /*
@@ -1125,13 +1119,25 @@ function mj_block_sanitize_value(array $field, $value) {
 		case 'toggle':
 			return (bool) $value;
 		case 'image':
-			return is_array($value) && isset($value['focal']) ? ['url' => mj_block_image_url($value), 'focal' => $value['focal']] : mj_block_image_url($value);
+			$url = mj_block_image_url($value);
+			if ('' === $url) {
+				return '';
+			}
+			$focal = is_array($value) && isset($value['focal']) && function_exists('mj_sanitize_focal_point') ? mj_sanitize_focal_point($value['focal']) : null;
+			if (!$focal && is_array($value) && isset($value['id']) && function_exists('mj_get_image_focal_point')) {
+				$focal = mj_get_image_focal_point(absint($value['id']));
+			}
+			return $focal ? ['url' => $url, 'focal' => $focal] : $url;
 		case 'images':
 			$urls = [];
 			foreach ((array) $value as $item) {
 				$url = mj_block_image_url($item);
 				if ('' !== $url) {
-					$urls[] = is_array($item) && isset($item['focal']) ? ['url' => $url, 'focal' => $item['focal']] : $url;
+					$focal = is_array($item) && isset($item['focal']) && function_exists('mj_sanitize_focal_point') ? mj_sanitize_focal_point($item['focal']) : null;
+					if (!$focal && is_array($item) && isset($item['id']) && function_exists('mj_get_image_focal_point')) {
+						$focal = mj_get_image_focal_point(absint($item['id']));
+					}
+					$urls[] = $focal ? ['url' => $url, 'focal' => $focal] : $url;
 				}
 			}
 			return $urls;

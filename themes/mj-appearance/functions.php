@@ -14,7 +14,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJ_VERSION', '3.34.4');
+define('MJ_VERSION', '3.35.0');
 
 /*
  * Versión de la librería de íconos que usa el panel de ajustes. Se puede fijar
@@ -38,6 +38,7 @@ require_once get_template_directory() . '/inc/paginas.php';  // Páginas de Word
 require_once get_template_directory() . '/inc/config.php';   // window.MJ (mj_app_config).
 require_once get_template_directory() . '/inc/rest.php';     // Endpoints REST mj/v1.
 require_once get_template_directory() . '/inc/seo.php';      // Título, meta, Open Graph, JSON-LD, sitemap y errores del navegador.
+require_once get_template_directory() . '/inc/focal-point.php'; // Punto de enfoque y encuadre para fotos de productos y banners.
 
 /* -------------------------------------------------------------------------
  * Migración por el renombre (Yamana Theme → MJ Appearance).

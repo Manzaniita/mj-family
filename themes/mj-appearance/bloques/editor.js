@@ -81,6 +81,9 @@
 		var multiple = field.type === 'images';
 		var raw = props.value;
 		var items = Array.isArray(raw) ? raw : (raw && raw.id ? [raw] : []);
+		var state = useState(null);
+		var activeFocalIndex = state[0];
+		var setActiveFocalIndex = state[1];
 
 		function commit(list) {
 			props.onChange(multiple ? list : (list[0] || null));
@@ -89,12 +92,45 @@
 		return el(c.BaseControl, { label: field.label, help: field.help, __nextHasNoMarginBottom: true },
 			el('div', { className: 'mj-field-media' },
 				items.map(function (img, i) {
-					return el('span', { key: img.id + '-' + i, className: 'mj-field-media__item' },
-						el('img', { src: img.url, alt: '' }),
-						el(c.Button, {
-							icon: 'no-alt', label: 'Quitar', size: 'small',
+					var isSelected = activeFocalIndex === i;
+					var focal = img.focal || { x: 0.5, y: 0.5 };
+					var focalStyle = { objectPosition: Math.round(focal.x * 100) + '% ' + Math.round(focal.y * 100) + '%' };
+					return el('span', {
+						key: (img.id || i) + '-' + i,
+						className: 'mj-field-media__item' + (isSelected ? ' is-active' : ''),
+						title: 'Foto ' + (i + 1) + ' — Clic para ajustar encuadre'
+					},
+						el('img', {
+							src: img.url,
+							alt: '',
+							style: focalStyle,
 							onClick: function () {
-								commit(items.filter(function (_, j) { return j !== i; }));
+								setActiveFocalIndex(isSelected ? null : i);
+							}
+						}),
+						el(c.Button, {
+							className: 'mj-field-media__focus-btn',
+							icon: 'image-crop',
+							label: 'Ajustar qué parte se muestra',
+							size: 'small',
+							isPressed: isSelected,
+							onClick: function () {
+								setActiveFocalIndex(isSelected ? null : i);
+							}
+						}),
+						el(c.Button, {
+							className: 'mj-field-media__remove-btn',
+							icon: 'no-alt',
+							label: 'Quitar',
+							size: 'small',
+							onClick: function () {
+								var next = items.filter(function (_, j) { return j !== i; });
+								if (activeFocalIndex === i) {
+									setActiveFocalIndex(next.length ? 0 : null);
+								} else if (activeFocalIndex > i) {
+									setActiveFocalIndex(activeFocalIndex - 1);
+								}
+								commit(next);
 							}
 						})
 					);
@@ -106,17 +142,76 @@
 						gallery: multiple,
 						value: pick(items, 'id'),
 						onSelect: function (sel) {
-							var list = (Array.isArray(sel) ? sel : [sel]).map(function (m) {
+							var selectedList = Array.isArray(sel) ? sel : [sel];
+							var list = selectedList.map(function (m) {
 								var thumb = m.sizes && (m.sizes.medium || m.sizes.thumbnail);
-								return { id: m.id, url: thumb ? thumb.url : m.url };
+								var full = (m.sizes && m.sizes.full && m.sizes.full.url) || m.url;
+								var existing = items.find(function (it) { return it && it.id === m.id; });
+								var focal = (existing && existing.focal) ? existing.focal : { x: 0.5, y: 0.5 };
+								return {
+									id: m.id,
+									url: thumb ? thumb.url : m.url,
+									fullUrl: full,
+									focal: focal
+								};
 							});
 							commit(list);
+							if (list.length > 0) {
+								setActiveFocalIndex(0);
+							}
 						},
 						render: function (r) {
 							return el(c.Button, { variant: 'secondary', onClick: r.open },
 								items.length ? (multiple ? 'Cambiar imágenes' : 'Cambiar foto') : (multiple ? 'Elegir imágenes' : 'Elegir foto'));
 						}
 					})
+				)
+			),
+			activeFocalIndex !== null && items[activeFocalIndex] && el('div', { className: 'mj-field-media__focal-box' },
+				el('div', { className: 'mj-field-media__focal-header' },
+					el('strong', null, 'Ajustar qué parte se muestra' + (multiple && items.length > 1 ? ' (Foto ' + (activeFocalIndex + 1) + ')' : '')),
+					el(c.Button, {
+						icon: 'no-alt',
+						label: 'Cerrar',
+						size: 'small',
+						onClick: function () { setActiveFocalIndex(null); }
+					})
+				),
+				el('p', { className: 'mj-field-help', style: { margin: '4px 0 8px', fontSize: '11px' } },
+					'Arrastrá el punto en la foto para elegir la zona que debe quedar siempre centrada y visible en banners y tarjetas.'
+				),
+				el(c.FocalPointPicker, {
+					url: items[activeFocalIndex].fullUrl || items[activeFocalIndex].url,
+					value: items[activeFocalIndex].focal || { x: 0.5, y: 0.5 },
+					onChange: function (val) {
+						var updated = items.map(function (it, idx) {
+							if (idx === activeFocalIndex) {
+								return Object.assign({}, it, { focal: { x: val.x, y: val.y } });
+							}
+							return it;
+						});
+						commit(updated);
+					}
+				}),
+				el('div', { className: 'mj-field-media__focal-actions' },
+					el(c.Button, {
+						variant: 'tertiary',
+						size: 'small',
+						onClick: function () {
+							var updated = items.map(function (it, idx) {
+								if (idx === activeFocalIndex) {
+									return Object.assign({}, it, { focal: { x: 0.5, y: 0.5 } });
+								}
+								return it;
+							});
+							commit(updated);
+						}
+					}, 'Restablecer centro (50% / 50%)'),
+					el(c.Button, {
+						variant: 'secondary',
+						size: 'small',
+						onClick: function () { setActiveFocalIndex(null); }
+					}, 'Listo')
 				)
 			)
 		);
@@ -479,7 +574,13 @@
 			case 'hero': {
 				var imgs = Array.isArray(attrs.images) ? attrs.images : [];
 				var bg = imgs.length ? imgs[0].url : (hero.image || '');
-				var style = bg ? { backgroundImage: 'linear-gradient(rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.55)), url(' + bg + ')' } : {};
+				var focal = imgs.length && imgs[0].focal ? imgs[0].focal : null;
+				var bgPos = focal ? (Math.round(focal.x * 100) + '% ' + Math.round(focal.y * 100) + '%') : 'center';
+				var style = bg ? {
+					backgroundImage: 'linear-gradient(rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.55)), url(' + bg + ')',
+					backgroundPosition: bgPos,
+					backgroundSize: 'cover'
+				} : {};
 				var badge = attrs.badge || hero.badge;
 				var p1 = attrs.ctaPrimaryText || hero.ctaPrimary;
 				var p2 = attrs.ctaSecondaryText || hero.ctaSecondary;
@@ -500,8 +601,16 @@
 				return header({ value: attrs.eyebrow }, { value: attrs.title, fallback: 'El título de la página' }, { value: attrs.subtitle });
 			case 'banners': {
 				var list = Array.isArray(attrs.images) ? attrs.images : [];
+				var firstBanner = list.length ? list[0] : null;
+				var bFocal = firstBanner && firstBanner.focal ? firstBanner.focal : null;
+				var bPos = bFocal ? (Math.round(bFocal.x * 100) + '% ' + Math.round(bFocal.y * 100) + '%') : 'center';
+				var bStyle = list.length ? {
+					backgroundImage: 'url(' + list[0].url + ')',
+					backgroundPosition: bPos,
+					backgroundSize: 'cover'
+				} : {};
 				return el(Fragment, null,
-					el('div', { className: 'mj-prev-banner', style: list.length ? { backgroundImage: 'url(' + list[0].url + ')' } : {} },
+					el('div', { className: 'mj-prev-banner', style: bStyle },
 						list.length ? null : 'Los banners de Apariencia → MJ Appearance'),
 					el('div', { className: 'mj-prev-banner__dots' }, (list.length ? list : [1, 2, 3]).map(function (_, i) { return el('span', { key: i }); }))
 				);
