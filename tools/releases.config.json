@@ -77,7 +77,8 @@
         "mj-envios",
         "mj-optimizador-imagenes",
         "mj-fotos-rapidas",
-        "mj-popup"
+        "mj-popup",
+        "mj-instagram"
       ]
     },
     "yamana": {
@@ -91,7 +92,8 @@
         "mj-envios",
         "mj-optimizador-imagenes",
         "mj-fotos-rapidas",
-        "mj-popup"
+        "mj-popup",
+        "mj-instagram"
       ]
     },
     "atelier": {
@@ -106,7 +108,8 @@
         "mj-erp",
         "mj-optimizador-imagenes",
         "mj-fotos-rapidas",
-        "mj-popup"
+        "mj-popup",
+        "mj-instagram"
       ]
     },
     "jazbeauty": {
@@ -121,7 +124,8 @@
         "mj-envios",
         "mj-optimizador-imagenes",
         "mj-fotos-rapidas",
-        "mj-popup"
+        "mj-popup",
+        "mj-instagram"
       ]
     }
   }

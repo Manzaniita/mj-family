@@ -56,6 +56,7 @@ $compartidos = @(
             "mj-dolar",
             "mj-envios",
             "mj-erp",
+            "mj-instagram",
             "mj-medios-pago"
         )
     },
@@ -70,6 +71,7 @@ $compartidos = @(
             "mj-erp",
             "mj-fidelidad",
             "mj-fotos-rapidas",
+            "mj-instagram",
             "mj-medios-pago",
             "mj-optimizador-imagenes",
             "mj-popup",

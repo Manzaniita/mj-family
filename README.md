@@ -44,6 +44,7 @@ su motor. Los ajustes guardados en el panel prevalecen sobre los presets.
 | **MJ Optimizador de Imágenes** | 1.2.0 | Redimensionado y conversión de imágenes en el servidor. |
 | **MJ Fotos Rápidas** | 1.4.0 | Carga de fotos y publicación de productos desde el celular. |
 | **MJ Popup** | 1.0.0 | Ventana emergente con imagen para avisos importantes. Compatible con cualquier tema. |
+| **MJ Instagram** | 1.0.0 | Conexión con Instagram y bloque configurable para posts, historias, destacados y perfil. |
 | **MJ Core** | 1.1.0 | Ofrece actualizaciones de paquetes instalados desde Releases privadas de GitHub. |
 
 Los plugins no dependen de MJ Core para funcionar. Las dependencias obligatorias
