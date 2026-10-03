@@ -83,11 +83,11 @@
         "Slug":  "mj-fotos-rapidas",
         "Name":  "MJ Fotos Rápidas",
         "Type":  "plugin",
-        "Version":  "1.4.1",
+        "Version":  "1.5.0",
         "Parent":  null,
-        "Zip":  "mj-fotos-rapidas-1.4.1.zip",
-        "SizeKB":  14,
-        "Sha256":  "e1fece13c63b4c413eb2b38779a486a0acd10e3c3545673b85022cc48e56ce30"
+        "Zip":  "mj-fotos-rapidas-1.5.0.zip",
+        "SizeKB":  20,
+        "Sha256":  "6c9b2e02775cd1a76a2484a05d0ce25db99a353f65173d85d15e3add234c3d52"
     },
     {
         "Slug":  "mj-glossyhair",
@@ -98,6 +98,16 @@
         "Zip":  "mj-glossyhair-1.1.1.zip",
         "SizeKB":  90,
         "Sha256":  "b3ce71f5dd1706d9f2447190719c53de99f4bebde73ff39f64e49d70ce5673f1"
+    },
+    {
+        "Slug":  "mj-instagram",
+        "Name":  "MJ Instagram",
+        "Type":  "plugin",
+        "Version":  "1.0.0",
+        "Parent":  null,
+        "Zip":  "mj-instagram-1.0.0.zip",
+        "SizeKB":  21,
+        "Sha256":  "cb65e4a78322f2eae06384d5a0716aa44616ea7514f5e404e799cbc2e74e1432"
     },
     {
         "Slug":  "mj-jazbeauty",

@@ -2,13 +2,15 @@
 /**
  * Plugin Name: MJ Fotos Rápidas
  * Description: Cargá las fotos de tus productos desde el celular en dos toques y publicalos ahí mismo. Sin FTP, sin renombrar archivos, sin carpetas. Achica las imágenes solo antes de subirlas.
- * Version: 1.4.1
+ * Version: 1.5.0
  * Author: MJ Importaciones
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
  * Text Domain: mj-fotos-rapidas
  *
+ * v1.5: ajuste automático para encastrar fotos en marco 1:1 (contener con fondo o rellenar) y editor interactivo con zoom (+ / - / slider / gestos), encuadre y rotación.
+ * v1.4: soporte de recorte previo a la subida y ajustes ampliados.
  * v1.3: constante de versión, uninstall.php, los ajustes globales los cambia
  * solo quien administra la tienda, lo subido tiene que ser una imagen, y el
  * buscador busca también por SKU (antes lo prometía y buscaba solo por nombre).
@@ -21,7 +23,7 @@
 
 defined('ABSPATH') || exit;
 
-define('MJFR_VERSION', '1.4.1');
+define('MJFR_VERSION', '1.5.0');
 
 /*
  * El menú único de la familia MJ en wp-admin. La clase viaja adentro del
@@ -50,11 +52,12 @@ class MJ_Fotos_Rapidas {
     const OPCION  = 'mj_fotos_rapidas';
 
     /**
-     * Tamaño y calidad con que el celular achica cada foto ANTES de subirla.
+     * Tamaño y calidad con que el celular achica cada foto ANTES de subirla,
+     * modo de ajuste (interactivo, auto_encastrar, auto_rellenar, original) y color de fondo.
      * Salen de la opción del plugin; se pueden cambiar sin tocar el código
      * (o con el filtro `mj_fotos_rapidas_ajustes`).
      *
-     * @return array{max_px:int, calidad:float, recortar:bool}
+     * @return array{max_px:int, calidad:float, modo:string, fondo_color:string, recortar:bool}
      */
     public static function ajustes() {
         $guardado = get_option(self::OPCION, array());
@@ -63,13 +66,27 @@ class MJ_Fotos_Rapidas {
         }
         $max_px  = isset($guardado['max_px']) ? (int) $guardado['max_px'] : self::MAX_PX;
         $calidad = isset($guardado['calidad']) ? (float) $guardado['calidad'] : self::CALIDAD;
-        $recortar = !empty($guardado['recortar']);
+
+        $modo = isset($guardado['modo']) ? sanitize_key($guardado['modo']) : '';
+        if ('' === $modo) {
+            $modo = !empty($guardado['recortar']) ? 'interactivo' : 'interactivo';
+        }
+        if (!in_array($modo, array('interactivo', 'auto_encastrar', 'auto_rellenar', 'original'), true)) {
+            $modo = 'interactivo';
+        }
+
+        $fondo = isset($guardado['fondo_color']) ? sanitize_hex_color($guardado['fondo_color']) : '#ffffff';
+        if (!$fondo) {
+            $fondo = '#ffffff';
+        }
 
         /* Rangos con sentido: nada de fotos de 2 px ni calidad 0. */
         $ajustes = array(
-            'max_px'  => max(320, min(4096, $max_px)),
-            'calidad' => max(0.3, min(1.0, $calidad)),
-            'recortar' => $recortar,
+            'max_px'      => max(320, min(4096, $max_px)),
+            'calidad'     => max(0.3, min(1.0, $calidad)),
+            'modo'        => $modo,
+            'fondo_color' => $fondo,
+            'recortar'    => ($modo === 'interactivo'),
         );
         return (array) apply_filters('mj_fotos_rapidas_ajustes', $ajustes);
     }
@@ -82,17 +99,32 @@ class MJ_Fotos_Rapidas {
         add_action('admin_post_mj_fotos_ajustes', array($this, 'guardar_ajustes'));
     }
 
-    /** Guarda el tamaño y la calidad del achique (formulario de la pantalla). */
+    /** Guarda el tamaño, calidad y modo de ajuste de las fotos (formulario de la pantalla). */
     public function guardar_ajustes() {
         if (!current_user_can(self::capacidad_ajustes())) {
             wp_die('Sin permisos.');
         }
         check_admin_referer(self::NONCE . '_ajustes');
 
+        $modo = isset($_POST['modo']) ? sanitize_key(wp_unslash($_POST['modo'])) : 'interactivo';
+        if (!in_array($modo, array('interactivo', 'auto_encastrar', 'auto_rellenar', 'original'), true)) {
+            $modo = 'interactivo';
+        }
+
+        $fondo = isset($_POST['fondo_color']) ? sanitize_hex_color(wp_unslash($_POST['fondo_color'])) : '#ffffff';
+        if (!$fondo) {
+            $fondo = '#ffffff';
+        }
+
+        $calidad_raw = isset($_POST['calidad']) ? sanitize_text_field(wp_unslash($_POST['calidad'])) : '';
+        $calidad_num = '' !== $calidad_raw ? floatval($calidad_raw) / 100 : self::CALIDAD;
+
         update_option(self::OPCION, array(
-            'max_px'  => isset($_POST['max_px']) ? absint($_POST['max_px']) : self::MAX_PX,
-            'calidad' => isset($_POST['calidad']) ? (float) $_POST['calidad'] / 100 : self::CALIDAD,
-            'recortar' => !empty($_POST['recortar']),
+            'max_px'      => isset($_POST['max_px']) ? absint(wp_unslash($_POST['max_px'])) : self::MAX_PX,
+            'calidad'     => $calidad_num,
+            'modo'        => $modo,
+            'fondo_color' => $fondo,
+            'recortar'    => ($modo === 'interactivo'),
         ));
 
         wp_safe_redirect(add_query_arg(
@@ -210,27 +242,20 @@ class MJ_Fotos_Rapidas {
         $busqueda  = isset($_GET['q']) ? sanitize_text_field(wp_unslash($_GET['q'])) : '';
         $productos = $this->productos($filtro, $busqueda);
         $puede_publicar = current_user_can('publish_products');
+        $mjfr_ajustes   = self::ajustes();
         ?>
         <div class="wrap mjfr">
 
-            <?php if (!empty(self::ajustes()['recortar'])) : ?>
-                <?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- Biblioteca externa cargada solo al activar recorte. ?>
-                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
-                <?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- Biblioteca externa cargada solo al activar recorte. ?>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-            <?php endif; ?>
-
             <h1 class="mjfr-titulo">Fotos rápidas</h1>
-            <p class="mjfr-bajada">Elegí las fotos desde la galería del celular. Se achican y se suben solas: la primera queda como imagen principal y el resto va a la galería. Cuando el producto está listo, lo publicás desde acá.</p>
+            <p class="mjfr-bajada">Elegí las fotos desde la galería del celular. Se ajustan automáticamente o te permiten encuadrar y hacer zoom a gusto. La primera queda como imagen principal y el resto va a la galería. Cuando el producto está listo, lo publicás acá mismo.</p>
 
             <?php if (!empty($_GET['guardado'])) : ?>
                 <div class="notice notice-success is-dismissible"><p>Ajustes guardados.</p></div>
             <?php endif; ?>
 
-            <?php $mjfr_ajustes = self::ajustes(); ?>
             <?php if (current_user_can(self::capacidad_ajustes())) : ?>
             <details style="margin:0 0 16px;">
-                <summary style="cursor:pointer;">Ajustes de las fotos</summary>
+                <summary style="cursor:pointer; font-weight:600;">Ajustes globales de las fotos</summary>
                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; margin-top:10px;">
                     <input type="hidden" name="action" value="mj_fotos_ajustes">
                     <?php wp_nonce_field(self::NONCE . '_ajustes'); ?>
@@ -240,15 +265,42 @@ class MJ_Fotos_Rapidas {
                     <label>Calidad (%)<br>
                         <input type="number" name="calidad" value="<?php echo esc_attr((string) round($mjfr_ajustes['calidad'] * 100)); ?>" min="30" max="100" step="1">
                     </label>
-                    <label style="display:flex; align-items:center; gap:6px; height: 30px;">
-                        <input type="checkbox" name="recortar" value="1" <?php checked(!empty($mjfr_ajustes['recortar'])); ?>>
-                        Permitir recortar la imagen antes de subirla
+                    <label>Modo de ajuste predeterminado<br>
+                        <select name="modo">
+                            <option value="interactivo" <?php selected($mjfr_ajustes['modo'], 'interactivo'); ?>>Interactivo (acercar, alejar y recortar a gusto)</option>
+                            <option value="auto_encastrar" <?php selected($mjfr_ajustes['modo'], 'auto_encastrar'); ?>>Automático: Encastrar entera (con fondo)</option>
+                            <option value="auto_rellenar" <?php selected($mjfr_ajustes['modo'], 'auto_rellenar'); ?>>Automático: Rellenar marco 1:1</option>
+                            <option value="original" <?php selected($mjfr_ajustes['modo'], 'original'); ?>>Original (sin ajustar proporciones)</option>
+                        </select>
                     </label>
-                    <button type="submit" class="button">Guardar</button>
-                    <span class="description" style="width: 100%;">Más tamaño y más calidad = fotos más lindas pero más pesadas y más lentas de subir desde el celular.</span>
+                    <label>Color de fondo para encastrar<br>
+                        <input type="color" name="fondo_color" value="<?php echo esc_attr($mjfr_ajustes['fondo_color']); ?>" style="height:38px; width:50px; padding:2px;">
+                    </label>
+                    <button type="submit" class="button">Guardar ajustes</button>
+                    <span class="description" style="width: 100%;">El modo interactivo te permite acercar, alejar y mover la foto con los dedos antes de subirla. El modo automático achica o agranda para que encastre perfecto en las tarjetas cuadradas sin tener que tocar nada.</span>
                 </form>
             </details>
             <?php endif; ?>
+
+            <div class="mjfr-modo-barra" role="group" aria-label="Ajuste de fotos al agregar">
+                <span class="mjfr-modo-titulo">Ajuste al agregar fotos:</span>
+                <label class="mjfr-modo-opcion">
+                    <input type="radio" name="mjfr_modo_ui" value="interactivo" <?php checked($mjfr_ajustes['modo'], 'interactivo'); ?>>
+                    <span>Interactivo (zoom y encuadre a gusto)</span>
+                </label>
+                <label class="mjfr-modo-opcion">
+                    <input type="radio" name="mjfr_modo_ui" value="auto_encastrar" <?php checked($mjfr_ajustes['modo'], 'auto_encastrar'); ?>>
+                    <span>Auto: Encastrar entera (fondo blanco)</span>
+                </label>
+                <label class="mjfr-modo-opcion">
+                    <input type="radio" name="mjfr_modo_ui" value="auto_rellenar" <?php checked($mjfr_ajustes['modo'], 'auto_rellenar'); ?>>
+                    <span>Auto: Rellenar marco 1:1</span>
+                </label>
+                <label class="mjfr-modo-opcion">
+                    <input type="radio" name="mjfr_modo_ui" value="original" <?php checked($mjfr_ajustes['modo'], 'original'); ?>>
+                    <span>Original (sin ajustar)</span>
+                </label>
+            </div>
 
             <form method="get" class="mjfr-barra">
                 <input type="hidden" name="page" value="<?php echo esc_attr(self::SLUG); ?>">
@@ -327,12 +379,96 @@ class MJ_Fotos_Rapidas {
             <?php endforeach; ?>
 
             <p class="mjfr-credito">Creado por MJ Importaciones</p>
+
+            <!-- Modal de Ajuste y Recorte Interactivo -->
+            <div class="mjfr-modal" id="mjfr-editor-modal" role="dialog" aria-modal="true" aria-labelledby="mjfr-modal-titulo" hidden>
+                <div class="mjfr-modal-panel">
+                    <div class="mjfr-modal-cabecera">
+                        <div class="mjfr-modal-titulos">
+                            <h2 id="mjfr-modal-titulo" class="mjfr-modal-titulo">Ajustar foto para el producto</h2>
+                            <span class="mjfr-modal-contador" id="mjfr-editor-contador"></span>
+                        </div>
+                        <button type="button" class="mjfr-modal-cerrar" id="mjfr-editor-cerrar" title="Cerrar y saltear foto">×</button>
+                    </div>
+
+                    <div class="mjfr-modal-cuerpo">
+                        <div class="mjfr-viewport-contenedor">
+                            <div class="mjfr-viewport" id="mjfr-viewport">
+                                <div class="mjfr-stage" id="mjfr-stage">
+                                    <img id="mjfr-editor-img" class="mjfr-editor-img" src="" alt="">
+                                </div>
+                                <div class="mjfr-viewport-guia">
+                                    <div class="mjfr-guia-linea mjfr-guia-v1"></div>
+                                    <div class="mjfr-guia-linea mjfr-guia-v2"></div>
+                                    <div class="mjfr-guia-linea mjfr-guia-h1"></div>
+                                    <div class="mjfr-guia-linea mjfr-guia-h2"></div>
+                                </div>
+                            </div>
+                            <div class="mjfr-ayuda-gestos">Arrastrá para encuadrar • Pellizcá o usá el zoom para acercar y alejar</div>
+                        </div>
+
+                        <div class="mjfr-controles">
+                            <div class="mjfr-zoom-fila">
+                                <span class="mjfr-control-label">Zoom:</span>
+                                <button type="button" class="button mjfr-btn-zoom" id="mjfr-zoom-menos" title="Alejar foto" aria-label="Alejar">−</button>
+                                <input type="range" class="mjfr-slider" id="mjfr-zoom-slider" min="30" max="300" step="1" value="100" aria-label="Nivel de zoom">
+                                <button type="button" class="button mjfr-btn-zoom" id="mjfr-zoom-mas" title="Acercar foto" aria-label="Acercar">+</button>
+                                <span class="mjfr-zoom-indicador" id="mjfr-zoom-num">100%</span>
+                            </div>
+
+                            <div class="mjfr-botones-rapidos">
+                                <button type="button" class="button" id="mjfr-btn-encastrar" title="Achicar para mostrar el producto entero con fondo blanco">⛶ Encastrar entera</button>
+                                <button type="button" class="button" id="mjfr-btn-rellenar" title="Agrandar para cubrir todo el marco 1:1 sin bordes">⬛ Rellenar marco</button>
+                                <button type="button" class="button" id="mjfr-btn-centrar" title="Centrar la foto en el marco">🎯 Centrar</button>
+                                <button type="button" class="button" id="mjfr-btn-rotar" title="Girar 90 grados">🔄 Girar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mjfr-modal-pie">
+                        <button type="button" class="button mjfr-btn-lote" id="mjfr-btn-todas" hidden>Ajustar todas y subir</button>
+                        <div class="mjfr-pie-derecha">
+                            <button type="button" class="button mjfr-btn-secundario" id="mjfr-btn-saltar">Subir original</button>
+                            <button type="button" class="button button-primary mjfr-btn-primario" id="mjfr-btn-listo">Listo y subir</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <style>
         .mjfr { max-width: 720px; }
         .mjfr-titulo { margin-bottom: 4px; }
         .mjfr-bajada { color:#50575e; max-width: 62ch; margin-top:0; }
+
+        /* Barra de modo rápido */
+        .mjfr-modo-barra {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fff;
+            border: 1px solid #dcdcde;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+        .mjfr-modo-titulo {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1d2327;
+        }
+        .mjfr-modo-opcion {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            color: #2c3338;
+            cursor: pointer;
+        }
+        .mjfr-modo-opcion input {
+            margin: 0;
+        }
 
         .mjfr-barra { display:flex; gap:8px; margin:18px 0 14px; flex-wrap:wrap; }
         .mjfr-buscar { flex:1 1 200px; min-height:38px; }
@@ -393,16 +529,235 @@ class MJ_Fotos_Rapidas {
 
         .mjfr-credito { margin-top:28px; color:#a7aaad; font-size:12px; }
 
-        .mjfr-modal { position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.8); display:flex; flex-direction:column; }
-        .mjfr-modal-body { flex:1; min-height:0; display:flex; justify-content:center; align-items:center; padding:20px; }
-        .mjfr-modal-img { max-width:100%; max-height:100%; display:block; }
-        .mjfr-modal-footer { flex:0 0 auto; background:#fff; padding:16px; display:flex; justify-content:flex-end; gap:12px; }
+        /* Modal interactivo */
+        .mjfr-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+            background: rgba(15, 23, 42, 0.78);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+        .mjfr-modal[hidden] {
+            display: none !important;
+        }
+        .mjfr-modal-panel {
+            background: #ffffff;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 440px;
+            max-height: 94vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        .mjfr-modal-cabecera {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .mjfr-modal-titulos {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .mjfr-modal-titulo {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .mjfr-modal-contador {
+            font-size: 12px;
+            font-weight: 600;
+            background: #e2e8f0;
+            color: #475569;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+        .mjfr-modal-cerrar {
+            background: transparent;
+            border: none;
+            font-size: 24px;
+            line-height: 1;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+        .mjfr-modal-cerrar:hover {
+            color: #0f172a;
+        }
+
+        .mjfr-modal-cuerpo {
+            padding: 14px 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mjfr-viewport-contenedor {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .mjfr-viewport {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            max-width: 76vw;
+            max-height: 76vw;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(0,0,0,0.1);
+            overflow: hidden;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+        }
+        .mjfr-viewport.is-dragging {
+            cursor: grabbing;
+        }
+        .mjfr-stage {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .mjfr-editor-img {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            pointer-events: none;
+            user-select: none;
+            max-width: none;
+            max-height: none;
+            will-change: transform;
+        }
+        .mjfr-viewport-guia {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border: 1px solid rgba(34, 113, 177, 0.4);
+        }
+        .mjfr-guia-linea {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 1px rgba(0,0,0,0.5);
+        }
+        .mjfr-guia-v1 { left: 33.333%; top: 0; bottom: 0; width: 1px; }
+        .mjfr-guia-v2 { left: 66.666%; top: 0; bottom: 0; width: 1px; }
+        .mjfr-guia-h1 { top: 33.333%; left: 0; right: 0; height: 1px; }
+        .mjfr-guia-h2 { top: 66.666%; left: 0; right: 0; height: 1px; }
+
+        .mjfr-ayuda-gestos {
+            font-size: 11px;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .mjfr-controles {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .mjfr-zoom-fila {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 6px 10px;
+            border-radius: 8px;
+        }
+        .mjfr-control-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+        }
+        .mjfr-btn-zoom {
+            width: 32px;
+            height: 32px;
+            min-height: 32px;
+            padding: 0 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px !important;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .mjfr-slider {
+            flex: 1;
+            margin: 0;
+            cursor: pointer;
+        }
+        .mjfr-zoom-indicador {
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 44px;
+            text-align: right;
+            color: #1e293b;
+        }
+
+        .mjfr-botones-rapidos {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .mjfr-botones-rapidos .button {
+            font-size: 12px !important;
+            padding: 4px 8px !important;
+            height: auto !important;
+            line-height: 1.4 !important;
+        }
+
+        .mjfr-modal-pie {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .mjfr-pie-derecha {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+        .mjfr-btn-primario {
+            background: #00a32a !important;
+            border-color: #00733a !important;
+            color: #fff !important;
+            font-weight: 600 !important;
+            padding: 6px 16px !important;
+        }
+        .mjfr-btn-primario:hover {
+            background: #00893a !important;
+        }
 
         @media (max-width:600px) {
             .mjfr-acciones { flex-direction:column; }
             .mjfr-boton { padding:18px; font-size:16px; }
             .mjfr-publicar { padding:16px; }
             .mjfr-foto { width:64px; height:64px; }
+            .mjfr-viewport { width:280px; height:280px; }
+            .mjfr-modal-pie { flex-direction: column; align-items: stretch; }
+            .mjfr-pie-derecha { width: 100%; justify-content: space-between; margin-left: 0; }
         }
         @media (prefers-reduced-motion: reduce) {
             .mjfr-barra-int { transition:none; }
@@ -411,16 +766,40 @@ class MJ_Fotos_Rapidas {
 
         <script>
         (function () {
-            const AJAX    = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
-            const NONCE   = <?php echo wp_json_encode(wp_create_nonce(self::NONCE)); ?>;
-            const MAX_PX  = <?php echo (int) self::ajustes()['max_px']; ?>;
-            const CALIDAD = <?php echo (float) self::ajustes()['calidad']; ?>;
-            const RECORTAR = <?php echo !empty(self::ajustes()['recortar']) ? 'true' : 'false'; ?>;
+            const AJAX         = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
+            const NONCE        = <?php echo wp_json_encode(wp_create_nonce(self::NONCE)); ?>;
+            const MAX_PX       = <?php echo (int) $mjfr_ajustes['max_px']; ?>;
+            const CALIDAD      = <?php echo (float) $mjfr_ajustes['calidad']; ?>;
+            const MODO_DEF     = <?php echo wp_json_encode($mjfr_ajustes['modo']); ?>;
+            const FONDO_COLOR  = <?php echo wp_json_encode($mjfr_ajustes['fondo_color']); ?>;
+
+            // Selector rápido de modo guardado en localStorage
+            function obtenerModoActivo() {
+                const guardado = localStorage.getItem('mjfr_modo_ui');
+                if (guardado && ['interactivo', 'auto_encastrar', 'auto_rellenar', 'original'].includes(guardado)) {
+                    return guardado;
+                }
+                return MODO_DEF || 'interactivo';
+            }
+
+            function sincronizarModoUI() {
+                const modoActual = obtenerModoActivo();
+                const radios = document.querySelectorAll('input[name="mjfr_modo_ui"]');
+                radios.forEach(function (r) {
+                    r.checked = (r.value === modoActual);
+                    r.addEventListener('change', function () {
+                        if (r.checked) {
+                            localStorage.setItem('mjfr_modo_ui', r.value);
+                        }
+                    });
+                });
+            }
+            sincronizarModoUI();
 
             function pedir(datos) {
                 datos.append('nonce', NONCE);
                 return fetch(AJAX, { method: 'POST', body: datos, credentials: 'same-origin' })
-                    .then(r => r.json());
+                    .then(function (r) { return r.json(); });
             }
 
             function avisar(item, texto) {
@@ -436,10 +815,10 @@ class MJ_Fotos_Rapidas {
                 c.classList.toggle('tiene', n > 0);
             }
 
-            // Achica la imagen en el navegador antes de subirla.
+            // Achica la imagen manteniendo aspecto original antes de subirla
             function achicar(archivo) {
                 return new Promise(function (resolver) {
-                    if (!/^image\/(jpeg|png|webp)$/i.test(archivo.type)) return resolver(archivo);
+                    if (!/^image\/(jpeg|png|webp|gif|avif)$/i.test(archivo.type)) return resolver(archivo);
                     const img = new Image();
                     const url = URL.createObjectURL(archivo);
                     img.onload = function () {
@@ -460,58 +839,345 @@ class MJ_Fotos_Rapidas {
                 });
             }
 
-            function mostrarRecortador(archivo) {
-                return new Promise((resolve) => {
+            // Ajuste automático directo (encastrar completa o rellenar 1:1) sin requerir interacción
+            function ajustarAutomatico(archivo, modo, fondo) {
+                return new Promise(function (resolver) {
+                    if (!/^image\/(jpeg|png|webp|gif|avif)$/i.test(archivo.type)) return resolver(archivo);
+                    const img = new Image();
                     const url = URL.createObjectURL(archivo);
-                    const modal = document.createElement('div');
-                    modal.className = 'mjfr-modal';
-                    modal.innerHTML = `
-                        <div class="mjfr-modal-body">
-                            <img src="${url}" class="mjfr-modal-img" alt="">
-                        </div>
-                        <div class="mjfr-modal-footer">
-                            <button type="button" class="button mjfr-cancelar">Saltar / Cancelar</button>
-                            <button type="button" class="button button-primary mjfr-listo">Recortar y subir</button>
-                        </div>
-                    `;
-                    document.body.appendChild(modal);
+                    img.onload = function () {
+                        const nw = img.naturalWidth || img.width;
+                        const nh = img.naturalHeight || img.height;
+                        const outSize = Math.max(800, Math.min(MAX_PX, Math.max(nw, nh)));
 
-                    const img = modal.querySelector('.mjfr-modal-img');
-                    let cropper;
-                    img.onload = () => {
-                        cropper = new Cropper(img, {
-                            viewMode: 1,
-                            dragMode: 'crop',
-                            autoCropArea: 0.8,
-                            restore: false,
-                            guides: true,
-                            center: true,
-                            highlight: false,
-                            cropBoxMovable: true,
-                            cropBoxResizable: true,
-                            toggleDragModeOnDblclick: false,
-                        });
+                        let scale;
+                        if (modo === 'auto_encastrar') {
+                            scale = outSize / Math.max(nw, nh); // Contener entera con fondo
+                        } else {
+                            scale = outSize / Math.min(nw, nh); // Rellenar 1:1
+                        }
+
+                        const lienzo = document.createElement('canvas');
+                        lienzo.width = outSize;
+                        lienzo.height = outSize;
+                        const ctx = lienzo.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+
+                        ctx.fillStyle = fondo || '#ffffff';
+                        ctx.fillRect(0, 0, outSize, outSize);
+
+                        const drawW = nw * scale;
+                        const drawH = nh * scale;
+                        const drawX = (outSize - drawW) / 2;
+                        const drawY = (outSize - drawH) / 2;
+                        ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+                        lienzo.toBlob(function (blob) {
+                            URL.revokeObjectURL(url);
+                            if (!blob) return resolver(archivo);
+                            const nuevo = new File([blob], archivo.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+                            nuevo.focalX = 0.5;
+                            nuevo.focalY = 0.5;
+                            resolver(nuevo);
+                        }, 'image/jpeg', CALIDAD);
+                    };
+                    img.onerror = function () { URL.revokeObjectURL(url); resolver(archivo); };
+                    img.src = url;
+                });
+            }
+
+            // Editor interactivo con zoom (+ / - / slider / pinch / wheel), encuadre y rotación
+            function mostrarEditor(archivo, index, total) {
+                return new Promise(function (resolve) {
+                    const modal = document.getElementById('mjfr-editor-modal');
+                    const imgEl = document.getElementById('mjfr-editor-img');
+                    const viewport = document.getElementById('mjfr-viewport');
+                    const contadorEl = document.getElementById('mjfr-editor-contador');
+                    const btnCerrar = document.getElementById('mjfr-editor-cerrar');
+                    const btnListo = document.getElementById('mjfr-btn-listo');
+                    const btnSaltar = document.getElementById('mjfr-btn-saltar');
+                    const btnTodas = document.getElementById('mjfr-btn-todas');
+                    const slider = document.getElementById('mjfr-zoom-slider');
+                    const zoomNum = document.getElementById('mjfr-zoom-num');
+                    const btnZoomMenos = document.getElementById('mjfr-zoom-menos');
+                    const btnZoomMas = document.getElementById('mjfr-zoom-mas');
+                    const btnEncastrar = document.getElementById('mjfr-btn-encastrar');
+                    const btnRellenar = document.getElementById('mjfr-btn-rellenar');
+                    const btnCentrar = document.getElementById('mjfr-btn-centrar');
+                    const btnRotar = document.getElementById('mjfr-btn-rotar');
+
+                    const url = URL.createObjectURL(archivo);
+                    imgEl.src = url;
+
+                    if (total > 1) {
+                        contadorEl.textContent = 'Foto ' + (index + 1) + ' de ' + total;
+                        contadorEl.hidden = false;
+                        btnTodas.hidden = (index === total - 1);
+                    } else {
+                        contadorEl.textContent = '';
+                        contadorEl.hidden = true;
+                        btnTodas.hidden = true;
+                    }
+
+                    modal.hidden = false;
+
+                    let nw = 1, nh = 1;
+                    let stageSize = 320;
+                    let scaleContain = 1;
+                    let scaleCover = 1;
+                    let scale = 1;
+                    let posX = 0;
+                    let posY = 0;
+                    let rotation = 0;
+
+                    function calcDimensiones() {
+                        stageSize = viewport.clientWidth || 320;
+                        const ew = (rotation % 180 === 0) ? nw : nh;
+                        const eh = (rotation % 180 === 0) ? nh : nw;
+                        scaleContain = stageSize / Math.max(ew, eh);
+                        scaleCover   = stageSize / Math.min(ew, eh);
+                    }
+
+                    function actualizarVista() {
+                        imgEl.style.transform = 'translate(-50%, -50%) translate(' + posX + 'px, ' + posY + 'px) rotate(' + rotation + 'deg) scale(' + scale + ')';
+                        const pct = Math.round((scale / scaleContain) * 100);
+                        slider.value = pct;
+                        zoomNum.textContent = pct + '%';
+                    }
+
+                    imgEl.onload = function () {
+                        nw = imgEl.naturalWidth || imgEl.width || 1000;
+                        nh = imgEl.naturalHeight || imgEl.height || 1000;
+                        calcDimensiones();
+
+                        // Por defecto encastra completa para que el producto se vea entero sin recortes
+                        scale = scaleContain;
+                        posX = 0;
+                        posY = 0;
+                        rotation = 0;
+
+                        slider.min = Math.max(20, Math.round((scaleContain * 0.35 / scaleContain) * 100));
+                        slider.max = Math.max(300, Math.round((scaleCover * 3.0 / scaleContain) * 100));
+                        actualizarVista();
                     };
 
-                    const cerrar = () => {
-                        if (cropper) cropper.destroy();
-                        document.body.removeChild(modal);
+                    // Drag con PointerEvents (mouse y touch)
+                    let isDragging = false;
+                    let startX = 0, startY = 0;
+
+                    function onPointerDown(e) {
+                        isDragging = true;
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        viewport.classList.add('is-dragging');
+                        viewport.setPointerCapture(e.pointerId);
+                    }
+
+                    function onPointerMove(e) {
+                        if (!isDragging) return;
+                        const dx = e.clientX - startX;
+                        const dy = e.clientY - startY;
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        posX += dx;
+                        posY += dy;
+                        actualizarVista();
+                    }
+
+                    function onPointerUp(e) {
+                        if (isDragging) {
+                            isDragging = false;
+                            viewport.classList.remove('is-dragging');
+                            try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
+                        }
+                    }
+
+                    viewport.addEventListener('pointerdown', onPointerDown);
+                    viewport.addEventListener('pointermove', onPointerMove);
+                    viewport.addEventListener('pointerup', onPointerUp);
+                    viewport.addEventListener('pointercancel', onPointerUp);
+
+                    // Pellizco para zoom táctil (2 dedos)
+                    let pinchDist = null;
+                    function onTouchMove(e) {
+                        if (e.touches.length === 2) {
+                            e.preventDefault();
+                            const d = Math.hypot(
+                                e.touches[0].clientX - e.touches[1].clientX,
+                                e.touches[0].clientY - e.touches[1].clientY
+                            );
+                            if (pinchDist) {
+                                const factor = d / pinchDist;
+                                scale = Math.max(scaleContain * 0.25, Math.min(scaleCover * 4.0, scale * factor));
+                                actualizarVista();
+                            }
+                            pinchDist = d;
+                        }
+                    }
+                    function onTouchEnd() { pinchDist = null; }
+                    viewport.addEventListener('touchmove', onTouchMove, { passive: false });
+                    viewport.addEventListener('touchend', onTouchEnd);
+
+                    // Rueda del ratón
+                    function onWheel(e) {
+                        e.preventDefault();
+                        const factor = e.deltaY < 0 ? 1.08 : 0.92;
+                        scale = Math.max(scaleContain * 0.25, Math.min(scaleCover * 4.0, scale * factor));
+                        actualizarVista();
+                    }
+                    viewport.addEventListener('wheel', onWheel, { passive: false });
+
+                    // Slider de zoom y botones + / -
+                    function onSliderInput() {
+                        const pct = parseFloat(slider.value) || 100;
+                        scale = (pct / 100) * scaleContain;
+                        actualizarVista();
+                    }
+                    slider.addEventListener('input', onSliderInput);
+
+                    function zoomDelta(delta) {
+                        const actualPct = parseFloat(slider.value) || 100;
+                        const nuevoPct = Math.max(parseFloat(slider.min), Math.min(parseFloat(slider.max), actualPct + delta));
+                        scale = (nuevoPct / 100) * scaleContain;
+                        actualizarVista();
+                    }
+                    function onZoomMenos() { zoomDelta(-15); }
+                    function onZoomMas() { zoomDelta(15); }
+                    btnZoomMenos.addEventListener('click', onZoomMenos);
+                    btnZoomMas.addEventListener('click', onZoomMas);
+
+                    // Botones rápidos
+                    function onEncastrar() {
+                        calcDimensiones();
+                        scale = scaleContain;
+                        posX = 0;
+                        posY = 0;
+                        actualizarVista();
+                    }
+                    function onRellenar() {
+                        calcDimensiones();
+                        scale = scaleCover;
+                        posX = 0;
+                        posY = 0;
+                        actualizarVista();
+                    }
+                    function onCentrar() {
+                        posX = 0;
+                        posY = 0;
+                        actualizarVista();
+                    }
+                    function onRotar() {
+                        rotation = (rotation + 90) % 360;
+                        calcDimensiones();
+                        scale = scaleContain;
+                        posX = 0;
+                        posY = 0;
+                        actualizarVista();
+                    }
+                    btnEncastrar.addEventListener('click', onEncastrar);
+                    btnRellenar.addEventListener('click', onRellenar);
+                    btnCentrar.addEventListener('click', onCentrar);
+                    btnRotar.addEventListener('click', onRotar);
+
+                    function limpiarEventos() {
+                        viewport.removeEventListener('pointerdown', onPointerDown);
+                        viewport.removeEventListener('pointermove', onPointerMove);
+                        viewport.removeEventListener('pointerup', onPointerUp);
+                        viewport.removeEventListener('pointercancel', onPointerUp);
+                        viewport.removeEventListener('touchmove', onTouchMove);
+                        viewport.removeEventListener('touchend', onTouchEnd);
+                        viewport.removeEventListener('wheel', onWheel);
+                        slider.removeEventListener('input', onSliderInput);
+                        btnZoomMenos.removeEventListener('click', onZoomMenos);
+                        btnZoomMas.removeEventListener('click', onZoomMas);
+                        btnEncastrar.removeEventListener('click', onEncastrar);
+                        btnRellenar.removeEventListener('click', onRellenar);
+                        btnCentrar.removeEventListener('click', onCentrar);
+                        btnRotar.removeEventListener('click', onRotar);
+                        btnCerrar.removeEventListener('click', onCerrar);
+                        btnSaltar.removeEventListener('click', onSaltar);
+                        btnListo.removeEventListener('click', onListo);
+                        btnTodas.removeEventListener('click', onTodas);
+                        modal.hidden = true;
                         URL.revokeObjectURL(url);
-                    };
+                    }
 
-                    modal.querySelector('.mjfr-cancelar').addEventListener('click', () => {
-                        cerrar();
-                        resolve(archivo); // Sube original si cancela
-                    });
+                    function onCerrar() {
+                        limpiarEventos();
+                        resolve({ cancelado: true });
+                    }
+                    btnCerrar.addEventListener('click', onCerrar);
 
-                    modal.querySelector('.mjfr-listo').addEventListener('click', () => {
-                        if (!cropper) return;
-                        cropper.getCroppedCanvas().toBlob((blob) => {
-                            cerrar();
-                            if (!blob) resolve(archivo);
-                            else resolve(new File([blob], archivo.name, { type: archivo.type }));
-                        }, archivo.type, CALIDAD);
-                    });
+                    function onSaltar() {
+                        limpiarEventos();
+                        achicar(archivo).then(function (res) {
+                            resolve({ archivo: res, cancelado: false, aplicarATodas: false });
+                        });
+                    }
+                    btnSaltar.addEventListener('click', onSaltar);
+
+                    function generarArchivoFinal() {
+                        const ew = (rotation % 180 === 0) ? nw : nh;
+                        const eh = (rotation % 180 === 0) ? nh : nw;
+                        const outSize = Math.max(800, Math.min(MAX_PX, Math.max(ew, eh)));
+                        const ratio = outSize / stageSize;
+
+                        const lienzo = document.createElement('canvas');
+                        lienzo.width = outSize;
+                        lienzo.height = outSize;
+                        const ctx = lienzo.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+
+                        ctx.fillStyle = FONDO_COLOR || '#ffffff';
+                        ctx.fillRect(0, 0, outSize, outSize);
+
+                        ctx.save();
+                        ctx.translate(outSize / 2 + posX * ratio, outSize / 2 + posY * ratio);
+                        ctx.rotate((rotation * Math.PI) / 180);
+                        ctx.scale(scale * ratio, scale * ratio);
+                        ctx.drawImage(imgEl, -nw / 2, -nh / 2, nw, nh);
+                        ctx.restore();
+
+                        // Cálculo del punto focal en coordenadas normalizadas (0 a 1)
+                        const rad = (-rotation * Math.PI) / 180;
+                        const cos = Math.cos(rad);
+                        const sin = Math.sin(rad);
+                        const unrotX = -posX * cos - -posY * sin;
+                        const unrotY = -posX * -sin + -posY * cos;
+                        const natDx = unrotX / scale;
+                        const natDy = unrotY / scale;
+                        const fx = Math.max(0, Math.min(1, 0.5 + natDx / nw));
+                        const fy = Math.max(0, Math.min(1, 0.5 + natDy / nh));
+
+                        return new Promise(function (res) {
+                            lienzo.toBlob(function (blob) {
+                                if (!blob) return res(archivo);
+                                const file = new File([blob], archivo.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+                                file.focalX = fx;
+                                file.focalY = fy;
+                                res(file);
+                            }, 'image/jpeg', CALIDAD);
+                        });
+                    }
+
+                    function onListo() {
+                        generarArchivoFinal().then(function (finalFile) {
+                            limpiarEventos();
+                            resolve({ archivo: finalFile, cancelado: false, aplicarATodas: false });
+                        });
+                    }
+                    btnListo.addEventListener('click', onListo);
+
+                    function onTodas() {
+                        const modoLote = (scale >= scaleCover * 0.95) ? 'auto_rellenar' : 'auto_encastrar';
+                        generarArchivoFinal().then(function (finalFile) {
+                            limpiarEventos();
+                            resolve({ archivo: finalFile, cancelado: false, aplicarATodas: true, modoFiltro: modoLote });
+                        });
+                    }
+                    btnTodas.addEventListener('click', onTodas);
                 });
             }
 
@@ -525,17 +1191,41 @@ class MJ_Fotos_Rapidas {
                 barra.style.width = '0%';
 
                 let hechas = 0;
-                for (const original of archivos) {
+                let loteModoAutomatico = null;
+
+                for (let i = 0; i < archivos.length; i++) {
+                    const original = archivos[i];
                     try {
                         let finalFile = original;
-                        if (RECORTAR && typeof Cropper !== 'undefined' && /^image\/(jpeg|png|webp)$/i.test(original.type)) {
-                            finalFile = await mostrarRecortador(original);
+                        const modoActivo = obtenerModoActivo();
+
+                        if (modoActivo === 'auto_encastrar' || modoActivo === 'auto_rellenar') {
+                            finalFile = await ajustarAutomatico(original, modoActivo, FONDO_COLOR);
+                        } else if (modoActivo === 'interactivo' && /^image\/(jpeg|png|webp|gif|avif)$/i.test(original.type)) {
+                            if (loteModoAutomatico) {
+                                finalFile = await ajustarAutomatico(original, loteModoAutomatico, FONDO_COLOR);
+                            } else {
+                                const resEditor = await mostrarEditor(original, i, archivos.length);
+                                if (resEditor.cancelado) {
+                                    break;
+                                }
+                                if (resEditor.aplicarATodas) {
+                                    loteModoAutomatico = resEditor.modoFiltro || 'auto_encastrar';
+                                }
+                                finalFile = resEditor.archivo;
+                            }
+                        } else {
+                            finalFile = await achicar(original);
                         }
-                        const archivo = await achicar(finalFile);
+
                         const datos = new FormData();
                         datos.append('action', 'mj_fotos_subir');
                         datos.append('producto', item.dataset.id);
-                        datos.append('archivo', archivo, archivo.name);
+                        datos.append('archivo', finalFile, finalFile.name);
+                        if (typeof finalFile.focalX === 'number' && typeof finalFile.focalY === 'number') {
+                            datos.append('focal_x', finalFile.focalX.toFixed(3));
+                            datos.append('focal_y', finalFile.focalY.toFixed(3));
+                        }
 
                         const j = await pedir(datos);
                         if (!j.success) throw new Error(j.data || 'Error desconocido');
@@ -698,6 +1388,25 @@ class MJ_Fotos_Rapidas {
             if (!in_array((int) $adjunto, $ids, true)) $ids[] = (int) $adjunto;
             update_post_meta($id, '_product_image_gallery', implode(',', $ids));
         }
+
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- verificar() ya validó el nonce al inicio del método.
+        if (isset($_POST['focal_x'], $_POST['focal_y'])) {
+            $fx = max(0.0, min(1.0, floatval(sanitize_text_field(wp_unslash($_POST['focal_x'])))));
+            $fy = max(0.0, min(1.0, floatval(sanitize_text_field(wp_unslash($_POST['focal_y'])))));
+            $focal_data = array('x' => $fx, 'y' => $fy);
+            update_post_meta($adjunto, '_mj_focal_point', $focal_data);
+            if ($principal) {
+                update_post_meta($id, '_mj_focal_point', $focal_data);
+            } else {
+                $gal_focal = get_post_meta($id, '_mj_gallery_focal', true);
+                if (!is_array($gal_focal)) {
+                    $gal_focal = array();
+                }
+                $gal_focal[(int) $adjunto] = $focal_data;
+                update_post_meta($id, '_mj_gallery_focal', $gal_focal);
+            }
+        }
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         wp_send_json_success(array(
             'id'        => (int) $adjunto,

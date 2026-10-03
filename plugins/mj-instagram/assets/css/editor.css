@@ -1,0 +1,27 @@
+/**
+ * Estilos específicos para el editor Gutenberg de WordPress.
+ */
+
+.wp-block[data-type="mj-instagram/feed"] {
+	margin-top: 1.5rem;
+	margin-bottom: 1.5rem;
+}
+
+.mj-ig-editor-notice {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 14px;
+	background: #f0f6fc;
+	border: 1px solid #c8d8ec;
+	border-radius: 8px;
+	font-size: 13px;
+	margin-bottom: 1rem;
+	color: #1d2327;
+}
+
+.mj-ig-editor-notice a {
+	color: #2271b1;
+	font-weight: 600;
+	text-decoration: underline;
+}
