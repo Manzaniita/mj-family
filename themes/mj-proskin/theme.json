@@ -1,0 +1,42 @@
+{
+	"$schema": "https://schemas.wp.org/wp/6.5/theme.json",
+	"version": 2,
+	"settings": {
+		"appearanceTools": true,
+		"color": {
+			"custom": true,
+			"customGradient": true,
+			"defaultPalette": false,
+			"defaultGradients": false,
+			"palette": [
+				{ "slug": "accent", "name": "Ultravioleta Neón", "color": "#7c3aed" },
+				{ "slug": "proskin-cyan", "name": "Cian Eléctrico", "color": "#06b6d4" },
+				{ "slug": "proskin-gold", "name": "Oro Líquido", "color": "#d4af37" },
+				{ "slug": "proskin-rose", "name": "Rosa Cyber", "color": "#f43f5e" },
+				{ "slug": "proskin-emerald", "name": "Esmeralda Lujo", "color": "#10b981" },
+				{ "slug": "dark-obsidian", "name": "Obsidiana Pura", "color": "#07070a" },
+				{ "slug": "dark-surface", "name": "Superficie de Lujo", "color": "#121118" },
+				{ "slug": "ink-diamond", "name": "Blanco Diamante", "color": "#f8fafc" },
+				{ "slug": "ink-titanium", "name": "Titanio Suave", "color": "#94a3b8" },
+				{ "slug": "light-pearl", "name": "Blanco Platino", "color": "#fbfbfe" }
+			],
+			"gradients": [
+				{ "slug": "proskin-cyber", "name": "Cyber Ultravioleta → Cian", "gradient": "linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%)" },
+				{ "slug": "proskin-gold", "name": "Oro Imperial", "gradient": "linear-gradient(135deg, #d4af37 0%, #fef08a 50%, #b45309 100%)" },
+				{ "slug": "proskin-aurora", "name": "Aurora Neón", "gradient": "linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f59e0b 100%)" },
+				{ "slug": "proskin-velvet", "name": "Noche Velvet", "gradient": "linear-gradient(180deg, #13121d 0%, #07070a 100%)" }
+			]
+		},
+		"typography": {
+			"customFontSize": true,
+			"fontSizes": [
+				{ "slug": "small", "name": "Chico", "size": "0.875rem" },
+				{ "slug": "medium", "name": "Normal", "size": "1rem" },
+				{ "slug": "large", "name": "Destacado", "size": "1.25rem" },
+				{ "slug": "x-large", "name": "Grande", "size": "1.75rem" },
+				{ "slug": "xx-large", "name": "Titular de Lujo", "size": "2.75rem" },
+				{ "slug": "hero-giant", "name": "Hero Monumental", "size": "4rem" }
+			]
+		}
+	}
+}

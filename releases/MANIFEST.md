@@ -1,6 +1,6 @@
 # Versiones publicadas
 
-Generado por `tools/build-releases.ps1` el 2026-10-03 20:30.
+Generado por `tools/build-releases.ps1` el 2026-10-04 23:49.
 En `releases/` queda un solo zip por paquete: el de la versión que está
 hoy en el código. Los de versiones anteriores se borran — las que ya se
 publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
@@ -13,6 +13,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 | MJ Atelier | 1.2.0 | `mj-atelier-1.2.0.zip` | 608 KB | `b6bae05837c3bdde…` |
 | GlossyHair | 1.1.1 | `mj-glossyhair-1.1.1.zip` | 90 KB | `b3ce71f5dd1706d9…` |
 | Jaz Beauty Art | 1.1.1 | `mj-jazbeauty-1.1.1.zip` | 15 KB | `bc686fddbe5984d2…` |
+| MJ ProSkin | 1.0.0 | `mj-proskin-1.0.0.zip` | 588 KB | `47be0925c66ff7e7…` |
 | Yamana | 1.1.1 | `mj-yamana-1.1.1.zip` | 328 KB | `f10fe4c7827ef222…` |
 
 ## Plugins
@@ -50,6 +51,7 @@ bc686fddbe5984d2cec940581bf1ae04242ccffe23a5e1bcc308cc0acce7f115  mj-jazbeauty-1
 96d06eeb2320f534cd7fbff83899110fb546cafac2a7a469619516442e13605d  mj-medios-pago-1.6.0.zip
 89c1b3aa5baf36dd9603b9676965f4301e82026b5b2f3c2ec18416644b121bb0  mj-optimizador-imagenes-1.2.0.zip
 aba1b1d92abfb4fcdcaa2e9daccdb919de7ed4aeca8875e415921f328b5543de  mj-popup-1.0.0.zip
+47be0925c66ff7e7c8f9dc9e02c223e766aa03a0837c70a9ad33bea4551fff45  mj-proskin-1.0.0.zip
 5496bf6ac29d8be57acfc88f743849981abed246077c0c7d2d5b8cec8f45406d  mj-turnos-online-1.4.3.zip
 f10fe4c7827ef222efa722d85652c412a4df793b13c43c92f911f8488a9f7dfa  mj-yamana-1.1.1.zip
 ```

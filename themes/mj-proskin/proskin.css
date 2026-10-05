@@ -1,0 +1,450 @@
+/* ==========================================================================
+   MJ ProSkin — Skin de Ultralujo, Innovadora y Futurista
+   (Tema hijo de MJ Appearance)
+   --------------------------------------------------------------------------
+   Carga después de dist/assets/app.css del tema padre.
+   Define una estética "Cyber Luxury" con animaciones dinámicas,
+   microinteracciones, efectos glassmorphism con brillo refractivo,
+   degradados neón y metálicos, y soporte nativo para Gutenberg.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+ * 1. Tokens de Forma, Tipografía y Movimiento
+ * -------------------------------------------------------------------------- */
+:root,
+[data-skin='proskin'] {
+	--mj-radius-sm: 8px;
+	--mj-radius-md: 14px;
+	--mj-radius-lg: 20px;
+	--mj-radius-xl: 28px;
+	--mj-radius-2xl: 36px;
+	--mj-radius-btn: 9999px;
+	--mj-radius-chip: 9999px;
+	--mj-radius-badge: 9999px;
+	--mj-radius-input: 14px;
+	--mj-radius-pill: 9999px;
+
+	--mj-display-weight: 700;
+	--mj-display-tracking: -0.035em;
+	--mj-display-leading: 1.02;
+
+	--mj-glass-blur: 24px;
+	--mj-dur-fast: 0.18s;
+	--mj-dur: 0.35s;
+	--mj-dur-slow: 0.8s;
+	--mj-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+	/* Degradado holográfico del Hero y elementos destacados */
+	--mj-hero-gradient: linear-gradient(110deg, var(--mj-accent) 0%, #a855f7 30%, #06b6d4 70%, #ec4899 100%);
+
+	/* Colores de soporte Cyber Luxury */
+	--ps-cyan: #06b6d4;
+	--ps-gold: #d4af37;
+	--ps-rose: #f43f5e;
+	--ps-emerald: #10b981;
+
+	/* Resplandores y sombras de ultralujo */
+	--ps-glow-accent: 0 0 35px -6px color-mix(in srgb, var(--mj-accent) 55%, transparent);
+	--ps-glow-cyan: 0 0 35px -6px rgba(6, 182, 212, 0.5);
+	--ps-glow-gold: 0 0 35px -6px rgba(212, 175, 55, 0.5);
+	--ps-shadow-card: 0 20px 45px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+ * 2. Paletas Derivadas por Tema (Modo Noche y Modo Día)
+ * -------------------------------------------------------------------------- */
+:root,
+[data-theme='dark'] {
+	--mj-surface: rgba(255, 255, 255, 0.035);
+	--mj-surface-2: rgba(255, 255, 255, 0.07);
+	--mj-line: rgba(255, 255, 255, 0.08);
+	--mj-line-strong: rgba(255, 255, 255, 0.18);
+	--mj-success: #10b981;
+	--mj-warning: #f59e0b;
+	--mj-danger: #f43f5e;
+	--mj-star: #fbbf24;
+	--mj-shadow-soft: 0 25px 60px -20px rgba(0, 0, 0, 0.8);
+	--mj-overlay: rgba(5, 5, 8, 0.85);
+}
+
+[data-theme='light'] {
+	--mj-surface: rgba(124, 58, 237, 0.025);
+	--mj-surface-2: rgba(124, 58, 237, 0.055);
+	--mj-line: rgba(15, 23, 42, 0.08);
+	--mj-line-strong: rgba(15, 23, 42, 0.16);
+	--mj-success: #059669;
+	--mj-warning: #d97706;
+	--mj-danger: #e11d48;
+	--mj-star: #d97706;
+	--mj-shadow-soft: 0 20px 50px -15px rgba(124, 58, 237, 0.08);
+	--mj-overlay: rgba(15, 23, 42, 0.6);
+}
+
+/* --------------------------------------------------------------------------
+ * 3. Animaciones Keyframes de Ultralujo
+ * -------------------------------------------------------------------------- */
+@keyframes proskin-gradient {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+@keyframes proskin-shimmer {
+	0% { transform: translateX(-150%) skewX(-20deg); }
+	100% { transform: translateX(250%) skewX(-20deg); }
+}
+
+@keyframes proskin-pulse-dot {
+	0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--mj-accent) 70%, transparent); }
+	50% { transform: scale(1.2); opacity: 0.8; box-shadow: 0 0 10px 4px color-mix(in srgb, var(--mj-accent) 40%, transparent); }
+}
+
+@keyframes proskin-float {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-5px); }
+}
+
+@keyframes proskin-glow-cycle {
+	0%, 100% { filter: drop-shadow(0 0 14px color-mix(in srgb, var(--mj-accent) 45%, transparent)); }
+	50% { filter: drop-shadow(0 0 22px rgba(6, 182, 212, 0.5)); }
+}
+
+/* --------------------------------------------------------------------------
+ * 4. Hero & Cabecera Cinematográfica
+ * -------------------------------------------------------------------------- */
+[data-skin='proskin'] .mj-hero {
+	position: relative;
+	overflow: hidden;
+}
+
+[data-skin='proskin'] .mj-hero::before {
+	content: '';
+	position: absolute;
+	top: -20%;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 80vw;
+	max-width: 1100px;
+	height: 500px;
+	background: radial-gradient(ellipse at center, color-mix(in srgb, var(--mj-accent) 20%, transparent) 0%, rgba(6, 182, 212, 0.1) 40%, transparent 70%);
+	pointer-events: none;
+	z-index: 0;
+	filter: blur(40px);
+}
+
+/* Título destacado del Hero con gradiente animado fluido */
+[data-skin='proskin'] .mj-hero-title-highlight,
+[data-skin='proskin'] .proskin-gradient-heading {
+	background: linear-gradient(110deg, var(--mj-accent) 0%, #c084fc 25%, #06b6d4 55%, #ec4899 85%, var(--mj-accent) 100%);
+	background-size: 250% auto;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	animation: proskin-gradient 8s ease infinite alternate;
+}
+
+/* Badge píldora con punto de estado brillante */
+.proskin-badge-pill,
+[data-skin='proskin'] .mj-hero-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 16px;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	border-radius: var(--mj-radius-pill);
+	background: rgba(255, 255, 255, 0.05);
+	backdrop-filter: blur(16px);
+	border: 1px solid color-mix(in srgb, var(--mj-accent) 40%, transparent);
+	color: var(--mj-ink);
+	box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.2);
+}
+
+.proskin-badge-pill::before,
+[data-skin='proskin'] .mj-hero-badge::before {
+	content: '';
+	display: inline-block;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--mj-accent);
+	animation: proskin-pulse-dot 2s infinite ease-in-out;
+}
+
+/* --------------------------------------------------------------------------
+ * 5. Barra de Navegación (Header)
+ * -------------------------------------------------------------------------- */
+[data-skin='proskin'] header,
+[data-skin='proskin'] .mj-header-bar-group {
+	backdrop-filter: blur(var(--mj-glass-blur)) saturate(180%);
+	border-bottom: 1px solid var(--mj-line);
+	box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+	transition: background-color var(--mj-dur) var(--mj-ease), border-color var(--mj-dur) var(--mj-ease);
+}
+
+/* Enlaces del menú */
+[data-skin='proskin'] nav a,
+[data-skin='proskin'] .mj-nav-link {
+	position: relative;
+	font-weight: 500;
+	transition: color var(--mj-dur-fast) var(--mj-ease);
+}
+
+[data-skin='proskin'] nav a:hover,
+[data-skin='proskin'] .mj-nav-link:hover {
+	color: var(--mj-accent) !important;
+}
+
+/* Indicador animado de carrito */
+[data-skin='proskin'] .mj-cart-badge {
+	background: var(--mj-accent);
+	box-shadow: 0 0 14px color-mix(in srgb, var(--mj-accent) 70%, transparent);
+	font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+ * 6. Tarjetas de Productos y Catálogo
+ * -------------------------------------------------------------------------- */
+[data-skin='proskin'] .mj-card,
+[data-skin='proskin'] .mj-product-card,
+[data-skin='proskin'] .wc-block-grid__product,
+[data-skin='proskin'] li.product {
+	position: relative;
+	background: var(--mj-surface);
+	border: 1px solid var(--mj-line);
+	border-radius: var(--mj-radius-xl);
+	overflow: hidden;
+	transition: transform var(--mj-dur) var(--mj-ease), box-shadow var(--mj-dur) var(--mj-ease), border-color var(--mj-dur) var(--mj-ease);
+}
+
+[data-skin='proskin'] .mj-card:hover,
+[data-skin='proskin'] .mj-product-card:hover,
+[data-skin='proskin'] .wc-block-grid__product:hover,
+[data-skin='proskin'] li.product:hover {
+	transform: translateY(-8px) scale(1.008);
+	border-color: color-mix(in srgb, var(--mj-accent) 45%, transparent);
+	box-shadow: 0 25px 50px -16px color-mix(in srgb, var(--mj-accent) 30%, transparent), 0 0 0 1px color-mix(in srgb, var(--mj-accent) 35%, transparent);
+}
+
+/* Zoom suave y elegante en imágenes de productos */
+[data-skin='proskin'] .mj-card img,
+[data-skin='proskin'] .mj-product-card img,
+[data-skin='proskin'] .wc-block-grid__product img,
+[data-skin='proskin'] li.product img {
+	transition: transform 0.6s var(--mj-ease), filter 0.6s var(--mj-ease);
+}
+
+[data-skin='proskin'] .mj-card:hover img,
+[data-skin='proskin'] .mj-product-card:hover img,
+[data-skin='proskin'] .wc-block-grid__product:hover img,
+[data-skin='proskin'] li.product:hover img {
+	transform: scale(1.06);
+}
+
+/* Precios de ultralujo con tipografía Syne */
+[data-skin='proskin'] .mj-product-price,
+[data-skin='proskin'] .price {
+	font-family: 'Syne', sans-serif !important;
+	font-weight: 700 !important;
+	letter-spacing: -0.02em;
+	color: var(--mj-ink) !important;
+}
+
+[data-skin='proskin'] .mj-product-price ins,
+[data-skin='proskin'] .price ins {
+	text-decoration: none;
+	color: var(--ps-gold) !important;
+	text-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+ * 7. Botones Interactivos y Magnéticos
+ * -------------------------------------------------------------------------- */
+[data-skin='proskin'] .mj-btn-primary,
+.proskin-magnetic-btn {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 14px 28px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	border-radius: var(--mj-radius-btn);
+	background: var(--mj-accent);
+	color: #ffffff !important;
+	text-decoration: none;
+	overflow: hidden;
+	box-shadow: 0 10px 28px -6px color-mix(in srgb, var(--mj-accent) 60%, transparent);
+	transition: transform var(--mj-dur) var(--mj-ease), box-shadow var(--mj-dur) var(--mj-ease);
+	z-index: 1;
+}
+
+/* Reflejo metálico que viaja por el botón al hacer hover */
+[data-skin='proskin'] .mj-btn-primary::after,
+.proskin-magnetic-btn::after {
+	content: '';
+	position: absolute;
+	top: -50%;
+	left: -50%;
+	width: 200%;
+	height: 200%;
+	background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%);
+	pointer-events: none;
+	transform: translateX(-150%) skewX(-20deg);
+}
+
+[data-skin='proskin'] .mj-btn-primary:hover::after,
+.proskin-magnetic-btn:hover::after {
+	animation: proskin-shimmer 1s ease-in-out forwards;
+}
+
+[data-skin='proskin'] .mj-btn-primary:hover,
+.proskin-magnetic-btn:hover {
+	transform: translateY(-3px) scale(1.02);
+	box-shadow: 0 16px 36px -6px color-mix(in srgb, var(--mj-accent) 75%, transparent);
+}
+
+/* Botón secundario Glass */
+[data-skin='proskin'] .mj-btn-secondary {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 14px 28px;
+	font-weight: 600;
+	border-radius: var(--mj-radius-btn);
+	background: var(--mj-surface-2);
+	backdrop-filter: blur(16px);
+	border: 1px solid var(--mj-line-strong);
+	color: var(--mj-ink) !important;
+	transition: transform var(--mj-dur) var(--mj-ease), border-color var(--mj-dur) var(--mj-ease), background-color var(--mj-dur) var(--mj-ease);
+}
+
+[data-skin='proskin'] .mj-btn-secondary:hover {
+	transform: translateY(-3px);
+	border-color: var(--mj-accent);
+	background: color-mix(in srgb, var(--mj-accent) 12%, var(--mj-surface-2));
+	color: var(--mj-ink) !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 8. Estilos de Patrones ProSkin (Ventajas VIP y Banner Club)
+ * -------------------------------------------------------------------------- */
+.proskin-advantages-wrap {
+	padding: 40px 0 60px;
+}
+
+.proskin-advantages-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 20px;
+	width: 100%;
+}
+
+.proskin-adv-card {
+	background: var(--mj-surface);
+	border: 1px solid var(--mj-line);
+	border-radius: var(--mj-radius-xl);
+	padding: 28px 24px;
+	backdrop-filter: blur(16px);
+	transition: transform var(--mj-dur) var(--mj-ease), border-color var(--mj-dur) var(--mj-ease), box-shadow var(--mj-dur) var(--mj-ease);
+}
+
+.proskin-adv-card:hover {
+	transform: translateY(-6px);
+	border-color: color-mix(in srgb, var(--mj-accent) 45%, transparent);
+	box-shadow: 0 20px 40px -15px color-mix(in srgb, var(--mj-accent) 25%, transparent);
+}
+
+.proskin-adv-title {
+	font-family: 'Syne', sans-serif;
+	font-size: 1.25rem;
+	font-weight: 700;
+	margin: 14px 0 8px;
+	color: var(--mj-ink);
+}
+
+.proskin-adv-desc {
+	font-size: 0.95rem;
+	line-height: 1.55;
+	color: var(--mj-ink);
+	opacity: 0.78;
+	margin: 0;
+}
+
+/* Banner VIP Club */
+.proskin-vip-banner-wrap {
+	padding: 30px 0 70px;
+}
+
+.proskin-vip-banner-card {
+	position: relative;
+	background: radial-gradient(ellipse at top right, color-mix(in srgb, var(--mj-accent) 35%, transparent) 0%, transparent 65%),
+	            radial-gradient(ellipse at bottom left, rgba(6, 182, 212, 0.25) 0%, transparent 65%),
+	            var(--mj-surface);
+	border: 1px solid color-mix(in srgb, var(--mj-accent) 35%, transparent);
+	border-radius: var(--mj-radius-2xl);
+	padding: 48px;
+	overflow: hidden;
+	box-shadow: 0 30px 70px -25px rgba(0, 0, 0, 0.7);
+}
+
+.proskin-vip-banner-text {
+	max-width: 650px;
+}
+
+.proskin-vip-banner-text h2 {
+	font-family: 'Syne', sans-serif;
+	color: var(--mj-ink);
+	letter-spacing: -0.03em;
+}
+
+/* --------------------------------------------------------------------------
+ * 9. Preguntas Frecuentes & Tipografía de Lujo
+ * -------------------------------------------------------------------------- */
+.proskin-luxury-paragraph {
+	font-size: 1.125rem;
+	line-height: 1.7;
+	color: var(--mj-ink);
+	opacity: 0.88;
+	margin-bottom: 24px;
+}
+
+[data-skin='proskin'] details,
+[data-skin='proskin'] .mj-faq-item {
+	background: var(--mj-surface);
+	border: 1px solid var(--mj-line);
+	border-radius: var(--mj-radius-lg);
+	padding: 20px 24px;
+	margin-bottom: 14px;
+	transition: border-color var(--mj-dur) var(--mj-ease), background var(--mj-dur) var(--mj-ease);
+}
+
+[data-skin='proskin'] details[open],
+[data-skin='proskin'] .mj-faq-item.is-open {
+	border-color: color-mix(in srgb, var(--mj-accent) 50%, transparent);
+	background: var(--mj-surface-2);
+}
+
+/* --------------------------------------------------------------------------
+ * 10. Accesibilidad & Preferencia de Movimiento Reducido
+ * -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+	[data-skin='proskin'] .mj-hero-title-highlight,
+	[data-skin='proskin'] .proskin-gradient-heading,
+	.proskin-badge-pill::before,
+	[data-skin='proskin'] .mj-hero-badge::before {
+		animation: none !important;
+	}
+
+	[data-skin='proskin'] .mj-card,
+	[data-skin='proskin'] .mj-product-card,
+	[data-skin='proskin'] .mj-btn-primary,
+	.proskin-magnetic-btn,
+	.proskin-adv-card {
+		transition: none !important;
+		transform: none !important;
+	}
+}

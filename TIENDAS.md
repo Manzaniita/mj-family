@@ -34,8 +34,9 @@ primero `bundles`; no cambies estados de instalación sin confirmarlos.
 | **GlossyHair** | GlossyHair | Core, Turnos Online, Medios de Pago, Envíos, Optimizador, Fotos Rápidas, Popup, Instagram | **Falta instalar** |
 | **Yamana** | Yamana | Core, Colegas, Medios de Pago, Envíos, Optimizador, Fotos Rápidas, Popup, Instagram | **Falta instalar** |
 | **Jaz Beauty Art** | Jaz Beauty Art | Core, Turnos Online, Fidelidad, Medios de Pago, Envíos, Optimizador, Fotos Rápidas, Popup, Instagram | **Tienda nueva: todo a mano la primera vez** |
+| **MJ ProSkin** | MJ ProSkin | Core, Medios de Pago, Envíos, Optimizador, Fotos Rápidas, Popup, Instagram | **Tienda nueva: subir a mano la primera vez** |
 
-Las cuatro combinaciones llevan el tema padre **MJ Appearance** (instalado, sin activar) y el
+Las combinaciones llevan el tema padre **MJ Appearance** (instalado, sin activar) y el
 tema hijo activo. La composición sale de `bundles` en
 `tools/releases.config.json`, que es lo que `build-releases.ps1` imprime al
 terminar.

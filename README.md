@@ -21,11 +21,12 @@ mantiene el fuente y se preparan los paquetes que reciben las tiendas.
 
 | Tema | Versión del fuente | Función |
 | --- | --- | --- |
-| **MJ Appearance** | 3.31.1 | Tema padre: tienda React, catálogo, carrito, checkout, cuenta, bloques y configuración común. |
+| **MJ Appearance** | 3.35.0 | Tema padre: tienda React, catálogo, carrito, checkout, cuenta, bloques y configuración común. |
 | **GlossyHair** | 1.1.1 | Salón de alisados, reservas y productos; identidad blanco y fucsia. |
 | **Yamana** | 1.1.1 | Tejidos, cursos y Entre Hilos; identidad lino y terracota. |
 | **MJ Atelier** | 1.2.0 | Tienda editorial; identidad marfil y bronce. |
 | **Jaz Beauty Art** | 1.1.0 | Pestañas y cejas, reservas, fidelidad y contenido inicial en borrador. |
+| **MJ ProSkin** | 1.0.0 | Tienda interactiva de ultralujo; cyber luxury, ultravioleta neón y obsidiana con patrones FSE/Gutenberg. |
 
 Los hijos describen su identidad mediante los filtros del padre; no duplican
 su motor. Los ajustes guardados en el panel prevalecen sobre los presets.
@@ -67,7 +68,7 @@ themes/mj-appearance/AGENTS.md     mapa de PHP y tienda React
   inc/                            ajustes, sesión, skins y REST
   react-app/                      fuente React de la tienda
   dist/                           resultado compilado que va a la tienda
-themes/mj-{atelier,glossyhair,yamana,jazbeauty}/
+themes/mj-{atelier,glossyhair,yamana,jazbeauty,proskin}/
 shared/                           originales del código que se copia a plugins
 tools/                            verificar, sincronizar, empaquetar y publicar
 .github/                          Actions, instrucciones y plantilla de PR

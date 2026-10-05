@@ -127,6 +127,20 @@
         "mj-popup",
         "mj-instagram"
       ]
+    },
+    "proskin": {
+      "label": "MJ ProSkin — tienda interactiva de ultralujo con WooCommerce y FSE",
+      "packages": [
+        "mj-core",
+        "mj-appearance",
+        "mj-proskin",
+        "mj-medios-pago",
+        "mj-envios",
+        "mj-optimizador-imagenes",
+        "mj-fotos-rapidas",
+        "mj-popup",
+        "mj-instagram"
+      ]
     }
   }
 }

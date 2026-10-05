@@ -1,0 +1,16 @@
+/*
+Theme Name: MJ ProSkin
+Author: MJ
+Description: Tema innovador, interactivo y de ultralujo para WooCommerce y WordPress. Estética cyber luxury con animaciones fluidas, microinteracciones magnéticas, glassmorphism con brillo dinámico, degradados neón y metálicos, y soporte completo para personalización visual nativa desde Gutenberg y el Personalizador de WordPress.
+Template: mj-appearance
+Version: 1.0.0
+License: GPL-2.0-or-later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: mj-proskin
+Tags: e-commerce, woocommerce, full-site-editing, luxury, animated
+*/
+
+/*
+ * Los estilos de la skin viven en proskin.css (encolado desde functions.php).
+ * Este archivo declara los metadatos del tema hijo.
+ */

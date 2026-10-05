@@ -150,6 +150,16 @@
         "Sha256":  "aba1b1d92abfb4fcdcaa2e9daccdb919de7ed4aeca8875e415921f328b5543de"
     },
     {
+        "Slug":  "mj-proskin",
+        "Name":  "MJ ProSkin",
+        "Type":  "theme",
+        "Version":  "1.0.0",
+        "Parent":  "mj-appearance",
+        "Zip":  "mj-proskin-1.0.0.zip",
+        "SizeKB":  588,
+        "Sha256":  "47be0925c66ff7e7c8f9dc9e02c223e766aa03a0837c70a9ad33bea4551fff45"
+    },
+    {
         "Slug":  "mj-turnos-online",
         "Name":  "MJ Turnos Online",
         "Type":  "plugin",

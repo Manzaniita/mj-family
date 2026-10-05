@@ -358,6 +358,13 @@ a partir de ahí son colores comunes, editables uno por uno. Desmarcando
 Cada hijo declara qué versión del padre necesita (filtro `mj_skin_requires`);
 si se sube un hijo nuevo sobre un padre viejo, aparece un aviso en wp-admin.
 
+Skins incluidas en el repositorio:
+- **MJ Atelier** (`mj-atelier`): estética editorial sobria de alta gama, bronce y papel.
+- **GlossyHair** (`mj-glossyhair`): salón capilar y tratamientos, blanco radiante y fucsia.
+- **Yamana** (`mj-yamana`): tejidos artesanales y proyecto Entre Hilos, terroso y cálido.
+- **Jaz Beauty Art** (`mj-jazbeauty`): pestañas, cejas y Beauty Shop, crema y bordó.
+- **MJ ProSkin** (`mj-proskin`): cyber luxury interactivo, animado y de ultralujo, ultravioleta neón, cian y obsidiana con patrones Gutenberg de alta gama.
+
 ---
 
 <a id="paneles"></a>

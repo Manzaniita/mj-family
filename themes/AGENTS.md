@@ -2,7 +2,7 @@
 
 Aplican [las reglas de la raíz](../AGENTS.md). El motor está en
 [mj-appearance](mj-appearance/AGENTS.md). Los hijos son `mj-atelier`,
-`mj-glossyhair`, `mj-yamana` y `mj-jazbeauty`.
+`mj-glossyhair`, `mj-yamana`, `mj-jazbeauty` y `mj-proskin`.
 
 ## Elegir el lugar del cambio
 
