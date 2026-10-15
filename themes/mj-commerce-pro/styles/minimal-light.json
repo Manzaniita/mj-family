@@ -1,0 +1,56 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 2,
+  "title": "Minimal Boutique (Claro)",
+  "settings": {
+    "color": {
+      "palette": [
+        {
+          "slug": "base",
+          "color": "#fafaf9",
+          "name": "Fondo General (Base)"
+        },
+        {
+          "slug": "surface",
+          "color": "#ffffff",
+          "name": "Superficie de Tarjetas"
+        },
+        {
+          "slug": "contrast",
+          "color": "#1c1917",
+          "name": "Texto Principal (Contraste)"
+        },
+        {
+          "slug": "muted",
+          "color": "#57534e",
+          "name": "Texto Secundario"
+        },
+        {
+          "slug": "primary",
+          "color": "#1c1917",
+          "name": "Color Primario (Acción)"
+        },
+        {
+          "slug": "secondary",
+          "color": "#78716c",
+          "name": "Color Secundario (Acento)"
+        },
+        {
+          "slug": "accent",
+          "color": "#0d9488",
+          "name": "Éxito / Descuento Transferencia"
+        },
+        {
+          "slug": "warning",
+          "color": "#e11d48",
+          "name": "Oferta Relámpago / Urgencia"
+        },
+        {
+          "slug": "border",
+          "color": "#e7e5e4",
+          "name": "Bordes y Divisores"
+        }
+      ]
+    }
+  }
+}

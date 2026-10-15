@@ -30,7 +30,7 @@ primero `bundles`; no cambies estados de instalación sin confirmarlos.
 
 | Tienda | Tema hijo | Plugins | MJ Core |
 | --- | --- | --- | --- |
-| **MJ Importaciones** | MJ Atelier | Core, Dólar, Medios de Pago, Envíos, ERP, Optimizador, Fotos Rápidas, Popup, Instagram | Instalado, con token |
+| **MJ Importaciones** | MJ Commerce Pro (FSE) | Core, Dólar, Medios de Pago, Envíos, ERP, Optimizador, Fotos Rápidas, Popup, Instagram | Instalado, con token |
 | **GlossyHair** | GlossyHair | Core, Turnos Online, Medios de Pago, Envíos, Optimizador, Fotos Rápidas, Popup, Instagram | **Falta instalar** |
 | **Yamana** | Yamana | Core, Colegas, Medios de Pago, Envíos, Optimizador, Fotos Rápidas, Popup, Instagram | **Falta instalar** |
 | **Jaz Beauty Art** | Jaz Beauty Art | Core, Turnos Online, Fidelidad, Medios de Pago, Envíos, Optimizador, Fotos Rápidas, Popup, Instagram | **Tienda nueva: todo a mano la primera vez** |

@@ -27,6 +27,7 @@ mantiene el fuente y se preparan los paquetes que reciben las tiendas.
 | **MJ Atelier** | 1.2.0 | Tienda editorial; identidad marfil y bronce. |
 | **Jaz Beauty Art** | 1.1.0 | Pestañas y cejas, reservas, fidelidad y contenido inicial en borrador. |
 | **MJ ProSkin** | 1.0.0 | Tienda interactiva de ultralujo; cyber luxury, ultravioleta neón y obsidiana con patrones FSE/Gutenberg. |
+| **MJ Commerce Pro** | 1.5.0 | Tema FSE modular y configurable; bloques Gutenberg dedicados, visibilidad universal (dispositivos y roles/capacidades) y checkout profesional. |
 
 Los hijos describen su identidad mediante los filtros del padre; no duplican
 su motor. Los ajustes guardados en el panel prevalecen sobre los presets.

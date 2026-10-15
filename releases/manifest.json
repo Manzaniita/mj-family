@@ -30,6 +30,16 @@
         "Sha256":  "2356fbcde4a815eb800865ea712ee88ccbf73f8195f30f26f3e89e2f057c534e"
     },
     {
+        "Slug":  "mj-commerce-pro",
+        "Name":  "MJ Commerce Pro (FSE + React + AJAX)",
+        "Type":  "theme",
+        "Version":  "1.5.0",
+        "Parent":  null,
+        "Zip":  "mj-commerce-pro-1.5.0.zip",
+        "SizeKB":  63,
+        "Sha256":  "86b8246396933bb674dfc03d7a8177a0035beab5708cae3f8253fa0536212cf8"
+    },
+    {
         "Slug":  "mj-core",
         "Name":  "MJ Core",
         "Type":  "plugin",

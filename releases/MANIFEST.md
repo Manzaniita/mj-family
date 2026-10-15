@@ -1,6 +1,6 @@
 # Versiones publicadas
 
-Generado por `tools/build-releases.ps1` el 2026-10-04 23:49.
+Generado por `tools/build-releases.ps1` el 2026-10-14 22:19.
 En `releases/` queda un solo zip por paquete: el de la versión que está
 hoy en el código. Los de versiones anteriores se borran — las que ya se
 publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
@@ -11,6 +11,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 | --- | --- | --- | ---: | --- |
 | MJ Appearance | 3.35.0 | `mj-appearance-3.35.0.zip` | 627 KB | `1b9c10ea2b5e390a…` |
 | MJ Atelier | 1.2.0 | `mj-atelier-1.2.0.zip` | 608 KB | `b6bae05837c3bdde…` |
+| MJ Commerce Pro (FSE + React + AJAX) | 1.5.0 | `mj-commerce-pro-1.5.0.zip` | 63 KB | `86b8246396933bb6…` |
 | GlossyHair | 1.1.1 | `mj-glossyhair-1.1.1.zip` | 90 KB | `b3ce71f5dd1706d9…` |
 | Jaz Beauty Art | 1.1.1 | `mj-jazbeauty-1.1.1.zip` | 15 KB | `bc686fddbe5984d2…` |
 | MJ ProSkin | 1.0.0 | `mj-proskin-1.0.0.zip` | 588 KB | `47be0925c66ff7e7…` |
@@ -39,6 +40,7 @@ publicaron siguen colgadas de su etiqueta en las Releases de GitHub.
 1b9c10ea2b5e390a4003b62f45ae63ea4549615fb1b977ba6015b8c91e0b0a37  mj-appearance-3.35.0.zip
 b6bae05837c3bddecbf31a37851a2eb3b40f7bf094978d4f659566891a49b34b  mj-atelier-1.2.0.zip
 2356fbcde4a815eb800865ea712ee88ccbf73f8195f30f26f3e89e2f057c534e  mj-colegas-1.1.0.zip
+86b8246396933bb674dfc03d7a8177a0035beab5708cae3f8253fa0536212cf8  mj-commerce-pro-1.5.0.zip
 12d5c43a2b9386d2e40816553b32f607f2f429b21541ad0e7b65506e3a4a2f09  mj-core-1.1.0.zip
 f671bf6df885cd201f0f6e06ee52c3ef09e2a1c34c9e08d4a36fe050b83bf6ee  mj-dolar-1.2.0.zip
 fcb23753edbe459d5d574c677b07f8814b22d185fd7ea4c4d121f4789f80edc5  mj-envios-1.11.4.zip

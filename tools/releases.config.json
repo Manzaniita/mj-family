@@ -141,6 +141,21 @@
         "mj-popup",
         "mj-instagram"
       ]
+    },
+    "importaciones": {
+      "label": "MJ Importaciones — tienda de importados y tecnología con MJ Commerce Pro FSE",
+      "packages": [
+        "mj-core",
+        "mj-commerce-pro",
+        "mj-dolar",
+        "mj-medios-pago",
+        "mj-envios",
+        "mj-erp",
+        "mj-optimizador-imagenes",
+        "mj-fotos-rapidas",
+        "mj-popup",
+        "mj-instagram"
+      ]
     }
   }
 }

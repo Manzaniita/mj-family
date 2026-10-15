@@ -1,0 +1,1566 @@
+/**
+ * MJ Commerce Pro v1.2.0 - Sistema de Diseño para Buscador Pro, Tarjetas Configurables y Motor Sticky
+ */
+
+/* ==========================================================================
+   1. BUSCADOR EN VIVO AJAX PRO (MODERNO Y EMPRESARIAL)
+   ========================================================================== */
+.mj-ajax-search-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+.mj-ajax-search-form {
+    display: flex;
+    align-items: center;
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 2px solid var(--mj-search-accent, var(--wp--preset--color--primary, #2563eb));
+    border-radius: 999px;
+    padding-left: 1rem;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(37, 99, 235, 0.08);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.mj-ajax-search-form:focus-within {
+    box-shadow: 0 8px 26px rgba(37, 99, 235, 0.18);
+}
+
+.mj-search-icon-prefix {
+    display: inline-flex;
+    align-items: center;
+    color: var(--wp--preset--color--muted, #64748b);
+    margin-right: 0.4rem;
+}
+
+.mj-ajax-search-input {
+    flex: 1;
+    border: none;
+    padding: 0.78rem 0.5rem;
+    font-size: 0.95rem;
+    background: transparent;
+    color: var(--wp--preset--color--contrast, #0f172a);
+    outline: none;
+    min-width: 0;
+}
+
+.mj-search-clear-btn {
+    background: transparent;
+    border: none;
+    color: var(--wp--preset--color--muted, #64748b);
+    cursor: pointer;
+    padding: 0 0.6rem;
+    font-size: 0.95rem;
+}
+
+.mj-ajax-search-btn {
+    background: var(--mj-search-accent, var(--wp--preset--color--primary, #2563eb));
+    color: #ffffff;
+    border: none;
+    align-self: stretch;
+    padding: 0 1.45rem;
+    font-weight: 700;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+
+.mj-ajax-search-btn:hover {
+    filter: brightness(1.08);
+}
+
+.mj-ajax-search-results {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    border-radius: 16px;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+    z-index: 9999;
+    max-height: 480px;
+    overflow-y: auto;
+    padding: 0.75rem;
+}
+
+.mj-search-loading,
+.mj-search-empty {
+    padding: 1.25rem;
+    text-align: center;
+    font-size: 0.92rem;
+    color: var(--wp--preset--color--muted, #475569);
+}
+
+.mj-search-section-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--wp--preset--color--muted, #64748b);
+    padding: 0.25rem 0.5rem 0.45rem;
+}
+
+.mj-search-tax-section {
+    padding-bottom: 0.65rem;
+    margin-bottom: 0.65rem;
+    border-bottom: 1px solid var(--wp--preset--color--border, #e2e8f0);
+}
+
+.mj-search-tax-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    padding: 0 0.35rem;
+}
+
+.mj-search-tax-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: var(--wp--preset--color--base, #f8fafc);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    color: var(--wp--preset--color--contrast, #0f172a);
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.mj-search-tax-chip:hover {
+    border-color: var(--mj-search-accent, #2563eb);
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.mj-chip-type {
+    color: var(--wp--preset--color--muted, #64748b);
+    font-size: 0.72rem;
+}
+
+.mj-chip-count {
+    color: var(--wp--preset--color--muted, #64748b);
+    font-size: 0.72rem;
+}
+
+.mj-search-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.65rem;
+    border-radius: 12px;
+    transition: background 0.15s ease;
+}
+
+.mj-search-item-row:hover {
+    background: var(--wp--preset--color--base, #f8fafc);
+}
+
+.mj-search-item-link {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex: 1;
+    min-width: 0;
+    text-decoration: none;
+    color: var(--wp--preset--color--contrast, #0f172a);
+}
+
+.mj-search-thumb,
+.mj-search-thumb-placeholder {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    object-fit: contain;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mj-search-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.mj-search-badges-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.15rem;
+}
+
+.mj-search-cat-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--mj-search-accent, #2563eb);
+}
+
+.mj-search-stock-tag {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    color: #ffffff;
+}
+
+.mj-search-stock-tag.is-oos {
+    background: #dc2626;
+}
+
+.mj-search-stock-tag.is-sale {
+    background: #ea580c;
+}
+
+.mj-search-title {
+    font-weight: 700;
+    font-size: 0.92rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mj-search-sku {
+    font-size: 0.73rem;
+    color: var(--wp--preset--color--muted, #64748b);
+}
+
+.mj-search-right-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.22rem;
+    flex-shrink: 0;
+}
+
+.mj-search-price {
+    font-weight: 800;
+    font-size: 0.98rem;
+    color: var(--wp--preset--color--contrast, #0f172a);
+}
+
+.mj-search-transfer {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #15803d;
+    background: #dcfce7;
+    padding: 0.12rem 0.45rem;
+    border-radius: 5px;
+}
+
+.mj-search-quickadd-btn {
+    background: var(--mj-search-accent, #2563eb);
+    color: #ffffff;
+    border: none;
+    border-radius: 7px;
+    padding: 0.32rem 0.68rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease;
+}
+
+.mj-search-quickadd-btn:hover {
+    transform: translateY(-1px);
+}
+
+.mj-search-quickadd-btn.is-added {
+    background: #16a34a !important;
+}
+
+.mj-search-oos-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #dc2626;
+}
+
+.mj-search-view-all {
+    display: block;
+    text-align: center;
+    padding: 0.65rem;
+    margin-top: 0.4rem;
+    border-top: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--mj-search-accent, #2563eb);
+    text-decoration: none;
+}
+
+/* ==========================================================================
+   2. TARJETAS DE PRODUCTO CONFIGURABLES (BADGES + PRECIOS MULTIMÉTODO)
+   ========================================================================== */
+.mj-products-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--mj-grid-cols, 4), minmax(0, 1fr));
+    gap: 1.5rem;
+}
+
+@media (max-width: 960px) {
+    .mj-products-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .mj-products-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mj-product-card {
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    border-radius: 16px;
+    padding: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mj-product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+}
+
+.mj-product-card.is-out-of-stock .mj-card-thumb img {
+    opacity: 0.55;
+    filter: grayscale(35%);
+}
+
+.mj-card-media-wrap {
+    position: relative;
+}
+
+.mj-card-badges {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.mj-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.28rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.mj-card-thumb img {
+    width: 100%;
+    height: 210px;
+    object-fit: contain;
+    border-radius: 10px;
+}
+
+.mj-card-eyebrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.73rem;
+    color: var(--wp--preset--color--muted, #64748b);
+    margin-top: 0.65rem;
+}
+
+.mj-card-cat {
+    font-weight: 700;
+    color: var(--wp--preset--color--primary, #2563eb);
+}
+
+.mj-card-title {
+    font-size: 0.98rem;
+    margin: 0.4rem 0 0.5rem;
+    line-height: 1.35;
+}
+
+.mj-card-title a {
+    text-decoration: none;
+    color: var(--wp--preset--color--contrast, #0f172a);
+}
+
+.mj-card-price {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--wp--preset--color--contrast, #0f172a);
+    margin-bottom: 0.5rem;
+}
+
+.mj-card-payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+}
+
+.mj-card-pay-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    line-height: 1.25;
+}
+
+.mj-pay-pct {
+    font-weight: 800;
+    font-size: 0.72rem;
+    padding: 0.12rem 0.38rem;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.08);
+    white-space: nowrap;
+}
+
+.mj-card-inst-line {
+    font-size: 0.78rem;
+    padding-top: 0.15rem;
+}
+
+.mj-btn-card {
+    width: 100%;
+    background: var(--wp--preset--color--primary, #2563eb);
+    color: #ffffff !important;
+    padding: 0.7rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.mj-btn-card.is-added {
+    background: #16a34a !important;
+}
+
+.mj-btn-card.is-disabled {
+    background: #94a3b8 !important;
+    cursor: not-allowed;
+}
+
+/* ==========================================================================
+   3. HERO, TRUST BAR, CALCULADOR ARGENTINO Y CATEGORÍAS
+   ========================================================================== */
+.mj-hero-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    padding: 3.5rem 2rem;
+    color: #ffffff;
+    text-align: center;
+    margin: 1.5rem 0;
+}
+
+.mj-hero-inner { max-width: 820px; }
+.mj-hero-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.16);
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+}
+.mj-hero-title { font-size: clamp(2rem, 4vw, 3.2rem); margin: 0 0 1rem; color: #ffffff; }
+.mj-hero-subtitle { font-size: 1.125rem; opacity: 0.92; margin: 0 0 2rem; }
+.mj-hero-actions { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
+
+.mj-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.85rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 700;
+    text-decoration: none;
+}
+.mj-btn-primary { background: var(--wp--preset--color--primary, #2563eb); color: #ffffff; }
+.mj-btn-outline { background: rgba(255, 255, 255, 0.12); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.4); }
+
+.mj-trust-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+}
+.mj-trust-item { display: flex; align-items: center; gap: 0.9rem; }
+.mj-trust-icon { font-size: 1.85rem; }
+.mj-trust-text { display: flex; flex-direction: column; }
+.mj-trust-text strong { font-size: 0.95rem; }
+.mj-trust-text span { font-size: 0.82rem; color: var(--wp--preset--color--muted, #475569); }
+
+.mj-arg-calc { display: flex; flex-direction: column; gap: 0.65rem; margin: 0.75rem 0; }
+.mj-calc-inline-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.mj-arg-transfer-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid rgba(22, 163, 74, 0.3);
+    border-radius: 12px;
+    padding: 0.7rem 0.95rem;
+}
+.mj-arg-discount-badge {
+    font-weight: 800;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+.mj-arg-transfer-details { display: flex; flex-direction: column; }
+.mj-arg-transfer-price { font-size: 1.2rem; font-weight: 800; }
+.mj-arg-transfer-label { font-size: 0.78rem; color: var(--wp--preset--color--muted, #475569); }
+.mj-arg-installments-box {
+    font-size: 0.88rem;
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    border-radius: 10px;
+    padding: 0.55rem 0.85rem;
+}
+.mj-arg-wa-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #25D366;
+    color: #ffffff !important;
+    font-weight: 700;
+    padding: 0.75rem 1.25rem;
+    border-radius: 10px;
+    text-decoration: none;
+}
+
+.mj-flash-deals-section, .mj-category-grid-section, .mj-ajax-catalog-wrap { margin: 2.5rem 0; }
+.mj-flash-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.mj-section-title { margin: 0; font-size: 1.65rem; }
+.mj-countdown-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--wp--preset--color--warning, #ea580c);
+    color: #ffffff;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.mj-category-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--mj-grid-cols, 4), minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.25rem;
+}
+@media (max-width: 780px) { .mj-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.mj-cat-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.5rem;
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--wp--preset--color--contrast, #0f172a);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.mj-cat-card:hover { border-color: var(--wp--preset--color--primary, #2563eb); transform: translateY(-3px); }
+.mj-cat-name { font-weight: 700; font-size: 1.05rem; }
+.mj-cat-count { font-size: 0.82rem; color: var(--wp--preset--color--muted, #64748b); margin-top: 0.25rem; }
+
+.mj-ajax-filter-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0 1.5rem; }
+.mj-cat-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.mj-cat-pill {
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    color: var(--wp--preset--color--contrast, #0f172a);
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.mj-cat-pill.is-active { background: var(--wp--preset--color--primary, #2563eb); border-color: var(--wp--preset--color--primary, #2563eb); color: #ffffff; }
+.mj-extra-filters { display: flex; align-items: center; gap: 1rem; }
+.mj-ajax-sort-select { padding: 0.45rem 0.85rem; border-radius: 8px; border: 1px solid var(--wp--preset--color--border, #e2e8f0); background: var(--wp--preset--color--surface, #ffffff); }
+
+/* ==========================================================================
+   4. MOTOR UNIVERSAL STICKY ARRIBA / ABAJO Y BARRA MÓVIL INFERIOR
+   ========================================================================== */
+.mj-has-sticky {
+    z-index: var(--mj-sticky-z, 90);
+}
+
+.wp-block-column.mj-pos-sticky-top {
+    position: sticky;
+    top: var(--mj-sticky-offset, 0px);
+    align-self: flex-start;
+}
+
+.wp-block-column.mj-pos-sticky-bottom {
+    position: sticky;
+    bottom: var(--mj-sticky-offset, 0px);
+    align-self: flex-end;
+}
+
+body.admin-bar .wp-block-column.mj-pos-sticky-top {
+    top: calc(var(--mj-sticky-offset, 0px) + 32px);
+}
+
+.mj-sticky-glass.is-mj-pinned,
+.wp-block-column.mj-sticky-glass {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    background-color: rgba(255, 255, 255, 0.92) !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+}
+
+.mj-mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 995;
+    background: var(--mj-nav-bg, #ffffff);
+    color: var(--mj-nav-text, #0f172a);
+    border-top: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
+    padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+    display: none;
+}
+
+.mj-mobile-bottom-nav.is-glass {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+@media (max-width: 960px) {
+    .mj-mobile-bottom-nav { display: block; }
+}
+.mj-mobile-bottom-nav.is-visible-desktop { display: block; }
+
+.block-editor-page .mj-mobile-bottom-nav,
+.editor-styles-wrapper .mj-mobile-bottom-nav {
+    position: relative !important;
+    display: block !important;
+    margin-top: 1rem;
+    border-radius: 14px;
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+}
+
+.mj-mobile-bottom-nav-inner { display: flex; align-items: center; justify-content: space-around; max-width: 560px; margin: 0 auto; }
+.mj-mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--mj-nav-text, #0f172a);
+    padding: 0.25rem 0.5rem;
+    gap: 0.15rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+.mj-mobile-nav-icon-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.mj-mobile-nav-icon { font-size: 1.3rem; line-height: 1; }
+.mj-mobile-nav-badge {
+    position: absolute;
+    top: -5px;
+    right: -10px;
+    background: var(--mj-nav-accent, #2563eb);
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    min-width: 17px;
+    height: 17px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+.mj-mobile-search-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10005;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 1rem;
+}
+.mj-mobile-search-modal[hidden] { display: none !important; }
+.mj-mobile-search-modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); }
+.mj-mobile-search-modal-sheet {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 600px;
+    background: var(--wp--preset--color--surface, #ffffff);
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin-top: 2rem;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
+}
+.mj-mobile-search-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; }
+.mj-mobile-search-close { background: transparent; border: none; font-size: 1.25rem; cursor: pointer; }
+
+/* Corrección de jerarquía Z-Index para que ningún bloque ni columna del contenido pase por encima del Header */
+header.wp-block-template-part,
+.wp-site-blocks > header {
+    position: relative;
+    z-index: 1050 !important;
+}
+
+header .mj-has-sticky.is-mj-pinned {
+    z-index: 1050 !important;
+}
+
+main .mj-has-sticky,
+main .wp-block-column.mj-has-sticky {
+    z-index: 25 !important;
+}
+
+/* Quitar la doble X nativa de Chrome/Edge en el input de búsqueda */
+.mj-ajax-search-input::-webkit-search-cancel-button,
+.mj-ajax-search-input::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+}
+
+/* Barra superior de filtro "Solo con stock" dentro del desplegable del buscador */
+.mj-search-top-filter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.35rem 0.6rem 0.55rem;
+    margin-bottom: 0.45rem;
+    border-bottom: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    font-size: 0.78rem;
+    color: var(--wp--preset--color--muted, #475569);
+}
+
+.mj-search-stock-Check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 700;
+    color: var(--wp--preset--color--contrast, #0f172a);
+    cursor: pointer;
+}
+
+.mj-sale-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+}
+
+/* ==========================================================================
+   5. SISTEMA DE TOKENS VISUALES GLOBALES: AZUL, CIAN, AGUA Y REDONDEADOS
+   ========================================================================== */
+:root {
+    --mj-color-primary: #0284c7;
+    --mj-color-secondary: #0ea5e9;
+    --mj-color-aqua: #06b6d4;
+    --mj-color-surface: #ffffff;
+    --mj-color-surface-alt: #e0f2fe;
+    --mj-color-contrast: #0c1a2e;
+    --mj-color-border: #dbeafe;
+    --mj-radius-sm: 8px;
+    --mj-radius-md: 14px;
+    --mj-radius-lg: 18px;
+    --mj-radius-pill: 9999px;
+    --mj-shadow-card: 0 8px 24px -4px rgba(14, 165, 233, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    --mj-shadow-hover: 0 16px 36px -6px rgba(14, 165, 233, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+    --mj-gradient-blue-cyan: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
+    --mj-gradient-aqua-ice: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%);
+}
+
+/* Homogeneización de Tarjetas de Producto en Toda la Tienda */
+.mj-product-card,
+.wc-block-grid__product,
+.wp-block-woocommerce-product-template > li,
+ul.products li.product {
+    background: var(--mj-color-surface, #ffffff);
+    border: 1px solid var(--mj-color-border, #dbeafe) !important;
+    border-radius: var(--mj-radius-lg, 18px) !important;
+    padding: 1.15rem !important;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease !important;
+    box-shadow: var(--mj-shadow-card) !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.mj-product-card:hover,
+.wc-block-grid__product:hover,
+.wp-block-woocommerce-product-template > li:hover,
+ul.products li.product:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: var(--mj-shadow-hover) !important;
+    border-color: var(--mj-color-secondary, #0ea5e9) !important;
+}
+
+.mj-card-thumb img,
+.wc-block-grid__product-image img,
+ul.products li.product img {
+    border-radius: var(--mj-radius-md, 14px) !important;
+    transition: transform 0.3s ease;
+}
+
+.mj-product-card:hover .mj-card-thumb img {
+    transform: scale(1.02);
+}
+
+.mj-badge {
+    border-radius: var(--mj-radius-pill, 9999px) !important;
+    font-size: 0.72rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.04em !important;
+}
+
+.mj-card-pay-pill {
+    background: var(--mj-gradient-aqua-ice) !important;
+    border: 1px solid rgba(6, 182, 212, 0.25) !important;
+    border-radius: var(--mj-radius-sm, 8px) !important;
+    color: #0369a1 !important;
+}
+
+.mj-btn-card {
+    background: var(--mj-gradient-blue-cyan) !important;
+    border-radius: var(--mj-radius-md, 12px) !important;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25) !important;
+    transition: all 0.2s ease !important;
+}
+
+.mj-btn-card:hover {
+    filter: brightness(1.08) !important;
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.35) !important;
+}
+
+/* ==========================================================================
+   6. CHECKOUT EN 3 PASOS MODULAR (100% CONFIGURABLE)
+   ========================================================================== */
+.mj-multistep-checkout-wrap {
+    width: 100%;
+    max-width: 1240px;
+    margin: 0 auto;
+}
+
+/* Barra de Pasos */
+.mj-checkout-steps-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.mj-step-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #ffffff;
+    border: 1.5px solid var(--wp--preset--color--border, #dbeafe);
+    padding: 0.65rem 1.4rem;
+    border-radius: var(--mj-radius-pill, 9999px);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    text-align: left;
+}
+
+.mj-step-pill:hover {
+    border-color: var(--mj-co-accent, #0284c7);
+    background: #f8fafc;
+}
+
+.mj-step-pill.is-active {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-color: var(--mj-co-accent, #0284c7);
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.18);
+}
+
+.mj-step-pill.is-completed {
+    border-color: #10b981;
+    background: #ecfdf5;
+}
+
+.mj-step-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    font-weight: 800;
+    transition: all 0.2s ease;
+}
+
+.mj-step-pill.is-active .mj-step-badge {
+    background: var(--mj-co-accent, #0284c7);
+    color: #ffffff;
+}
+
+.mj-step-pill.is-completed .mj-step-badge {
+    background: #10b981;
+    color: #ffffff;
+}
+
+.mj-step-check {
+    display: none;
+}
+
+.mj-step-pill.is-completed .mj-step-icon {
+    display: none;
+}
+
+.mj-step-pill.is-completed .mj-step-check {
+    display: inline;
+}
+
+.mj-step-meta {
+    display: flex;
+    flex-direction: column;
+}
+
+.mj-step-kicker {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+}
+
+.mj-step-name {
+    font-size: 0.92rem;
+    color: var(--wp--preset--color--contrast, #0c1a2e);
+}
+
+.mj-step-arrow {
+    color: #94a3b8;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+/* Banner de Confianza */
+.mj-checkout-trust-banner {
+    text-align: center;
+    background: var(--mj-gradient-aqua-ice);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: var(--mj-radius-md, 14px);
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 2rem;
+    color: #0369a1;
+    font-size: 0.88rem;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(6, 182, 212, 0.06);
+}
+
+/* Grilla del Checkout: Formulario + Sidebar */
+.mj-checkout-layout-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+@media (min-width: 960px) {
+    .mj-checkout-layout-grid.has-sidebar {
+        grid-template-columns: 1.6fr 1fr;
+    }
+}
+
+/* Paneles de Pasos */
+.mj-step-panel {
+    display: none;
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #dbeafe);
+    border-radius: var(--mj-radius-lg, 18px);
+    padding: 2.25rem;
+    box-shadow: var(--mj-shadow-card);
+    animation: mjFadeIn 0.25s ease;
+}
+
+.mj-step-panel.is-active {
+    display: block;
+}
+
+@keyframes mjFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mj-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.75rem;
+    border-bottom: 1px solid var(--wp--preset--color--border, #dbeafe);
+}
+
+.mj-panel-icon {
+    font-size: 1.85rem;
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, #e0f2fe 0%, #ecfeff 100%);
+    border-radius: var(--mj-radius-md, 14px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.mj-panel-title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--wp--preset--color--contrast, #0c1a2e);
+}
+
+.mj-panel-subtitle {
+    margin: 0.25rem 0 0;
+    font-size: 0.88rem;
+    color: var(--wp--preset--color--muted, #64748b);
+}
+
+/* Opciones de Envío en Tarjetas Redondeadas */
+.mj-shipping-card-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin: 1.25rem 0;
+}
+
+.mj-shipping-option-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.15rem 1.35rem;
+    border: 1.5px solid var(--wp--preset--color--border, #dbeafe);
+    border-radius: var(--mj-radius-md, 14px);
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mj-shipping-option-card:hover {
+    border-color: var(--mj-co-accent, #0284c7);
+    background: #f8fafc;
+}
+
+.mj-shipping-option-card.is-selected {
+    border-color: var(--mj-co-accent, #0284c7);
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.12);
+}
+
+.mj-shipping-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--wp--preset--color--contrast, #0c1a2e);
+}
+
+/* Navegación al pie de cada paso */
+.mj-step-nav-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--wp--preset--color--border, #dbeafe);
+}
+
+.mj-step-nav-footer button {
+    border-radius: var(--mj-radius-md, 12px);
+    padding: 0.85rem 1.65rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+/* Sidebar Resumen de Compra */
+.mj-checkout-summary-card {
+    position: sticky;
+    top: 96px;
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #dbeafe);
+    border-radius: var(--mj-radius-lg, 18px);
+    padding: 1.75rem;
+    box-shadow: var(--mj-shadow-card);
+}
+
+.mj-summary-title {
+    margin: 0 0 1.25rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--wp--preset--color--contrast, #0c1a2e);
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--wp--preset--color--border, #dbeafe);
+}
+
+.mj-summary-lines {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mj-summary-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px dashed var(--wp--preset--color--border, #dbeafe);
+    font-size: 0.92rem;
+}
+
+.mj-summary-line.is-total {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--wp--preset--color--contrast, #0c1a2e);
+    border-bottom: none;
+    padding-top: 1.1rem;
+}
+
+.mj-summary-secure-badge {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--wp--preset--color--border, #dbeafe);
+    font-size: 0.82rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+/* Estilos de Campos de Formulario Redondeados en Checkout */
+.woocommerce-checkout input[type="text"],
+.woocommerce-checkout input[type="email"],
+.woocommerce-checkout input[type="tel"],
+.woocommerce-checkout input[type="password"],
+.woocommerce-checkout select,
+.woocommerce-checkout textarea {
+    border-radius: var(--mj-radius-md, 12px) !important;
+    border: 1.5px solid var(--wp--preset--color--border, #dbeafe) !important;
+    padding: 0.82rem 1.1rem !important;
+    font-size: 0.95rem !important;
+    transition: all 0.2s ease !important;
+    background: #ffffff !important;
+}
+
+.woocommerce-checkout input:focus,
+.woocommerce-checkout select:focus,
+.woocommerce-checkout textarea:focus {
+    border-color: var(--mj-color-primary, #0284c7) !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+    outline: none !important;
+}
+
+.mj-field-error input,
+.woocommerce-invalid input {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+
+/* ==========================================================================
+   7. MINI-CARRITO ELEGANTE Y REDONDEADO (WOOCOMMERCE MINI-CART DRAWER)
+   ========================================================================== */
+.wc-block-mini-cart__drawer {
+    border-radius: 24px 0 0 24px !important;
+    box-shadow: -12px 0 40px rgba(12, 26, 46, 0.15) !important;
+    border-left: 1px solid var(--wp--preset--color--border, #dbeafe) !important;
+}
+
+.wc-block-mini-cart__button {
+    border-radius: var(--mj-radius-pill, 9999px) !important;
+    background: var(--wp--preset--color--surface, #ffffff) !important;
+    border: 1px solid var(--wp--preset--color--border, #dbeafe) !important;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.wc-block-mini-cart__button:hover {
+    border-color: var(--mj-color-primary, #0284c7) !important;
+    background: #f0f9ff !important;
+}
+
+.wc-block-mini-cart__badge {
+    background: var(--mj-gradient-blue-cyan) !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    border-radius: var(--mj-radius-pill, 9999px) !important;
+}
+
+.wc-block-mini-cart__shopping-button,
+.wc-block-mini-cart__view-cart-button,
+.wc-block-components-checkout-button {
+    border-radius: var(--mj-radius-md, 12px) !important;
+    font-weight: 700 !important;
+    transition: all 0.2s ease !important;
+}
+
+.wc-block-components-checkout-button {
+    background: var(--mj-gradient-blue-cyan) !important;
+    color: #ffffff !important;
+}
+
+.wc-block-components-checkout-button:hover {
+    filter: brightness(1.08) !important;
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.3) !important;
+}
+
+/* ==========================================================================
+   8. SINGLE PRODUCT (FICHA DE PRODUCTO INDIVIDUAL ELEGANTE)
+   ========================================================================== */
+.single-product .woocommerce-product-gallery img {
+    border-radius: var(--mj-radius-lg, 18px) !important;
+    box-shadow: var(--mj-shadow-card) !important;
+}
+
+.single-product .wp-block-column.mj-pos-sticky-top {
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #dbeafe);
+    border-radius: var(--mj-radius-lg, 20px);
+    padding: 2.25rem;
+    box-shadow: var(--mj-shadow-card);
+}
+
+.single-product form.cart {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.single-product form.cart .quantity input.qty {
+    border-radius: var(--mj-radius-pill, 9999px) !important;
+    border: 1.5px solid var(--wp--preset--color--border, #dbeafe) !important;
+    padding: 0.65rem 1rem !important;
+    font-weight: 700 !important;
+    font-size: 1.1rem !important;
+    text-align: center;
+}
+
+.single-product form.cart .single_add_to_cart_button {
+    background: var(--mj-gradient-blue-cyan) !important;
+    border-radius: var(--mj-radius-md, 14px) !important;
+    padding: 0.85rem 2rem !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.25) !important;
+    transition: all 0.2s ease !important;
+}
+
+.single-product form.cart .single_add_to_cart_button:hover {
+    filter: brightness(1.08) !important;
+    box-shadow: 0 8px 26px rgba(2, 132, 199, 0.35) !important;
+}
+
+/* Tarjeta vacía de checkout */
+.mj-empty-checkout-card {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: #ffffff;
+    border: 1px solid var(--wp--preset--color--border, #dbeafe);
+    border-radius: var(--mj-radius-lg, 20px);
+    max-width: 600px;
+    margin: 2rem auto;
+    box-shadow: var(--mj-shadow-card);
+}
+
+.mj-empty-checkout-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+}
+
+/* ==========================================================================
+   6. CONTROL UNIVERSAL DE VISIBILIDAD EN PANTALLAS (RESPONSIVE)
+   ========================================================================== */
+@media (max-width: 767px) {
+    .mj-hide-mobile {
+        display: none !important;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    .mj-hide-tablet {
+        display: none !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    .mj-hide-desktop {
+        display: none !important;
+    }
+}
+
+/* ==========================================================================
+   7. BLOQUES DE LA FAMILIA MJ (DÓLAR, ERP, MEDIOS DE PAGO, ENVÍOS, TURNOS)
+   ========================================================================== */
+
+/* MJ Dólar Ticker / Píldora / Card */
+.mj-dolar-ticker-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.3;
+    padding: 0.45rem 1rem;
+    border-radius: var(--mj-radius-sm, 8px);
+    transition: all 0.2s ease;
+    text-decoration: none !important;
+}
+
+.mj-dolar-ticker-wrap.is-bar {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    padding: 0.5rem 1.25rem;
+}
+
+.mj-dolar-ticker-wrap.is-pill {
+    display: inline-flex;
+    border-radius: var(--mj-radius-pill, 9999px);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    padding: 0.35rem 0.95rem;
+}
+
+.mj-dolar-ticker-wrap.is-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.5rem;
+    border-radius: var(--mj-radius-lg, 16px);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    box-shadow: var(--mj-shadow-card, 0 4px 14px rgba(0, 0, 0, 0.05));
+    gap: 0.5rem;
+}
+
+.mj-dolar-rate-val {
+    font-weight: 800;
+    font-feature-settings: "tnum";
+    letter-spacing: -0.01em;
+}
+
+.mj-dolar-badge-usd {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: #dcfce7;
+    color: #15803d;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    margin-left: 0.4rem;
+}
+
+/* MJ ERP Launcher */
+.mj-erp-launcher-wrap {
+    margin: 0.5rem 0;
+    display: inline-block;
+}
+
+.mj-erp-launcher-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 1.4rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-radius: var(--mj-radius-md, 12px);
+    text-decoration: none !important;
+    transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.mj-erp-launcher-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+}
+
+.mj-erp-launcher-card {
+    padding: 1.5rem;
+    border-radius: var(--mj-radius-lg, 16px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    text-decoration: none !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+}
+
+.mj-erp-launcher-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--mj-shadow-card, 0 8px 24px rgba(0, 0, 0, 0.08));
+}
+
+.mj-erp-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+}
+
+/* MJ Medios de Pago Grid */
+.mj-payment-grid-wrap {
+    margin: 1.75rem 0;
+}
+
+.mj-payment-grid-header {
+    margin-bottom: 1.25rem;
+}
+
+.mj-payment-grid-header h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+}
+
+.mj-payment-grid-header p {
+    margin: 0;
+    color: var(--wp--preset--color--muted, #64748b);
+    font-size: 0.92rem;
+}
+
+.mj-payment-grid {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.mj-payment-card {
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    border-radius: var(--mj-radius-md, 14px);
+    padding: 1.35rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mj-payment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.mj-payment-card-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.mj-payment-card-title {
+    font-weight: 800;
+    font-size: 1.05rem;
+    margin: 0 0 0.35rem;
+}
+
+.mj-payment-card-desc {
+    font-size: 0.88rem;
+    color: var(--wp--preset--color--muted, #64748b);
+    margin: 0;
+    line-height: 1.45;
+}
+
+.mj-payment-card-badge {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+}
+
+/* MJ Shipping Calculator */
+.mj-shipping-calc-card {
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+    border-radius: var(--mj-radius-md, 14px);
+    padding: 1.5rem;
+    margin: 1.25rem 0;
+}
+
+.mj-shipping-calc-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+}
+
+.mj-shipping-calc-input {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--wp--preset--color--border, #cbd5e1);
+    border-radius: var(--mj-radius-sm, 8px);
+    font-size: 0.95rem;
+}
+
+.mj-shipping-calc-btn {
+    padding: 0.7rem 1.4rem;
+    border: none;
+    border-radius: var(--mj-radius-sm, 8px);
+    background: var(--mj-color-primary, #0284c7);
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+
+.mj-shipping-calc-btn:hover {
+    filter: brightness(1.1);
+}
+
+/* MJ Turnos Embed */
+.mj-turnos-embed-wrap {
+    margin: 1.75rem 0;
+    padding: 1.5rem;
+    border-radius: var(--mj-radius-lg, 16px);
+    background: var(--wp--preset--color--surface, #ffffff);
+    border: 1px solid var(--wp--preset--color--border, #e2e8f0);
+}
+
+
